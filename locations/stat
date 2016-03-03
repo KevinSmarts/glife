@@ -389,11 +389,19 @@ if VAF > 200: VAF = 200
 if SUB >= DOM and DOM > 0:SUB = SUB - DOM & DOM = 0
 if DOM >= SUB and SUB > 0:DOM = DOM - SUB & SUB = 0
 
-if horny < 0:horny = 0
-if health > vital * 10 + stren * 5:health = vital * 10 + stren * 5
-if willpower > intel * 5 + will * 5:willpower = intel * 5 + will * 5
-if manna > (intel * magik) + magik * 100 + vital * 10 + rikudo:manna = intel * magik + magik * 100 + vital * 10 + rikudo
+healthmax = (vital*10 + stren*5)
+willpowermax = (intel*5 + will*5)
 mannamax = (intel * magik) + magik * 100 + vital * 10 + rikudo
+if healthmax<1:healthmax=1
+if willpowermax<1:willpowermax=1
+if mannamax<1:mannamax=1
+!pre-calc max value for later display
+if fairycurse >= daystart: horny = 90
+if Enable_lockhorny > 0:horny = Enable_lockhorny-1
+if horny < 0:horny = 0
+if health > healthmax:health = healthmax
+if willpower > willpowermax:willpower = willpowermax
+if manna > mannamax:manna = mannamax
 !!musle = strenbuf + vitalbuf
 
 !!!!!!!!!!!
@@ -402,7 +410,6 @@ mannamax = (intel * magik) + magik * 100 + vital * 10 + rikudo
 
 
 ! WD: totminut fix ~ Calculates total minutes since NYE 2000
-
 if nminut ! minut:
 	! Zero totminut will be at New Years Eve of 2015
 
@@ -490,7 +497,7 @@ end
 if minut >= 60:
 	:loopmin
 	if SbrosNerdism = 1:nerdism = will / 10 - orgasm
-	if nerdism < 0:nerdism = 0
+	if nerdism < 0:nerdism = 0 & msg'Away from book in a long time, You successfully quit Nerdism'
 	if obkvsdam > 0:obkvsdam = rand(2, 5)
 	hour += 1
 	energy -= 1
@@ -835,7 +842,7 @@ end
 
 if sdaday = day and sdamonth = month and housr = 0:
 	housr = 1
-	'<b><font color="red">The term of your residental apartment lease expired.</font></b>'
+	'<b><font color="red">The term of your residental apartment lease expired.</font></b>' & MSG'The term of your residental apartment lease expired.'
 end
 
 if month = 1 or month = 3 or month = 5 or month = 7 or month = 8 or month = 10 or month = 12:
@@ -1080,9 +1087,14 @@ if energy < 0:
 		vital -= 1
 		energy += 2
 	elseif fat = 0 and stren + vital <= 0:
-		over = 3
-		gt 'gameover'
-		exit
+		if Enable_nogameover = 0 :
+			over = 3
+			gt'gameover'
+			exit
+		else
+			pl '<font color=red><B>You starved to death, but Cheat Mode keeps you Alive.</B></font>'
+			fat = 1
+		end
 	elseif fat > 0:
 		fat -= 1
 		energy += 2
@@ -1103,15 +1115,31 @@ if manna <= 0:
 end
 
 if health < 0:
-	over = 1
-	gt 'gameover'
-	exit
+	if Enable_nogameover = 0 :
+		over = 1
+		gt'gameover'
+		exit & !nogameover by illume
+	else
+		pl '<font color=red><B>You died from injuries, but Cheat Mode keeps you Alive.</B></font>'
+		health = 0
+	end
 end
 
-if willpower < 0 and StoryLine = 0:
-	over = 2
-	gt 'gameover'
-	exit
+if willpower < 0 and mana = 1:
+	if manna < 1:
+		if Enable_nogameover = 0 :
+			if StoryLine = 0:
+				over = 2
+			else
+				over = 10
+			end
+			gt'gameover'
+			exit & !nogameover by illume
+		else
+			pl '<font color=red><B>You are insane, but Cheat Mode keeps you Alive.</B></font>'
+		end
+	end
+	willpower = 0
 end
 
 if saloonce = 0 and opPRE = 0:
@@ -1137,37 +1165,37 @@ end
 
 gs 'body'
 !!!!!!!!!!!!!
-if health >= vital * 10 + stren * 5:
+if health >= healthmax:
 	$health = '<font color="green">You are very healthy.</font>'
-elseif health >= (vital * 10 + stren * 5) * 75 / 100:
+elseif health >= healthmax * 75 / 100:
 	$health = '<font color="blue">You are healthy.</font>'
-elseif health >= (vital * 10 + stren * 5) * 50 / 100:
+elseif health >= healthmax * 50 / 100:
 	$health = '<font color="brown">you are not healthy.</font>'
-elseif health >= (vital * 10 + stren * 5) * 25 / 100:
+elseif health >= healthmax * 25 / 100:
 	$health = '<font color="red">You are sick.</font>'
 else
 	$health = '<font color="red">You are on the verge of death.'
 end
 
-if willpower >= intel * 5 + will * 5:
+if willpower >= willpowermax:
 	$willpower = '<font color="green">Your mind is clear.</font>'
-elseif willpower >= (intel * 5 + will * 5) * 75 / 100:
+elseif willpower >= willpowermax * 75 / 100:
 	$willpower = '<font color="blue">You are mostly in thought.</font>'
-elseif willpower >= (intel * 5 + will * 5) * 50 / 100:
+elseif willpower >= willpowermax * 50 / 100:
 	$willpower = '<font color="brown">You are depressed.</font>'
-elseif willpower >= (intel * 5 + will * 5) * 25 / 100:
+elseif willpower >= willpowermax * 25 / 100:
 	$willpower = '<font color="red">You have depression.</font>'
 else
 	$willpower = '<font color="red">You are on the verge of madness.</font>'
 end
 
-if manna >= intel * magik + magik * 100 + vital * 10 + rikudo:
+if manna >= mannamax:
 	$manna = '<font color="green">You are in a good mood.</font>'
-elseif manna >= (intel * magik + magik * 100 + vital * 10 + rikudo) * 75 / 100:
+elseif manna >= mannamax * 75 / 100:
 	$manna = '<font color="blue">You have a normal mood.</font>'
-elseif manna >= (intel * magik + magik * 100 + vital * 10 + rikudo) * 50 / 100:
+elseif manna >= mannamax * 50 / 100:
 	$manna = '<font color="brown">You are in a bad mood.</font>'
-elseif manna >= (intel * magik + magik * 100 + vital * 10 + rikudo) * 25 / 100:
+elseif manna >= mannamax * 25 / 100:
 	$manna = '<font color="red">You are in a terrible mood.</font>'
 else
 	$manna = '<font color="red">Your mood is stuck in the gutter.</font>'
@@ -1224,7 +1252,7 @@ elseif (month = 12 and day >= 29) or (month = 1 and day <= 13):
 elseif (month = 3 and day >= 25):
 	$holyday = '<b>Spring Break.</b>'
 	kanikuli = 3
-	if month = 3 and day = 25:$holyday += ' <b>Back to school tomorrow.</b>'
+	if month = 3 and day = 31:$holyday += ' <b>Back to school tomorrow.</b>'
 elseif (month = 5 and day >= 25) or month = 6 or month = 7 or month = 8:
 	if month = 5 and day = 25 and age = 17:
 		$holyday = '<b>Your graduation is today. Be there by 8h.</b>'
@@ -1238,6 +1266,15 @@ elseif month = 1 and day = 1:
 	$holyday = '<b>New Year!</b>'
 	kanikuli = 5
 end
+if kanikuli ! 6 and kanikuli > 0 and kanicont = 0:
+!holiday countdown by illume. countdown in [cikl], summer vacation pre-set in [startalt]
+    if kanikuli = 1:kanicont = 9
+    if kanikuli = 2:kanicont = 16
+	if kanikuli = 3:kanicont = 7
+	if kanikuli = 4:kanicont = 99
+end
+
+if kanikuli > 0 and kanikuli <5:$holyday += ', <<kanicont>> days left</b>'
 
 if hour >= 8 and hour < 16 and week < 6 and StoryLine > 0 and SchoolAtestat = 0 and kanikuli = 0 and schoolProgulDay ! daystart:
 	!!absence from school
@@ -1251,10 +1288,12 @@ if workFabrika = 1 and week => 1 and week <= 5 and hour > 8 and age => 16 and ag
 	FabrikaProgulDay = day
 end
 
+if insleep!0:exit &!no need to display status in sleep. skip them to improve performance by illume
+
 !!!!!!!!!!!!!!!!!!!!!
 !!!Beginning Description!!!
 !!!!!!!!!!!!!!!!!!!!!
-
+if Enable_statfsize>0:pl'<font size=<<Enable_statfsize>>>'
 if hour < 10:
 	if minut > 9 :
 		pl '<b> 0<<hour>>:<<minut>></b> <<$week>> <<day>> <<$mons>> <<year>>'
@@ -1273,9 +1312,6 @@ pl
 pl '<b><<money>></b> rubles in your purse.'
 if karta > 0:pl '<b><<karta>></b> rubles in your bank account.'
 if stolmoney > 0:pl '<b><<stolmoney>></b> rubles in your table drawer.'
-pl
-
-if fairycurse >= daystart: horny = 90
 
 if ETOmenu = 1:
 	pl '<b><<$health>></b>'
@@ -1286,31 +1322,102 @@ if ETOmenu = 1:
 else
 	gs 'indik', '2', horny, horny
 	pl '<<$ind>> Arousal'
-
-	healthmax = (vital * 10 + stren * 5)
 	gs 'indik', '1', health * 100 / healthmax, health
 	pl '<<$ind>> Health'
-
-	willpowermax = intel * 5 + will * 5
 	gs 'indik', '1', willpower * 100 / willpowermax, willpower
 	pl '<<$ind>> Willpower'
-
-	if mannamax <=0:
-		gs 'indik', '1', 0, manna
-	else
-		gs 'indik', '1', manna * 100 / mannamax, manna
-	end
+	gs 'indik', '1', manna * 100 / mannamax, manna
 	pl '<<$ind>> Mood'
-
 	gs 'indik', '1', energy * 4, energy
 	pl '<<$ind>> Hunger'
-
 	gs 'indik', '1', water * 5, water
 	pl '<<$ind>> Thirst'
-
 	gs 'indik', '1', son * 4, son
 	pl '<<$ind>> Sleep'
 end
+if Enable_showattr = 1:	
+	gs 'indik', '1',stren , stren
+	pl '<<$ind>> Power'
+	gs'indik','1',speed,speed
+	pl '<<$ind>> Speed'		
+	gs'indik','1',agil,agil
+	pl '<<$ind>> Agility'	
+	gs'indik','1',vital,vital
+	pl '<<$ind>> Endurance'	
+	gs'indik','1',intel,intel
+	pl '<<$ind>> Intelligence'	
+	gs'indik','1',will,will
+	pl '<<$ind>> Willpower'		
+	gs'indik','1',react,react
+	pl '<<$ind>> Reaction'
+	gs'indik','1',vnesh,vnesh
+	pl '<<$ind>> Attractiveness'
+	if SUB > 0:
+			gs'indik','1',SUB,SUB
+		pl '<<$ind>> Subordination'
+	end
+	if DOM > 0:
+			gs'indik','1',DOM,DOM
+		pl '<<$ind>> Dominance'
+	end	
+	if SchoolAtestat = 0 and StoryLine > 0:	
+			gs'indik','1',Suspeh,Suspeh
+		pl '<<$ind>> School Grades'	
+	end
+	if exhibi > 0:
+		gs'indik','1',exhibi*25,exhibi & !max at [dina], exhibi>=4
+		pl '<<$ind>> exhibitionism'
+	end	
+end
+
+if Enable_showskill = 1:
+	st_count=0
+	$show_table=''
+	if workPTU > 1:gs'show_table','<<teachlevel>> Teacher credibility','2'
+	if magik > 0:gs'show_table','<<magik>> Magic','2'
+	if Jab > 0:gs'show_table','<<Jab>> Jab','2'
+	if Punch > 0:gs'show_table','<<Punch>> Power Strikes','2'
+	if Kik > 0:gs'show_table','<<Kik>> Kicks','2'
+	if KikDef > 0:gs'show_table','<<KikDef>> Protection','2'
+	if beg > 0:gs'show_table','<<beg>> Running','2'
+	if volleyboll > 0:gs'show_table','<<volleyboll>> Volleyball','2'
+	if oficiant > 0:gs'show_table','<<oficiant>> Waitress','2'
+	if vokal > 0:gs'show_table','<<vokal>> Vocal','2'
+	if dance > 0:gs'show_table','<<dance>> Dancing','2'
+	if dancePRO > 0:gs'show_table','<<dancePRO>> Regular dancing','2'
+	if stripdance > 0:gs'show_table','<<stripdance>> Striptease','2'
+	if poledance > 0:gs'show_table','<<poledance>> Poledancing','2'
+	if shoot > 0:gs'show_table','<<shoot>> Shooting','2'
+	if poSkill > 0:gs'show_table','<<poSkill>> tailor','2'
+	if chess > 0:gs'show_table','<<chess>> Chess','2'
+	if mutagenP > 0: gs'show_table','<<mutagenP>> Mutagen strength ','2'
+	if mutagenV > 0: gs'show_table','<<mutagenV>> Mutagen endurance','2'
+	if mutagenA > 0: gs'show_table','<<mutagenA>> Mutagen Agility','2'
+	if st_count > 0 :pl 'Skills: <TABLE BORDER=1><<$show_table>></TR></TABLE>'
+end
+if Enable_showrelation = 1:
+	st_count=0
+	$show_table=''
+	if StoryLine > 0:	
+		if mother > 0:gs'show_table','<<mother>> Mother','2'
+		if father > 0:gs'show_table','<<father>> Father','2'
+		if brother > 0:gs'show_table','<<brother>> Brother','2'
+	end
+	if tanya > 0:gs'show_table','<<tanya>> Tanya','2'
+	if kat > 0:gs'show_table','<<kat>> Kate','2'
+	if vika > 0:gs'show_table','<<vika>> Vika','2'
+	if Irina > 0:gs'show_table','<<Irina>> Irina','2'
+	if Tamara > 0:gs'show_table','<<Tamara>> Tamara','2'
+	if alla > 0:gs'show_table','<<alla>> Alla','2'
+	if masha > 0:gs'show_table','<<masha>> Masha','2'
+	if Givi > 0:gs'show_table','<<Givi>> Givi Karapetovich','2'
+	if Ashot > 0:gs'show_table','<<Ashot>> Ashot','2'
+	if Dmitry > 0:gs'show_table','<<Dmitry>> Dima','2'
+	if afra > 0:gs'show_table','<<afra>> Blacks','2'
+	if trenerepa > 0:gs'show_table','<<trenerepa>> Mikhail Nikolaevich','2'
+	if st_count > 0 :pl 'Relations: <BR><TABLE BORDER=1> <<$show_table>></TR></TABLE>'
+end
+
 pl
 
 if  weatherDay = daystart: pl '<<$weather>>' & pl
@@ -1320,7 +1427,7 @@ if opPRE = 0: pl '<<$mop>> and your hair is <<$hapri>>.' & pl
 if StoryLine > 0 and SchoolAtestat = 0 and $holyday ! '': pl '<<$holyday>>' & pl
 if birthday = day and birthmonth = month: pl '<b>Today is your birthday.</b>' & pl
 
-!!if shame > 0:pl '<<$shame>>' & pl
+!!if shame > 0:pl '<<$shame>>'
 pl '<b><<$manna>></b>'
 pl
 
@@ -1422,7 +1529,6 @@ else
 	pl 'It has been <<temp[1]>> days since you last remember having a period.'
 end
 pl
-
 if preg = 1:
 	rodtime = 280 - pregtime
 	if pregtime < 280 and pregtime > 27:knowpreg = 1 & pl '<b><font color="blue">You have been pregnant for <<pregtime>> days. Days until delivery <<rodtime>></font></b>'
@@ -1437,7 +1543,6 @@ if preg = 1:
 !! MJ: Add a line before the next message.
 	if knowpreg = 1: pl
 end
-
 if mesec > 0:
 	if isprok = 0 and isprokp = 0:
 		pl '<b><font color="red">You are bleeding between your legs, you need to use feminine hygine products.</font></b>'
@@ -1471,12 +1576,24 @@ if lactate = 1:
 !! MJ: Add a line before the next message.
 	pl
 end
-
 if hour >= 11 and hour < 12 and week > 1 and week < 5 and workKafe = 1:pl '<b><font color="red">It''s time to work your shift as a waitress in a cafe</font></b>'
 if hour >= 8 and hour < 9 and week < 5 and workSec >= 1:pl '<b><font color="red">It''s time to work your shift as a secretary</font></b>'
 if PersSecWork = 1 and week < 6 and hour < 10 and hour >= 5:pl '<b><font color="red">It''s time to work your shift as a secretary</font></b>'
 if workFabrika = 1 and week => 1 and week <= 5 and hour = 8 and age >= 18 or workFabrika = 1 and week => 1 and week <= 5 and hour = 16 and age < 18:pl'<b><font color = red>TheAM To go to work in the factory as a seamstress Pavlovsky</font></b>'
 
+if Enable_Hymenrestore = 1:vagina = 0 & sex=0
+if Enable_tightrestore = 1: anus = 0 & if vagina > 0:vagina = 1
+if Enable_clearwrite > 0:body_write = 0 & face_write = 0
+!{
+if Enable_clearcum > 0:
+	killvar 'sparrvol[0]'
+end
+if Enable_fbreath > 0:
+	cumspclnt = 2
+	gs 'cum_cleanup'
+	fbreath=1
+end
+}
 $cumeater = {
 	spdirtyb = 1
 	fbreath = 0
@@ -2198,6 +2315,9 @@ if remdrop = 0:
 	if odekis9 = 1:odekis[10] = 1 & odekisH[10] = 50 & odekisB[10] = bedra
 end
 }
+
+if Enable_statfsize>0:pl'</font>' & !disable this, all texts comes from pl will have the same font size, like[time]
+if Enable_faceturn = 1:	view FUNC('$face_image')
 
 --- stat ---------------------------------
 
