@@ -1,5 +1,9 @@
 # Girl Life (ЭТО) [English Community Version] - github edition
 
+## UI Translation to Traditional Chinese, based on  0.5.1 release
+* Encoding to Traditional Chinese BIG5 (Code page 950)
+* For Simplified Chinese GB2312 User, You can use convert tool like convertz to transfer glife.txt and import with Qgen
+
 ## Quick start (for Unixy machines)
 * clone/fork the repo
 * make edits to the files in `locations`
