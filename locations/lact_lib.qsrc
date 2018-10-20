@@ -1,5 +1,19 @@
 # lact_lib
 
+if $ARGS[0] = 'lactate_optout':
+	!! func('lact_lib','lactate_optout')
+	!! use gs 'lact_lib','lactate_optout'
+	!! Used for switching off all lactation related content
+	lactate = 0
+	prolactinlvl = 0
+	lactatemess = 0
+	lact_engorgement = 0
+	lactatemv = 0
+	lactatemm = 0
+	lactaterate = 0
+	milk_demand = 0
+end
+
 if $ARGS[0] = 'view_milk_bottles':
 	!! func('lact_lib', 'view_milk_bottles', location_id)
 	!! use gs 'lact_lib','view_milk_bottles', 2
@@ -324,7 +338,7 @@ if $ARGS[0] = '$calc_lactatemm':
 		RESULT = 0
 	elseif lactate >0:
 		temp_breastsize = 0
-		temp_breastsize += nbsize
+		temp_breastsize += (nbsize + magicf2b)
 		temp_var = 0
 		!! This if needs to be changed later. If the kid is lost during the pregnancy, Sveta may still went through full breast development. If changing something here, please contact milky_boobs in the forums.
 		if kid <= 0:
@@ -1014,6 +1028,27 @@ if $ARGS[0] = 'bp_unbox_event':
 					'You go on for a minute and then detach the pump. As expected no milk was collected in the bottle.'
 					'<br><center><img <<$set_imgh>> src="images/pc/body/tits/breast_pump.jpg"></center>'
 				end
+				if lactate > 0 and pain['nipples'] < 60 and pcs_knowsaboutlactation <= 0:
+					if pcs_usedbreastpumponherself > 0 and pcs_massagedherbreasts <= 0:
+						'You are surprised to see that you are lactating!'
+						lactateinduced = 1
+					elseif pcs_usedbreastpumponherself <= 0 and pcs_massagedherbreasts > 0:
+						'Regularily massaging your breasts probably made you lactate!<br>'
+						lactateinduced = 1
+					elseif pcs_usedbreastpumponherself > 0 and pcs_massagedherbreasts > 0:
+						'All that pumping and massaging your breasts probably caused you to lactate!<br>'
+						lactateinduced = 1
+					else
+						'To your surprise it is milk. You started lactating!<br>'
+						if thinkpreg = 1 or knowpreg = 1:
+							'This is probably happening because you are pregnant.'
+						else
+							'You should have this checked out by a doctor. You could be pregnant.'
+						end
+						lactateinduced = 0
+					end
+					pcs_knowsaboutlactation = 1
+				end
 				act 'continue':
 					*clr
 					cla
@@ -1416,42 +1451,54 @@ if $ARGS[0] = 'milking':
 			bcream_used = 0
 		end
 		minut += pumptime
-	elseif lactate = 0 and pain['nipples'] < 60:
-		if rand(1,50) + prolactinlvl >= rand(200,250) and milkinduceday >= 5:
-			'<center><img <<$set_imgh>> src="images/pc/body/tits/lactate_start.jpg"></center>'
-			'As usual, you attach the pump but after a few pumps white liquid suddenly starts flowing from your nipples.<br>You started lactating!'
-			lactateinduced = 1
-			lactate = 1
-			if func('lact_lib','$calc_lactatemm') > 0: lactatemm = func('lact_lib','$calc_lactatemm')
-			if prolactinlvl < 200: prolactinlvl = 200
-			lactaterate = 10*(prolactinlvl/200)
-			pcs_nips += 2
-			pumpinggrowth = 0
-		else
-			milkedvolume = func('lact_lib','$get_breastmilk', 3, pumptime)
-			'<center><img <<$set_imgh>> src="images/pc/body/tits/t<<tits>>.jpg"></center>'
-			if breastcounter < 100:
-				'You attach the pump to your nipples and start squeezing the bulb. The vacuum feels uncomfortable on your nipples.'
-			elseif breastcounter >= 100 and breastcounter < 200:
-				'You attach the pump to your nipples and start squeezing the bulb. You are used to the vacuum on your nipples.'
+	elseif lactate > 0 and pain['nipples'] < 60 and pcs_knowsaboutlactation <= 0:
+			'<center><img <<$set_imgh>> src="images/pc/body/tits/pump_milkdrops.jpg"></center>'
+			if pcs_usedbreastpumponherself > 0 and pcs_massagedherbreasts <= 0:
+				'As usual, you attach the pump, but after a few pumps white liquid suddenly starts flowing from your nipples.<br>Using the breast pump regularily probably made you lactate!'
+				lactateinduced = 1
+			elseif pcs_usedbreastpumponherself <= 0 and pcs_massagedherbreasts > 0:
+				'You attach the pump but after a few pumps white liquid suddenly comes from your nipples. Regularily massaging your breasts probably made you lactate!<br>'
+				lactateinduced = 1
+			elseif pcs_usedbreastpumponherself > 0 and pcs_massagedherbreasts > 0:
+				'You attach the pump but after a few pumps white liquid suddenly comes from your nipples. All that pumping and massaging your breasts probably caused you to lactate!<br>'
+				lactateinduced = 1
 			else
-				'You attach the pump to your nipples and start squeezing the bulb. The vacuum feels good on your nipples.'
-			end
-			if prolactinlvl > 100: 'A few droplets of liquid come out of your nipples but it is not milk.'
-			breastcounter += 1
-			if pump_stop_brake = 1:
-				'During pumping your nipples start to hurt extremely. You have to stop after <<pumptime>> minutes, because you couldn''t go on.'
-			end
-			if prolactinlvl > 100:
-				if rand(0,10) > 9:
-					pumpinggrowth += 1
+				'You attach the pump and give it a few pumps. To your surprise white liquid suddenly comes from your nipples. You started lactating!<br>'
+				if thinkpreg = 1 or knowpreg = 1:
+					'This is probably happening because you are pregnant.'
+				else
+					'You should have this checked out by a doctor. You could be pregnant.'
 				end
-				'After finishing, your breasts feel weirdly engorged.'
+				lactateinduced = 0
 			end
-			if bcream_used = 1:
-				pcs_nips += rand(0,2)
-				bcream_used = 0
+			pcs_usedbreastpumponherself = 0
+			pcs_massagedherbreasts = 0
+			pcs_knowsaboutlactation = 1
+	elseif lactate = 0 and pain['nipples'] < 60:
+		milkedvolume = func('lact_lib','$get_breastmilk', 3, pumptime)
+		pcs_usedbreastpumponherself += 1
+		'<center><img <<$set_imgh>> src="images/pc/body/tits/t<<tits>>.jpg"></center>'
+		if breastcounter < 100:
+			'You attach the pump to your nipples and start squeezing the bulb. The vacuum feels uncomfortable on your nipples.'
+		elseif breastcounter >= 100 and breastcounter < 200:
+			'You attach the pump to your nipples and start squeezing the bulb. You are used to the vacuum on your nipples.'
+		else
+			'You attach the pump to your nipples and start squeezing the bulb. The vacuum feels good on your nipples.'
+		end
+		if prolactinlvl > 100: 'A few droplets of liquid come out of your nipples but it is not milk.'
+		breastcounter += 1
+		if pump_stop_brake = 1:
+			'During pumping your nipples start to hurt extremely. You have to stop after <<pumptime>> minutes, because you couldn''t go on.'
+		end
+		if prolactinlvl > 100:
+			if rand(0,10) > 9:
+				pumpinggrowth += 1
 			end
+			'After finishing, your breasts feel weirdly engorged.'
+		end
+		if bcream_used = 1:
+			pcs_nips += rand(0,2)
+			bcream_used = 0
 		end
 		minut += pumptime
 	else
@@ -1544,7 +1591,31 @@ if $ARGS[0] = 'hand_milking':
 		'<center><video autoplay loop src="images/pc/body/tits/bathroom_milking.mp4"></video></center>'
 		milkedvolume = func('lact_lib','$get_breastmilk', 5, pumptime)
 		minut += pumptime
+	elseif lactate > 0 and pain['nipples'] < 60 and pcs_knowsaboutlactation <= 0:
+			'<center><img <<$set_imgh>> src="images/pc/body/tits/lactate_start.jpg"></center>'
+			if pcs_usedbreastpumponherself > 0 and pcs_massagedherbreasts <= 0:
+				'You start to massage your breasts, your fingers gliding down your breasts skin, over the areolas. Your fingers pressing down into the areola, stretching it forwards to your nipple. After a few squeezes white liquid suddenly starts flowing from your nipples.<br>Using the breast pump regularily probably made you lactate!'
+				lactateinduced = 1
+			elseif pcs_usedbreastpumponherself <= 0 and pcs_massagedherbreasts > 0:
+				'You start to massage your breasts, your fingers gliding down your breasts skin, over the areolas. Your fingers pressing down into the areola, stretching it forwards to your nipple. After a few squeezes white liquid suddenly starts flowing from your nipples. Regularily massaging your breasts probably made you lactate!<br>'
+				lactateinduced = 1
+			elseif pcs_usedbreastpumponherself > 0 and pcs_massagedherbreasts > 0:
+				'You start to massage your breasts, your fingers gliding down your breasts skin, over the areolas. Your fingers pressing down into the areola, stretching it forwards to your nipple. After a few squeezes white liquid suddenly starts flowing from your nipples. All that pumping and massaging your breasts probably caused you to lactate!<br>'
+				lactateinduced = 1
+			else
+				'You start to massage your breasts, your fingers gliding down your breasts skin, over the areolas. Your fingers pressing down into the areola, stretching it forwards to your nipple. To your surprise white liquid suddenly starts flowing from your nipples. You started lactating!<br>'
+				if thinkpreg = 1 or knowpreg = 1:
+					'This is probably happening because you are pregnant.'
+				else
+					'You should have this checked out by a doctor. You could be pregnant.'
+				end
+				lactateinduced = 0
+			end
+			pcs_usedbreastpumponherself = 0
+			pcs_massagedherbreasts = 0
+			pcs_knowsaboutlactation = 1
 	elseif lactate = 0 and pain['nipples'] <= 60:
+		pcs_massagedherbreasts += 0
 		'You start to massage your breasts, your fingers gliding down your breasts skin, over the areolas. Your fingers pressing down into the areola, stretching it forwards to your nipple,'
 		'kneading your breasts as well.'
 		'<center><video autoplay loop src="images/pc/body/tits/bathroom_massage.mp4"></video></center>'
