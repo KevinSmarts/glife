@@ -1,14 +1,25 @@
 # wardrobe
 
 if $ARGS[0] = 'start':
+	PShoQuality = ShoQuality
+	PShoHeels = ShoHeels
+	PShoCut = ShoCut
+	PShoStyle = ShoStyle
 	$wloc = 'wardrobe'
-	if ward_img_hgt = 0:ward_img_hgt = 250
+	menu_off = 1
+	gs 'stat'
+	if $sports_clothing_name = '':$sports_clothing_name = 'default sports outfit'
+	if $clothingworntype = 'cheap' and clothingwornnumber = '414':
+		gs 'clothing', 'swamp_clothes', 0
+		gs 'clothing', 'strip'
+	end
+	if ward_img_hgt = 0:ward_img_hgt = 150
 	'<h3><center><b><font color="maroon">Wardrobe overview</b></h3><br><center><font color="maroon">These are the clothes you are currently wearing - Click on an item to change it</font></center>'
 	'<br><center><table border=0 cellspacing=<<ward_img_hgt/25>> cellpadding=5>'
 	*p '<TH>Bra worn</TH><TH>Outfit worn</TH><TH>Coat (only worn outside when cold)</TH>'
 	*P '<TR><TD><center><a href="exec:gt ''bras'', ''view_bra_list'', ''wardrobe''"><img Height = <<ward_img_hgt>> src="<<FUNC(''$body_image'',''bra'')>>"></a></center></TD><TD><center><a href="exec:gt ''clothing_QV'', ''list''"><img Height = <<ward_img_hgt * 2>> src="<<FUNC(''$body_image'',''clothes'')>>"></a></center></TD><TD><center>'
 	if defaultcoat = 0:
-		'<a href="exec:gt ''cloakroom'', ''view_coat_list''"><img Height = <<ward_img_hgt * 2>> src="images/pc/noitemdh.png"></a>'
+		'<a href="exec:gt ''cloakroom'', ''view_coat_list''">Search the wardrobe</a>'
 	else
 		'<a href="exec:gt ''cloakroom'', ''view_coat_list''"><img Height = <<ward_img_hgt * 2>> src="<<FUNC(''$body_image'', ''coat'')>>"></a>'
 	end
@@ -36,9 +47,9 @@ if $ARGS[0] = 'start':
 	*p '<TR><TH>Panties worn</TH><TH>Shoes (Only worn outside)</TH><TH>Purse worn</TH>'
 	*P '<TR><TD><center><a href="exec:gt ''panties'', ''view_panty_list'', ''wardrobe''"><img Height = <<ward_img_hgt>> src="<<FUNC(''$body_image'',''panties'')>>"></a></center></TD><TD><center><a href="exec:gt ''shoes'', ''view_shoe_list'', ''wardrobe''"><img Height = <<ward_img_hgt>> src="<<FUNC(''$body_image'', ''shoes'')>>"></a></center></TD><TD><center>'
 	if bag = 1:
-		'<a href="exec:gt ''purses'', ''view_purse_list''"><img Height = <<ward_img_hgt>> src="<<FUNC(''$purse_image'',  $currentpursetype, currentpursenumber)>>"></a>'
+		'<a href="exec:gt ''purses'', ''view_purse_list''"><img Height = <<ward_img_hgt>> src="<<FUNC(''$purse_image'', $currentpursetype, currentpursenumber)>>"></a>'
 	else
-		'<a href="exec:gt ''purses'', ''view_purse_list''"><img Height = <<ward_img_hgt>> src="images/pc/noitem.png"></a>'
+		'<a href="exec:gt ''purses'', ''view_purse_list''">Search the wardrobe</a>'
 	end
 	'</center></TD>'
 	'<TR><TD><center>'
@@ -66,9 +77,11 @@ if $ARGS[0] = 'start':
 	else
 		'Remove all items'
 	end
-	'</center></TD>'
+	*nl
+	'<center><font color="grey">Save/load outfits with "Managed saved clothing sets".</font></center>'
+	'<TD></center></TD>'
 	'</table></center>'
-	act 'Return': killvar '$wloc' & gt $loc, $metka
+	act 'Close wardrobe': killvar '$wloc' & gt $loc, $metka
 
 	act 'Strip all clothing':
 		gs 'bras', 'remove'
@@ -78,23 +91,18 @@ if $ARGS[0] = 'start':
 		gt 'wardrobe', 'start'
 	end
 
-	act 'Set a default outfit': gt 'wardrobe', 'default_set'
+	act 'Organise your wardrobe': org_loc = 1 & gt 'clothing', 'view_clothing_list', 'wardrobe'
 
-	act 'Choose a default outfit': gt 'wardrobe', 'default'
+	act 'Manage saved clothing sets': gt 'wardrobe', 'default'
 
-	act 'Organise stored clothing': gt 'clothing', 'view_clothing_list', 'store'
-
-	act 'Set image height for this view':
-		cla
-		*clr
-		'The default is 250px'
-		ward_img_hgt = input("Enter height in pixels you want for images on this page (min 100, max 500)")
-		if ward_img_hgt < 100:
-			ward_img_hgt = 100
+	act 'Set image size for this view':
+		ward_img_hgt = input("Enter height in pixels you want for images on this page <br>(Default 150, min 50, max 500)")
+		if ward_img_hgt < 50:
+			ward_img_hgt = 50
 		elseif ward_img_hgt > 500:
 			ward_img_hgt = 500
 		end
-		act 'Return': gt 'wardrobe', 'start'
+		gt 'wardrobe', 'start'
 	end
 end
 
@@ -111,23 +119,43 @@ end
 
 if $ARGS[0] = 'default':
 	gs 'stat'
-	if ARRSIZE('defclothingnumber') = 0:
-		'You have no default outfits set.'
-	else
+	'<center><b>Default outfits</b></center>'
+	'<center><font color="grey">You can overwrite and rename default outfits, but you cannot delete a default outfit.</font></center>'
+	*nl
+	'<center><table width="600">'
+	'<tr><td>'
+	'<b><<$sports_clothing_name>>:</b> <a href="exec:gs ''wardrobe'', ''sports_entry_wear''">Wear</a> | <a href="exec:gs ''wardrobe'', ''sports_entry_set''">Overwrite</a> | <a href="exec:$sports_clothing_name = ''default sports outfit'' & gt ''wardrobe'', ''default''">Reset name</a>'
+	'</td></tr>'
+	'</table></center>'
+	'<center><b>Custom outfits</b></center>'
+	'<center><font color="grey">Choose your clothing, then select "Add as a new custom set" to save your clothing choice</font></center>'
+	*nl
+	'<center><table width="600">'
+	'<tr><td>'
+	if ARRSIZE('defclothingnumber') > 0:
 		i = 0
 		:loopdefclothing
-		'<<$def_clothing_name[i]>> <a href="exec:gs ''wardrobe'', ''default_entry_wear'', <<i>>">Wear this default outfit</a> <a href="exec:gs ''wardrobe'', ''default_entry_delete'', <<i>>">Delete this default outfit</a>'
+		'<b><<$def_clothing_name[i]>>:</b> <a href="exec:gs ''wardrobe'', ''default_entry_wear'', <<i>>">Wear</a> | <a href="exec:gs ''wardrobe'', ''default_entry_set'', <<i>>">Overwrite</a> | <a href="exec:$def_clothing_name[<<i>>] = ''Custom <<i>>'' & gt ''wardrobe'', ''default''">Reset name</a> | <a href="exec:gs ''wardrobe'', ''default_entry_delete'', <<i>>">Delete</a>'
 		i += 1
 		if i < ARRSIZE('defclothingnumber'):jump 'loopdefclothing'
 	end
+	'</td></tr>'
+	'</table></center>'
 	act 'Return': gt 'wardrobe', 'start'
+	act 'Add as a new custom set': gt 'wardrobe', 'default_entry_set', ARRSIZE('defclothingnumber')
+	'<center>Note: Selecting an outfit will show the bonus for equipped shoes, this is only applied when outside.</center>'
 end
 
 if $ARGS[0] = 'default_entry_wear':
+	gs 'stat'
 	default_entry = ARGS[1]
 
 	gs 'clothing_attributes', $defclothingtype[default_entry], defclothingnumber[default_entry]
-	gs 'clothing', 'wear', $defclothingtype[default_entry], defclothingnumber[default_entry]
+	if ARRPOS('$CloLosTyp', $defclothingtype[default_entry]) ! -1 and ARRPOS('CloLosNum', defclothingnumber[default_entry]) ! -1:
+		msg '<center>You''ve lost part of this set, and are unable to wear all items.<br>Maybe you can find the missing clothes somewhere?</center>'
+	else
+		gs 'clothing', 'wear', $defclothingtype[default_entry], defclothingnumber[default_entry]
+	end
 
 	if dyneval('RESULT = <<$defbratype[default_entry]>>_bras[<<defbranumber[default_entry]>>]') = 0: $defbratype[default_entry] = 'none' & defbranumber[default_entry] = 0
 	gs 'bras', 'wear', $defbratype[default_entry], defbranumber[default_entry]
@@ -148,8 +176,6 @@ if $ARGS[0] = 'default_entry_wear':
 	else
 		bag = 1
 	end
-	if menu_option = 1:dynamic $menu_addoldmenu
-	if menu_option = 0:gs 'obj_din', 'new'
 
 	if dyneval('RESULT = coat[<<defcoat[default_entry]>>]') = 0: defcoat[default_entry] = 0
 	defaultcoat = defcoat[default_entry]
@@ -235,19 +261,6 @@ if $ARGS[0] = 'default_entry_wear':
 	end
 end
 
-if $ARGS[0] = 'default_set':
-	gs 'stat'
-	if ARRSIZE('defclothingnumber') ! 0:
-		i = 0
-		:loopdefclothing_set
-		'<<$def_clothing_name[i]>> <a href="exec:gs ''wardrobe'', ''default_entry_set'', <<i>>">Overwrite this</a>'
-		i += 1
-		if i < ARRSIZE('defclothingnumber'):jump 'loopdefclothing_set'
-	end
-	act 'Add as new default': gt 'wardrobe', 'default_entry_set', ARRSIZE('defclothingnumber')
-	act 'Return': gt 'wardrobe', 'start'
-end
-
 if $ARGS[0] = 'default_entry_set':
 	gs 'stat'
 	i = ARGS[1]
@@ -263,9 +276,14 @@ if $ARGS[0] = 'default_entry_set':
 	defpursenumber[i] = currentpursenumber
 	defcoat[i] = defaultcoat
 
-	$def_clothing_name[i] = input ('Enter name for for this outfit (Leave blank for default)')
-	if $def_clothing_name[i] = '': $def_clothing_name[i] = 'default <<i>>'
-	gt 'wardrobe', 'default_set'
+	$def_clothing_temp = '<<$def_clothing_name[i]>>'
+	$def_clothing_name[i] = input ('<center>Enter a name for for this outfit set<br><font color="grey">Leaving blank will reuse current name.</font></center>')
+	if $def_clothing_name[i] = '' and $def_clothing_temp = '':
+		$def_clothing_name[i] = 'Custom <<i>>'
+	elseif $def_clothing_name[i] = '':
+		$def_clothing_name[i] = '<<$def_clothing_temp>>'
+	end
+	gt 'wardrobe', 'default'
 end
 
 if $ARGS[0] = 'default_entry_delete':
@@ -283,8 +301,105 @@ if $ARGS[0] = 'default_entry_delete':
 	killvar 'defpursenumber', i
 	killvar 'defcoat', i
 	killvar 'def_clothing_name', i
-	gt 'wardrobe', 'default_set'
+	gt 'wardrobe', 'default'
 end
 
+!!-- sports outfit stuff
+
+if $ARGS[0] = 'sports_entry_set':
+	gs 'stat'
+	if $clothingworntype ! 'exercise' OR $shoeworntype ! 'trainers':
+		MSG 'The sports outfit needs to include exercise clothes and training shoes'
+		gt 'wardrobe', 'start'
+	else
+		gs 'stat'
+		$sportsclothingtype = $clothingworntype
+		sportsclothingnumber = clothingwornnumber
+		$sportsbratype = $braworntype
+		sportsbranumber = brawornnumber
+		$sportspantytype = $pantyworntype
+		sportspantynumber = pantywornnumber
+		$sportsshoetype = $shoeworntype
+		sportsshoenumber = shoewornnumber
+		$sportspursetype = $currentpursetype
+		sportspursenumber = currentpursenumber
+		sportscoat = defaultcoat
+
+		$sports_clothing_temp = '<<$sports_clothing_name>>'
+		$sports_clothing_name = input ('<center>Enter a name for for this outfit set<br><font color="grey">Leaving blank will reuse current name.</font></center>')
+		if $sports_clothing_name = '' and $sports_clothing_temp = '':
+			$sports_clothing_name = 'default sports outfit'
+		elseif $sports_clothing_name = '':
+			$sports_clothing_name = '<<$sports_clothing_temp>>'
+		end
+		gt 'wardrobe', 'default'
+	end
+end
+
+if $ARGS[0] = 'sports_entry_wear':
+	gs 'stat'
+
+	gs 'wardrobe', 'prev_entry_set'
+
+	gs 'clothing_attributes', 'exercise', sportsclothingnumber
+
+	if ARRPOS('$CloLosTyp', 'exercise') ! -1 and ARRPOS('CloLosNum', sportsclothingnumber) ! -1:
+		msg '<center>You''ve lost part of this set, and are unable to wear all items.<br>Maybe you can find the missing clothes somewhere?</center>'
+	else
+		gs 'clothing', 'wear', 'exercise', sportsclothingnumber
+	end
+
+	if dyneval('RESULT = <<$sportsbratype>>_bras[<<sportsbranumber>>]') = 0: $sportsbratype = 'none' & sportsbranumber = 0
+	gs 'bras', 'wear', $sportsbratype, sportsbranumber
+
+	if dyneval('RESULT = <<$sportspantytype>>_panties[<<sportspantynumber>>]') = 0: $sportspantytype = 'none' & sportspantynumber = 0
+	gs 'panties', 'wear', $sportspantytype, sportspantynumber
+
+	gs 'shoes', 'wear', 'trainers', sportsshoenumber
+
+	minut += 2
+	gs 'stat'
+
+	!! do not own this clothing anymore
+	if dyneval('RESULT = exercise[<<sportsclothingnumber>>]') = 0:
+		cls
+		'<center><img <<$set_imgh>> src="images/characters/pavlovsk/school/boy/niko/nikoev/school/strip/strip2.jpg"></center>'
+		'As you go to pull your sports outfit out of your wardrobe you remember you don''t own that piece of clothing anymore. Maybe you should buy it again? Guess you will have to find something else to wear.'
+		gs 'wardrobe', 'prev_entry_set'
+	!! strength of clothing is less than or equal to 0
+	elseif dyneval('RESULT = exerciseH[<<sportsclothingnumber>>]') <= 0:
+		cls
+		'<center><video autoplay loop src="images/characters/pavlovsk/school/girl/vicky/event/vika_game_strip16.mp4"></video></center>'
+		'Your sports outfit has worn out and can''t be used anymore. Guess you will have to find something else to wear.'
+		gs 'wardrobe', 'prev_entry_set'
+	!! clothing exhibition is greater than player exhibition
+	elseif CloInhibit > pcs_inhib:
+		cls
+		'<center><video autoplay loop src="images/locations/pavlovsk/trainstation/bimbo.strip6.mp4"></video></center>'
+		'You don''t feel daring enough to wear your sports outfit. Maybe you will be confident enough in the future? Guess you will have to find something else to wear.'
+		gs 'wardrobe', 'prev_entry_set'
+	!! clothing ok to wear without needing hip check and passing all other checks
+	else
+		cls
+		'<center><video autoplay loop src="images/locations/city/citycenter/photo/dress.mp4"></video></center>'
+		'You put on your sports outfit without any problems.'
+	end
+	act 'Return':
+		if $wloc = 'wardrobe':
+			gt 'wardrobe', 'start'
+		elseif $wloc = 'workout':
+			gt 'exercise', 'workout'
+		else
+			gt $loc, $metka
+		end
+	end
+end
+
+if $ARGS[0] = 'sports_outfit':
+	gs 'stat'
+	if $clothingworntype ! 'exercise' or $shoeworntype ! 'trainers':
+		act 'Change into: <<$sports_clothing_name>>': gs 'wardrobe', 'sports_entry_wear'
+	end
+end
 --- wardrobe ---------------------------------
 

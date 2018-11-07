@@ -2,11 +2,17 @@
 
 $location_type = 'secluded'
 if $ARGS[0] = '1':
-	$metka = '1'
 	$loc = 'gadforestswamp'
+	$metka = '1'
+	$location_type = 'secluded'
+
+	$menu_loc = 'gadforestswamp'
+	$menu_arg = '1'
+	menu_off = 0
 
 	gs 'gadukino_event', 'sound'
 	gs 'stat'
+
 	'<center><H4>Swamp</H4></center>'
 	if month >= 4 and month <= 10:
 		if hour >= 6 and hour < 22:
@@ -21,15 +27,17 @@ if $ARGS[0] = '1':
 			'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/gadforestlostswamp_winter_night.jpg"></center>'
 		end
 	end
-	'You went to the marsh, behind it you can see some kind of hut. You can go back into the woods or try to get to the hut through the mash, but will you have enough strength and dexterity to overcome this mess?'
+	'You come to the edge of the swamp; you can see a hut in the distance.'
+	'You can go back into the woods or try to get to the hut through the marsh, but will you have enough strength and agility to overcome this obstacle?'
 
 	act 'Go back to the forest':gt 'gadforestlost','4'
 
-	act 'To go through the mire':
+	act 'Try to go through the mire':
 		*clr & cla
+		menu_off = 1
 		minut += 10
 		swamprand = pcs_stren + pcs_agil
-		pcs_sweat += 10
+		pcs_sweat += 15
 		gs 'stat'
 
 		if ($clothingworntype ! 'nude' and $clothingworntype ! 'swimwear') and CloSkirtShortness = 0:'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/goswamp.jpg"></center>'
@@ -37,27 +45,42 @@ if $ARGS[0] = '1':
 		if $clothingworntype = 'nude':'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/goswamp_nude0.'+rand(4,5)+'.jpg"></center>'
 		'You entered the swamp and felt your feet starting to sink into the mud...'
 		temp_gads = RAND(1,100)
-		act 'Go further':
+		act 'Give it another try':
 			if swamprand > temp_gads:gt 'swamp_yard'
-			if swamprand < temp_gads and temp_gads >= 90:over = 10 & gt 'gameover'
-			if swamprand < temp_gads and temp_gads < 90:gt 'gadforestswamp', '2'
+			if Enable_nogameover = 0:
+				if swamprand < temp_gads and temp_gads >= 90:over = 10 & gt 'gameover'
+				if swamprand < temp_gads and temp_gads < 90:gt 'gadforestswamp', '2'
+			else
+				gt 'gadforestswamp', '2'
+			end
 		end
 	end
 end
 
 if $ARGS[0] = '2':
-	$metka = '2'
 	$loc = 'gadforestswamp'
-	gs 'gadukino_event', 'sound'
+	$metka = '2'
+	$location_type = 'secluded'
 
+	$menu_loc = 'gadforestswamp'
+	$menu_arg = '2'
+	menu_off = 0
+
+	gs 'gadukino_event', 'sound'
+	gs 'stat'
+
+	! unbrush hair and remove makeup
 	pcs_hairbsh = 0
 	if pcs_makeup > 1:pcs_makeup = 0
-	!clothes wear out, "dirty" to avoid at a time 
-	if dirty = 0 and ($clothingworntype ! 'nude' and $clothingworntype ! 'swimwear'):dirty = 1 & dirtyclothes = 1 & dynamic $clothingworntype + 'H[<<clothingwornnumber>>] -= 10'
-	!add remove cloth if worn out, need better texting by illume.
+
+	! clothes wear out
+	if dirty = 0 and ($clothingworntype ! 'nude' and $clothingworntype ! 'swimwear'):dirty = 1 & dynamic $clothingworntype + 'H[<<clothingwornnumber>>] -= 10'
+	! add remove clothes if worn out
 	if dyneval('RESULT = <<$clothingworntype>>H[<<clothingwornnumber>>]') <= 0:
-		'Your clothes are torn to pieces, you are naked now.'
-		gs 'clothing', 'strip'
+		'Your ripped clothes were barely holding together, but now they have finally fell apart.'
+		'You are naked now.'
+		gadforest_clothestorn = 1
+		gs 'clothing', 'strip', 'gadforestswamp', 2
 	end
 	gs 'stat'
 	'<center><H4>Swamp</H4></center>'
@@ -66,37 +89,45 @@ if $ARGS[0] = '2':
 
 	act 'Call for help':
 		*clr & cla
+		menu_off = 1
 		minut += 10
-		if pcs_sweat < 10: pcs_sweat += 10	
+		if pcs_sweat < 10: pcs_sweat += 10
 		if week = 6 or week = 7:temp_gads = RAND(1,3)
 		if week < 6:temp_gads = RAND(1,5)
 		gs 'stat'
 		'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/gadforestlosthelp.jpg"></center>'
-		'You are exhausted and begin to scream for help, suddenly you see people...'
+
+		'You are exhausted and begin to scream for help...'
+
 
 		act 'Wait':
 			if temp_gads = 1:
 				*clr & cla
 				minut += 10
-				hanters = 1
-				hanterhelp = 1
+				hunters = 1
+				hunterhelp = 1
 				gs 'stat'
 				'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/handshelp.jpg"></center>'
-				'You hear men speaking and begin to shouting louder. The voices come closer and finally, someone''s strong hands grabbed you and dragged back to solid ground.'
+				'You hear men speaking and begin to shout louder. The voices come closer and finally, someone''s strong hands grabbed you and dragged back to solid ground.'
+				'You are so tired from your ordeal you pass out.'
 
-				act 'Further':gt 'swamp_yard'
+				act 'Wake up':gt 'swamp_yard'
 			else
 				*clr & cla
 				minut += 10
+				gs 'stat'
+
 				'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/panicswamp.jpg"></center>'
 				'No one responds to your call, looks like you are all alone.'
-				act 'Further':gt 'gadforestswamp','2'
+
+				act 'Contemplate your life':gt 'gadforestswamp','2'
 			end
 		end
 	end
 
-	act 'Trying to get back to the woods':
+	act 'Try to get back to the woods':
 		*clr & cla
+		menu_off = 1
 		minut += 10
 		swamprand = pcs_stren + pcs_agil
 		stren_exp += rand(0,1)
@@ -106,17 +137,22 @@ if $ARGS[0] = '2':
 		gs 'stat'
 
 		dynamic $swampclothes
-		'You decided not to tempt fate more and turn back...'
 
-		act 'Go':
+		'You decide it''s wisest to try and turn back...'
+		act 'Give it another try':
 			if swamprand > temp_gads:gt 'gadforestswamp','1'
-			if swamprand < temp_gads and temp_gads <= 20:over = 10 & gt'gameover'
-			if swamprand < temp_gads and temp_gads > 20:gt 'gadforestswamp','2'
+			if Enable_nogameover = 0:
+				if swamprand < temp_gads and temp_gads >= 90:over = 10 & gt 'gameover'
+				if swamprand < temp_gads and temp_gads < 90:gt 'gadforestswamp', '2'
+			else
+				gt 'gadforestswamp', '2'
+			end
 		end
 	end
-	act 'Try to go on to the house':
+	act 'Try to go on to the hut':
 		cla
 		*clr
+		menu_off = 1
 		minut += 10
 		swamprand = pcs_stren + pcs_agil
 		stren_exp += rand(0,1)
@@ -126,13 +162,17 @@ if $ARGS[0] = '2':
 		gs 'stat'
 
 		dynamic $swampclothes
-		'You thought more about it and decided against it. You move on from the house...'
 
-		act 'Go':
+		'You decide you might as well keep going forward at this point...'
+		act 'Give it another try':
 			if swamprand > temp_gads:gt 'swamp_yard'
-			if swamprand < temp_gads and temp_gads <= 30:over = 10 & gt'gameover'
-			if swamprand < temp_gads and temp_gads > 30:gt 'gadforestswamp','2'
-		end 
+			if Enable_nogameover = 0:
+				if swamprand < temp_gads and temp_gads >= 90:over = 10 & gt 'gameover'
+				if swamprand < temp_gads and temp_gads < 90:gt 'gadforestswamp', '2'
+			else
+				gt 'gadforestswamp', '2'
+			end
+		end
 	end
 end
 

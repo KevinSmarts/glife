@@ -1,26 +1,18 @@
 # qwBarPolet
 
-if night_mode = 1:
-	fcolor = rgb(255, 255, 255)
-	bcolor = rgb(0, 0, 0)
-	lcolor = rgb(106, 90, 205)
-else
-	fcolor = rgb(0, 0, 0)
-	bcolor = rgb(255, 255, 255)
-	lcolor = rgb(106, 90, 205)
-end
+gs 'themes', 'indoors'
 
 if $ARGS[0] = '':
-	$metka = ''
 	$loc = 'qwBarPolet'
+	$metka = ''
+	$menu_loc = 'qwBarPolet'
+	$menu_arg = ''
+	menu_off = 0
 	$location_type = 'public_indoors'
 	alko_temp = alko
 	gs 'stat'
 	gs 'qwBarPolet', 'intro'
-	if orderDrink = 1:
-		orderDrink = 0
-		gt 'qwbarPolet','DrinkingBooze'
-	end
+	orderDrink = pcs_drank
 	if MartinTalkDaystart ! daystart:
 		MartinTalkDaystart = daystart
 		MartinTalkDay = 0
@@ -68,6 +60,78 @@ if $ARGS[0] = '':
 		'This place has a rowdy air about it: The smell of spilled beer, schnaps, and a hint of vomit and blood are hard to miss, and some of the stools and billiard cues look like they''ve been used in fights before. It is obviously a worker pub and not trying to be anything fancier than that, but that gives it an odd charm and coziness of its own' + iif(hour >= 16,', and despite the hints of shadiness, you can hear plenty of laughter and friendly conversation','') + '. You doubt you''ll get a fancy cocktail in here, though.'
 		*nl
 
+	act 'Exit to the street':gt 'nord'
+	act 'Approach the bar': gt 'qwBarPolet', 'bar'
+	act 'Go to the toilet': gt 'qwBarPoletToilet'
+end
+
+if $ARGS[0] = 'bar':
+	*clr & cla
+	$loc = 'qwBarPolet'
+	$metka = 'bar'
+	$menu_loc = 'qwBarPolet'
+	$menu_arg = 'bar'
+	menu_off = 0
+	if orderDrink < pcs_drank:
+		orderDrink = pcs_drank
+		gt 'qwbarPolet','DrinkingBooze'
+	end
+
+	'<center><b><font color="maroon">Bar "Rabotnik"</font></b></center>'
+	'<center><img <<$set_imgh>> src="images/locations/city/industrial/bar/bar.jpg"></center>'
+
+	act 'Order from the bar (0:05)': gt 'qwBarPolet','Ordering'
+
+	!!!bill_rand = rand(1,6) instead of (0,6) because content incomplete
+	if BillHour ! hour:
+		BillHour = hour
+		:bill_loop
+			bill_rand = rand(1,6)
+			if bill_rand = 0 and VicArt_BillDay = 1:jump 'bill_loop'
+			if bill_rand = 1 and PBB_BillDay = 1:jump 'bill_loop'
+	end
+	*nl
+	'Your eyes wander towards the backroom with the billiard table.'
+	*nl
+
+	if bill_rand = 0 and Jaska_Ev = 0:
+		'You notice some guys are playing billiards in the backroom. They seem know each other well and are playing for quite a bit of money, from what you can tell, so you don''t want to interrupt right now.'
+	elseif bill_rand = 0 and Jaska_Friend_Bill = 0:
+		'You notice the guys Jaska played against are in the backroom with the billiard table, having a friendly match. Maybe you could play a round with them?'
+	elseif bill_rand = 0 and Jaska_Friend_Bill < 4:
+		'You notice that Jaska''s friends, Victor and Artyom, are in the backroom with the billiard table, having a friendly match. You could join them, if you wanted to.'
+	elseif bill_rand = 0:
+		temp = rand(1,4)
+		if temp = 1:
+			'You notice that Jaska''s friends, Victor and Artyom, are in the backroom with the billiard table, but they don''t seem to be alone: A woman you don''t know is with them, and judging by the looks Artyom is giving her, she has offered them something other than money as a wager...'
+		else
+			'You notice that Jaska''s friends, Victor and Artyom, are alone in the backroom with the billiard table, having a friendly match. You could join them, if you wanted to.'
+		end
+
+	elseif PBB_Met ! 0 and bill_rand = 1:
+		PBB_BillDay = 1
+		'The guy you played billiards with before seems to be playing against a pair of women who are looking increasingly distressed as he pockets one ball after the other. You can see quite a bit of money sitting on the side of the table and you are pretty sure he is about to win it all.'
+		if PBB_Met = 2:
+			'You wonder if he offered them the same ''money or blowjob'' deal he offered you...'
+		end
+	elseif bill_rand = 1:
+		PBB_BillDay = 1
+		'A stranger seems to be playing billiards with a pair of women who are looking increasingly distressed as he pockets one ball after the other. You can see quite a bit of money sitting on the side of the table and you are pretty sure he is about to win it all.'
+
+	elseif bill_rand = 2:
+		'The backroom seems to be empty at the moment, the billiard table deserted. Looks like there''s nobody you could play with.'
+
+	elseif bill_rand > 2:
+		'You notice that some people are playing some billiards. Maybe you could join them?'
+	end
+
+	if bill_rand > 2 or (bill_rand = 0 and Jaska_Ev ! 0 and (Jaska_Friend_Bill < 4 or temp ! 1)):
+		act 'Go play billiards':
+			if bill_rand = 0: VicArt_BillDay = 1
+			gt 'qwBarBilliard','billiard_ev2'
+		end
+	end
+
 	if (week < 5 or week = 7) and ((hour < 16) or (hour = 23 and minut >= 45)):
 		'The bar is emptying quickly as its owner is telling the few patrons who are left that he''s closing for the night. Within minutes, even those who you thought were too drunk to even understand what "leaving" means are gone and only the bartender himself remains.'
 		if npc_rel['A216'] < 20:
@@ -110,110 +174,27 @@ if $ARGS[0] = '':
 				'But honestly, you don''t want to talk to him at all right now - you are still too angry for that.'
 			end
 		end
-
-		act 'Order a snack':
-			if cumloc[7] > 0 or cumloc[10] > 0 or cumloc[11] > 0 or cumloc[13] > 0 or cumloc[16] > 0:
-				if pcs_exhibition < 60:
-					mood -= rand(2,5)
-				else
-					pcs_horny += 5
-				end
-				npc_rel['A216'] -= 2
-				'Martin gives a stern look. "Don''t you think you should clean yourself up first?"'
-				*nl
-				if pcs_exhibition < 60 and pcs_inhib < 70:
-					'You are visibly covered in cum and Martin noticed it!'
-					*nl
-					'How embarrassing...'
-				elseif pcs_inhib >= 70 and pcs_exhibition < 60:
-					'"Huh?" You look over to the mirror behind the bar and realize that you still have cum on your face.'
-					'"Oh! Didn''t notice that. Yeah you''re right, I should go wash that off," you say before excusing yourself.'
-				else
-					'You are visibly covered in cum and Martin noticed it!'
-					'It''s kinda sexy to know that he noticed it. Your belly tingles at the thought that seeing the sperm must have made Martin imagine you having sex.'
-					'Still... You should probably go to the bathroom and wash it off.'
-				end
-				act 'Step away from the counter': gt 'qwBarPolet'
-			else
-				'"What do you want?" The bartender asks.'
-				gs 'food_menu', 'pub'
-			end
-		end
-
-		act 'Order drinks': gt 'qwBarPolet','Ordering'
-
-		act 'Go to the toilet': gt 'qwBarPoletToilet'
-
-		!!!bill_rand = rand(1,6) instead of (0,6) because content incomplete
-		if BillHour ! hour:
-			BillHour = hour
-			:bill_loop
-				bill_rand = rand(1,6)
-				if bill_rand = 0 and VicArt_BillDay = 1:jump 'bill_loop'
-				if bill_rand = 1 and PBB_BillDay = 1:jump 'bill_loop'
-		end
-		*nl
-		'Your eyes wander towards the backroom with the billiard table.'
-		*nl
-
-		if bill_rand = 0 and Jaska_Ev = 0:
-			'You notice some guys are playing billiards in the backroom. They seem know each other well and are playing for quite a bit of money, from what you can tell, so you don''t want to interrupt right now.'
-		elseif bill_rand = 0 and Jaska_Friend_Bill = 0:
-			'You notice the guys Jaska played against are in the backroom with the billiard table, having a friendly match. Maybe you could play a round with them?'
-		elseif bill_rand = 0 and Jaska_Friend_Bill < 4:
-			'You notice that Jaska''s friends, Victor and Artyom, are in the backroom with the billiard table, having a friendly match. You could join them, if you wanted to.'
-		elseif bill_rand = 0:
-			temp = rand(1,4)
-			if temp = 1:
-				'You notice that Jaska''s friends, Victor and Artyom, are in the backroom with the billiard table, but they don''t seem to be alone: A woman you don''t know is with them, and judging by the looks Artyom is giving her, she has offered them something other than money as a wager...'
-			else
-				'You notice that Jaska''s friends, Victor and Artyom, are alone in the backroom with the billiard table, having a friendly match. You could join them, if you wanted to.'
-			end
-
-		elseif PBB_Met ! 0 and bill_rand = 1:
-			PBB_BillDay = 1
-			'The guy you played billiards with before seems to be playing against a pair of women who are looking increasingly distressed as he pockets one ball after the other. You can see quite a bit of money sitting on the side of the table and you are pretty sure he is about to win it all.'
-			if PBB_Met = 2:
-				'You wonder if he offered them the same ''money or blowjob'' deal he offered you...'
-			end
-		elseif bill_rand = 1:
-			PBB_BillDay = 1
-			'A stranger seems to be playing billiards with a pair of women who are looking increasingly distressed as he pockets one ball after the other. You can see quite a bit of money sitting on the side of the table and you are pretty sure he is about to win it all.'
-
-		elseif bill_rand = 2:
-			'The backroom seems to be empty at the moment, the billiard table deserted. Looks like there''s nobody you could play with.'
-
-		elseif bill_rand > 2:
-			'You notice that some people are playing some billiards. Maybe you could join them?'
-		end
-
-		if bill_rand > 2 or (bill_rand = 0 and Jaska_Ev ! 0 and (Jaska_Friend_Bill < 4 or temp ! 1)):
-			act 'Go to the backroom for a game of billiards':
-				if bill_rand = 0: VicArt_BillDay = 1
-				gt 'qwBarBilliard','billiard_ev2'
-			end
-		end
 	end
 
-!! act 'Find somebody to drink with':
-!! OR
-!! act 'Look around the bar': action to find people to interact with/who will invite her to a drink?
-	!!SOMEBODY ELSE ORDERING A DRINK FOR SVETA?
-	![RANDOM EVENTS (Rapey strangers inviting Sveta to have shots or something else with them)?]
-	![Events where Sveta interacts with random guys, resulting in drunk sex, groping etc. when drinking vodka?]
-	![RANDOM EVENTS (Friendly strangers or friends/acquaintances inviting Sveta to have beer or something else with them)?]
-	![RANDOM EVENTS (Strangers inviting her to have beer or something else with them, but overall friendly/consensual tone)?]
+	!! act 'Find somebody to drink with':
+	!! OR
+	!! act 'Look around the bar': action to find people to interact with/who will invite her to a drink?
+		!!SOMEBODY ELSE ORDERING A DRINK FOR SVETA?
+		![RANDOM EVENTS (Rapey strangers inviting Sveta to have shots or something else with them)?]
+		![Events where Sveta interacts with random guys, resulting in drunk sex, groping etc. when drinking vodka?]
+		![RANDOM EVENTS (Friendly strangers or friends/acquaintances inviting Sveta to have beer or something else with them)?]
+		![RANDOM EVENTS (Strangers inviting her to have beer or something else with them, but overall friendly/consensual tone)?]
 
 
-!!Run-in with Martin at the city gym?
-!Between 10 and 2
-!Quick talk?
-!Assisted Training?
-!Sex?
+	!!Run-in with Martin at the city gym?
+	!Between 10 and 2
+	!Quick talk?
+	!Assisted Training?
+	!Sex?
 
-!Event / Talk at lakecafe mentioning Martin?
+	!Event / Talk at lakecafe mentioning Martin?
 
-!NEED TO ADJUST obj_din or other location with npc_rel['A216'] so that people can actually see their relationship value with Martin
+	!NEED TO ADJUST obj_din or other location with npc_rel['A216'] so that people can actually see their relationship value with Martin
 
 	if npc_rel['A216'] > 20 and (hour < 16 or (hour = 23 and minut >= 45)) and MartinTalkVar > 3 and MartinSexDay = 0:
 		'<center><img <<$set_imgh>> src="images/locations/city/industrial/bar/emptybar.jpg"></center>'
@@ -229,12 +210,12 @@ if $ARGS[0] = '':
 			act 'Have a private chat with Martin': gt 'MartinSex'
 		end
 	end
-
-	act 'Leave':gt 'nord'
+	act 'leave the bar': gt 'qwBarPolet'
 end
 
 if $ARGS[0] = 'DrinkingBooze':
-	cls
+	menu_off = 1
+	*clr & cla
 	gs 'stat'
 	'<center><img <<$set_imgh>> src="images/locations/city/industrial/bar/bar.jpg"></center>'
 	!Different Picture/s?!
@@ -245,7 +226,7 @@ if $ARGS[0] = 'DrinkingBooze':
 		*nl
 		'When you''re finally finished with it, you are both angry and glad at the sight of the empty glass and the thought of ordering another crosses your mind.'
 
-		act 'Finish your drink': gt 'qwBarPolet'
+		act 'Finish your drink': gt 'qwBarPolet', 'bar'
 
 	elseif knowMartin ! 1:
 		knowMartin = 1
@@ -262,7 +243,7 @@ if $ARGS[0] = 'DrinkingBooze':
 		*nl
 		'You spend the next 15 minutes pondering his words and the impression he has left on you, absentmindedly drinking your <<$boozeVar>> until you finally notice that your glass is empty.'
 
-		act 'Finish your drink': gt 'qwBarPolet'
+		act 'Finish your drink': gt 'qwBarPolet', 'bar'
 
 	else
 		if MartinTalkDay = 0:
@@ -286,31 +267,34 @@ if $ARGS[0] = 'DrinkingBooze':
 				'Safe from the friendly smile and words of gratitude you exchange with Martin, you were quickly left alone with your drink and nothing interesting seemed to be happening around the bar.'
 				'You therefore spent the last 15 minutes in peace, taking the occasional sip from your glass as you reflect the events of the day, think about your life and the people in it. You barely notice how your glass gets emptier and emptier until, finally, you notice that you have nothing left to drink.'
 
-				act 'Finish your drink': gt 'qwBarPolet'
+				act 'Finish your drink': gt 'qwBarPolet', 'bar'
 			end
 		end
 	end
 end
 
 if $ARGS[0] = 'Ordering':
-	cls
+	menu_off = 1
+	minut += 5
+	gs 'stat'
+	*clr & cla
 	'<center><img <<$set_imgh>> src="images/locations/city/industrial/bar/bar.jpg"></center>'
 	!Different Picture/s?!
 	'You go to the counter, sit down on one of the stools and, when the bartender notices you, ask: "Hey, could you bring me something to drink?"'
 	if cumloc[7] > 0 or cumloc[10] > 0 or cumloc[11] > 0 or cumloc[13] > 0 or cumloc[16] > 0:
-		if pcs_exhibition < 60:
-			mood -= rand(2,5)
+		if exhibitionist_lvl < 2:
+			pcs_mood -= rand(2,5)
 		else
 			pcs_horny += 5
 		end
 		npc_rel['A216'] -= 2
 		'Martin gives a stern look. "Don''t you think you should clean yourself up first?"'
 		*nl
-		if pcs_exhibition < 60 and pcs_inhib < 70:
+		if exhibitionist_lvl < 2 and pcs_inhib < 70:
 			'You are visibly covered in cum and Martin noticed it!'
 			*nl
 			'How embarrassing...'
-		elseif pcs_inhib >= 70 and pcs_exhibition < 60:
+		elseif pcs_inhib >= 70 and exhibitionist_lvl < 2:
 			'"Huh?" You look over to the mirror behind the bar and realize that you still have cum on your face.'
 			'"Oh! Didn''t notice that. Yeah you''re right, I should go wash that off," you say before excusing yourself.'
 		else
@@ -318,7 +302,7 @@ if $ARGS[0] = 'Ordering':
 			'It''s kinda sexy to know that he noticed it. Your belly tingles at the thought that seeing the sperm must have made Martin imagine you having sex.'
 			'Still... You should probably go to the bathroom and wash it off.'
 		end
-		
+
 		act 'Step away from the counter': gt 'qwBarPolet'
 
 	elseif alko >= 6:
@@ -344,7 +328,7 @@ if $ARGS[0] = 'Ordering':
 			'With that, he turns and walks off to serve somebody else. Looks like he won''t let you drink yourself into a coma.'
 			'Bastard!'
 
-			act 'Give up for now': gt 'qwBarPolet'
+			act 'Give up for now': gt 'qwBarPolet', 'bar'
 		end
 
 	elseif knowMartin ! 1:
@@ -379,7 +363,6 @@ if $ARGS[0] = 'Ordering':
 			knowMartin = 1
 			killvar 'RabotnikFirst'
 			npc_rel['A216'] += 10
-			orderDrink = 1
 			*nl
 			'"Here," you hand him your new, genuine ID.'
 			'"Not a fake one again, I hope," he growls and examines it closely.'
@@ -395,14 +378,13 @@ if $ARGS[0] = 'Ordering':
 			'At the very least, it seems like Martin is willing to return to that, because he says, "Welcome back."'
 			'It''s probably going to take a while to recover from this, but the first big step is done.'
 			'"Now, what shall I bring you?" The bartender asks.'
-			gs 'beverage_menu','pub'
+			gs 'food_menu'
 
 		elseif fakepassport = 1 or age >= 18:
-			orderDrink = 1
 			*nl
 			'Nodding, you take out your ID and show it to him. He eyes it suspiciously and gives you a stern look... but then nods and hands it back to you.'
 			'"What can I bring you?"'
-			gs 'beverage_menu','pub'
+			gs 'food_menu'
 
 		else
 			*nl
@@ -411,17 +393,17 @@ if $ARGS[0] = 'Ordering':
 			*nl
 			'Guess you''ll have to come back with an ID, or come up with another way to get a drink.'
 
-			act 'Nod and give up': gt 'qwBarPolet'
+			act 'Nod and give up': gt 'qwBarPolet', 'bar'
 		end
 
 	else
 		'Martin nods. "Sure. What are you having?"'
-		orderDrink = 1
-		gs 'beverage_menu','pub'
+		gs 'food_menu'
 	end
 end
 
 if $ARGS[0] = 'RandomDrinkEvents':
+	menu_off = 1
 	*nl
 	!DrinkingRand ALWAYS NEEDS TO BE ADJUSTED FOR NEW EVENTS!!!
 	DrinkingRand = RAND(1,14)
@@ -446,7 +428,7 @@ if $ARGS[0] = 'RandomDrinkEvents':
 		'While you enjoy your drink, you briefly wonder why Martin didn''t just throw them out, but then you notice that the Artur and Grigori are talking to each other again and then burst into laughter as if nothing happened.'
 		'Looks like the bartender knows his regulars.'
 
-		act 'Finish your drink': gt 'qwBarPolet'
+		act 'Finish your drink': gt 'qwBarPolet', 'bar'
 
 	elseif DrinkingRand = 2:
 		'<center><img <<$set_imgh>> src="images/locations/city/industrial/bar/event6.jpg"></center>'
@@ -463,7 +445,7 @@ if $ARGS[0] = 'RandomDrinkEvents':
 		*nl
 		'Feeling victorious (and a little lonely), you focus your attention on your beverage again while the card players set up their next round.'
 
-		act 'Finish your drink': gt 'qwBarPolet'
+		act 'Finish your drink': gt 'qwBarPolet', 'bar'
 
 	elseif DrinkingRand = 3:
 		'<center><video src="images/locations/city/industrial/bar/event5.mp4"></center>'
@@ -484,7 +466,7 @@ if $ARGS[0] = 'RandomDrinkEvents':
 		gs 'arousal', 'end'
 		gs 'stat'
 
-		act 'Finish your drink': gt 'qwBarPolet'
+		act 'Finish your drink': gt 'qwBarPolet', 'bar'
 
 	elseif DrinkingRand = 4:
 		if pcs_horny < 90: pcs_horny += rand(1,3)
@@ -505,7 +487,7 @@ if $ARGS[0] = 'RandomDrinkEvents':
 		'Only now that their storytime is over do you notice how enthralled you were by it, how you pictured that woman being molested in public... and that the thought aroused you a little.'
 		$OpenInnerThought+'Maybe I should ride the metro more often.'+$CloseInnerThought
 
-		act 'Finish your drink': gt 'qwBarPolet'
+		act 'Finish your drink': gt 'qwBarPolet', 'bar'
 
 	elseif DrinkingRand = 5:
 		if pcs_horny < 90: pcs_horny += rand(3,5)
@@ -521,7 +503,7 @@ if $ARGS[0] = 'RandomDrinkEvents':
 		*nl
 		'At least somebody''s having fun.'
 
-		act 'Finish your drink': gt 'qwBarPolet'
+		act 'Finish your drink': gt 'qwBarPolet', 'bar'
 
 	elseif DrinkingRand = 6:
 
@@ -539,7 +521,7 @@ if $ARGS[0] = 'RandomDrinkEvents':
 		'Not long after, the four of them leave together, the woman flanked by two of the man, each of them possessively grabbing one of her ass cheeks.'
 		'That woman has a long night ahead of her, you''d wager, and the image of their impending foursame makes your belly tingle.'
 
-		act 'Finish your drink': gt 'qwBarPolet'
+		act 'Finish your drink': gt 'qwBarPolet', 'bar'
 
 	elseif DrinkingRand = 7:
 		pcs_mood -= 5
@@ -556,7 +538,7 @@ if $ARGS[0] = 'RandomDrinkEvents':
 		*nl
 		$OpenInnerThought+'They can take his job, but they can never take his dignity,'+$CloseInnerThought+' you think to yourself with a smirk.'
 
-		act 'Finish your drink': gt 'qwBarPolet'
+		act 'Finish your drink': gt 'qwBarPolet', 'bar'
 
 	elseif DrinkingRand = 8:
 		'<center><img <<$set_imgh>> src="images/locations/city/industrial/bar/event10.jpg"></center>'
@@ -578,7 +560,7 @@ if $ARGS[0] = 'RandomDrinkEvents':
 		*nl
 		'Shortly after, the bar returns to normal, and after taking a moment to check up on the woman he saved, Martin brings you that drink you''d all but forgotten about. Say what you will about his appearance but he seems to have his heart in the right place.'
 
-		act 'Enjoy your drink': gt 'qwBarPolet'
+		act 'Enjoy your drink': gt 'qwBarPolet', 'bar'
 
 	elseif DrinkingRand = 9:
 		if pcs_horny < 90: pcs_horny += rand(1,3)
@@ -593,7 +575,7 @@ if $ARGS[0] = 'RandomDrinkEvents':
 		*nl
 		'Of course, this only encourages her to redouble her efforts in flirting with Martin, and when Martin''s eyes meet yours, you share a shrug and a knowing smile with him and focus on your beverage.'
 
-		act 'Finish your drink': gt 'qwBarPolet'
+		act 'Finish your drink': gt 'qwBarPolet', 'bar'
 
 	elseif DrinkingRand = 10:
 		if pcs_horny < 90: pcs_horny += rand(1,3)
@@ -611,7 +593,7 @@ if $ARGS[0] = 'RandomDrinkEvents':
 		'You quickly turn your face straight ahead again and focus so hard on your drink that it''s should be catching fire any second now.'
 		'The image in your head, however, is that of the exhibitionist and her smooth, exposed pussy...'
 
-		act 'Finish your drink': gt 'qwBarPolet'
+		act 'Finish your drink': gt 'qwBarPolet', 'bar'
 
 	elseif DrinkingRand = 11:
 		if pcs_horny < 90: pcs_horny += rand(1,3)
@@ -631,7 +613,7 @@ if $ARGS[0] = 'RandomDrinkEvents':
 		*nl
 		'He knew you had noticed them. He was aware that you would be waiting for them to come out again. And, looking at how ashamed the woman seems to be, maybe he told her too...'
 
-		act 'Finish your drink': gt 'qwBarPolet'
+		act 'Finish your drink': gt 'qwBarPolet', 'bar'
 
 	elseif DrinkingRand = 12:
 		'<center><img <<$set_imgh>> src="images/locations/city/industrial/bar/bartalk<<pic_rand>>.jpg"></center>'
@@ -652,7 +634,7 @@ if $ARGS[0] = 'RandomDrinkEvents':
 		'"Most of them do. Have you ever actually been to another bar?" The other male asks.'
 		'"Why bother? The beer tastes like piss everywhere," his friend remarks, and they both laugh and raise their glasses to that.'
 
-		act 'Finish your drink': gt 'qwBarPolet'
+		act 'Finish your drink': gt 'qwBarPolet', 'bar'
 
 	elseif DrinkingRand = 13:
 		'<center><img <<$set_imgh>> src="images/locations/city/industrial/bar/bartalk<<pic_rand>>.jpg"></center>'
@@ -665,7 +647,7 @@ if $ARGS[0] = 'RandomDrinkEvents':
 		'"... really?"'
 		'"<b>No, you idiot!</b> I don''t have a fucking clue why you can''t buy a second car. How am I supposed to know? I can''t even afford <b>one</b>!"'
 
-		act 'Finish your drink': gt 'qwBarPolet'
+		act 'Finish your drink': gt 'qwBarPolet', 'bar'
 
 	elseif DrinkingRand = 14:
 		'<center><img <<$set_imgh>> src="images/locations/city/industrial/bar/bartalk<<pic_rand>>.jpg"></center>'
@@ -686,8 +668,8 @@ if $ARGS[0] = 'RandomDrinkEvents':
 		'"Easy for him to say. He''d probably change his mind if he had been there with us..."'
 		*nl
 		'Whoever this Vanya is, his fate makes you think that you should probably aim higher than assembly-line work.'
-		
-		act 'Finish your drink': gt 'qwBarPolet'
+
+		act 'Finish your drink': gt 'qwBarPolet', 'bar'
 
 !Template for infos	the NPCs give on events, stories and other points of interest in the game
 !	!!DrinkingRand ALWAYS HAS TO BE ADJUSTED AT THE TOP OF THE ARGUMENT
@@ -697,7 +679,7 @@ if $ARGS[0] = 'RandomDrinkEvents':
 !		'As you forlornly muster the liquid, one of the many conversations in the bar piques your interest.'
 !		*nl
 !		'BLA BLA BLA'
-!		act 'Finish your drink': gt 'qwBarPolet'
+!		act 'Finish your drink': gt 'qwBarPolet', 'bar'
 
 
 	!Ideas for other random events:

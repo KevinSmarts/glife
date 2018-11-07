@@ -71,12 +71,6 @@ ringA = 0
 ringB = 0
 ringC = 0
 
-if home_owned[1] = 1 and ArendHouseSL <= 0: ArendHouseSL = 0 & home_owned[1] = 0
-if home_owned[4] > 0 and ArendHouseSL4 <= 0: ArendHouseSL4 = 0 & home_owned[4] = 0
-
-if home_owned[1] = 1: ArendHouseSL -= 1
-if home_owned[4] > 0: ArendHouseSL4 -= 1
-
 !!Appearance Age
 vidageday -= 1
 if vidageday <= 0:
@@ -139,37 +133,40 @@ if i <= 147:jump 'loopprice'
 
 if coatH[defaultcoat] <= 0: defaultcoat = 0
 
+!! Abortion and pregnancy recovery resets if finished
+
+if abortionbirthdate ! 0 and daystart - abortionbirthdate > 24: abortionbirthdate = 0
+if pregbirthdate ! 0 and daystart - pregbirthdate > 73: pregbirthdate = 0
+
 !!------------------------------------------------------------------------------------------------------------
 !!	Bimbo
 !!------------------------------------------------------------------------------------------------------------
-!!A Succubus cannot be a Bimbo
-if succubusflag = 1 and bimbo > 0: bimbo -= succublvl * 2
 
 !!Bonus from clothing and shoes
-if succubusflag = 0 and $cheatBimbo ! '<b>ON</b>':
+if succubusflag = 0 and cheatBimbo = 0:
 	if bimbocl = 1:
-		bimbocl = 0
-		bimbo += 2
+		snapshotY += 2
 	end
 	if bimbosh = 1:
-		bimbosh = 0
-		bimbo += 1
+		snapshotY += 1
 	end
 else
 	bimbocl = 0
 end
 
+if cheatBimbo = 0: bimbo += snapshotY
+
 !!Once bimbolevel is set to 1, must use the withdrawal in stat to return to 0
 if bimbo > 0 or bimbolevel > 0:
-    if bimbo < 10:
-        bimbo -= 1
-    elseif bimbo < 20:
-    	bimbolevel = 1
-    elseif bimbo < 30:
-    	bimbolevel = 2
-    else
-        bimbolevel = 3
-    end
+	if bimbo < 10:
+		bimbo -= 1
+	elseif bimbo < 20:
+		bimbolevel = 1
+	elseif bimbo < 30:
+		bimbolevel = 2
+	else
+		bimbolevel = 3
+	end
 end
 
 if bimbo >= 40: bimbo = 40
@@ -180,14 +177,87 @@ if bimbolevel = 1: supnatvnesh = 2 & bimbostupidity = (pcs_intel / 6)
 if bimbolevel = 2: supnatvnesh = 4 & bimbostupidity = (pcs_intel / 4)
 if bimbolevel = 3: supnatvnesh = 8 & bimbostupidity = (pcs_intel / 3)
 
+!!A Succubus cannot be a Bimbo
+if succubusflag = 1:
+	if bimbolevel > 0 and bimbo > 0: bimbowithdrawal = 40
+elseif bimbolevel >= 1:
+!!Checks how often sex has occured in the last 24 hours and for drops in bimbo score, for calculating withdrawal
+	if 4 > snapshotY + (stat['vaginal'] + stat['bj'] + stat['anal']) - snapshotX:
+		bimbowithdrawal += 1
+	else
+		bimbowithdrawal = 0
+	end
+end
+
+if bimbo < 0: bimbo = 0
+snapshotX = (stat['vaginal'] + stat['bj'] + stat['anal'])
+snapshotY = 0
+
+!!------------------------------------------------------------------------------------------------------------
+!!	Exhibitionism
+!!------------------------------------------------------------------------------------------------------------
+
+if pcs_exhib > 0 or exhibitionist_lvl > 0:
+	if pcs_exhib < 10:
+		pcs_exhib -= 1
+	elseif pcs_exhib < 20:
+		exhibitionist_lvl = 1
+	elseif pcs_exhib < 30:
+		exhibitionist_lvl = 2
+	else
+		exhibitionist_lvl = 3
+	end
+end
+
+!!Inhibition increases from wearing revealing clothing
+
+if exhibition_outdoors > 0:
+	if pcs_inhib > 90:
+		exhibition_outdoors = exhibition_outdoors * 3
+	elseif pcs_inhib > 75:
+		exhibition_outdoors = exhibition_outdoors * 5 / 2
+	elseif pcs_inhib > 60:
+		exhibition_outdoors = exhibition_outdoors * 2
+	elseif pcs_inhib > 30:
+		exhibition_outdoors = exhibition_outdoors * 3 / 2
+	end
+
+	if exhibition_outdoors <= 5:
+		inhib_exp += rand(3,6)
+	elseif exhibition_outdoors <= 10:
+		inhib_exp += rand(5,9)
+	elseif exhibition_outdoors <= 15:
+		inhib_exp += rand(7,12)
+	elseif exhibition_outdoors <= 20:
+		inhib_exp += rand(9,15)
+	elseif exhibition_outdoors <= 25:
+		inhib_exp += rand(12,20)
+	elseif exhibition_outdoors <= 30:
+		inhib_exp += rand(16,25)
+	elseif exhibition_outdoors <= 35:
+		inhib_exp += rand(20,30)
+	elseif exhibition_outdoors <= 40:
+		inhib_exp += rand(25,40)
+	elseif exhibition_outdoors <= 50:
+		inhib_exp += rand(35,50)
+	elseif exhibition_outdoors <= 65:
+		inhib_exp += rand(50,75)
+	else
+		inhib_exp += rand(70,100)
+	end
+end
+
+exhibition_outdoors = 0
+
+!!------------------------------------------------------------------------------------------------------------
+!!	Succubus
+!!------------------------------------------------------------------------------------------------------------
+
 !!Succubus Level & hunger calcs
 if succubusflag = 1:
 
 	cheatHealth = 1
 	dynamic $cheatmenu['std_cure']
-
-!!	A Succubus cannot be a Bimbo
-	if bimbolevel > 0 and bimbo > 0: bimbowithdrawal = 40
 
 !!	Hunger handling
 	if sucxpsnapshot >= succubxp: succhungry += 1
@@ -274,21 +344,6 @@ if succubusflag = 1:
 	end
 end
 
-!!Bimbo second half, after Succubus so changes there can be reflected here if still bimbo and Succubus
-!!Checks how often sex has occured in the last 24 hours and for drops in bimbo score, for calculating withdrawal
-if bimbolevel >= 1:
-	bimbo += ((stat['vaginal'] + stat['bj'] + stat['anal']) - snapshotX) - 3
-	if bimbo > snapshotY:
-		bimbowithdrawal = 0
-	else
-		bimbowithdrawal += 1
-	end
-end
-
-if bimbo < 0: bimbo = 0
-snapshotX = (stat['vaginal'] + stat['bj'] + stat['anal'])
-snapshotY = bimbo
-
 !!------------------------------------------------------------------------------------------------------------
 
 if defcurly = 0 and curly > 0:curly -= 1
@@ -318,7 +373,7 @@ if prezikmsg = 2: prezikmsg = 3
 !!	tabletkipi		: Pill Dicipline Dont take increase
 !!	tabletkicpd		: Current MC Pill Dicipline
 !!	tabletkichday	: Current day that the Birth Control is being evaluated for
-!!	tabletkicheck	: If the birth control is automatically handled
+!!	tabletkicheck	: If the birth control from shot (2) or pill (1)
 !!	tabletki		: How many packages of Birth Control Pills there are
 !!	tabletkiold		: Total number packages of expired pills
 !!	tabletkifake	: Total number packages of fake/counterfeit pills
@@ -656,46 +711,6 @@ if pcs_horny < 0:pcs_horny = 0
 
 !!------------------------------------------------------------------------------------------------------------
 
-!!Exhibitionism
-
-if exhibition_outdoors > 0:
-	if pcs_inhib > 90:
-		exhibition_outdoors = exhibition_outdoors * 3
-	elseif pcs_inhib > 75:
-		exhibition_outdoors = exhibition_outdoors * 5 / 2
-	elseif pcs_inhib > 60:
-		exhibition_outdoors = exhibition_outdoors * 2
-	elseif pcs_inhib > 30:
-		exhibition_outdoors = exhibition_outdoors * 3 / 2
-	end
-
-	if exhibition_outdoors <= 5:
-		inhib_exp += rand(3,6)
-	elseif exhibition_outdoors <= 10:
-		inhib_exp += rand(5,9)
-	elseif exhibition_outdoors <= 15:
-		inhib_exp += rand(7,12)
-	elseif exhibition_outdoors <= 20:
-		inhib_exp += rand(9,15)
-	elseif exhibition_outdoors <= 25:
-		inhib_exp += rand(12,20)
-	elseif exhibition_outdoors <= 30:
-		inhib_exp += rand(16,25)
-	elseif exhibition_outdoors <= 35:
-		inhib_exp += rand(20,30)
-	elseif exhibition_outdoors <= 40:
-		inhib_exp += rand(25,40)
-	elseif exhibition_outdoors <= 50:
-		inhib_exp += rand(35,50)
-	elseif exhibition_outdoors <= 65:
-		inhib_exp += rand(50,75)
-	else
-		inhib_exp += rand(70,100)
-	end
-end
-
-exhibition_outdoors = 0
-
 !counter for Dimka avoidance
 if dimaFilm = 1 and dimaRudeBlock = 0:
 	nodimkaK += 1
@@ -876,6 +891,9 @@ if GspravkaT = 1:Gspravka -= 1
 if IvanPodstavaQW = 2 and PodpiskaNeviezd = 30:IvanPodstavaQW = 3
 if IvanPodstavaQW = 2 and PodpiskaNeviezd > 0 and PodpiskaNeviezd < 30:PodpiskaNeviezd += 1
 
+!!remove degradation for inhibition
+inhib_flr = inhib_lvl
+
 gs 'stat_sklattrib', 'daycall'
 
 if dounspell = 1:
@@ -1004,10 +1022,14 @@ end
 
 if day = 25:
 	!! meynold payment
-	if mey_vika_qw >= 35 and mey_tamara_help_count >= 10 and mey_tamara_qw_end = 0:
-		money += 5000
-		'<b><font color=green>For your efforts aunt Tamara gave you 5,000 rubles</font></b>'
-		mey_tamara_help_count = 0
+	if	mey_vika['mey_vika_qw'] >= 35 and mey_tamara['help_count'] < 10 and mey_tamara['qw_end'] = 0:
+		karta += 10000
+		'<b><font color=green>For your efforts aunt Tamara gave you 10,000 rubles</font></b>'
+		mey_tamara['help_count'] = 0
+	elseif mey_vika['mey_vika_qw'] >= 35 and mey_tamara['help_count'] >= 10 and mey_tamara['qw_end'] = 0:
+		karta += 15000
+		'<b><font color=green>For your efforts aunt Tamara gave you 15,000 rubles</font></b>'
+		mey_tamara['help_count'] = 0
 	end
 
 	if PersSecWork = 1 and PersSecWorkTimes > 0 and paydaybistrosec = 0:
@@ -1078,73 +1100,18 @@ if day = 25:
 
 	if stipuha = 1 and stipuhaday = 0:stipuhaday = 1 & karta += 1200 & '<b><font color="green">You have received 1,200 <b>₽</b> scholarship.</font></b>'
 
-	if haday = 0:
-		gs 'housing', 'rent'
-		! Rent for the city apartment
-		if home_owned[1] = 1:
-			if ArendHouseSL < 31:
-				!From bank
-				if bankAccount = 1 and karta >= home_rent[1]:
-					'<b><font color="yellow">Your rent payment of <<home_rent[1]>> <b>₽</b> for your city apartment, has automatically been deducted from your bank account.</font></b>'
-					haday = 1
-					karta -= home_rent[1]
-					ArendHouseSL += ArendHouseSL_due
-				elseif bankAccount = 1 and karta + bankDebtLimit >= home_rent[1]:
-					'<b><font color="yellow">Your rent payment of <<home_rent[1]>> <b>₽</b> for your city apartment, has automatically been deducted from your bank account and overdraw facility. Please contact your bank regarding your overdraw repayment.</font></b>'
-					haday = 1
-					karta -= home_rent[1]
-					ArendHouseSL += ArendHouseSL_due
-				elseif bankAccount = 0:
-					'<b><font color="red">You currently do not have a bank account setup for automatic rent deduction of <<home_rent[1]>> <b>₽</b> for your city apartment.To avoid eviction, please make manual payment as soon as possible.</font></b>'
-				else
-					nl
-					'<b><b><font color="red">You''re card was declined during automatic rent deduction of <<home_rent[1]>> <b>₽</b> for your city apartment. To avoid eviction, please rectify as soon as possible.</font></b>'
-				end
-			elseif home_owned[1] = 1 and ArendHouseSL >= 31:
-				'<b><font color="yellow">Your rent for your city apartment is already paid in full for this month.</font></b>'
-				haday = 1
-			end
-		end
-
-		! Rent for the Pushkin apartment
-		if home_owned[4] > 0:
-			if ArendHouseSL4 < 31:
-				!From bank
-				if bankAccount = 1 and karta >= home_rent[4] and ArendHouseSL4 <= 30:
-					'<b><font color="yellow">Your rent payment of <<home_rent[4]>> <b>₽</b> for your Pushkin apartment, has automatically been deducted from your bank account.</font></b>'
-					haday = 1
-					karta -= home_rent[4]
-					ArendHouseSL4 += ArendHouseSL4_due
-				elseif bankAccount = 1 and karta + bankDebtLimit >= home_rent[4] and ArendHouseSL4 <= 30:
-					'<b><font color="yellow">Your rent payment of <<home_rent[4]>> <b>₽</b> for your Pushkin apartment, has automatically been deducted from your bank account and overdraw facility. Please contact your bank regarding your overdraw repayment.</font></b>'
-					haday = 1
-					karta -= home_rent[4]
-					ArendHouseSL4 += ArendHouseSL4_due
-				elseif bankAccount = 0 and ArendHouseSL4 <= 30:
-					'<b><font color="red">You currently do not have a bank account setup for automatic rent deduction of <<home_rent[4]>> <b>₽</b> for your Pushkin apartment.To avoid eviction, please make manual payment as soon as possible.</font></b>'
-				else
-					nl
-					'<b><b><font color="red">You''re card was declined during automatic rent deduction of <<home_rent[4]>> <b>₽</b> for your Pushkin apartment. To avoid eviction, please rectify as soon as possible.</font></b>'
-				end
-			elseif home_owned[4] > 0 and ArendHouseSL4 >= 31:
-				'<b><font color="yellow">Your rent for your Pushkin apartment is already paid in full this month.</font></b>'
-				haday = 1
-			end
-		end
-	end
-
 	! Utilities for all apartments.
-	if (home_owned[1] > 0 or home_owned[4] > 0 or home_owned[5] = 2) and electroday = 0:
+	if (home_owned[1] = 1 or home_owned[1] = 2 or home_owned[4] > 0 or home_owned[5] = 2) and electroday = 0:
 		gs 'housing', 'util'
 		if bankAccount = 1 and karta >= elektro:
-			'<b><font color="yellow"> <<elektro>> <b>₽</b> for utilities, has been automatically deducted from your bank account.</font></b>'
+			'<b><font color="green"><<elektro>> <b>₽</b> for utilities, has been automatically deducted from your bank account.</font></b>'
 			electroday = 1
 			if elektro >= 2000:
 				elektro = 2000 + rand(0, 100)
 				karta -= elektro * hcount_util
 			end
 		elseif bankAccount = 1 and karta + bankDebtLimit >= elektro:
-			'<b><font color="yellow"> <<elektro>> <b>₽</b> for utilities, has been automatically deducted from your bank account and overdraw facility. Please contact your bank.</font></b>'
+			'<b><font color="green"><<elektro>> <b>₽</b> for utilities, has been automatically deducted from your bank account and overdraw facility. Please contact your bank.</font></b>'
 			electroday = 1
 			if elektro >= 2000:
 				elektro = 2000 + rand(0, 100)
@@ -1158,7 +1125,7 @@ if day = 25:
 				money -= elektro * hcount_util
 			end
 		else
-			'<b><font color="red">You''re card was declined during automatic debit of <<elektro>> <b>₽</b>, for automatic utilities payment.</font></b>'
+			'<b><font color="red">Your card was declined during automatic debit of <<elektro>> <b>₽</b>, for automatic utilities payment.</font></b>'
 		end
 	end
 
@@ -1166,12 +1133,12 @@ if day = 25:
 	if kabel > 0 and kabelday = 0:
 		gs 'housing', 'cable'
 		if bankAccount = 1 and karta >= (300 * hcount_cable):
-			'<b><font color="yellow">300 <b>₽</b> has been deducted from your bank account, for you cable TV subscription.</font></b>'
+			'<b><font color="green">300 <b>₽</b> has been deducted from your bank account, for you cable TV subscription.</font></b>'
 			kabelday = 1
 			karta -= 300 * hcount_cable
-			'<b><font color="red">You''re card was declined during automatic debit of 300 <b>₽</b> for cable TV subscription.</font></b>'
+			'<b><font color="red">Your card was declined during automatic debit of 300 <b>₽</b> for cable TV subscription.</font></b>'
 		elseif bankAccount = 1 and karta + bankDebtLimit >= (300 * hcount_cable):
-			'<b><font color="yellow">300 <b>₽</b> has been deducted from your bank account and overdraw facility, for you cable TV subscription.</font></b>'
+			'<b><font color="green">300 <b>₽</b> has been deducted from your bank account and overdraw facility, for you cable TV subscription.</font></b>'
 			kabelday = 1
 			karta -= 300 * hcount_cable
 		elseif bankAccount = 0 and money >= (300 * hcount_cable):
@@ -1179,7 +1146,7 @@ if day = 25:
 			kabelday = 1
 			money -= 300 * hcount_cable
 		else
-			'<b><font color="red">You''re card was declined during automatic debit of 300 <b>₽</b> for cable TV subscription.</font></b>'
+			'<b><font color="red">Your card was declined during automatic debit of 300 <b>₽</b> for cable TV subscription.</font></b>'
 		end
 	end
 end
@@ -1198,16 +1165,73 @@ if day ! 25:
 	if paydaybistrosec = 1:paydaybistrosec = 0
 end
 
-if sdaday = day and sdamonth = month and home_owned[1] = 0:
+if sdaday = day and sdamonth = month and home_owned[1] = 3:
 	home_owned[1] = 2
 	'<b><font color="red">Your tenants have moved out and your apartment is now vacant.</font></b>'
 	!msg 'Your tenants have moved out and your apartment is now vacant.'
 end
 
+!!----------------------------------------
+!! Rent
+!!----------------------------------------
+
+if home_owned[1] = 1 or home_owned[4] > 0:
+	gs 'housing', 'rent'
+	! Rent for the city apartment
+	if home_owned[1] = 1:
+		if ArendHouseSL <= 2:
+			!From bank
+			if bankAccount = 1 and karta >= home_rent[1]:
+				'<b><font color="green">Your rent payment of <<home_rent[1]>> <b>₽</b> for your city apartment, has automatically been deducted from your bank account.</font></b>'
+				karta -= home_rent[1]
+				ArendHouseSL += ArendHouseSL_due
+			elseif bankAccount = 1 and karta + bankDebtLimit >= home_rent[1]:
+				'<b><font color="green">Your rent payment of <<home_rent[1]>> <b>₽</b> for your city apartment, has automatically been deducted from your bank account and overdraw facility. Please contact your bank regarding your overdraw repayment.</font></b>'
+				karta -= home_rent[1]
+				ArendHouseSL += ArendHouseSL_due
+			elseif bankAccount = 0:
+				'<b><font color="red">You currently do not have a bank account setup for automatic rent deduction of <<home_rent[1]>> <b>₽</b> for your city apartment. To avoid eviction, please make manual payment as soon as possible.</font></b>'
+			else
+				nl
+				'<b><b><font color="red">Your card was declined during automatic rent deduction of <<home_rent[1]>> <b>₽</b> for your city apartment. To avoid eviction, please rectify as soon as possible.</font></b>'
+			end
+		end
+	end
+
+	! Rent for the Pushkin apartment
+	if home_owned[4] > 0:
+		if ArendHouseSL4 <= 2:
+			!From bank
+			if bankAccount = 1 and karta >= home_rent[4]:
+				'<b><font color="green">Your rent payment of <<home_rent[4]>> <b>₽</b> for your Pushkin apartment, has automatically been deducted from your bank account.</font></b>'
+				karta -= home_rent[4]
+				ArendHouseSL4 += ArendHouseSL4_due
+			elseif bankAccount = 1 and karta + bankDebtLimit >= home_rent[4]:
+				'<b><font color="green">Your rent payment of <<home_rent[4]>> <b>₽</b> for your Pushkin apartment, has automatically been deducted from your bank account and overdraw facility. Please contact your bank regarding your overdraw repayment.</font></b>'
+				karta -= home_rent[4]
+				ArendHouseSL4 += ArendHouseSL4_due
+			elseif bankAccount = 0:
+				'<b><font color="red">You currently do not have a bank account setup for automatic rent deduction of <<home_rent[4]>> <b>₽</b> for your Pushkin apartment. To avoid eviction, please make manual payment as soon as possible.</font></b>'
+			else
+				nl
+				'<b><b><font color="red">Your card was declined during automatic rent deduction of <<home_rent[4]>> <b>₽</b> for your Pushkin apartment. To avoid eviction, please rectify as soon as possible.</font></b>'
+			end
+		end
+	end
+end
+
+if home_owned[1] = 1 and ArendHouseSL <= 0: ArendHouseSL = 0 & home_owned[1] = 0
+if home_owned[4] > 0 and ArendHouseSL4 <= 0: ArendHouseSL4 = 0 & home_owned[4] = 0
+
+if home_owned[1] = 1: ArendHouseSL -= 1
+if home_owned[4] > 0: ArendHouseSL4 -= 1
+
 !!------------------------------------------------------------------------------------------------------------
 
 killvar 'holyday'
 killvar 'kanikuli'
+killvar 'pcs_ate'
+killvar 'pcs_drank'
 
 !!sisboyparty
 !!-1 - don''t go to the party
@@ -1346,35 +1370,34 @@ if natholi = 1:
 end
 
 if bcream_used >= 1:
-    bcream_used = 0
-    temp = rand(0,5)
-    nbsize += temp
-    if temp > 0:'Feels like your breasts have grown slightly.'
+        bcream_used = 0
+        temp = rand(0,max(nbsize-genbsize+5,5)) / max(nbsize-genbsize,1)
+        if temp > 0: temp = 1
+        nbsize += temp
+        if temp > 0:'Feels like your breasts have grown slightly.'
 end
 if steroid_dose >= 1:
-    if lashair < 1:
-        pcs_pubes += steroid_dose
-        pcs_leghair += steroid_dose
-    end
-    steroid_dose = 0
+	if lashair < 1:
+		pcs_pubes += steroid_dose
+		pcs_leghair += steroid_dose
+	end
+	steroid_dose = 0
 end
 if aphrodisiac_overdose = 1:aphrodisiac_overdose = 0
-if aphrodisiac_timer ! 0:aphrodisiac_timer  = 0
+if aphrodisiac_timer ! 0:aphrodisiac_timer	= 0
 
 if mentats_dose = 1:
-    mentats_dose = 0
+	mentats_dose = 0
 elseif mentats_dose > 1:
-    pain['head'] += 20 * mentats_dose
-    mentats_dose = 0
+	pain['head'] += 20 * mentats_dose
+	mentats_dose = 0
 end
-if breastpumped = 0 and breastcount > 0: breastcount -= 1
-if breastpumped = 1: breastpumped = 0
 
 !!Appearance base calculation call
 gs 'body_shape', 'basebeautycalc'
 
 !! vovan, from 1.2.5
-hanters_check = 0
+hunters_check = 0
 mushroom_pickers = 0
 horse_river = 0
 haying_time = 0
@@ -1395,6 +1418,11 @@ i = loc_count - 1
 	end
 	i -=1
 if i > -1 :jump 'loopCloLoc'
+
+if vidageday > 1080: vidageday = 1080
+if blizoruk < 10: blizoruk -= 1
+if blizoruk < 100: blizoruk -= rand(0,1)
+if blizoruk < 0: blizoruk = 0
 
 --- cikl ---------------------------------
 

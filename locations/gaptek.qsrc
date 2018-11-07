@@ -1,311 +1,386 @@
 # gaptek
 $location_type = 'public_indoors'
 
-if $ARGS[0] = 'start' or gaptek_loc = 1 or $message ! '':
-	cls
+if $ARGS[0] = 'start' or $message ! '':
 	CLOSE ALL
+	*clr & cla
+	$loc = 'gaptek'
+	$metka = 'start'
+	$menu_loc = 'gaptek'
+	$menu_arg = 'start'
+	menu_off = 0
 	if sound = 0:PLAY 'sound/shop.mp3',30
 	gs 'stat'
 
+	if gatabletkiday ! daystart: gap_bc_count = 0
+	if galubriday ! daystart: gap_lub_count = 0
+	if gapregday ! daystart: gap_preg_count = 0
+	if gaprezikday ! daystart: gap_condom_count = 0
+	if gabotsmlday ! daystart: gap_botsml_count = 0
+	if gabotmedday ! daystart: gap_botmed_count = 0
+
+	if (hour >= 14 and hour <= 20 and week < 6) or (hour >= 8 and hour < 12 and week >= 6):
+		gaptek_aunt_hours = 1
+	else
+		gaptek_aunt_hours = 0
+	end
+
 	'<center><B><font color="maroon">Pharmacy</font></B></center>'
-	!'<center><img <<$set_imgh>> src="images/locations/pavlovsk/pharmacy/aptek.jpg"></center>'
-	'<center><img <<$set_imgh>> src="images/locations/pavlovsk/pharmacy/apteka_worker_1.jpg"></center>'
-
-	act 'Leave the pharmacy':gt 'pavCommercial'
-
-	if Olu_pay > 0:
-		minut += RAND(5,10)
-		money += Olu_pay * RAND(500,700)
+	if gaptek_aunt_hours = 1:
+		'<center><img <<$set_imgh>> src="images/locations/pavlovsk/pharmacy/apteka_worker_1.jpg"></center>'
+	else
+		if hour >= 8 and hour < 14 and week < 3:
+			'<center><img <<$set_imgh>> src="images/locations/pavlovsk/pharmacy/apteka_worker_2.jpg"></center>'
+		elseif hour >= 8 and hour < 14 and week >= 3 and week < 5:
+			'<center><img <<$set_imgh>> src="images/locations/pavlovsk/pharmacy/apteka_worker_3.jpg"></center>'
+		else
+			'<center><img <<$set_imgh>> src="images/locations/pavlovsk/pharmacy/apteka_worker_4.jpg"></center>'
+		end
+	end
+	*nl
+	
+	if Olu_pay > 0 and gaptek_aunt_hours = 1:
+		minut += rand(5,10)
+		money += Olu_pay * rand(500,700)
 		Olu_pay = 0
 
 		'You go back to the pharmacy, and wait for a slow moment so you can talk to your aunt undisturbed.'
 		'Your aunt smiles happily as she gives you a small envelope. "Thank you so much <<$pcs_firstname>>, this is the only way I can get some sleep. I really appreciate it. Here, please accept this money, you''ve earned it."'
 
-		act 'Thank her and leave the pharmacy':gt'pavCommercial'
+		act 'Thank her and leave the counter': gt 'gaptek', 'start'
 		exit
 	end
+	
+	act 'Leave the pharmacy':gt 'pavCommercial'
 
-	if hour < 8 or hour > 20:
-		'The pharmacy is currently closed. There''s a sign on the door, that says it''s open between 8:00 and 20:00 every day.'
-		exit
-	end
-	'<center>'
 	if $message ! '':
 		$message
 		killvar '$message'
 		'"Do you need anything else?"'
 	else
-		if StoryLine = 0:
+		if StoryLine = 0 or gaptek_aunt_hours = 0:
 			'The woman behind the counter in a white coat greets you, "Hello, what you need?"'
 		else
 			'Aunt Luda is sitting behind the counter, as usual. She gives you a friendly nod when she sees you: "Hi <<$pcs_firstname>>! How are you?"'
 		end
 	end
-	'</center>'
+	*nl
 	*pl '<center><table align="center" width=80%>'
-	*P FUNC ('$stock_item', 5, 'condoms', 500, 'prezikcount', $CURLOC, $ARGS[0], StoryLine, 'Aunt will tell mom!')
-	*P FUNC ('$stock_item', 1, 'pregnancy test', 530, 'pregtest', $CURLOC, $ARGS[0], StoryLine, 'Aunt will tell mom!')
-	*P FUNC ('$stock_item', 1, 'birth control pills', 1870, 'tabletki', $CURLOC, $ARGS[0], StoryLine, 'Aunt will tell mom!')
-	*P FUNC ('$stock_item', 10, 'antibiotics', 580, 'lekarstvo', $CURLOC, $ARGS[0])
-	*P FUNC ('$stock_item', 30, 'vitamins', 130, 'vitamin', $CURLOC, $ARGS[0])
-	*P FUNC ('$stock_item', 50, 'painkillers', 435, 'painkiller', $CURLOC, $ARGS[0])
-	*P FUNC ('$stock_item', 10, 'ointments for chafing', 372, 'mosolmaz', $CURLOC, $ARGS[0])
-	*P FUNC ('$stock_item', 1, 'lubricant', 145, 'lubri', $CURLOC, $ARGS[0], StoryLine, 'Aunt will tell mom!')
-	*P FUNC ('$stock_item', 30, 'lip balm', 127, 'lipbalm', $CURLOC, $ARGS[0])
-	*P FUNC ('$stock_item', 12, 'weight loss pill', 248, 'fatdel', $CURLOC, $ARGS[0])
-	*P FUNC ('$stock_item', 20, 'Tampons', 200, 'tampon', $CURLOC, $ARGS[0])
-	*P FUNC ('$stock_item', 20, 'Sanitary napkins', 100, 'sanpad', $CURLOC, $ARGS[0])
-	*P FUNC ('$single_stock_item', 1, 'enema kit', 1250, 'klisma', $CURLOC, $ARGS[0], StoryLine, 'You should be stealthy')
-	*P FUNC ('$single_stock_item', 1, 'breast pump', 800, 'breastpump', $CURLOC, $ARGS[0])
-	*P '</table></center>'
-	!! for original start we can just use stockitem, for alt start there are other plot elements involved
-	!strip polt-related item, other use new system
-	if KandidNapr = 1:'Cure for yeast infection - 1,050 <b>₽</b>'
-	!!this is the cost for a 1 day cure pack, use once and supposedly it gets rid of it. Also why not have this product always listed, seems silly to only list it when needed and gamey, if it is always listed it adds realism.
-
-	if npc_QW['A29'] >= 2:
-		act 'Ask about the "garden"':
-			cls
-			gaptekfirst = 1
-			gs 'stat'
-			'<center><b><font color="maroon">Pharmacy</font></b></center>'
-			!'<center><img <<$set_imgh>> src="images/locations/pavlovsk/pharmacy/aptek.jpg"></center>'
-			'<center><img <<$set_imgh>> src="images/locations/pavlovsk/pharmacy/apteka_worker_1.jpg"></center>'
-
-			if npc_QW['A29'] = 2 and gaogorod < 40:
-				if gaptekfirst = 0:
-					gaptekfirst = 1
-					minut += 5
-					'You pretend to look at the goods positioned on the shelves, while you consider how to best approach your aunt. Your aunt notices you staring at the shelves, and comes from behind the counter when she''s done helping her last customer.'
-					'"Hi <<$pcs_nickname>>, are you looking for something?"'
-					'You take a deep breath and say: "Erm... yes aunt. My mother needs some things for her ''garden''?" putting extra emphasis on the word.'
-					'Your aunt pretends to be confused, and teases you: "<<$pcs_nickname>>, are you sure you''re in the right store? This is a pharmacy, not a gardening center!"'
-					'You''re slightly confused now, and try again: "I know, aunt... my mom said I should say ''garden''."'
-					'She just laughs: "Just teasing, <<$pcs_nickname>>. Your mother has such green thumbs, she comes here all the time! Come on, I''ll show you what we have." She takes you by the hand and takes you to the counter holding the contraceptives.'
-					'"Here you go. All of your gardening needs, right here. What can I get you?"'
-
-					gs 'gaptek', 'garden'
-				else
-					minut += rand(5, 15)
-					if gaprezikday ! daystart or gatabletkiday ! daystart:
-						'You wait until the last customer leaves the pharmacy, and quickly dart over to the counter.'
-						'"Hi aunt Luda, my mom needs a few more items for her garden."'
-						'"Your mom, huh? Sure, sure... it''s right here, take your pick!" she chuckles, as you try to hide your blush.'
-						'You intently stare at the items, avoiding her gaze as you mutter: "Thank you, Aunt..."'
-						'"No problem, <<$pcs_nickname>>. But seriously, tell Natasha she shouldn''t spend so much time gardening. We keep running low on stock."'
-
-					gs 'gaptek', 'garden'
-					else
-						minut += RAND(5,15)
-						'You linger around the pharmacy, waiting for your aunt to become available. However, as time passes the pharmacy only becomes more and more crowded, and your aunt has a long line of customers to deal with. You decide you''ve wasted enough time, and to try again later.'
-					end
-				end
-			elseif npc_QW['A29'] = 2:
-				gt 'motherQW','motherQW_3'
-			elseif npc_QW['A29'] >= 3 and galubri = 0:
-				if gaprezikday ! daystart or gatabletkiday ! daystart:
-					minut += RAND(5,15)
-					gs'stat'
-					if RAND(0,5) = 0 and oluuosegunday ! daystart:
-						gt 'motherQW','olu'
-					else
-						'You wait for your turn and move to the counter, discretely nodding at the counter with the contraceptives. Your aunt gives you a small smile and asks what she can do for you today.'
-
-						gs 'gaptek', 'garden'
-					end
-				elseif gaprezikday = daystart and gatabletkiday = daystart:
-					minut += RAND(5,15)
-
-					'You wait for your turn and move up to the counter, discretely nodding at the counter with the contraceptives. She apologizes: "I''m sorry <<$pcs_nickname>>, those are all sold out." With some malice in her voice, she whispers: "Your stud will have to wait until tomorrow, unless you plan on entertaining him in some other way." Giving you a lewd grin, she ushers you away from the counter so she can help the next customer.'
-				end
-			elseif npc_QW['A29'] >= 3 and galubri = 1:
-				if gaprezikday ! daystart or gatabletkiday ! daystart or galubriday ! daystart:
-					minut += RAND(5,15)
-					if RAND(0,5) = 0 and oluuosegunday ! daystart and tetyafirst < 3:
-						gt 'motherQW','olu'
-					else
-						'You wait for your turn and move to the counter, discretely nodding at the counter with the contraceptives. Your aunt gives you a small smile and asks what she can do for you today.'
-
-						gs 'gaptek', 'garden'
-					end
-				elseif gaprezikday = daystart and gatabletkiday = daystart and galubriday = daystart:
-					minut += RAND(5,15)
-
-					'You wait for your turn and move up to the counter, discretely nodding at the counter with the contraceptives. She apologizes: "I''m sorry <<$pcs_nickname>>, those are all sold out." With some malice in her voice, she whispers: "Your stud will have to wait until tomorrow, unless you plan on entertaining him in some other way." Giving you a lewd grin, she ushers you away from the counter so she can help the next customer.'
-				end
-			end
-
-			act 'Move away from the counter':gt 'gaptek', 'start'
+	if gaptek_aunt_hours = 0:
+		if preziktype = 0:
+			*P FUNC ('$stock_item', 5, 'Condoms', 500, 'prezik', 'gaptek', 'start')
+		elseif preziktype = 1 or preziktype = 2:
+			*P FUNC ('$stock_item', 5, 'Condoms', 500, 'prezikcount', 'gaptek', 'start')
 		end
+		*P FUNC ('$stock_item', 1, 'Pregnancy test', 530, 'pregtest', 'gaptek', 'start')
+		*P FUNC ('$stock_item', 1, 'Birth control pills', 1870, 'tabletki', 'gaptek', 'start')
+		*P FUNC ('$stock_item', 10, 'Antibiotics', 580, 'lekarstvo', 'gaptek', 'start')
+		*P FUNC ('$stock_item', 30, 'Vitamins', 130, 'vitamin', 'gaptek', 'start')
+		*P FUNC ('$stock_item', 50, 'Painkillers', 435, 'painkiller', 'gaptek', 'start')
+		*P FUNC ('$stock_item', 10, 'Ointments for chafing', 372, 'mosolmaz', 'gaptek', 'start')
+		*P FUNC ('$stock_item', 1, 'Lubricant', 145, 'lubri', 'gaptek', 'start', StoryLine, '(you have <<lubri>>)','<a href="exec:gs ''gaptek'', ''oops''">buy 1</a>')
+		*P FUNC ('$stock_item', 30, 'Lip balm', 127, 'lipbalm', 'gaptek', 'start')
+		*P FUNC ('$stock_item', 12, 'Weight loss pill', 248, 'fatdel', 'gaptek', 'start')
+		*P FUNC ('$stock_item', 20, 'Tampons', 200, 'tampon', 'gaptek', 'start')
+		*P FUNC ('$stock_item', 20, 'Sanitary napkins', 100, 'sanpad', 'gaptek', 'start')
+		*P FUNC ('$single_stock_item', 1, 'Enema kit', 1250, 'klisma', 'gaptek', 'start')
+		*P FUNC ('$single_stock_item', 1, 'Breast pump', 2500, 'breastpump', 'gaptek', 'start')
+		*P FUNC ('$stock_item', 3, 'Breastmilk bottle S', 930, 'bpbottles', 'gaptek', 'start')
+		*P FUNC ('$stock_item', 2, 'Breastmilk bottle M', 930, 'bpbottlem', 'gaptek', 'start')
+		if pcs_knows_nipplecream = 1:
+			*P FUNC ('$stock_item', 20, 'Nipplebalm', 600, 'bpnipplebalm', 'gaptek', 'start')
+		end
+		*P FUNC ('$single_stock_item', 1, 'Antifungal medication', 1050, 'Kandidoz', 'gaptek', 'start')
+		*P '</table></center>'
 
-		if money >= 1870:
-			if gatabletkiday ! daystart and npc_QW['A29'] >= 2:
-				act 'Buy birth control pills (1870 <b>₽</b>) <<iif(tabletki > 0, ''[left:<b>'' + tabletki + ''</b>]'', '''')>>':
-!!Apostrope fix for notepad display''''
-					cla
-					*clr
-					portion = input ("How many packages do you want to buy?")
-					if portion <= 0:
-						cla
-						'You change your mind and feel flustered,'
-						act 'Move away from the counter':gt 'gaptek', 'start'
-					exit
+	elseif gaptek_aunt_hours = 1:
+		if preziktype = 0:
+			*P FUNC ('$stock_item', 5, 'Condoms', 500, 'prezik', 'gaptek', 'start', StoryLine, '(you have <<prezik>>)','<a href="exec:gs ''gaptek'', ''oops''">buy 5</a>')
+		elseif preziktype = 1 or preziktype = 2:
+			*P FUNC ('$stock_item', 5, 'Condoms', 500, 'prezikcount', 'gaptek', 'start', StoryLine, '(you have <<prezikcount>>)','<a href="exec:gs ''gaptek'', ''oops''">buy 5</a>')
+		end
+		*P FUNC ('$stock_item', 1, 'Pregnancy test', 530, 'pregtest', 'gaptek', 'start', StoryLine, '(you have <<pregtest>>)','<a href="exec:gs ''gaptek'', ''oops''">buy 1</a>')
+		*P FUNC ('$stock_item', 1, 'Birth control pills', 1870, 'tabletki', 'gaptek', 'start', StoryLine, '(you have <<tabletki>>)','<a href="exec:gs ''gaptek'', ''oops''">buy 1</a>')
+		*P FUNC ('$stock_item', 10, 'Antibiotics', 580, 'lekarstvo', 'gaptek', 'start')
+		*P FUNC ('$stock_item', 30, 'Vitamins', 130, 'vitamin', 'gaptek', 'start')
+		*P FUNC ('$stock_item', 50, 'Painkillers', 435, 'painkiller', 'gaptek', 'start')
+		*P FUNC ('$stock_item', 10, 'Ointments for chafing', 372, 'mosolmaz', 'gaptek', 'start')
+		*P FUNC ('$stock_item', 1, 'Lubricant', 145, 'lubri', 'gaptek', 'start', StoryLine, '(you have <<lubri>>)','<a href="exec:gs ''gaptek'', ''oops''">buy 1</a>')
+		*P FUNC ('$stock_item', 30, 'Lip balm', 127, 'lipbalm', 'gaptek', 'start')
+		*P FUNC ('$stock_item', 12, 'Weight loss pill', 248, 'fatdel', 'gaptek', 'start')
+		*P FUNC ('$stock_item', 20, 'Tampons', 200, 'tampon', 'gaptek', 'start')
+			*P FUNC ('$stock_item', 20, 'Sanitary napkins', 100, 'sanpad', 'gaptek', 'start')
+		if klisma > 0:
+			*P FUNC ('$single_stock_item', 1, 'Enema kit', 1250, 'klisma', 'gaptek', 'start')
+		else
+			*P FUNC ('$single_stock_item', 1, 'Enema kit', 1250, 'klisma', 'gaptek', 'start', StoryLine, '(you have <<klisma>>)','<a href="exec:gs ''gaptek'', ''oops''">buy</a>')
+		end
+		if breastpump > 0:
+			*P FUNC ('$single_stock_item', 1, 'Breast pump', 2500, 'breastpump', 'gaptek', 'start')
+		else
+			*P FUNC ('$single_stock_item', 1, 'Breast pump', 2500, 'breastpump', 'gaptek', 'start', StoryLine, '(you have <<breastpump>>)','<a href="exec:gs ''gaptek'', ''oops''">buy</a>')
+		end
+		*P FUNC ('$stock_item', 3, 'Breastmilk bottle S', 930, 'bpbottles', 'gaptek', 'start', StoryLine, '(you have <<bpbottles>>)','<a href="exec:gs ''gaptek'', ''oops''">buy</a>')
+		*P FUNC ('$stock_item', 2, 'Breastmilk bottle M', 930, 'bpbottlem', 'gaptek', 'start', StoryLine, '(you have <<bpbottlem>>)','<a href="exec:gs ''gaptek'', ''oops''">buy</a>')
+		if pcs_knows_nipplecream = 1:
+			*P FUNC ('$stock_item', 20, 'Nipplebalm', 600, 'bpnipplebalm', 'gaptek', 'start')
+		end
+		*P FUNC ('$single_stock_item', 1, 'Antifungal medication', 1050, 'Kandidoz', 'gaptek', 'start', StoryLine, '(you have 0)',''+iif(money >= 1050,'<a href="exec:gs ''gaptek'', ''buy_antifungal''">buy</a>','')+'')
+		*P '</table></center>'
 
-					elseif portion > 1 and npc_QW['A29'] < 3:
-						portion = 1
-						'You quietly think to yourself, while you put most of the packages back on the shelf: "Just the one should be enough. It''s probably better if I don''t buy too many at once, otherwise aunt Luda might become suspicious."'
-					end
-
-					if portion * 1870 <= money:
-						tabletki += portion
-						minut += 5
-						money -= portion * 1870
-						gatabletkiday = daystart
-						'<center><img <<$set_imgh>> src="images/locations/shared/store/kassa.jpg"></center>'
-						'You pay for the birth control pills and quickly put the strips in your pocket, before anyone sees you buy them.'
-					else
-						'You can''t afford to buy birth control pills.'
-					end
-
-					act 'Move away from the counter':gt 'gaptek', 'start'
-				end
-			end
-
-			if klisma = 0 and npc_QW['A29'] >= 2 and gaptekfirst = 1:
-				act 'Buy the enema kit (1250 <b>₽</b>)':
-					cla
-					*clr
-					klisma = 1
-					minut += 5
-					money -= 1250
-					'<center><img <<$set_imgh>> src="images/locations/shared/store/kassa.jpg"></center>'
-					'You pay for the enema kit and quickly ask your aunt to put it in a paper bag, before the other customers see it.'
-
-					act 'Move away from the counter':gt 'gaptek', 'start'
-				end
-			end
-
-			if KandidNapr = 1:
-				act 'Buy tablets for your yeast infection (1,050 <b>₽</b>)':
-					cla
-					*clr
-					money -= 1050
-					Kandidoz = 0
-					'<center><img <<$set_imgh>> src="images/locations/shared/store/kassa.jpg"></center>'
-					'You put the money on the counter and immediately open the package and swallow the tablet. A while later, you feel better.'
-
-					act 'Move away from the counter':gt 'gaptek', 'start'
-				end
-			end
+		if npc_QW['A29'] >= 2:
+			act 'Ask about the "garden"': gt 'gaptek', 'garden'
 		end
 	end
 end
 
 if $ARGS[0] = 'garden':
+	$loc = 'gaptek'
+	$metka = 'garden'
+	$menu_loc = 'gaptek'
+	$menu_arg = 'garden'
+	menu_off = 0
+	*clr & cla
+	gs 'stat'
+	'<center><B><font color="maroon">Pharmacy</font></B></center>'
+	'<center><img <<$set_imgh>> src="images/locations/pavlovsk/pharmacy/apteka_worker_1.jpg"></center>'
 	*nl
-	'<center>Condoms: 500 ₽ per pack - You currently have <b><<prezikcount>></b></center>'
-	'<center>Pregnancy test: 530 ₽ per pack - You currently have <b><<pregtest>></b></center>'
-	if money >= 145 and galubri = 1 and npc_QW['A29'] >= 2 and gaptekfirst = 1 and galubriday ! daystart:'<center>Lubricant: 145 ₽ each - You currently have <b><<lubri>></b></center>'
-	if money >= 500 and npc_QW['A29'] >= 2 and gaptekfirst = 1 and gaprezikday ! daystart:
-		act 'Buy condoms (500 <b>₽</b>) <<iif(prezikcount > 0, ''[left:<b>'' + prezikcount + ''</b>]'', '''')>>':
-!!Apostrope fix for notepad display''''
-			cla
-			*clr
-			portion = input("How many packages you want to buy? (One package contains 5 condoms)")
 
-			if portion <= 0:
-				cla
-				'You change your mind and feel flustered,'
-				act 'Move away from the counter':gt 'gaptek', 'start'
-			exit
-
-			end
-
-			if portion > 2 and npc_QW['A29'] < 3:portion = 2 & 'You tell yourself: "Two packages should be enough". You shouldn''t buy too many at once, otherwise your aunt might get suspicious.'
-			if portion > 5 and npc_QW['A29'] >= 3:portion = 5 & 'Your aunt laughs and shakes her head. "I''m sorry <<$pcs_nickname>>, I can only give you five. With the amounts you''re buying, the condom factory can barely keep up delivering new stock."'
-
-			if portion * 500 <= money:
-				prezik += portion * 5
-				minut += 5
-				money -= portion * 500
-				gaprezikday = daystart
-				'<center><img <<$set_imgh>> src="images/locations/shared/store/kassa.jpg"></center>'
-				'You pay for the condoms and quickly put them in your pocket, before anyone sees you buy them.'
-
-				if npc_QW['A29'] < 3:gaogorod += portion
+	if npc_QW['A29'] = 2 and gaogorod < 40:
+		if gaptekfirst = 0:
+			gaptekfirst = 1
+			minut += 5
+			'You pretend to look at the goods positioned on the shelves, while you consider how to best approach your aunt. Your aunt notices you staring at the shelves, and comes from behind the counter when she''s done helping her last customer.'
+			'"Hi <<$pcs_nickname>>, are you looking for something?"'
+			'You take a deep breath and say: "Erm... yes aunt. My mother needs some things for her ''garden''?" putting extra emphasis on the word.'
+			'Your aunt pretends to be confused, and teases you: "<<$pcs_nickname>>, are you sure you''re in the right store? This is a pharmacy, not a gardening center!"'
+			'You''re slightly confused now, and try again: "I know, aunt... my <<$npc_nickname[''A29'']>> said I should say ''garden''."'
+			'She just laughs: "Just teasing, <<$pcs_nickname>>. Your mother has such green thumbs, she comes here all the time! Come on, I''ll show you what we have." She takes you by the hand and takes you to the counter holding the contraceptives.'
+			'"Here you go. All of your gardening needs, right here. What can I get you?"'
+		else
+			minut += rand(5, 15)
+			if gaprezikday ! daystart or gatabletkiday ! daystart or gabotmedday ! daystart or gabotsmlday ! daystart or gapregday ! daystart:
+				'You wait until the last customer leaves the pharmacy, and quickly dart over to the counter.'
+				'"Hi aunt Luda, my <<$npc_nickname[''A29'']>> needs a few more items for her garden."'
+				'"Your <<$npc_nickname[''A29'']>>, huh? Sure, sure... it''s right here, take your pick!" she chuckles, as you try to hide your blush.'
+				'You intently stare at the items, avoiding her gaze as you mutter: "Thank you, Aunt..."'
+				'"No problem, <<$pcs_nickname>>. But seriously, tell Natasha she shouldn''t spend so much time gardening. We keep running low on stock."'
 			else
-				'You can''t afford the condoms.'
+				minut += rand(5,15)
+				'You linger around the pharmacy, waiting for your aunt to become available. However, as time passes the pharmacy only becomes more and more crowded, and your aunt has a long line of customers to deal with. You decide you''ve wasted enough time, and to try again later.'
 			end
+		end
+	elseif npc_QW['A29'] = 2:
+		gt 'motherQW','motherQW_3'
+	elseif npc_QW['A29'] >= 3 and galubri = 0:
+		if gaprezikday ! daystart or gatabletkiday ! daystart or gabotmedday ! daystart or gabotsmlday ! daystart or gapregday ! daystart:
+			minut += rand(5,15)
+			gs'stat'
+			if rand(0,5) = 0 and oluuosegunday ! daystart:
+				gt 'motherQW','olu'
+			else
+				'You wait for your turn and move to the counter, discretely nodding at the counter with the contraceptives. Your aunt gives you a small smile and asks what she can do for you today.'
+			end
+		elseif gaprezikday = daystart and gatabletkiday = daystart:
+			minut += rand(5,15)
 
-			act 'Move away from the counter':gt 'gaptek', 'start'
+			'You wait for your turn and move up to the counter, discretely nodding at the counter with the contraceptives. She apologizes: "I''m sorry <<$pcs_nickname>>, those are all sold out." With some malice in her voice, she whispers: "Your stud will have to wait until tomorrow, unless you plan on entertaining him in some other way." Giving you a lewd grin, she ushers you away from the counter so she can help the next customer.'
+		end
+	elseif npc_QW['A29'] >= 3 and galubri = 1:
+		if gaprezikday ! daystart or gatabletkiday ! daystart or gabotmedday ! daystart or gabotsmlday ! daystart or gapregday ! daystart:
+			minut += rand(5,15)
+			if rand(0,5) = 0 and oluuosegunday ! daystart and tetyafirst < 3:
+				gt 'motherQW','olu'
+			else
+				'You wait for your turn and move to the counter, discretely nodding at the counter with the contraceptives. Your aunt gives you a small smile and asks what she can do for you today.'
+			end
+		elseif gaprezikday = daystart and gatabletkiday = daystart and galubriday = daystart:
+			minut += rand(5,15)
+
+			'You wait for your turn and move up to the counter, discretely nodding at the counter with the contraceptives. She apologizes: "I''m sorry <<$pcs_nickname>>, those are all sold out." With some malice in her voice, she whispers: "Your stud will have to wait until tomorrow, unless you plan on entertaining him in some other way." Giving you a lewd grin, she ushers you away from the counter so she can help the next customer.'
 		end
 	end
 
-	if money >= 530 and npc_QW['A29'] >= 2 and gaptekfirst = 1:
-		act 'Buy  pregnancy tests (530 <b>₽</b>) <<iif(pregtest > 0, ''[left:<b>'' + pregtest + ''</b>]'', '''')>>':
-!!Apostrope fix for notepad display''''
-			cla
-			*clr
-			portion = input("How many packages do you want to buy? (One package contains two testers)")
-
-			if portion <= 0:
-				cla
-				'You change your mind and feel flustered,'
-				act 'Move away from the counter':gt 'gaptek', 'start'
-			exit
-
-			end
-
-			if portion * 530 <= money:
-				pregtest += portion * 2
-				minut += 5
-				money -= portion * 530
-				'<center><img <<$set_imgh>> src="images/locations/shared/store/kassa.jpg"></center>'
-				'You pay for the pregnancy tests and quickly put them in your pocket, before anyone sees you buy them.'
-
-				if npc_QW['A29'] < 3:gaogorod += portion
-			else
-				'You can''t afford to buy the pregnancy tests, and have to put them back on the counter.'
-			end
-
-			act 'Move away from the counter':gt 'gaptek', 'start'
-		end
+	if $gardmess ! '':
+		$gardmess
+		killvar '$gardmess'
+		'"Do you need anything else?"'
 	end
+	*nl
+	*pl '<center><table align="center" width=80%>'
+	if preziktype = 0:
+		*P FUNC ('$stock_item', 5, 'Condoms', 500, 'prezik', 'gaptek', 'garden', StoryLine, '(you have <<prezik>>)',''+iif(money >= 500,'<a href="exec:gs ''gaptek'', ''buy_condoms''">buy 5</a>','')+'')
+	elseif preziktype = 1 or preziktype = 2:
+		*P FUNC ('$stock_item', 5, 'Condoms', 500, 'prezikcount', 'gaptek', 'garden', StoryLine, '(you have <<prezikcount>>)',''+iif(money >= 500,'<a href="exec:gs ''gaptek'', ''buy_condoms''">buy 5</a>','')+'')
+	end
+	*P FUNC ('$stock_item', 1, 'Pregnancy test', 530, 'pregtest', 'gaptek', 'garden', StoryLine, '(you have <<pregtest>>)',''+iif(money >= 530,'<a href="exec:gs ''gaptek'', ''buy_preg_test''">buy 1</a>','')+'')
+	*P FUNC ('$stock_item', 1, 'Birth control pills', 1870, 'tabletki', 'gaptek', 'garden', StoryLine, '(you have <<tabletki>>)',''+iif(money >= 1870,'<a href="exec:gs ''gaptek'', ''buy_birth_control''">buy 1</a>','')+'')
+	*P FUNC ('$stock_item', 1, 'Lubricant', 145, 'lubri', 'gaptek', 'garden', StoryLine, '(you have <<lubri>>)',''+iif(money >= 145,'<a href="exec:gs ''gaptek'', ''buy_lube''">buy 1</a>','')+'')
+	if klisma > 0:
+		*P FUNC ('$single_stock_item', 1, 'Enema kit', 1250, 'klisma', 'gaptek', 'garden')
+	else
+		*P FUNC ('$single_stock_item', 1, 'Enema kit', 1250, 'klisma', 'gaptek', 'garden', StoryLine, '(you have <<klisma>>)',''+iif(money >= 1250,'<a href="exec:gs ''gaptek'', ''buy_enema''">buy</a>','')+'')
+	end
+	if breastpump > 0:
+		*P FUNC ('$single_stock_item', 1, 'Breast pump', 2500, 'breastpump', 'gaptek', 'garden')
+	else
+		*P FUNC ('$single_stock_item', 1, 'Breast pump', 2500, 'breastpump', 'gaptek', 'garden', StoryLine, '(you have <<breastpump>>)',''+iif(money >= 2500,'<a href="exec:gs ''gaptek'', ''buy_breast_pump''">buy</a>','')+'')
+	end
+	*P FUNC ('$stock_item', 3, 'Breastmilk bottle S', 930, 'bpbottles', 'gaptek', 'garden', StoryLine, '(you have <<bpbottles>>)',''+iif(money >= 930,'<a href="exec:gs ''gaptek'', ''buy_bottle_sml''">buy</a>','')+'')
+	*P FUNC ('$stock_item', 2, 'Breastmilk bottle M', 930, 'bpbottlem', 'gaptek', 'garden', StoryLine, '(you have <<bpbottlem>>)',''+iif(money >= 930,'<a href="exec:gs ''gaptek'', ''buy_bottle_med''">buy</a>','')+'')
+	*P '</table></center>'
 
+	act 'Move away from the counter':gt 'gaptek', 'start'
+end
+
+if $ARGS[0] = 'buy_condoms':
+	if gap_condom_count >= 2 and npc_QW['A29'] < 3 and gaprezikday = daystart:
+		$gardmess = 'You tell yourself: "Two packages should be enough". You shouldn''t buy too many at once, otherwise your aunt might get suspicious.'
+		*nl
+		gt 'gaptek', 'garden'
+	elseif gap_condom_count >= 5 and npc_QW['A29'] >= 3 and gaprezikday = daystart:
+		$gardmess = 'Your aunt laughs and shakes her head. "I''m sorry <<$pcs_nickname>>, I can only give you five. With the amounts you''re buying, the condom factory can barely keep up delivering new stock."'
+		*nl
+		gt 'gaptek', 'garden'
+	else
+		if preziktype = 0:
+			prezik += 5
+		elseif preziktype = 1 or preziktype = 2:
+			prezikcount += 5
+		end
+		money -= 500
+		gap_condom_count += 1
+		gaprezikday = daystart
+		gs 'stat'
+		if npc_QW['A29'] < 3:gaogorod += gap_condom_count
+		$gardmess = '<center><font color="green">You bought 5 <b>Condoms</b>.</font></center><br>You pay for the condoms and quickly put them in your pocket, before anyone sees you buy them.'
+		*nl
+		gt 'gaptek', 'garden'
+	end
+end
+
+if $ARGS[0] = 'buy_preg_test':
+	if gap_preg_count >= 1 and npc_QW['A29'] < 3 and gapregday = daystart:
+		$gardmess = 'It''s better if I don''t buy too many today, aunt Luda might get suspicious.'
+		*nl
+		gt 'gaptek', 'garden'
+	else
+		pregtest += 1
+		money -= 530
+		gap_preg_count += 1
+		gapregday = daystart
+		gs 'stat'
+		if npc_QW['A29'] < 3:gaogorod += gap_preg_count
+		$gardmess = '<center><font color="green">You bought 1 <b>Pregnancy test</b>.</font></center><br>You pay for the pregnancy tests and quickly put them in your pocket, before anyone sees you buy them.'
+		*nl
+		gt 'gaptek', 'garden'
+	end
+end
+
+if $ARGS[0] = 'buy_lube':
 	!! you can only buy lube here if your aunt arranged for it and you haven''t bought any today yet
-	if money >= 145 and galubri = 1 and npc_QW['A29'] >= 2 and gaptekfirst = 1 and galubriday ! daystart:
-		act 'Buy <b>lubricant</b> (145 <b>₽</b>) <<iif(lubri > 0, ''[left:<b>'' + lubri + ''</b>]'', '''')>>':
-!!Apostrope fix for notepad display''''
-			cla
-			*clr
-			portion = input ("How many tubes do you want to buy? (One tube lasts for 5 uses)")
-
-			if portion <= 0:
-				cla
-				'You change your mind and feel flustered,'
-				act 'Move away from the counter':gt 'gaptek', 'start'
-			exit
-
-			end
-
-			if portion > 3:portion = 3 & 'Your aunt shakes her head wearily: "Wow <<$pcs_nickname>>, you little vixen! You really love this stuff huh? I''m sorry but I can only sell you three, I need to keep a few in stock for other customers too. We don''t want the whole town to wonder where their supply of lubricant went."'
-
-			if portion * 145 <= money:
-				lubri += portion * 5
-				minut += 5
-				money -= portion * 145
-				galubriday = daystart
-				'<center><img <<$set_imgh>> src="images/locations/shared/store/kassa.jpg"></center>'
-				'You pay for the lubricant and quickly put the tubes in your pocket, before anyone sees you buy them.'
-
-				if npc_QW['A29'] < 3:gaogorod += portion
-			else
-				'You can''t afford to buy the lubricant.'
-			end
-
-			act 'Move away from the counter':gt 'gaptek', 'start'
-		end
+	if galubri = 1 and gap_lub_count >= 3 and galubriday = daystart:
+		$gardmess = 'Your aunt shakes her head wearily: "Wow <<$pcs_nickname>>, you little vixen! You really love this stuff huh? I''m sorry but I can only sell you three, I need to keep a few in stock for other customers too. We don''t want the whole town to wonder where their supply of lubricant went."'
+		*nl
+		gt 'gaptek', 'garden'
+	else
+		lubri += 1
+		money -= 145
+		gap_lub_count += 1
+		galubriday = daystart
+		gs 'stat'
+		if npc_QW['A29'] < 3:gaogorod += gap_lub_count
+		$gardmess = '<center><font color="green">You bought 1 <b>Lubricant</b>.</font></center><br>You pay for the lubricant and quickly put the tubes in your pocket, before anyone sees you buy them.'
+		*nl
+		gt 'gaptek', 'garden'
 	end
+end
+
+if $ARGS[0] = 'buy_birth_control':
+	if gap_bc_count >= 1 and npc_QW['A29'] < 3 and gatabletkiday = daystart:
+		$gardmess = 'You quietly think to yourself, while you put most of the packages back on the shelf: "Just the one should be enough. It''s probably better if I don''t buy too many at once, otherwise aunt Luda might become suspicious."'
+		*nl
+		gt 'gaptek', 'garden'
+	else
+		tabletki += 1
+		money -= 1870
+		gap_bc_count += 1
+		gatabletkiday = daystart
+		gs 'stat'
+		$gardmess = '<center><font color="green">You bought 1 <b>Birth control pills</b>.</font></center><br>You pay for the birth control pills and quickly put the strips in your pocket, before anyone sees you buy them.'
+		*nl
+		gt 'gaptek', 'garden'
+	end
+end
+
+if $ARGS[0] = 'buy_enema':
+	klisma = 1
+	money -= 1250
+	$gardmess = '<center><font color="green">You bought an Enema kit</font></center><br>You pay for the enema kit and quickly ask your aunt to put it in a paper bag, before the other customers see it.'
+	*nl
+	gt 'gaptek', 'garden'
+end
+
+if $ARGS[0] = 'buy_breast_pump':
+	breastpump = 1
+	money -= 2500
+	$gardmess = '<center><font color="green">You bought a Breast pump</font></center><br>You quickly ask your aunt to put the breat pump in a paper bag, before anyone notices.'
+	*nl
+	gt 'gaptek', 'garden'
+end
+
+if $ARGS[0] = 'buy_bottle_sml':
+	if gap_botsml_count >= 1 and npc_QW['A29'] < 3 and gabotsmlday = daystart:
+		$gardmess = 'It''s better if I don''t buy too many today, aunt Luda might get suspicious.'
+		*nl
+		gt 'gaptek', 'garden'
+	else
+		bpbottles += 1
+		money -= 930
+		gap_botsml_count += 1
+		gabotsmlday = daystart
+		gs 'stat'
+		$gardmess = '<center><font color="green">You bought 3 <b>Small bottles</b>.</font></center><br>You quickly hide the small bottles before anyone sees them.'
+		*nl
+		gt 'gaptek', 'garden'
+	end
+end
+
+if $ARGS[0] = 'buy_bottle_med':
+	if gap_botmed_count >= 1 and npc_QW['A29'] < 3 and gabotmedday = daystart:
+		$gardmess = 'It''s better if I don''t buy too many today, aunt Luda might get suspicious.'
+		*nl
+		gt 'gaptek', 'garden'
+	else
+		bpbottlem += 1
+		money -= 930
+		gap_botmed_count += 1
+		gabotmedday = daystart
+		gs 'stat'
+		$gardmess = '<center><font color="green">You bought 2 <b>Medium bottles</b>.</font></center><br>You quickly hide the medium bottles before anyone notices.'
+		*nl
+		gt 'gaptek', 'garden'
+	end
+end
+
+if $ARGS[0] = 'buy_antifungal':
+	if KandidNapr = 1:
+		money -= 1050
+		Kandidoz = 0
+		gs 'stat'
+		$gardmess = '<center><font color="green">You bought 1 <b>Antifungal medication</b>.</font></center><br>You put the money on the counter and immediately open the package and swallow the tablet. A while later, you feel better.'
+		gt 'gaptek', 'start'
+	else
+		msg '<center>You don''t need any antifungal medication right now.</center>'
+		*nl
+		gt 'gaptek', 'start'
+	end
+end
+
+if $ARGS[0] = 'oops':
+	msg '<center>I better not buy this here, otherwise aunt will tell <<$npc_nickname[''A29'']>>!</center>'
+	*nl
+	gt 'gaptek', 'start'
 end
 
 --- gaptek ---------------------------------

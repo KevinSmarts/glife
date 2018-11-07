@@ -1,48 +1,22 @@
 # bed2
 
-if $args[0] = 'options':
-	cla
-	act 'Set Alarm Clock':gt 'budilnik', 'start'
-	if bedPanty = 0:
-		act 'You will wear underwear in the morning, click to turn off':bedpanty = 1 & gt 'bed2', 'options'
-	else
-		act 'You will not wear underwear in the morning, click to turn on':bedpanty = 0 & gt 'bed2', 'options'
-	end
-	if analplug = 1:
-		if bedanal = 0:
-			act 'If worn, you will remove your analplug at night, click to always leave it in':bedanal = 1 & gt 'bed2', 'options'
-		else
-			act 'If worn, you will wear your analplug through the night, click to always remove it':bedanal = 0 & gt 'bed2', 'options'
-		end
-	end
-
-
-
-	if vibrator = 1 and cheatVib = 1:
-		if bedvibrator = 0:
-			act 'If worn, you will remove your vibrator at night, click to always leave it in':bedvibrator = 1 & gt 'bed2', 'options'
-		else
-			act 'If worn, you will wear your vibrator through the night, click to always remove it':bedvibrator = 0 & gt 'bed2', 'options'
-		end
-	end
-
-	act 'Return':gt 'bed2'
-end
-
-if $args[0] = '':
+if $ARGS[0] = '':
+	cla & *clr
+	$menu_loc = 'bed2'
+	$menu_arg = ''
+	menu_off = 0
 	gs 'stat'
-	cla
-
 	if $clothingworntype ! 'nude':
 		'<center><img <<$set_imgh>> src="images/shared/home/bed.jpg"></center>'
 	else
 		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/son.jpg"></center>'
 	end
+	*nl
 
 	if budilnikOn = 0:
-		'You lie on the bed. Alarm set for <<timer>> hours <<timerM>> minutes and currently turned <a href="exec: budilnikOn = 1 & GT ''bed2''">off</a>.'
+		'Your <a href="exec:gt ''budilnik'', ''start''">alarm clock</a> is set to '+iif(timer < 10,'0<<timer>>','<<timer>>')+':'+iif(timerM < 10,'0<<timerM>>','<<timerM>>')+' and is currently turned <a href="exec: budilnikOn = 1 & gt ''<<$loc>>''">off</a>.'
 	else
-		'You lie on the bed. Alarm set for <<timer>> hours <<timerM>> minutes and currently turned <a href="exec: budilnikOn = 0 & GT ''bed2''">on</a>.'
+		'Your <a href="exec:gt ''budilnik'', ''start''">alarm clock</a> is set to '+iif(timer < 10,'0<<timer>>','<<timer>>')+':'+iif(timerM < 10,'0<<timerM>>','<<timerM>>')+' and is currently turned <a href="exec: budilnikOn = 0 & gt ''<<$loc>>''">on</a>.'
 	end
 
 	if pcs_makeup ! 1:'<b><font color="red">You need to wash off your makeup before going to bed.</font></b>'
@@ -55,11 +29,16 @@ if $args[0] = '':
 		end
 		if succubusQW = 2:
 			act '<<$sleep_txt>>':
-				if $clothingworntype ! 'nude': gs 'clothing', 'strip'
+				menu_off = 1
+				if $clothingworntype ! 'nude':
+					strip_here = 1
+					gs 'clothing', 'strip'
+				end
 				gt 'bed2', 'succhoice'
 			end
 		else
 			act '<<$sleep_txt>>':
+				menu_off = 1
 				if disable_autosave = 0:
 					if StoryLine = 0:
 						savegame 'autosave.sav'
@@ -67,7 +46,10 @@ if $args[0] = '':
 						savegame 'autosave_alt.sav'
 					end
 				end
-				if $clothingworntype ! 'nude': gs 'clothing', 'strip'
+				if $clothingworntype ! 'nude':
+					strip_here = 1
+					gs 'clothing', 'strip'
+				end
 				if magf2bdo = 2:
 					gt 'bed2', 'magbstchoice'
 				else
@@ -77,14 +59,32 @@ if $args[0] = '':
 			killvar '$sleep_txt'
 		end
 	end
-
-	act 'Options':gt 'bed2', 'options'
+	act 'Get out of bed': killvar '$sleep_txt' & gt $loc, $metka
+	act 'Take a nap (1:00)':
+		menu_off = 1
+		if pcs_sleep >= 10 and pcs_sleep <= 90:
+			pcs_sleep += 10
+			pcs_health += 5
+			minut += 60
+			gs 'stat'
+			*nl
+			'You sleep about an hour.'
+		elseif pcs_sleep < 10:
+			gt 'bed2', 'sleep'
+		else
+			minut += 5
+			gs 'stat'
+			*nl
+			'You are not tired enough to sleep, even for a short nap.'
+		end
+	end
 
 !!Braid hair skill
 
 	if canBraidHair = 1 and hBraids = 0 and (pcs_hairlng > 80 and pcs_hairlng <= 800):
-		act 'Spend some time braiding your hair':
+		act 'Braid your hair (0:30)':
 			cls
+			menu_off = 1
 			hbraids = 15
 			minut += 30
 			'You spend some time braiding your hair. It may not be salon level quality, but at the end you are happy with the results.'
@@ -93,22 +93,27 @@ if $args[0] = '':
 	end
 
 	if hbraids > 0:
-		act 'Spend some time removing your braids':
+		act 'Remove your braids (0:30)':
 			cls
+			menu_off = 1
 			hbraids = 0
 			minut += 30
 			'You spend some time removing your braids. It may not be salon level quality, but at the end you are happy with the results.'
 			act 'Return to bed':gt 'bed2'
 		end
 	end
-
-	act 'Get out of bed':killvar '$sleep_txt' & gt $loc, $metka
+	act 'Sleep options':gt 'bed2', 'options'
 end
 
-if $args[0] = 'sleep':
+if $ARGS[0] = 'sleep':
 	cls
-	'<center><img <<$set_imgh>> src="images/shared/home/bedroom/son.jpg"></center>'
-
+	menu_off = 1
+	if $clothingworntype ! 'nude':
+		'<center><img <<$set_imgh>> src="images/shared/home/bed.jpg"></center>'
+	else
+		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/son.jpg"></center>'
+	end
+	gs 'stat'
 	pcs_hairbsh = 0
 	InSleep = 1
 	cloth_vid = 0
@@ -186,16 +191,23 @@ if $args[0] = 'sleep':
 		alarm_set -= 1440
 	end
 
-
-	if budilnikOn = 1 and alarm_now = alarm_time:
-		pcs_mood -= 10
-		$waketext = 'Your alarm goes off.'
+	if slept_in = 1:
+		gs 'stat'
+		$waketext = 'You wake up at <<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>>, after sleeping-in a little longer than planned, but at least you''ve had plenty of sleep.'
+		gs 'bed2', 'wake'
+	elseif pcs_sleep >= 100 and budilnikOn = 0:
+		gs 'stat'
+		$waketext = 'You wake up at <<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>>, no longer tired and ready to start the day with plenty of sleep.'
 		gs 'bed2', 'wake'
 	elseif pcs_sleep >= 100 and budilnikOn = 1 and alarm_now >= alarm_set:
-		$waketext = 'You wake up just before your alarm goes off.'
+		gs 'stat'
+		$waketext = 'You wake up at <<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>>, just before your alarm goes off. You''ve had plenty of sleep.'
 		gs 'bed2', 'wake'
-	elseif pcs_sleep > 100 and budilnikOn = 0:
-		$waketext = 'You wake up, no longer tired.'
+	elseif budilnikOn = 1 and alarm_now = alarm_time:
+		pcs_mood -= 10
+		gs 'stat'
+		$waketext = 'Your alarm goes off at <<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>>, '+iif(pcs_sleep < 90, 'but you could do with some extra sleep.', 'and you''ve had plenty of sleep.')+''
+		gs 'bed2', 'extra'
 		gs 'bed2', 'wake'
 	else
 		jump 'loopson'
@@ -203,12 +215,15 @@ if $args[0] = 'sleep':
 end
 
 if $ARGS[0] = 'wake_horny':
-	InSleep = 0
+	menu_off = 1
+	InSleep = 1
 	gs 'stat'
 	'Your wet dream and overall horniness rouse you from your sleep. From one moment to the next, you are wide awake and very much aware that your pussy is hot and wet.'
+	''
 	'You glance at your alarm clock. It reads <<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>>.'
-	'You could try and go back to sleep, of course, but it''s doubtful that you would find this kind of sleep very restful; not to mention the frustration that comes with ignoring your needs.'
-	'But masturbating is an option, too, and not the worst one in this situation. It might take some time, but you''d be able to sleep like a baby after.'
+	''
+	'You could try and go back to sleep, of course, but it''s doubtful that you would find this kind of sleep very restful; not to mention the frustration that comes with ignoring your needs, but masturbating is an option, too, and not the worst one in this situation. It might take some time, but you''d be able to sleep like a baby after.'
+	''
 	'Of course, you could always just give up on trying to sleep and just get up.'
 	if $loc = 'bedrPar' and SisterLesb = 5 and hour < 6:
 		'Or... you could wake up Anya and see if your dearest sister would be willing to help you with that.'
@@ -224,57 +239,99 @@ if $ARGS[0] = 'wake_horny':
 		gt 'bed2', 'sleep'
 	end
 
-	act 'Masturbate': gt 'selfplay', 'start'
+	act 'Masturbate': InSleep = 0 & gt 'selfplay', 'start'
 
-	act 'Get up': gt $loc, $metka
+	act 'Get out of bed (0:10)':
+		minut += 10
+		gs 'bed2', 'end'
+	end
+	if strip_here = 1:
+		act 'Get out of bed and get dressed (0:15)':
+			minut += 15
+			gs 'clothing', 'wear_last_worn'
+			gs 'bed2', 'end'
+		end
+	end
 
 	if $loc = 'bedrPar' and SisterLesb = 5 and hour < 6:
-		act 'Wake Anya and see if she''s in the mood': gt 'sistersleep'
+		act 'Wake Anya and see if she''s in the mood': strip_here = 0 & InSleep = 0 & gt 'sistersleep'
 	elseif $loc = 'FedorEv4':
-		act 'Wake Fedor and see if he''s in the mood': gt 'FedorEv4', 'Bedroom 1'
+		act 'Wake Fedor and see if he''s in the mood': strip_here = 0 & InSleep = 0 & gt 'FedorEv4', 'Bedroom 1'
 		!!Intro text doesn''t quite fit event (but doesn''t quite fit - try for baby - scenario either) - custom scene from VK?
 	elseif ($loc = 'bedr' or $loc = bedr2x) and husband > 0:
-		act 'Wake your husband and see if he''s in the mood': gt 'husbSex', 'variant'
+		act 'Wake your husband and see if he''s in the mood': strip_here = 0 & InSleep = 0 & gt 'husbSex', 'variant'
 		!!Should be custom scene - maybe boyfriend/husband overhaul can cover this?
 	end
 end
 
-if $args[0] = 'wake':
+if $ARGS[0] = 'wake':
+	menu_off = 1
 	'<<$waketext>>'
+	InSleep = 1
 	gs 'stat'
 
 	if daystart < 10 and StoryLine = 0 and ntstart = 0:'The first thing you think as you wake up is, "Damn! It''s is not a dream, I really am a woman now."'
 	if daystart >= 10 and daystart < 30 and StoryLine = 0 and ntstart = 0:'Looking at your female body, you are still a little surprised it''s actually you.'
-
+	if slept_in = 1 and kanikuli = 0 and StoryLine = 1 and SchoolAtestat = 0 and SchoolBlock = 0 and week < 6 and hour >= 9 and hour < 14:
+		if schoolprogul > 2 and schoolPredupr = 2:
+			pcs_mood -= 35
+			gs 'stat'
+			msg '<center>Damn it''s <<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>>. It''s too late to go to school now!<br><<$npc_nickname[''A29'']>> will be furious. I don''t know what she might do...</center>'
+		elseif schoolprogul > 2 and schoolPredupr = 1:
+			pcs_mood -= 30
+			gs 'stat'
+			msg '<center>Damn it''s <<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>>. It''s too late to go to school now!<br><<$npc_nickname[''A29'']>> will be very angry if I miss another day of school.</center>'
+		elseif schoolprogul > 2 and schoolPredupr = 0:
+			pcs_mood -= 25
+			gs 'stat'
+			msg '<center>Damn it''s <<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>>. It''s too late to go to school now!<br><<$npc_nickname[''A29'']>> will be angry to find out I missed a day of school.</center>'
+		else
+			pcs_mood -= 20
+			gs 'stat'
+			msg '<center>Damn it''s <<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>>. It''s too late to go to school now!<br><<$npc_nickname[''A29'']>> will be very upset if I''m not at school every day.</center>'
+		end
+	end
 	if kanikuli = 0 and StoryLine = 1 and SchoolAtestat = 0 and SchoolBlock = 0 and week < 6 and hour >= 4 and hour < 9:
+		if slept_in = 1 and hour >= 8 and hour < 9:
+			pcs_mood -= 10
+			gs 'stat'
+			msg '<center>Damn it''s <<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>>, you''ve slept too long! You''re going to be late for school!</center>'
+		end
 		act 'Get up out of bed and get dressed for school (0:15)':
+			minut += 15
 			if schtype = 0:schtype = 6
 			if schoolH[schtype] = 0:schtype = 6
 			gs 'clothing', 'wear', 'school', schtype
-			minut += 15
 			gs 'bed2', 'end'
 		end
 	end
 
-	act 'Get out of bed and get dressed (0:15)':
-		gs 'clothing', 'wear_last_worn'
-		minut += 15
-		gs 'bed2', 'end'
+	if strip_here = 1:
+		act 'Get out of bed and get dressed (0:15)':
+			minut += 15
+			gs 'clothing', 'wear_last_worn'
+			gs 'bed2', 'end'
+		end
 	end
 	if enfullmorrout = 1 and hour >= 4 and hour < 12:
 		act 'Full morning routine (01:00)':
-			gs 'clothing', 'wear_last_worn'
 			minut += 15
 			fullmorrout = 1
+			gs 'clothing', 'wear_last_worn'
 			gs 'bed2', 'end'
 		end
 		if kanikuli = 0 and StoryLine = 1 and SchoolAtestat = 0 and SchoolBlock = 0 and week < 6 and hour >= 4 and hour < 9:
-			act ' Full morning routine for School (01:00)':
+			if slept_in = 1 and hour >= 8 and hour < 9:
+				pcs_mood -= 10
+				gs 'stat'
+				msg '<center>Damn, you''ve slept too long! You''re going to be late for school!</center>'
+			end
+			act 'Full morning routine for School (01:00)':
 				fullmorrout = 1
+				minut += 15
 				if schtype = 0:schtype = 6
 				if schoolH[schtype] = 0:schtype = 6
 				gs 'clothing', 'wear', 'school', schtype
-				minut += 15
 				gs 'bed2', 'end'
 			end
 		end
@@ -282,14 +339,35 @@ if $args[0] = 'wake':
 
 	act 'Get out of bed (0:10)':
 		minut += 10
+		slept_in = 0
 		gs 'bed2', 'end'
 	end
 end
 
-if $args[0] = 'end':
-	InSleep = 0
-	if bedpanty = 1: gs 'underwear', 'remove'
+if $ARGS[0] = 'extra':
+	act '"Snooze" a few minutes more...':
+		menu_off = 1
+		slept_in = 1
+		stime = 0
+		minut = (100-pcs_sleep)*6
+		pcs_sleep += 100
+		gs 'stat'
+		gt 'bed2', 'sleep'
+	end
+end
 
+if $ARGS[0] = 'end':
+	menu_off = 1
+	InSleep = 0
+	slept_in = 0
+	strip_here = 0
+	if $braworntype ! 'none': gs 'bras', 'remove'
+	if $pantyworntype ! 'none':gs 'panties', 'remove'
+	if bedpanty = 1:
+		gs 'underwear', 'remove'
+	else
+		gs 'underwear', 'wear'
+	end
 	if fullmorrout = 1 and $loc = 'bedrPar':
 		gt 'vanrPar'
 	elseif fullmorrout = 1 and $loc = 'bedr':
@@ -300,6 +378,7 @@ if $args[0] = 'end':
 end
 
 if $ARGS[0] = 'succhoice':
+	menu_off = 1
 	minut += 15
 	gs 'stat'
 	cla
@@ -330,6 +409,7 @@ end
 
 if $ARGS[0] = 'succhoiceNO':
 	cla
+	menu_off = 1
 	if $clothingworntype ! 'nude':
 		'<center><img <<$set_imgh>> src="images/shared/home/bed.jpg"></center>'
 	else
@@ -355,6 +435,7 @@ end
 
 if $ARGS[0] = 'succhoiceYES':
 	cla
+	menu_off = 1
 	if $clothingworntype ! 'nude':
 		'<center><img <<$set_imgh>> src="images/shared/home/bed.jpg"></center>'
 	else
@@ -381,8 +462,8 @@ if $ARGS[0] = 'succhoiceYES':
 end
 
 if $ARGS[0] = 'succubinit':
-	cls
-	cla
+	*clr & cla
+	menu_off = 1
 	minut += 10
 	gs 'stat'
 	!!Sets the succubus flag, succubus level (succublvl), Initial lesbian sex count (suclezsnapshot), initial Succubus hunger (succhungry),
@@ -394,15 +475,55 @@ if $ARGS[0] = 'succubinit':
 	sucwalkday = daystart + 2 + rand(0,5)
 	$sucself1 = 'that feeling'
 	pcs_horny = 100
+	InSleep = 0
+	slept_in = 0
+	strip_here = 0
 	'<center><img <<$set_imgh>> src="images/pc/body/succubusself.jpg"></center>'
-	''
+	*nl
 	'<font color="red">You feel the power flowing around your body for several minutes, leaking through your skin and making changes all throughout you, before fading to a presence deep in your core leaving you looking the same as before... but feeling so different! </font>'
+
+	if preg = 1:
+		preg = 0
+		pregtime = 0
+		pregtalk = 0
+		pregTalkPC = 0
+		pregTalkNat = 0
+		pregTalkbrother = 0
+		thinkpreg = 0
+		knowpreg = 0
+		pregchem = 0
+		cycle = 4
+
+		nextbaby = arrsize('yearkid')
+		:poliabortloop
+		if yearkid[nextbaby-1] = 0:
+			KILLVAR 'polkid',nextbaby-1
+			KILLVAR '$kidname',nextbaby-1
+			KILLVAR 'kidage',nextbaby-1
+			KILLVAR 'daykid',nextbaby-1
+			KILLVAR 'monthkid',nextbaby-1
+			KILLVAR 'yearkid',nextbaby-1
+			KILLVAR 'Babyptype',nextbaby-1
+			KILLVAR '$ChildFath',nextbaby-1
+			KILLVAR '$ChildThFath',nextbaby-1
+			KILLVAR 'hairkid',nextbaby-1
+			KILLVAR 'eyeskid',nextbaby-1
+			KILLVAR 'cumarrcon',nextbaby-1
+			KILLVAR '$wombpotfath'
+			BabyEmbryo -= 1
+		end
+		nextbaby -= 1
+		if nextbaby > 0:
+			jump 'poliabortloop'
+		end
+	end
+
 	act 'Finish': gt $loc, $metka
 end
 
 if $ARGS[0] = 'magbstchoice':
-	cls
-	cla
+	*clr & cla
+	menu_off = 1
 	tittmp = tits + 1
 	'<center><img <<$set_imgh>> src="images/pc/body/tits/t<<tittmp>>.jpg"></center>'
 	killvar 'tittmp'
@@ -415,6 +536,34 @@ if $ARGS[0] = 'magbstchoice':
 		gt 'bed2', 'sleep'
 	end
 	act 'Eh, I don''t like them like that.': magf2bdo = 0 & mgf2bnocnt += 1 & gt 'bed2', 'sleep'
+end
+
+if $ARGS[0] = 'options':
+	cla
+	menu_off = 1
+	
+	act 'Return':gt 'bed2'
+	act 'Set Alarm Clock':gt 'budilnik', 'start'
+	if bedPanty = 0:
+		act 'Wear underwear in the morning: Currently (ON)':bedpanty = 1 & gt 'bed2', 'options'
+	else
+		act 'Wear underwear in the morning: Currently (OFF)':bedpanty = 0 & gt 'bed2', 'options'
+	end
+	if analplug = 1:
+		if bedanal = 0:
+			act 'Remove your analplug at night: Currently (ON)':bedanal = 1 & gt 'bed2', 'options'
+		else
+			act 'Remove your analplug at night: Currently (OFF)':bedanal = 0 & gt 'bed2', 'options'
+		end
+	end
+
+	if vibrator = 1 and cheatVib = 1:
+		if bedvibrator = 0:
+			act 'Remove your vibrator at night: Currently (ON)':bedvibrator = 1 & gt 'bed2', 'options'
+		else
+			act 'Remove your vibrator at night: Currently (OFF)':bedvibrator = 0 & gt 'bed2', 'options'
+		end
+	end
 end
 
 --- bed2 ---------------------------------

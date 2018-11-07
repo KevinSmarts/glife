@@ -1,61 +1,71 @@
 # gadforest
 
+!MiraLoc tells us where Mira is Located
+!----------------------------------------------
+!MiraLoc = 0 (Mira at home)
+!MiraLoc = 1 (Mira at river)
+!MiraLoc = 2 (Mira at meadow)
+!MiraLoc = 3 (Mira at forest)
+!MiraLoc = 4 (Mira at field)
+!MiraLoc = 5 (Mira with gop)
+!---------------------------------------------
 
 if $ARGS[0] = '1':
+	*clr & cla
+	! figure out if Sveta came from Mira code or not. events play out differently whether with Mira or not
 	PC_arrive = iif($loc ! 'Miroslava', 1 , 0)
-	!out skirt
+
+	! edge of forest
+	$loc = 'gadforest'
+	$metka = '1'
 	$location_type = 'secluded'
-	$metka = $ARGS[0]
-	$loc = $CURLOC
+
+	$menu_loc = 'gadforest'
+	$menu_arg = '1'
+	menu_off = 0
+
 	clothesAtLocation = FUNC('lost_clothes_here',$CURLOC)
 	gs 'gadukino_event', 'sound'
-	*clr & cla
 	gs'stat'
-	!gs'time'
 
-	!MiaLoc tells us where Mira is Located
-	!----------------------------------------------
-	!MiraLoc = 0 (Mira at home)
-	!MiraLoc = 1 (Mira at river)
-	!MiraLoc = 2 (Mira at meadow)
-	!MiraLoc = 3 (Mira at forest)
-	!MiraLoc = 4 (Mira at field)
-	!MiraLoc = 5 (Mira with gop)
-	!---------------------------------------------
+	*clr & cla
 
+	! Add to knowledge of forest
 	if goforest < 20:goforest += rand(0,1)
+	! chance to get lost
 	lost = 1
-	!to determine the continuation of the way if he got lost
-	lostrand = rand(1,30)
-	!the chance to get lost
+	lostrand = rand(1,20)
+	! Determine where Sveta got lost in the forest
 	foresteventrand = rand(1,20)
 	new_boletus = 0
 	new_bilberry = 0
 
-	'<center><H4>Forest</H4></center>'
+	'<center><H4>Edge of the Forest</H4></center>'
 	if month >= 4 and month <= 10:
 		if hour >= 6 and hour < 22:
 			'<center><img <<$set_imgh>> src="images/locations/gadukino/forest/gadforest1.jpg"></center>'
-			'The edge of the forest. There are a few mushrooms and you can often see mushroom pickers.'
+			'Your are at the edge of the forest. Mushrooms and berries grow here and you can often find other people picking them.'
 		else
 			'<center><img <<$set_imgh>> src="images/locations/gadukino/forest/gadforest_night1.jpg"></center>'
-			'The edge of the forest. Night in the woods is scary and uncomfortable.'
+			'You are at the edge of the forest. Night in the woods is scary and uncomfortable.'
 		end
 	else
 		if hour >= 8 and hour < 18:
 			'<center><img <<$set_imgh>> src="images/locations/gadukino/forest/gadforest_winter1.jpg"></center>'
-			'The edge of the forest. The forest in the winter is very beautiful.'
+			'You are at the edge of the forest. The forest in winter is very beautiful.'
 		else
 			'<center><img <<$set_imgh>> src="images/locations/gadukino/forest/gadforest_winter_night1.jpg"></center>'
-			'The edge of the forest. Night in the winter forest is very scary and uncomfortable.'
+			'You are at the edge of the forest. Night in the forest during wintertime is very scary and uncomfortable.'
 		end
 	end
-	if forestpicnic = 1:'On the edge of the forest you see people. Apparently they are having a family <a href="exec:gt ''gadforest_event'',''picnic''">picnic</a>.'
-	if MiraLoc = 3:'Near you wandering in the forest is <a href="exec: gt ''Miroslava'' ">Mira</a>.'
-	if clothesAtLocation = 1:'On the ground lay your clothes.'
-	if findvel = 2:'Near the tree is your old <a href="exec:gt ''bicycle'',''forest''">bike</a>.'
-	if goforest < 10:'You don''t know this forest very well, it''s best if you don''t wander too far.'
 
+	if forestpicnic = 1:'On the edge of the forest you see people. Apparently they are having a family <a href="exec:gt ''gadforest_event'',''picnic''">picnic</a>.'
+	if MiraLoc = 3:'Nearby is <a href="exec: gt ''Miroslava'' ">Mira</a>.'
+	if clothesAtLocation = 1:'Your clothes are nearby on the ground.'
+	if findvel = 2:'Leaning up against a tree is your old <a href="exec:gt ''bicycle'',''forest''">bike</a>.'
+	if goforest < 10:'You don''t know this part of the forest very well, it''s best if you don''t go any deeper into the woods.'
+
+	! Sveta arrive without Mira events
 	if PC_arrive = 1:
 		if temper >= 15 and sunWeather = 1 and hour>=6 and hour<=20 and miratalkforest = 1:gt 'gadforest_event', 'nude_event'
 		if foresteventrand < 3 and month >= 6 and month <= 9 and mushroom_pickersday ! daystart:mushroom_pickers = 1 & gt'gadforest_event', 'mushroom_pickers1'
@@ -68,58 +78,89 @@ if $ARGS[0] = '1':
 		if foresteventrand = 9 and hour >= 8 and hour <= 15 and month >= 4 and month <= 10 and gadboyday ! daystart and week > 5: gt 'gadforest_event', 'gopforest_3boys'
 	end
 
-	if $clothingworntype ! 'nude' and clothesAtLocation = 0 and temper >= 15 and sunWeather = 1 and hour>=6 and hour<=20 and miratalkforest > 1 and MiraLoc ! 3:
+	! can only be naked if successfully complete Mira gadforest_event, nude_event
+	if $clothingworntype ! 'nude' and clothesAtLocation = 0 and temper >= 15 and sunWeather = 1 and hour>=6 and hour<=20 and miratalkforest > 1 and MiraLoc ! 3 and (pcs_inhib >= 25 or exhibitionist_lvl > 1):
 		act'Strip naked':
 			if forestpicnic = 0:
-				inhib_exp += rand(1,3)
 				cla
 				*clr
-				minut+=5
-				gs 'underwear', 'remove'
+				menu_off = 1
+				if pcs_inhib < 50:inhib_exp += rand(1,3)
+				minut += 5
 				if CloSkirtShortness = 0:'<center><img <<$set_imgh>> src="images/locations/gadukino/forest/nudeforest.jpg"></center>'
 				if CloSkirtShortness > 0:'<center><img <<$set_imgh>> src="images/locations/gadukino/forest/nudeforest1.'+rand(1,2)+'.jpg"></center>'
+				gs 'underwear', 'remove'
 				gs 'clothing', 'strip', 'gadforest'
+				gs 'exhibitionism', 3
+				gs 'stat'
+
 				'You don''t hesitate and quickly get undressed, your clothes are left laying in a pile.'
 
-				act'Back':gt'gadforest','1'
+				act'Continue':gt'gadforest','1'
 			else
 				cla
 				*clr
 				'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/noundress.jpg"></center>'
-				'You see a number of people you are ashamed of.'
+				'You see a number of people nearby and decide not to undress right now.'
 
-				act'Back':gt'gadforest','1'
+				act'Continue':gt'gadforest','1'
 			end
 		end
 	end
+
 	if clothesAtLocation = 1 and $clothingworntype = 'nude':
-		act 'Dress':
+		act 'Get dressed':
 			cla
 			*clr
-			swamp_clothes = 0
+			menu_off = 1
 			minut += 5
+			gs 'clothing', 'swamp_clothes', 0
 			gs 'underwear', 'wear'
 			gs 'clothing', 'recover_lost_clothes', 'gadforest', 1
+			gs 'stat'
 			if CloSkirtShortness = 0:'<center><img <<$set_imgh>> src="images/locations/gadukino/forest/nudeforest.jpg"></center>'
-			 if CloSkirtShortness > 0:'<center><img <<$set_imgh>> src="images/locations/gadukino/forest/nudeforest1.'+rand(1,2)+'.jpg"></center>'
-			'You change into your clothes.'
+			if CloSkirtShortness > 0:'<center><img <<$set_imgh>> src="images/locations/gadukino/forest/nudeforest1.'+rand(1,2)+'.jpg"></center>'
+			'You change back into your clothes.'
 			act 'Back': gt 'gadforest','1'
 		end
 	end
-	!if he had gone from the forest and put in another place
+
+	! if Sveta left the forest without retrieving her clothes
 	if clothesAtLocation = 1 and $clothingworntype ! 'nude':
-		act 'Pick up the abandoned clothing':
-			cla
-			*clr
-			gs 'clothing', 'recover_lost_clothes', 'gadforest'
-			'You pick up your clothes.'
-			act 'Back': gt 'gadforest','1'
+		if $clothingworntype = 'cheap' and clothingwornnumber = 414:
+			act 'Pick up your abandoned clothing':
+				cla
+				menu_off = 1
+				minut += 2
+				gs 'clothing', 'swamp_clothes', 0
+				gs 'underwear', 'wear'
+				gs 'clothing', 'recover_lost_clothes', 'gadforest', 1
+				gs 'stat'
+				*nl
+				'You pick up your abandoned clothing and change out of the hessian sack the hunters gave you.'
+				act 'Back': gt 'gadforest','1'
+			end
+		else
+			act 'Pick up your abandoned clothing':
+				cla
+				menu_off = 1
+				minut += 5
+				gs 'clothing', 'swamp_clothes', 0
+				gs 'underwear', 'wear'
+				gs 'clothing', 'recover_lost_clothes', 'gadforest'
+				gs 'stat'
+				*nl
+				'You pick up your abandoned clothing.'
+				act 'Back': gt 'gadforest','1'
+			end
 		end
 	end
+
 	if hour >= 6 and hour <= 20 and sunWeather = 1:
-		act 'Walking in the woods':
+		act 'Go for a walk in the woods':
 			cla
 			*clr
+			menu_off = 1
 			minut += 60
 			pcs_mood += 20
 			pcs_willpwr += willpowermax/5
@@ -135,7 +176,7 @@ if $ARGS[0] = '1':
 					if ($clothingworntype ! 'nude' and $clothingworntype ! 'swimwear') and $pantyworntype ! 'none' and CloSkirtShortness > 0:'<center><img <<$set_imgh>> src="images/locations/gadukino/forest/gulforest1.'+rand(1,3)+'.jpg"></center>'
 					if ($clothingworntype ! 'nude' and $clothingworntype ! 'swimwear') and $pantyworntype = 'none' and CloSkirtShortness > 0:'<center><img <<$set_imgh>> src="images/locations/gadukino/forest/gulforest_tanga0.'+rand(1,2)+'.jpg"></center>'
 					if $clothingworntype = 'nude':'<center><img <<$set_imgh>> src="images/locations/gadukino/forest/gulforest_nude0.'+rand(1,4)+'.jpg"></center>'
-					'You are walking through the woods, enjoying the sounds of forest and the fresh air.'
+					'You are walking through the woods, enjoying the sounds of the forest and the fresh air.'
 				else
 					if $clothingworntype ! 'nude':'<center><img <<$set_imgh>> src="images/characters/village/mira/miraforest'+rand(1,3)+'.jpg"></center>'
 					if $clothingworntype = 'nude':'<center><img <<$set_imgh>> src="images/characters/village/mira/miraforest_nude'+rand(1,3)+'.jpg"></center>'
@@ -144,26 +185,29 @@ if $ARGS[0] = '1':
 			else
 				if MiraLoc ! 3:
 					'<center><img <<$set_imgh>> src="images/locations/gadukino/forest/gulforestwinter0.'+rand(1,2)+'.jpg"></center>'
-					'You walk through the winter woods, enjoying the sounds of the forest and the fresh air.'
+					'You walk through the snowy woods, enjoying the sounds of the forest and the fresh air.'
 				else
 					'<center><img <<$set_imgh>> src="images/characters/village/mira/miraforestwinter.jpg"></center>'
-					'You walk with Mira through the winter woods, enjoying the sounds of the forest and the fresh air.'
+					'You walk with Mira through the snowy woods, enjoying the sounds of the forest and the fresh air.'
 				end
 			end
 
-			act 'Further':gt 'gadforest','1'
+			act 'Continue':gt 'gadforest','1'
 		end
 	end
+
 	if hour >= 6 and hour <= 20 and month >= 6 and month <= 9 and boletus + bilberry < 10 and edge_forestday ! daystart:
-		act 'To look for mushrooms and berries':
+		act 'Look for mushrooms and berries':
 			cla
 			*clr
+			menu_off = 1
 			minut += 30
 			temp_gf = rand(1,2)
 			edge_forestday = daystart
 			if goforest < 20:goforest += rand(0,1)
 			gs 'stat'
 
+			! no mushroom pickers or mushroom pickers moved deeper into the forest
 			if mushroom_pickers = 0 or mushroom_pickers = 2:
 				cla
 				new_boletus += rand(0,1)
@@ -174,9 +218,10 @@ if $ARGS[0] = '1':
 				gs 'stat'
 
 				gs 'gadforest', 'clothes1'
-				if new_boletus = 0 and new_bilberry > 0:'You`re in for hours of wandering through the woods in search of mushrooms or berries and you found <<new_bilberry>> kg of berries.'
-				if new_boletus > 0 and new_bilberry > 0:'You`re in for hours of wandering through the woods in search of mushrooms or berries and you found <<new_boletus>> kg mushrooms and <<new_bilberry>> kg of berries.'
+				if new_boletus = 0 and new_bilberry > 0:'After searching for mushrooms and berries for half an hour you found <<new_bilberry>> kg of berries.'
+				if new_boletus > 0 and new_bilberry > 0:'After searching for mushrooms and berries for half an hour you found <<new_boletus>> kg of mushrooms and <<new_bilberry>> kg of berries.'
 			end
+			! mushroom pickers are at the edge of the forest
 			if mushroom_pickers = 1 and temp_gf = 1:
 				cla
 				new_bilberry += rand(0,1)
@@ -185,8 +230,8 @@ if $ARGS[0] = '1':
 
 				if new_bilberry > 0: gs 'gadforest', 'clothes1'
 				if new_bilberry = 0: gs 'gadforest', 'clothes2'
-				if new_bilberry > 0:'Within half an hour of wandering through the woods in search of mushrooms or berries, you found <<new_bilberry>> kg of berries.'
-				if new_bilberry = 0:'You are wandering through the woods in search of mushrooms or berries for half an hour, but you found nothing.'
+				if new_bilberry > 0:'After searching for mushrooms and berries for half an hour you found <<new_bilberry>> kg of berries.'
+				if new_bilberry = 0:'After searching for mushrooms and berries for half an hour you found nothing.'
 			end
 			if mushroom_pickers = 1 and temp_gf = 2:
 				cla
@@ -194,109 +239,186 @@ if $ARGS[0] = '1':
 				gs 'stat'
 
 				gs 'gadforest', 'clothes2'
-				'You are wandering through the woods in search of mushrooms or berries for half an hour, but found nothing.'
+				'After searching for mushrooms and berries for half an hour you found nothing.'
 			end
-			act 'Further':gt 'gadforest','1'
+			act 'Continue':gt 'gadforest','1'
 		end
  	end
+
 	if hour >= 6 and hour <= 20 and month >= 6 and month <= 9 and MiraLoc ! 3:
-		act 'To go further into the forest':
+		act 'Go further into the forest':
 			if goforest >= lostrand:minut += 30 & gt 'gadforest','2'
 			if goforest < lostrand:gt 'gadforest', 'gadforestloststart'
 	 	end
 	end
+
 	if goswamp = 1 and MiraLoc ! 3:
+		! day time chance to get stuck in swamp. ps. use bike to get there 100% of the time by illume
 		if hour >= 6 and hour < 20:
 			act 'Go to the swamp':
 				minut += 75
-				!random chance to swamp road. It a pity to use it only in lost. ps. use bike to 100% there by illume
 				if goforest >= lostrand:
 					gt 'swamp'
 				else
 					gt 'gadforestswamp','1'
 				end
 			end
+		! night time chased by wolves
 		else
 			act 'Go to the swamp':gt 'gadforest_event', 'swamp_road'
 		end
 	end
-	act 'Out of the woods':
-		dirtyclothes = 0 & swamp_clothes = 0
+
+	act 'Leave the woods':
 		if $clothingworntype = 'nude':
-			if $CloLosTyp[$CURLOC] = '':
-				inhib_exp += rand(0,2)
-				!no cloth here, it must be broken. There may be a good exhibi or rape event entry point.
-				'You sneak out the woods, hiding your naked body in shadow and moving toward grandparents house.'
-				'You Successfully reach home without witness.'
-				cla
-				act 'Further':gt'Gadhouse'
+			*clr & cla
+			inhib_exp += rand(0,2)
+			if hour >= 6 and hour < 22:
+				if rand(0,100) > 50:
+					'<center><img <<$set_imgh>> src="images/locations/gadukino/forest/gadukino_nude.jpg"></center>'
+				else
+					'<center><img <<$set_imgh>> src="images/locations/gadukino/forest/gadukino_back.jpg"></center>'
+				end
 			else
-				'<B>You should dress before leave</B>'
+				if rand(0,100) > 50:
+					'<center><img <<$set_imgh>> src="images/locations/gadukino/forest/gadukino_nude.jpg"></center>'
+				else
+					'<center><img <<$set_imgh>> src="images/locations/gadukino/forest/gadukino_back_night.jpg"></center>'
+				end
+			end
+			if clothesAtLocation = 0:
+				inhib_exp += rand(0,2)
+				'You seem to have misplaced your clothes! You have little choice but to sneak out the woods, hiding your naked body in shadow and moving toward your grandparents house. You wonder where you might have left your clothes.'
+			elseif gadforest_clothestorn = 1:
+				! no clothes here, they must be ripped apart enough times in the woods or swamp to get destroyed.
+				gadforest_clothestorn = 0
+				'Your clothes were torn to shreds in the woods, leaving you with no choice but to head back completely naked, hiding your naked body in shadow and move toward your grandparents house as stealthily as possible.'
+			elseif clothesAtLocation = 1:
+				'You decide to stash your belongings and sneak out the woods completely naked, purely for the thrill of it, hiding your naked body in shadow and moving toward your grandparents house, avoiding any well lit areas.'
+			end
+			act 'Run back home naked':
+				minut += 30
+				gt'gadforest', 'caught'
+			end
+		elseif $clothingworntype = 'cheap' and clothingwornnumber = 414:
+			if clothesAtLocation = 1:
+				'You should pickup your clothes and get dressed before you leave'
 			end
 		else
-			minut += 30 & gt'gadroad'
+			minut += 30
+			gs 'stat'
+			gt 'gadroad'
 		end
 	end
 	if rand(1,10)> 9: gs 'gadforest', 'torncloth'
+	gs 'stat'
+end
+
+if $ARGS[0] = 'caught':
+	*clr & cla
+	menu_off = 1
+	caught_rand = rand(0, 100)
+	if caught_rand > 90:
+		inhib_exp += rand(0,3)
+		grandma_trouble += rand(7,10)
+		gs 'arousal', 'voyeur', 10, 'exhibitionism'
+		gs 'arousal', 'end'
+		gs 'stat'
+		'<center><img <<$set_imgh>> src="images/locations/gadukino/forest/gadukino_old_woman.jpg"></center>'
+		'You''ve been spotted walking home naked by all the women of the village. They are all sitting there scolding you. Your grandparents are definitely going to find out about this.'
+	elseif caught_rand > 70:
+		inhib_exp += rand(0,4)
+		grandma_trouble += rand(1,3)
+		gs 'arousal', 'voyeur', 10, 'exhibitionism'
+		gs 'arousal', 'end'
+		gs 'stat'
+		'<center><img <<$set_imgh>> src="images/locations/gadukino/forest/gadukino_old_woman'+rand(1,5)+'.jpg"></center>'
+		'You''ve been spotted walking home naked by a woman from the village. You want to hope she doesn''t tell your grandparents.'
+	elseif caught_rand > 50:
+		inhib_exp += rand(0,3)
+		grandma_trouble += rand(1,3)
+		gs 'arousal', 'voyeur', 10, 'exhibitionism'
+		gs 'arousal', 'end'
+		gs 'stat'
+		'<center><img <<$set_imgh>> src="images/locations/gadukino/forest/gadukino_old_man'+rand(1,5)+'.jpg.jpg"></center>'
+		'You''ve been spotted walking home naked by a man from the village. You want to hope she doesn''t tell your grandparents.'
+	else
+		grandma_trouble += rand(0,1)
+		gs 'arousal', 'voyeur', 10, 'exhibitionism'
+		gs 'arousal', 'end'
+		gs 'stat'
+		'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/gaddvor_nude.jpg"></center>'
+		'Luckily no one saw you outside naked, but there''s a thrill in almost getting caught.'
+	end
+	act 'Continue': gt'Gaddvor'
 end
 
 if $ARGS[0] = '2':
-	$location_type = 'secluded'
-	!inside
-	$metka = $ARGS[0]
-	$loc = $CURLOC
-	gs 'gadukino_event', 'sound'
 	*clr & cla
+	! slightly inside forest
+	$loc = 'gadforest'
+	$metka = '2'
+	$location_type = 'secluded'
+
+	$menu_loc = 'gadforest'
+	$menu_arg = '2'
+	menu_off = 0
+
+	gs 'gadukino_event', 'sound'
 	gs'stat'
-	!gs'time'
+
+	! Add to knowledge of forest
 	if goforest < 40:goforest += rand(0,1)
+	! Determine where Sveta got lost in the forest
 	lost = 2
-	!to determine the continuation of the path YY lost
+	! chance to get lost
 	lostrand = rand(1,60)
-	!the chance to get lost
 	foresteventrand = rand(1,10)
 	new_boletus = 0
 	new_bilberry = 0
+
 	'<center><H4>Forest</H4></center>'
 	if month >= 4 and month <= 10:
 		if hour >= 6 and hour < 22:
 			'<center><img <<$set_imgh>> src="images/locations/gadukino/forest/gadforest2.jpg"></center>'
-			'Forest. The intoxicating fresh air and singing birds light up your soul with joy.'
+			'You are in the forest. The fresh air and singing birds light up your soul with joy.'
 		else
 			'<center><img <<$set_imgh>> src="images/locations/gadukino/forest/gadforest_night2.jpg"></center>'
-			'Forest. Night in the woods is scary and uncomfortable.'
+			'You are in the forest. Night in the woods is scary and uncomfortable.'
 		end
 	else
 		if hour >= 8 and hour < 18:
 			'<center><img <<$set_imgh>> src="images/locations/gadukino/forest/gadforest_winter2.jpg"></center>'
-			'Forest. The forest in the winter is very beautiful, the fresh air makes you happy.'
+			'You are in the forest. The forest in the winter is very beautiful, the fresh air makes you happy.'
 		else
 			'<center><img <<$set_imgh>> src="images/locations/gadukino/forest/gadforest_winter_night2.jpg"></center>'
-			'Forest. Night in the winter forest is very scary and uncomfortable.'
+			'You are in the forest. Night in the forest during wintertime is very scary and uncomfortable.'
 		end
 	end
-	if goforest < 20:'You do not know this part of the forest, it''s better not to wander too far.'
+	if goforest < 20:'You don''t know this part of the forest very well, it''s best if you don''t go any deeper into the woods.'
 
 	if foresteventrand = 1 and month >= 6 and month <= 9 and mushroom_pickersday ! daystart:mushroom_pickers = 2 & gt 'gadforest_event', 'mushroom_pickers1'
-	if foresteventrand = 2 and hour > 8 and hour < 20 and foresteventday ! daystart:gt 'gadforest_event', 'forest_hanters'
+	if foresteventrand = 2 and hour > 8 and hour < 20 and foresteventday ! daystart:gt 'gadforest_event', 'forest_hunters'
 	if foresteventrand > 7 and month >= 6 and month <= 9 and foresteventday ! daystart:mushroom_pickers = 2 & gt 'gadforest_event', 'mushroom_pickers3'
 
 
-	act 'Back':
+	act 'To the edge of the forest':
 		lostrand = rand(1,30)
 		if goforest >= lostrand:minut += 30 & gt 'gadforest','1'
 		if goforest < lostrand:gt 'gadforest', 'gadforestloststart'
 	end
 	if hour >= 6 and hour <= 20 and month >= 6 and month <= 9 and boletus + bilberry < 10 and forestday ! daystart:
-			act 'To look for mushrooms and berries':
-				cla
+		act 'Look for mushrooms and berries':
+			cla
 			*clr
+			menu_off = 1
 			minut += 30
 			temp_gf = rand(1,2)
 			forestday = daystart
 			if goforest < 40:goforest += rand(0,1)
 			gs 'stat'
 
+			! mushroom_pickers either not seen today or still at the edge of the forest
 			if mushroom_pickers < 2:
 				cla
 				new_boletus += 1
@@ -307,7 +429,7 @@ if $ARGS[0] = '2':
 				gs 'stat'
 
 				gs 'gadforest', 'clothes1'
-				'Within half an hour of wandering through the woods in search of mushrooms or berries, you found <<new_boletus>> kg mushrooms and <<new_bilberry>> kg of berries.'
+				'After searching for mushrooms and berries for half an hour you found <<new_boletus>> kg of mushrooms and <<new_bilberry>> kg of berries.'
 			end
 			if mushroom_pickers = 2 and temp_gf = 1:
 				cla
@@ -318,8 +440,8 @@ if $ARGS[0] = '2':
 				gs 'stat'
 
 				if new_boletus > 0 or new_bilberry > 0: gs 'gadforest', 'clothes1'
-				if new_boletus = 0 and new_bilberry > 0:'Within half an hour of wandering through the woods in search of mushrooms or berries, you found <<new_bilberry>> kg of berries.'
-				if new_boletus > 0 and new_bilberry > 0:'Within half an hour of wandering through the woods in search of mushrooms or berries, you found <<new_boletus>> kg mushrooms and <<new_bilberry>> kg of berries.'
+				if new_boletus = 0 and new_bilberry > 0:'After searching for mushrooms and berries for half an hour you found <<new_bilberry>> kg of berries.'
+				if new_boletus > 0 and new_bilberry > 0:'After searching for mushrooms and berries for half an hour you found <<new_boletus>> kg of mushrooms and <<new_bilberry>> kg of berries.'
 			end
 			if mushroom_pickers = 2 and temp_gf = 2:
 				cla
@@ -327,13 +449,14 @@ if $ARGS[0] = '2':
 				gs 'stat'
 
 				gs 'gadforest', 'clothes2'
-				'You are wandering through the woods in search of mushrooms or berries for half an hour, but found nothing.'
+				'After searching for mushrooms and berries for half an hour you found nothing.'
 			end
-			act 'Further':gt 'gadforest','2'
+			act 'Continue':gt 'gadforest','2'
 		end
 	end
+
 	if hour >= 6 and hour <= 20 and month >= 6 and month <= 9:
-		act 'To go further into the forest':
+		act 'Go further into the forest':
 			if goforest >= lostrand:minut += 30 & gt 'gadforest','3'
 			if goforest < lostrand:gt 'gadforest', 'gadforestloststart'
 	 	end
@@ -342,56 +465,65 @@ if $ARGS[0] = '2':
 end
 
 if $ARGS[0] = '3':
-	!deep forest
-	$location_type = 'secluded'
-	$metka = $ARGS[0]
-	$loc = $CURLOC
-	gs 'gadukino_event', 'sound'
 	*clr & cla
+	! deep inside forest
+	$loc = 'gadforest'
+	$metka = '3'
+	$location_type = 'secluded'
+
+	$menu_loc = 'gadforest'
+	$menu_arg = '3'
+	menu_off = 0
+
+	gs 'gadukino_event', 'sound'
 	gs'stat'
-	!gs'time'
+
+	! Add to knowledge of forest
 	if goforest < 60:goforest += rand(0,1)
 	lost = 3
-	!to determine the continuation of the path YY lost
+	! Determine where Sveta got lost in the forest
 	lostrand = rand(1,100)
-	!the chance to get lost
+	! chance to get lost
 	foresteventrand = rand(1,10)
 	new_boletus = 0
 	new_bilberry = 0
-	'<center><H4>Thicket</H4></center>'
+
+	'<center><H4>Deep Forest</H4></center>'
 	if month >= 4 and month <= 10:
 		if hour >= 6 and hour < 22:
 			'<center><img <<$set_imgh>> src="images/locations/gadukino/forest/gadforest3.jpg"></center>'
-			'Forest. The intoxicating fresh air and singing birds light up your soul with joy.'
+			'You are deep in the forest. The fresh air and singing birds light up your soul with joy.'
 		else
 			'<center><img <<$set_imgh>> src="images/locations/gadukino/forest/gadforest_night3.jpg"></center>'
-			'Forest. Night in the woods is scary and uncomfortable.'
+			'You are deep in the forest. Night in the woods is scary and uncomfortable.'
 		end
 	else
 		if hour >= 8 and hour < 18:
 			'<center><img <<$set_imgh>> src="images/locations/gadukino/forest/gadforest_winter3.jpg"></center>'
-			'Forest. The forest in the winter is very beautiful, the fresh air makes you happy.'
+			'You are deep in the forest. The forest in the winter is very beautiful, the fresh air makes you happy.'
 		else
 			'<center><img <<$set_imgh>> src="images/locations/gadukino/forest/gadforest_winter_night3.jpg"></center>'
-			'Forest. Night in the winter forest is very scary and uncomfortable.'
+			'You are deep in the forest. Night in the forest during wintertime is very scary and uncomfortable.'
 		end
 	end
-	if goforest < 30:'You do not know this part of the forest, it''s better not to wander too far.'
+	if goforest < 30:'You don''t know this part of the forest very well, it''s best if you don''t go any deeper into the woods.'
 
 	if foresteventrand = 1 and month >= 6 and month <= 9 and foresteventday ! daystart: gt 'gadforest_event', 'basket'
 	if foresteventrand = 2 and month >= 6 and month <= 9 and foresteventday ! daystart: gt 'gadforest_event', 'bilberry'
 	if foresteventrand = 3 and foresteventday ! daystart: gt 'gadforest_event', 'mushroom'
-	if foresteventrand = 4 and hour > 8 and hour < 20 and foresteventday ! daystart:gt 'gadforest_event', 'forest_hanters'
+	if foresteventrand = 4 and hour > 8 and hour < 20 and foresteventday ! daystart:gt 'gadforest_event', 'forest_hunters'
 
-	act 'Back':
+	act 'Go back to the forest':
 		lostrand = rand(1,60)
 		if goforest >= lostrand:minut += 30 & gt 'gadforest','2'
 		if goforest < lostrand:gt 'gadforest', 'gadforestloststart'
 	end
+
 	if hour >= 6 and hour <= 20 and month >= 6 and month <= 9 and boletus + bilberry < 10 and thicketday ! daystart:
 
-	act 'To look for mushrooms and berries':
+	act 'Look for mushrooms and berries':
 			*clr & cla
+			menu_off = 1
 			minut += 30
 			thicketday = daystart
 			if goforest < 60:goforest += rand(0,1)
@@ -402,14 +534,15 @@ if $ARGS[0] = '3':
 			pcs_mood += 5
 			gs 'stat'
 			gs 'gadforest', 'clothes1'
-			'Within half an hour of wandering through the woods in search of mushrooms or berries, you found <<new_boletus>> kg mushrooms and <<new_bilberry>> kg of berries.'
+			'After searching for mushrooms and berries for half an hour you found <<new_boletus>> kg of mushrooms and <<new_bilberry>> kg of berries.'
 
-			act 'Further':gt 'gadforest','3'
+			act 'Continue':gt 'gadforest','3'
 		end
 	end
+
 	if hour >= 6 and hour <= 20 and month >= 6 and month <= 9:
 
-		act 'To go further into the forest':
+		act 'Go further into the forest':
 			if goforest >= lostrand:minut += 30 & gt 'gadforest','4'
 			if goforest < lostrand:gt 'gadforest', 'gadforestloststart'
 	 	end
@@ -418,28 +551,35 @@ if $ARGS[0] = '3':
 end
 
 if $ARGS[0] = '4':
-	!near swamp
-	$location_type = 'secluded'
-	$metka = $ARGS[0]
-	$loc = $CURLOC
-	gs 'gadukino_event', 'sound'
 	*clr & cla
+	! forest near swamp
+	$loc = 'gadforest'
+	$metka = '4'
+	$location_type = 'secluded'
+
+	$menu_loc = 'gadforest'
+	$menu_arg = '4'
+	menu_off = 0
+
+	gs 'gadukino_event', 'sound'
 	gs'stat'
-	!gs'time'
+
+	! Add to knowledge of forest
 	if goforest < 80:goforest += rand(0,1)
 	lost = 4
-	!to determine the continuation of the path YY lost
+	! Determine where Sveta got lost in the forest
 	lostrand = rand(1,120)
-	!the chance to get lost
+	! chance to get lost
 	foresteventrand = rand(1,10)
 	dirty = 0
 	new_boletus = 0
 	new_bilberry = 0
-	'<center><H4>Woods near swamps</H4></center>'
+
+	'<center><H4>Forest near the Swamp</H4></center>'
 	if month >= 4 and month <= 10:
 		if hour >= 6 and hour < 22:
 			'<center><img <<$set_imgh>> src="images/locations/gadukino/forest/gadforest4.jpg"></center>'
-			'Forest. The intoxicating fresh air and singing birds light up your soul with joy.'
+			'You are in the forest near the swamp. The fresh air and singing birds light up your soul with joy.'
 		else
 			'<center><img <<$set_imgh>> src="images/locations/gadukino/forest/gadforest_night4.jpg"></center>'
 			'Forest. Night in the woods is scary and uncomfortable.'
@@ -447,27 +587,28 @@ if $ARGS[0] = '4':
 	else
 		if hour >= 8 and hour < 18:
 			'<center><img <<$set_imgh>> src="images/locations/gadukino/forest/gadforest_winter4.jpg"></center>'
-			'Forest. The forest in the winter is very beautiful, the fresh air makes you happy.'
+			'You are in the forest near the swamp. The forest in the winter is very beautiful, the fresh air makes you happy.'
 		else
 			'<center><img <<$set_imgh>> src="images/locations/gadukino/forest/gadforest_winter_night4.jpg"></center>'
-			'Forest. Night in the winter forest is very scary and uncomfortable.'
+			'You are in the forest near the swamp. Night in the forest during wintertime is very scary and uncomfortable.'
 		end
 	end
-	if goforest < 60:'You do not know this part of the forest, then it is better not to go too far.'
+	if goforest < 60:'You don''t know this part of the forest very well, it''s best if you don''t go any deeper into the woods.'
 
 	if foresteventrand < 2 and month >= 6 and month <= 9 and foresteventday ! daystart: gt 'gadforest_event', 'bilberry'
 	if foresteventrand > 7 and month >= 6 and month <= 9 and foresteventday ! daystart: gt 'gadforest_event', 'mushroom'
-	if foresteventrand = 5 and hour > 8 and hour < 20 and foresteventday ! daystart:gt 'gadforest_event', 'forest_hanters'
+	if foresteventrand = 5 and hour > 8 and hour < 20 and foresteventday ! daystart:gt 'gadforest_event', 'forest_hunters'
 
-	act 'Back':
+	act 'Go back to the deep woods':
 		lostrand = rand(1,100)
 		if goforest >= lostrand:minut += 30 & gt 'gadforest','3'
 		if goforest < lostrand:gt 'gadforest', 'gadforestloststart'
 	end
 	if hour >= 6 and hour <= 20 and month >= 6 and month <= 9 and boletus + bilberry < 10 and swampforest ! daystart:
-			act 'To look for mushrooms and berries':
-				cla
+		act 'Look for mushrooms and berries':
+			cla
 			*clr
+			menu_off = 1
 			minut += 30
 			swampforest = daystart
 			if goforest < 80:goforest += rand(0,1)
@@ -479,12 +620,13 @@ if $ARGS[0] = '4':
 			gs 'stat'
 
 			gs 'gadforest', 'clothes1'
-			'Within half an hour of wandering through the woods in search of mushrooms or berries, you found <<new_boletus>> kg mushrooms and <<new_bilberry>> kg of berries.'
+			'After searching for mushrooms and berries for half an hour you found <<new_boletus>> kg of mushrooms and <<new_bilberry>> kg of berries.'
 
-			act 'Further':gt 'gadforest','4'
+			act 'Continue':gt 'gadforest','4'
 		end
 	end
-	act 'To go further into the forest':
+
+	act 'Go further into the swamp':
 		if goforest >= lostrand and goswamp = 1:minut += 30 & gt 'swamp'
 		if goforest >= lostrand and goswamp = 0:minut += 30 & gt 'gadforestswamp','1'
 		if goforest < lostrand:gt 'gadforest', 'gadforestloststart'
@@ -521,7 +663,7 @@ end
 if $ARGS[0] = 'gadforestloststart':
 	cla
 	*clr
-	!gs'time'
+	menu_off = 1
 	gs 'stat'
 
 	'<center><H4>Somewhere in the woods</H4></center>'
@@ -531,36 +673,38 @@ if $ARGS[0] = 'gadforestloststart':
 	else
 		'<center><img <<$set_imgh>> src="images/locations/gadukino/forest/gadfear3.jpg"></center>'
 	end
-	'You suddenly realize in horror that you are not familiar with the area you are in... you get lost.'
+	'You suddenly realize in horror that you are not familiar with the area you are in... you are lost!.'
 
-	act 'Further':
+	act 'Look for a way out':
 		if lost = 1: gt 'gadforestlost','1'
 		if lost = 2: gt 'gadforestlost','2'
 		if lost = 3: gt 'gadforestlost','3'
 		if lost = 4: gt 'gadforestlost','4'
 	end
 
-	!add for realistic, rescue in forest! by illume
+	! add for rescue in forest by illume
 	forest_lost = 1
 	if StoryLine = 1: forest_lostday = daystart + rand(1,3)
 end
 
 if $ARGS[0] = 'torncloth':
+	menu_off = 1
+	gs 'stat'
 	!the withdrawal strength of the garment, if not jeans. moved from gadforest 1 into args, and call in all forest by illume
 	if $clothingworntype ! 'nude':
 		if (PCloThinness = 1 or PCloSkirt > 0) and PCloQuality < 5:
 			!skirts, not fit, and not high-class enough by illume
-			'Oops, your clothes get snagged and tears slightly.'
+			'Oops, your clothes get snagged and tear slightly.'
 			dynamic $clothingworntype + 'H[<<clothingwornnumber>>] -= 1'
-			!add remove cloth if worn out, need better texting by illume.
+			!add remove clothes if worn out
 			if dyneval('RESULT = <<$clothingworntype>>H[<<clothingwornnumber>>]') <= 0:
-				'Your raggedy clothes have finally had enough and fall apart. You are naked now.'
+				'Your ripped clothes were barely holding together, but now they have finally fell apart. You are naked now.'
+				gadforest_clothestorn = 1
 				gs 'clothing', 'strip', 'gadforest', 2
 			end
 		end
 	end
 end
-
 
 --- gadforest ---------------------------------
 

@@ -3,8 +3,21 @@
 CLOSE ALL
 $metka = ''
 $loc = 'Gadbana'
+$metkaM = ''
+$locM = 'Gadbana'
 $location_type = 'bathroom'
+$menu_loc = 'Gadbana'
+$menu_arg = ''
+menu_off = 0
 frost = 0
+if banya_underwear = 0:
+	if $pantyworntype ! 'none' and $braworntype ! 'none':
+		banya_underwear = 1
+	else
+		banya_underwear = 2
+	end
+end
+!!clothesAtLocation = FUNC('lost_clothes_here','Gadbana')
 
 '<center><h4>bath</h4></center>'
 
@@ -13,24 +26,54 @@ frost = 0
 'Grandma''s enema bulb is hidden behind some stuff on the shelf.'
 gs 'stat'
 
-
 if mira = 0:
 	if $clothingworntype = 'nude':
-		act 'Get dressed':
+		act 'Get dressed and leave':
+			minut += 1
+			menu_off = 1
+			!!gs 'clothing', 'recover_lost_clothes', 'Gadbana', 1
 			gs 'clothing', 'wear_last_worn'
-			gs 'underwear', 'wear'
-			gt 'Gadbana'
+			if banya_underwear = 1: gs 'underwear', 'wear'
+			gs 'stat'
+			killvar 'banya_underwear'
+			gt 'Gaddvor'
 		end
 	end
-
-	act 'Go outside':
-		if $clothingworntype ! 'nude':
-			minut += 1 & gt'Gaddvor'
-		else
-			cls
-			'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/noundress.jpg"></center>'
-			'You can''t go out without any clothes on.'
-			act 'Back':gt'Gadbana'
+	if $clothingworntype ! 'nude':
+		act 'Go outside':minut += 1 & gt'Gaddvor'
+	elseif $clothingworntype = 'nude':
+		act 'Go outside naked':
+			*clr & cla
+			menu_off = 1
+			minut += 1
+			if gadbana_stripping ! daystart: 
+				gadbana_stripping = daystart
+				inhib_exp += 2
+				grandma_trouble += 1
+			end
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/gaddvor_nude.jpg"></center>''It''s certainly risky leaving the hosue like this, and while it''s unlikely anyone saw you go outside naked, there''s a thrill in almost getting caught'
+			!!gs 'clothing', 'recover_lost_clothes', 'Gadbana'
+			gs 'arousal', 'voyeur', 10, 'exhibitionism'
+			killvar 'banya_underwear'
+			gs 'stat'
+			act 'Continue': gt 'Gaddvor'
+		end
+	elseif $clothingworntype = 'nude' and ($pantyworntype ! 'none' or $braworntype ! 'none'):
+		act 'Go outside in your underwear':
+			*clr & cla
+			menu_off = 1
+			minut += 1
+			if gadbana_stripping ! daystart: 
+				gadbana_stripping = daystart
+				inhib_exp += 1
+				grandma_trouble += rand(0,1)
+			end
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/gaddvor_nude.jpg"></center>''It''s certainly risky leaving the hosue like this, and while it''s unlikely anyone saw you go outside in your underwear, there''s a thrill in almost getting caught'
+			!!gs 'clothing', 'recover_lost_clothes', 'Gadbana'
+			gs 'arousal', 'voyeur', 10, 'exhibitionism'
+			killvar 'banya_underwear'
+			gs 'stat'
+			act 'Continue': gt 'Gaddvor'
 		end
 	end
 
@@ -43,13 +86,14 @@ if mira = 0:
 			if banaday ! daystart:
 				act 'Relax in the banya (2:00)':
 					cls
+					menu_off = 1
 					minut += 120
 					pcs_sweat = rand(0,5)
 					dynamic $showerdin
 					pcs_hairbsh = 0
 					pcs_makeup = 1
-					gs 'underwear', 'remove'
-					gs 'clothing', 'strip'
+					if $pantyworntype ! 'none' and $braworntype ! 'none': gs 'underwear', 'remove'
+					if $clothingworntype ! 'nude': gs 'clothing', 'strip'
 
 					banaday = daystart
 
@@ -61,45 +105,100 @@ if mira = 0:
 
 					'<center><img <<$set_imgh>> src="images/locations/gadukino/village/par.jpg"></center>'
 					'You strip, sit down and relax. After a proper banya session, you pick up a bucket filled with cold water and pour it over yourself and head over to the shower. You feel like a completely new person.'
-
-					act 'Get dressed':
-						gs 'clothing', 'wear_last_worn'
-						gs 'underwear', 'wear'
-						gt 'Gadbana'
-					end
-					act 'Go outside': minut += 1 & gt 'Gaddvor'
+					act 'Finish': gt $loc, $metka
 				end
 			end
 		else
-			'The banya is not in use at this time, it is available between 19:00 and 22:00 during the week.'
+			'The banya is not in use at this time, it is available between 19:00 and 22:00 during the weekend.'
 		end
-	elseif week ! 6:
-		'The banya is not used at the weekend, it is usually ready to use from 19:00 during the week.'
+	elseif week < 6:
+		'The banya is not used during the week, it is usually ready to use from 19:00 during the weekend.'
 	end
+	*nl
 
 	act 'Wash your body (0:25)':
 		cls
+		menu_off = 1
 		minut += 25
 		dynamic $showerdin
-
 		if frost > 0:frost = 0
-
+		!!gs 'clothing', 'strip', 'Gadbana'
+		gs 'clothing', 'strip'
+		if $pantyworntype ! 'none' and $braworntype ! 'none': gs 'underwear', 'remove'
 		gs 'stat'
 		'<center><img <<$set_imgh>> src="images/locations/gadukino/village/mit.jpg"></center>'
 		'You lather your body washcloth and start scrubbing your body. You rinse off the soap and start to lather the hair with the shampoo. After rising off the shampoo you are completely clean.'
 
-		act 'Leave':gt $loc, $metka
+		act 'Finish':gt $loc, $metka
 	end
 
 	dynamic $bteeth
 	gs 'din_van', 'prvt_pee'
 	dynamic $tampon
+
+	if $clothingworntype ! 'nude':
+		act 'Remove clothes':
+			minut += 1
+			!!gs 'clothing', 'strip', 'Gadbana'
+			gs 'clothing', 'strip'
+			gs 'stat'
+			gt 'Gadbana'
+		end
+	end
+
 	dynamic $wearpan
+	dynamic $removepan
 	dynamic $basin
+
+	if painkiller > 0:
+		$pluralS = 's'
+		if painkiller = 1:$pluralS = ''
+		'You have <b><<painkiller>></b> painkiller<<$pluralS>>.'
+		if pain['total'] > 0 and pain['killer'] = 0:
+			act 'Take a painkiller':
+				cla
+				menu_off = 1
+				pain['killer'] += 1
+				painkiller -= 1
+				pcs_hydra += 20
+				gs 'stat'
+
+				*nl
+				'You take a painkiller and gulp it down with a glass of water.'
+
+				act 'Finish':gt $loc, $metka
+			end
+		end
+	end
+	if stanok > 0:'Your razor will last for <b><<stanok>></b> more shavings. <a href="exec:gs ''din_van'', ''shave_options''">Shave Options</a>.'
+	'There''s a small shaving <a href="exec:gt ''mirror'', ''start''">mirror</a> resting on the window sill, which you can use to ' + iif(pcs_hairbsh = 0,'<a href="exec:gt ''mirror'',''brush''">brush</a>','brush') + ' your hair.'
+
+	!WD: heal chafe
+	if mosolmaz>0:'On a shelf is a tube of ointment for chafing, which will be enough for <b><<mosolmaz>></b> applications.'
+
+	if tampon = 0 and sanpad = 0:
+		'<b><font color="red">You have no tampons left.</font></b>'
+	elseif tampon = 1:
+		'<font color="red">You have only <b><<tampon>></b> tampon left.</font>'
+	else
+		'You have <b><<tampon>></b> tampons.'
+	end
+	if sanpad = 0 and tampon = 0:
+		'<b><font color="red">You have no pads left.</font></b>'
+	elseif sanpad = 1:
+		'<font color="red">You have only <b><<sanpad>></b> pads left.</font>'
+	else
+		'You have <b><<sanpad>></b> pads.'
+	end
+
+	if bcream_have > 0:
+		'<a href="exec:dynamic $use_bcream & gt $loc, $metka">Apply breast cream.</a> Uses left: <<bcream_have>>.'
+	end
 
 	if (cumloc[6] = 1 or cumloc[7] = 1):
 		act 'Rinse the cum stains off your clothes in luke warm water(0:10)':
 			cla
+			menu_off = 1
 			cumspclnt = 6
 			gs 'cum_cleanup'
 			minut += 10
@@ -113,95 +212,19 @@ if mira = 0:
 
 	dynamic $brit
 
-	if dirtyclothes = 1 and $loc = 'Gadbana':
-		act 'Wash your clothes (1:00)':
-			cla
-			*clr
-			minut += 60
-			dirtyclothes = 0
-			pcs_mood -= 10
-			cumspclnt = 6 & gs 'cum_cleanup'
-			gs 'stat'
-			if $clothingworntype = 'nude':
-				'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/basinwash.jpg"></center>'
-			else
-				'<center><img <<$set_imgh>> src="images/locations/gadukino/village/washclothes1.jpg"></center>'
-				 'You undress and wash your dirty clothes.'
-			end
-			*nl
-			'You soak your muddy clothes and underwear in the basin and pour in washing powder, then you scrub them until they are finally clean.'
-			act 'Finish':gt $loc, $metka
+	if breastpump > 0 and bp_unbox >= 1:
+		act 'Use breast pump':
+			gt 'lact_lib', 'bp_milking'
 		end
 	end
-	if analplug = 1 and analplugin = 1:
-		act 'Remove your butt plug (0:05)':
-			cla
-			*clr
-			minut += 5
-			analplugIN = 0
 
-			if pcs_ass < 30:pcs_ass += 1
-
-			'<center><img <<$set_imgh>> src="images/pc/body/analplug.jpg"></center>'
-			*nl
-			'You squat and tug gently at the butt plug, gasping as you push it out of you. You can''t help but feel a bit empty, now that it''s out.' & !!0.2.6: Removed unneccessary var check
-
-			act 'Finish':gt $loc, $metka
-		end
-	elseif analplug = 1 and analplugin = 0 and klismaday = daystart:
-		act 'Insert your butt plug (0:05)':
-			cla
-			*clr
-			minut += 5
-			analplugIN = 1
-
-			if pcs_ass < 10:pcs_ass += 5
-			if pcs_ass >= 10 and pcs_ass < 20:pcs_ass += rand(1, 2)
-			if pcs_ass >= 20 and pcs_ass < 30:pcs_ass += rand(0, 1)
-
-			'<center><img <<$set_imgh>> src="images/pc/body/analplug.jpg"></center>'
-			*nl
-			if butpluguse > 0:'You squat and gently rub the butt plug against your anus, after lubricating it with a bit of saliva. After a short while, you''ve relaxed enough to be able to push it in. Once it''s in you give it a few gentle tugs, wondering if anyone will catch you wearing it today.'
-			if butpluguse = 0:butpluguse = 1 & '"If I''m not going to use it, then why did I buy it?" you ask yourself. You look at the butt plug for a while, thinking "It is necessary to start developing my ass, so I could have great adventures someday... you could even say huge and thick adventures with crimson heads, uh, now I got carried away..." You''re slightly embarrassed at the thought for a second, but are then overcome by your horny fantasies. Determined to get the plug all the way in, you slowly press it against your asshole after lubricating it with a bit of saliva. It hurts a bit at first, but once the thickest part is in the rest follows rather easily. Patting yourself on your ass once it''s in, you wonder if anyone will notice you''re wearing it today and then immediately feel naughty for even having thought that.'
-
-			act 'Finish':gt $loc, $metka
-		end
-	end
-	if vibrator = 1 and vibratorIN = 1:
-		act 'Remove the vibrator (0:05)':
-			cla
-			*clr
-			minut += 5
-			vibratorIN = 0
-
-			if pcs_vag < 30:pcs_vag += 1
-
-			'<center><img <<$set_imgh>> src="images/shared/accessories/toys/vibrator.jpg"></center>'
-			*nl
-			'You spread your legs and take the vibrator out of your pussy, letting out a slight moan as you do so. You feel somewhat empty now.'
-
-			act 'Finish':gt $loc, $metka
-		end
-	elseif vibrator = 1 and vibratorIN = 0 and pcs_vag ! 0:
-		act 'Insert the vibrator in your vagina (0:05)':
-			cla
-			*clr
-			minut += 5
-			vibratorIN = 1
-
-			if pcs_vag < 30:pcs_vag += 2
-
-			'<center><img <<$set_imgh>> src="images/shared/accessories/toys/vibrator.jpg"></center>'
-			*nl
-			'You spread your legs and slowly insert the vibrator in your pussy, wondering if anyone will notice you wearing it today.'
-
-			act 'Finish':gt $loc, $metka
-		end
-	end
+	dynamic $toymanage
+	dynamic $enema
 
 	if mosolmaz > 0 and mosol > 0 and mosal_time ! (daystart * 100) + hour:
 		act 'Rub ointment onto your pussy (0:05)':
 			cla
+			menu_off = 1
 			mosal_time = (daystart * 100) + hour
 			minut += 5
 			mosolmaz -= 1
@@ -211,26 +234,14 @@ if mira = 0:
 			act 'Finish':gt $loc, $metka
 		end
 	end
-	if (klismaday ! daystart or arrpos('sparrloc', 3) ! -1):
-		act 'Give yourself an enema (0:05)':
-			cla
-			*clr
-			cumspclnt = 7
-			gs 'cum_cleanup'
-			minut += 5
-			klismaday = daystart
-			klismaday1= 1
-			'<center><img <<$set_imgh>> src="images/shared/home/bathroom/klisma.jpg"></center>'
-			'You use Baba''s enema to clean yourself out down there. Your ass is now ready for anal sex without any awkward surprises.'
-			act 'Finish':gt 'Gadbana'
-		end
-	end
 else
 	!125st
 	act 'Undress':
 		cls
+		menu_off = 1
+		!!gs 'clothing', 'strip', 'Gadbana'
 		gs 'clothing', 'strip'
-		gs 'underwear', 'remove'
+		if $pantyworntype ! 'none' and $braworntype ! 'none': gs 'underwear', 'remove'
 		gs 'stat'
 		'<center><img <<$set_imgh>> src="images/characters/village/mira/miraban.jpg"></center>'
 			'While you undress, through the corner of your eye you notice Mira removing her panties.'
@@ -246,15 +257,6 @@ else
 			gs 'arousal', 'voyeur', 10
 			gs 'stat'
 			act 'Steam':
-				!{
-				dynamic $showerdin
-				vidageday += 1
-				pcs_mood += 20
-				pcs_health += healthmax/20
-				pcs_skin += 5
-				if pcs_skin >= 20:pcs_skin = 0 & skin += 1
-				}
-				!copy from 40~62, different sauna in Russian.
 				cls
 				dynamic $showerdin
 				pcs_hairbsh = 0
@@ -271,7 +273,34 @@ else
 				gs 'arousal', 'voyeur', 120
 				gs 'arousal', 'end'
 				gs 'stat'
-				act 'Finish': mira = 0 & gt 'gaddvor'
+
+				if clothesAtLocation = 1 and $clothingworntype = 'nude':
+					act 'Get dressed and leave':
+						cla
+						mira = 0
+						minut += 1
+						!!gs 'clothing', 'recover_lost_clothes', 'Gaddvor', 1
+						if banya_underwear = 1: gs 'underwear', 'wear'
+						killvar 'banya_underwear'
+						gs 'stat'
+						act 'Continue': gt 'Gaddvor'
+					end
+				end
+
+				act 'Go outside naked':
+					*clr & cla
+					mira = 0
+					minut += 1
+					grandma_trouble += rand(0,1)
+					'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/gaddvor_nude.jpg"></center>'
+					'Luckily no one saw you outside naked, but there''s a thrill in almost getting caught'
+					!!gs 'clothing', 'recover_lost_clothes', 'Gaddvor'
+					gs 'arousal', 'voyeur', 10, 'exhibitionism'
+					gs 'arousal', 'end'
+					killvar 'banya_underwear'
+					gs 'stat'
+					act 'Continue': gt 'Gaddvor'
+				end
 			end
 		end
 	end

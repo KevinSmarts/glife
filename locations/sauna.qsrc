@@ -1,19 +1,15 @@
 # sauna
 
-if night_mode = 1:
-	fcolor = rgb(255, 255, 255)
-	bcolor = rgb(0, 0, 0)
-	lcolor = rgb(106, 90, 205)
-else
-	fcolor = rgb(0, 0, 0)
-	bcolor = rgb(255, 255, 255)
-	lcolor = rgb(106, 90, 205)
-end
+CLOSE ALL
+gs 'themes', 'indoors'
 
 if $ARGS[0] = '':
-	clr
+	*clr & cla
 	$loc = 'sauna'
 	$metka = ''
+	$menu_loc = 'sauna'
+	$menu_arg = ''
+	menu_off = 0
 	sauna += 1
 	gs 'stat'
 	'<center><b>Sauna</b></center>'
@@ -46,6 +42,10 @@ if $ARGS[0] = 'sauna2':
 	*clr & cla
 	$loc = 'sauna'
 	$metka = 'sauna2'
+	$menu_loc = 'sauna'
+	$menu_arg = 'sauna2'
+	menu_off = 0
+	$location_type = 'indoors'
 	minut += 5
 	gs 'stat'
 	'<center><b><font color="maroon">Sauna</font></b></center>'
@@ -81,9 +81,13 @@ if $ARGS[0] = 'saunaroom':
 	$metkaBroom = 'saunaroom'
 	$locM = 'sauna'
 	$metkaM = 'saunaroom'
+	$menu_loc = 'sauna'
+	$menu_arg = 'saunaroom'
+	menu_off = 0
 	$location_type = 'private'
 	saunaYouRoom = 1
 	gs 'stat'
+	gs 'kit_din'
 	'<center><b><font color="maroon">Room</font></b></center>'
 	'<center><img <<$set_imgh>> src="images/locations/city/residential/sauna/saunaroom.jpg"></center>'
 
@@ -92,36 +96,50 @@ if $ARGS[0] = 'saunaroom':
 	'<br>Hanging on the wall is a dirty <a href="exec:gt ''mirror'', ''start''">mirror</a>. The floor is littered with dozens of porn magazines, and a selection of adult toys are scattered throughout the room. There''s so much crap laying around, there''s barely enough space to do some basic <a href="exec:gt ''sauna'', ''saunafitness''">exercise</a>.'
 
 	if budilnikOn = 0:
-		'<br>Your <a href="exec:gt ''budilnik'', ''start''">alarm clock</a> is set for <<timer>> hours <<timerM>> minutes and currently turned <a href="exec: budilnikOn = 1 & GT ''<<$loc>>''">off</a>.'
+		'<br>Your <a href="exec:gt ''budilnik'', ''start''">alarm clock</a> is set for <<timer>> hours <<timerM>> minutes and currently turned <a href="exec: budilnikOn = 1 & gt ''sauna'', ''saunaroom''">off</a>.'
 	else
-		'<br>Your <a href="exec:gt ''budilnik'', ''start''">alarm clock</a> is set for <<timer>> hours <<timerM>> minutes and currently turned <a href="exec: budilnikOn = 0 & GT ''<<$loc>>''">on</a>.'
+		'<br>Your <a href="exec:gt ''budilnik'', ''start''">alarm clock</a> is set for <<timer>> hours <<timerM>> minutes and currently turned <a href="exec: budilnikOn = 0 & gt ''sauna'', ''saunaroom''">on</a>.'
 	end
 
-	if money > 0 and workDolg > 0:workDolg -= money & money = 0
+	if SaunaWhore > 0 and money > 0 and workDolg > 0:
+		workDolg = dolg_temp
+		workDolg -= money
+		money -= dolg_temp
+		if money < 0: money = 0
+		if workDolg < 0: workDolg = 0
+	end
 	if workDolg > 0:'Your debt is <<workDolg>> <b>₽</b>'
 
 	act '<b>Exit to the sauna</b>':gt 'saunawhore', 'saunawork'
 
 	if workDolg > 0:
 
-		act 'Have some food (0:15)':gs 'food', 'snack'
-		act 'Drink some water (0:05)':gs 'beverage', 'bev_wat'
-
+		act 'Have some food (0:15)':
+			gs 'food', 'm_meal'
+			workDolg += 100
+		end
+		act 'Drink some water (0:05)':
+			gs 'beverage', 'bev_wat'
+		end
 		act 'Borrow cosmetics':
 			workDolg += 1000
 			kosmetica += 25
-			gt $curloc
+			gt 'sauna', 'saunaroom'
 		end
 	end
+	
 	if workDolg <= 0 and SaunaWhore > 0:
 
 		if money >= 100:
 			act 'Buy some food (0:15) (100 <b>₽</b>)':
-				gs 'food', 'snack'
+				gs 'food', 'm_meal'
 				money -= 100
 			end
 		end
-		act 'Drink some water (0:05)':gs 'beverage', 'bev_wat'
+		
+		act 'Drink some water (0:05)':
+			gs 'beverage', 'bev_wat'
+		end
 
 		dynamic $fatdel
 		dynamic $lekarstvo
@@ -147,6 +165,11 @@ if $ARGS[0] = 'saunaroom':
 			end
 		else
 			act '<<$sleep_txt>>':
+				if SaunaWhore = 0:
+					workDolg += 850
+				elseif SaunaWhore > 0:
+					money -= 850
+				end
 				if disable_autosave = 0:
 					if StoryLine = 0:
 						savegame 'autosave.sav'
@@ -169,11 +192,12 @@ end
 if $ARGS[0] = 'saunafitness':
 	$loc = 'sauna'
 	$metka = 'saunaroom'
+	$location_type = 'indoors'
 	cla
 	*clr
 	'<center><video autoplay loop src="images/pc/activities/push_naked.mp4"></video></center>'
 	gs 'exercise', 'tier2', 30, 'stren_exp'
-	'You do push-ups for <<$timestring>> minutes, improving your strength.'
+	'You do push-ups for 30 minutes, improving your strength.'
 
 	randpushfact = rand(-5,5)
 	if pcs_energy < 40: randpushfact -= RAND(1,10)

@@ -9,19 +9,24 @@ $breastfeed = {
 	'You pick up <<$kidname[ks]>> from <<$kidPosPro[ks]>> crib and cuddle for a moment before exposing your breast.'
 	if rand(1,10) = 10:
 		'You lift <<$kidname[ks]>> to your breast but your <<$sdtext[ks]>> doesn''t latch on.'
-		mood -= 5
+		pcs_mood -= 5
 		minut += 5
 	else
 		minut += 15
-		'You lift <<$kidname[ks]>> to your breast and feed your baby <<$polreb[ks]>>. <<$kidPosProPN[ks]>> drinks <<lactatemv>>ml of your milk.'
+
 		breastcounter += 1
-		lactatemv = 0
-		if pain['nipples'] < 10:
-			pain['nipples'] += 20
+		milkedvolume = func('lact_lib','$get_breastmilk', 2, 15)
+		if milkedvolume < 800:
+			'You lift <<$kidname[ks]>> to your breast and feed your baby <<$polreb[ks]>>. Your baby doesn''t seem to be satisfied with the amount of milk.'
+		else
+			'You lift <<$kidname[ks]>> to your breast and feed your baby <<$polreb[ks]>>. Your baby seems satisfied with the amount of your milk.'
 		end
 	end
 	'You gently lay <<$kidname[ks]>> back <<$babyloc>>.'
-	act 'Done': 
+	act 'Done':
+		if $pcs_mothername = '':
+			$pcs_mothername = input("What name do you wish your children to call you by?")
+		end
 		gt 'kid', 'start'
 	end
 }
@@ -48,14 +53,14 @@ $totplay = {
 	gs 'stat'
 	'<center><b><font color="maroon"><<$kidname[ks]>> <<$pcs_lastname>></font></b></center>'
 	'<center><img <<$set_imgh>> src="images/pc/activities/tot_play.jpg"></center>'
-	'"Mom! Mom! Mom! Mom!" Yells <<$kidname[ks]>>, "Come play with me!"'
-	'"Ok <<$kidname[ks]>>!" You reply.' 
+	'"<<$pcs_mothername>>! <<$pcs_mothername>>! <<$pcs_mothername>>! <<$pcs_mothername>>!" Yells <<$kidname[ks]>>, "Come play with me!"'
+	'"Ok <<$kidname[ks]>>!" You reply.'
 	'You pull out a bin of blocks and spend a period of time playing and building with your child.'
 	'After a short time, <<$kidname[ks]>> pushes over the small tower you have built, snickers and runs off'
 	'You get up, straighten up your clothes, laugh, and move on with your day'
 	pcs_mood += 20
 	minut += 20
-	act 'Done': 
+	act 'Done':
 		gt 'kid', 'start'
 	end
 }
@@ -67,9 +72,9 @@ $tottv = {
 	'<center><img <<$set_imgh>> src="images/shared/home/tv/kid_tv.jpg"></center>'
 	'You pull <<$kidname[ks]>> up onto the couch with you and cuddle up to watch TV'
 	'You watch a cartoon featuring a Rabbit, a Duck, and a Pig that is quite silly'
-	mood += 10
+	pcs_mood += 10
 	minut += 60
-	act 'Done': 
+	act 'Done':
 		gt 'kid', 'start'
 	end
 }
@@ -80,11 +85,11 @@ $kidtv = {
 	'<center><b><font color="maroon"><<$kidname[ks]>> <<$pcs_lastname>></font></b></center>'
 	'<center><img <<$set_imgh>> src="images/shared/home/tv/kid_tv2.jpg"></center>'
 	'You attempt to curl up on the couch with <<$kidname[ks]>>'
-	'"Mom! I''m trying to watch TV!" <<$kidname[ks]>> says.'
+	'"<<$pcs_mothername>>! I''m trying to watch TV!" <<$kidname[ks]>> says.'
 	'"Well I am gonna watch with you." You reply, followed by tickling <<$kidname[ks]>> to open up a spot on the couch for you to sit.'
 	'You watch a kids TV show about two American teenagers that barely catches your interest.'
 	minut += 60
-	act 'Done': 
+	act 'Done':
 		gt 'kid', 'start'
 	end
 }
@@ -101,8 +106,8 @@ $homework = {
 	'<center><b><font color="maroon"><<$kidname[ks]>> <<$pcs_lastname>></font></b></center>'
 	'<center><img <<$set_imgh>> src="images/characters/pavlovsk/resident/kolka/event/homework/homework1.jpg"></center>'
 	'You see that <<$kidname[ks]>> is working on a pile of homework. They give kids so much homework now days.'
-	'"Can mommy help you with some of that?" you ask'
-	'<<$kidname[ks]>> replies, "Mommy?!... Mom stop treating me like a baby... but yes, I would like some help."'
+	'"Does my little darling want <<$pcs_mothername>> to help you with some of that?" you ask'
+	'<<$kidname[ks]>> replies, "<<$pcs_mothername>>?!... <<$pcs_mothername>> stop treating me like a baby... but yes, I would like some help."'
 	'<br>'
 	'You sit down at the table next to <<$kidname[ks]>> and begin to help <<$kidPosPronn[ks]>> with the homework'
 	if pcs_grades > 50:
@@ -112,40 +117,46 @@ $homework = {
 	end
 	homework[ks] = daystart
 	minut += rand(30,80)
-	act 'Done': 
+	act 'Done':
 		gt 'kid', 'start'
 	end
 }
 
 if $ARGS[0] = 'start':
 	gs 'stat'
-	if kid > 0:
-		k = 0
-		end
-		if lactate > 0 and lactatemv <= 1:
-			'You cannot breast feed right now.'
-		end
-		:loop
-		if k < kid:
-			gs 'kid','kidlist'
-			k += 1
-			jump 'loop'
-		end
-		'Child Selected: <<$kidname[ks]>>'
-		if ks > 0:'<a href="exec:ks -= 1& gt ''kid'', ''start'' ">Select Previous Child</a>' 
-		if ks < (kid - 1):'<a href="exec:ks += 1& gt ''kid'', ''start'' ">Select Next Child</a>'
-		
+	if $pcs_mothername = '':
+		$pcs_mothername = input("What name do you wish your children to call you by?")
+	end
 	act 'Leave':
 		cla
 		killvar 'ks'
 		gt $loc, $metka
+	end
+	if kid > 0:k = 0
+	if lactate > 0 and pain['nipples'] > 60:
+		'You cannot breast feed right now. Your nipples are too sore.'
+	end
+	:loop
+	if k < kid:
+		gs 'kid','kidlist'
+		k += 1
+		jump 'loop'
+	end
+	'Child Selected: <<$kidname[ks]>>'
+	if ks < (kid - 1):
+		'<a href="exec:ks += 1& gt ''kid'', ''start'' ">Select Next Child</a>'
+		act 'Select Next Child': ks += 1 & gt 'kid', 'start'
+	end
+	if ks > 0:
+		'<a href="exec:ks -= 1& gt ''kid'', ''start'' ">Select Previous Child</a>'
+		act 'Select Previous Child': ks -= 1 & gt 'kid', 'start'
 	end
 end
 
 if $ARGS[0] = 'kidlist':
 		if kidage[k] < 1:
 			if (month - monthkid[k]) < 1 and (day-daykid[k]) < 7:
-				kiddaycalc[k] = day - daykid[k]	
+				kiddaycalc[k] = day - daykid[k]
 				if kiddaycalc[k] = 1:
 					$kidagetext[k] = '<<kiddaycalc[k]>> day old'
 				else
@@ -196,18 +207,18 @@ if $ARGS[0] = 'kidlist':
 		if ks = k:
 		'<font color= #06992D>Your <<$sdtext[k]>> <<$kidname[k]>> is <<$kidagetext[k]>>. <<$kidposproC[k]>> date of birth is <<monthkid[k]>>/<<daykid[k]>>/<<yearkid[k]>>.</font>'
 		else:
-		'Your <<$sdtext[k]>> <<$kidname[k]>> is <<$kidagetext[k]>>. <<$kidposproC[k]>> date of birth is <<monthkid[k]>>/<<daykid[k]>>/<<yearkid[k]>>.' 
+		'Your <<$sdtext[k]>> <<$kidname[k]>> is <<$kidagetext[k]>>. <<$kidposproC[k]>> date of birth is <<monthkid[k]>>/<<daykid[k]>>/<<yearkid[k]>>.'
 		end
-		
+
 		if kidage[k] < 1:
-			if hour >= 12 and hour < 18: 
+			if hour >= 12 and hour < 18:
 			$babyloc = 'onto the blanket'
 			'<<$kidname[k]>></a> is laying on a blanket'
 			else:
 			$babyloc = 'into the crib'
 			'<<$kidname[k]>> is asleep, lying in <<$kidPosPro[k]>> crib.'
 			end
-			
+
 		elseif kidage[k] >= 1 and kidage[k] < 7:
 			if hour >= 9 and hour < 21 and rkidloc < 8:
 			$totloc = 'playing with toys on the floor'
@@ -234,13 +245,13 @@ if $ARGS[0] = 'kidlist':
 			end
 		end
 		if kid > 0 and kidage[ks] < 1:
-			
-			if lactate > 0 and lactatemv > 1:
+
+			if lactate > 0:
 				act 'Breast Feed <<$kidname[ks]>>':dyneval($breastfeed)
 			end
 			if $babyloc = 'onto the blanket':
 				act 'Play with <<$kidname[ks]>> (0:20)': dyneval($play)
-			end				
+			end
 		end
 		if kid > 0 and kidage[ks] >=1 and kidage[ks] <7:
 			if $totloc = 'playing with toys on the floor':

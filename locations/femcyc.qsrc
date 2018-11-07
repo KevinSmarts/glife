@@ -3,7 +3,7 @@
 !! I have to initialize the variables somewhere, maybe in preCUST?
 if Luth_Max = 0: LutH_Max = rand(312,360) & !! 13-15 days including ovulation
 if Foch_Max = 0: FocH_Max = rand(312,360) & !! 13-15 days including menstruation
-		
+
 if $ARGS[0] = '':
 	!{Hourly reduction in semen potency}
 	!{First it sets the array index to the first index, then it checks to be sure the array tracking the age is less than 144 hours. If it is 144 hours old, it kills that index, which should shift the index up. If it is less than 144 hours old, it sets a current potency drop. The drop is 2x or 3x regularly, but during ovulation it is only 1x, to represent the better environment from fertile cervical mucus.}
@@ -185,7 +185,7 @@ if $ARGS[0] = '':
 				end
 				if sparrage[cumarrtemp] > 48:
 					cumcondslip_aware = 1
-					pcs_health -= rand(3,sparrage[cumarrtemp] - 45)
+					if pcs_health > 100: pcs_health -= rand(3,sparrage[cumarrtemp] - 45)
 					'<br><b><font color="red">You feel nauseous.</font></b>'
 				end
 			end
@@ -205,28 +205,299 @@ if $ARGS[0] = '':
 		KILLVAR 'ctemp'
 	end
 
-	if lactate > 0:
-		if lactatemv <= 0:
-			lactatemv = 0
-			if lactatemm < pcs_cupsize*40 and milkgrowday < daystart:
-				lactatemm += 10
-				lactatemv += 10
-				milkgrowday = daystart
-			elseif milkgrowday < daystart:
-				if rand(0,30) = 0: pcs_cupsize += 1
-				milkgrowday = daystart
-				lactatemv += 10
-			end
-		elseif lactatemv < lactatemm:
-			lactatemv += lactatemm/20
-		elseif lactatemv = lactatemm and milkgrowday < daystart:
-			milkgrowday = daystart
-			lactatemm -= 10
-			lactatemv -= 10
-			if rand(0,90) = 0: pcs_cupsize -= 1
-		elseif lactatemv > lactatemm:
-			lactatemv = lactatemm
+	if cheat_NoLactation = 1:
+		gs 'lact_lib','lactate_optout'
+	end
+	!! new milkgrowday function.
+	!! Not lactating yet, but there was milkdemand, meaning someone worked your nipples and breasts.
+	if lactate = 0 and milkoverdemand >= 0 and prolactinlvl >= 0:
+		!! Even if Sveta doesn''t massage her breasts or pumps proactively, NPCs will work her breasts eventually. This can cause her to lactate without knowledge.
+		if rand(1,50) + prolactinlvl >= rand(200,250) and milkinduceday >= 5:
+			lactateinduced = 0
+			pcs_knowsaboutlactation = 0
+			lactate = 1
+			if func('lact_lib','$calc_lactatemm') > 0: lactatemm = func('lact_lib','$calc_lactatemm')
+			if prolactinlvl < 200: prolactinlvl = 200
+			lactaterate = 10*(prolactinlvl/200)
+			pcs_nips += 2
+			pumpinggrowth = 0
 		end
+		if milkgrowday < daystart:
+			temp_var = milkoverdemand/200
+			if temp_var >= 10 and pregtimes <= 0: temp_var = 10
+			if temp_var >= 50 and pregtimes > 0: temp_var = 50
+			if temp_var <= 0 and milkoverdemand >0:
+				prolactinlvl += 1
+			else
+				prolactinlvl += temp_var
+			end
+			!!	if sveta had no kid, milk induction will take a while as her breasts need to change alot.
+			if prolactinlvl >= 150 and kid <= 0 and pregtimes <= 0:milkinduceday += 1
+			if prolactinlvl >= 100 and kid <= 0 and pregtimes <= 0 and pain['breasts'] <= 20: pain['breasts'] = 20
+			!! as long as your tits are not over 11 growth will happen to them. If you do not pump or no pregnancy happens, no growth will happen.
+			if milkoverdemand = 0 and pregchem = 0 and tits < 11:
+				temp_var = prolactinlvl - 10
+				if temp_var <= 0:
+					prolactinlvl = 0
+				end
+				!! if prolactinlvl is sinking too much, the aveoli will deflate and thus the breasts growth is reverted. This only counts for induced lactation. If natural lactation occurs breasts will shrink a bit too, but stay bigger in total.
+				if prolactinlvl < 100 and total_milkinduce_growth > 0:
+					nbsize -= total_milkinduce_growth
+					total_milkinduce_growth = 0
+					if prolactinlvl > 10:
+						prolactinlvl -= 10
+					else
+						prolactinlvl = 0
+					end
+				else
+					if prolactinlvl > 10:
+						prolactinlvl -= 10
+					else
+						prolactinlvl = 0
+					end
+				end
+				milkoverdemand = 0
+				milkgrowday = daystart
+			elseif milkoverdemand > 0 and pregchem = 0 and tits < 11:
+				!! inducing without ever being pregnant
+				if prolactinlvl > 100 and kid <= 0:
+					if total_milkinduce_growth < 8:
+						total_milkinduce_growth += 1 + pumpinggrowth
+						nbsize += 1 + pumpinggrowth
+						pumpinggrowth = 0
+					else
+						pumpinggrowth = 0
+					end
+				!! inducing after being pregnant
+				elseif prolactinlvl > 100 and kid > 0:
+					if total_milkinduce_growth < (total_preg_growth/2):
+						total_milkinduce_growth += 1 + pumpinggrowth
+						nbsize += 1 + pumpinggrowth
+						pumpinggrowth = 0
+					end
+				end
+				milkoverdemand = 0
+			elseif milkoverdemand >= 0 and pregchem > 0 and tits < 11:
+				if prolactinlvl > 100 and pregchem < 3000 and kid <= 0:
+					if total_milkinduce_growth < 8:
+						total_milkinduce_growth += 1 + pumpinggrowth
+						nbsize += 1 + pumpinggrowth
+						pumpinggrowth = 0
+					else
+						pumpinggrowth = 0
+					end
+				!! first breast growth with first pregnancy
+				elseif prolactinlvl >= 100 and pregchem >= 2000 and pregchem < 3000 and kid <= 0:
+					if rand(0,100) > 55:
+						first_preg_growth += 1
+						total_preg_growth += 1
+						if total_preg_growth > total_milkinduce_growth: nbsize += 1
+					end
+				!! there is little chance your breast grow additional sizes if you have more kids.
+				elseif prolactinlvl >= 100 and pregchem >= 2000 and pregchem < 3000 and kid > 0:
+					if first_preg_growth > total_preg_growth:
+						total_preg_growth += 1
+						if total_preg_growth > total_milkinduce_growth: nbsize += 1
+					else
+						if rand(0,100) > 95:
+							total_preg_growth += 1
+							if total_preg_growth > total_milkinduce_growth: nbsize += 1
+						end
+					end
+				!! inducing after being pregnant
+				elseif prolactinlvl > 100 and pregchem =< 3000 and kid > 0:
+					if total_milkinduce_growth < (total_preg_growth/2):
+						total_milkinduce_growth += 1 + pumpinggrowth
+						nbsize += 1 + pumpinggrowth
+						pumpinggrowth = 0
+					end
+				end
+				milkoverdemand = 0
+				milkgrowday = daystart
+			end
+			milkgrowday = daystart
+		else
+			milkgrowday = daystart
+		end
+	elseif lactate > 0 and milkoverdemand => 0 and prolactinlvl >= 0:
+		lactatemm = func('lact_lib','$calc_lactatemm')
+		!! checking if induced or not and if girl went through pregnancy already.
+		if lactateinduced > 0 and kid <= 0:
+			if milkgrowday < daystart:
+				!! first breast growth with first pregnancy
+				if prolactinlvl >= 100 and pregchem >= 2000 and pregchem < 3000 and kid <= 0:
+					if rand(0,100) > 55:
+						first_preg_growth += 1
+						total_preg_growth += 1
+						if total_preg_growth > total_milkinduce_growth: nbsize += 1
+					end
+				end
+				if lactatemm > lactatemv and salo > 11:
+					lactatemv += lactaterate
+					temp_var = lactaterate/100
+					if temp_var <= 0: temp_var = 1
+					pcs_energy -= temp_var
+					if lactatemv > lactatemm: lactatemv = lactatemm
+				end
+				if milkoverdemand > 0 and breastpumped > 0:
+					!! lactationrate growing, so you make more milk the more demand there was in the day before.
+					temp_var = prolactinlvl + milkoverdemand/20
+					if  temp_var > 120:
+						prolactinlvl += milkoverdemand/20
+						!! uppon reaching a specific limit, the lactationrate will grow slower. Human body limits etc... you know
+						if lactaterate > 3500:
+							lactaterate += 5*(prolactinlvl/200)
+						elseif lactaterate > 6000:
+							lactaterate += prolactinlvl/200
+						else
+							lactaterate += 10*(prolactinlvl/200)
+						end
+						prolactinlvl = 100
+					else
+						prolactinlvl = 100
+					end
+						if pcs_knowsaboutlactation > 0:
+							'Your breasts tingle a bit more from milkproduction.'
+						else
+							'Your breasts tingle a bit weirdly.'
+						end
+				elseif milkoverdemand = 0 and breastpumped > 0:
+					prolactinlvl = 100
+				elseif milkoverdemand = 0 and breastpumped = 0:
+					if lactaterate > 0 and pregchem >=0:
+						temp_var = lactaterate/4
+						if temp_var < 1:temp_var = 0
+						lactaterate = temp_var
+						if pcs_knowsaboutlactation > 0:
+							'Your breasts tingle a little less from milkproduction.'
+						else
+							'The tingling in your breasts eases down.'
+						end
+					elseif lactaterate = 0 and pregchem < 1000:
+						lactate = 0
+						lactateinduced = 0
+						nbsize -= total_milkinduce_growth
+						milkinduceday = 0
+						if pcs_knowsaboutlactation > 0:
+							'You notice that you stopped lactating.'
+						else
+							'Your breasts feel eased today.'
+						end
+					elseif lactaterate = 0 and pregchem >= 1000:
+						lactaterate = 1
+					else
+						lactaterate = 0
+					end
+				end
+				milkgrowday = daystart
+				milkoverdemand = 0
+				breastpumped = 0
+			else
+				milkgrowday = daystart
+				if lactatemm >= lactatemv and salo > 11:
+					if lactaterate > lactaterate_use:
+						temp_lactaterate = lactaterate_use
+					else
+						temp_lactaterate = lactaterate
+					end
+					lactatemv += temp_lactaterate
+					lactaterate_use = lactaterate
+					if lactatemv > lactatemm:
+						lactatemv = lactatemm
+						lact_engorgement += 1
+						if lact_engorgement > 2: lactatemess += 1
+					end
+				end
+			end
+			milkgrowday = daystart
+		else
+			if milkgrowday < daystart:
+				if lactatemm > lactatemv and salo > 11:
+					lactatemv += lactaterate
+					temp_var = lactaterate/100
+					if temp_var <= 0: temp_var = 1
+					pcs_energy -= temp_var
+					if lactatemv > lactatemm: lactatemv = lactatemm
+				end
+				if milkoverdemand > 0 and breastpumped > 0:
+					!! lactationrate growing, so you make more milk the more demand there was in the day before.
+					temp_var = prolactinlvl + milkoverdemand/10
+					if  temp_var > rand(150,200):
+						prolactinlvl += milkoverdemand/20
+						!! uppon reaching a specific limit, the lactationrate will grow slower. Human body limits etc... you know :D
+						if lactaterate > 3500:
+							lactaterate += 5*(prolactinlvl/200)
+						elseif lactaterate > 6000:
+							lactaterate += prolactinlvl/200
+						else
+							lactaterate += 10*(prolactinlvl/200)
+						end
+						prolactinlvl = 100
+					else
+						prolactinlvl = 100
+					end
+						if pcs_knowsaboutlactation > 0:
+							'Your breasts tingle a bit more from milkproduction.'
+						else
+							'Your breasts tingle a bit weirdly.'
+						end
+				elseif milkoverdemand = 0 and breastpumped > 0:
+					prolactinlvl = 100
+				else
+					if lactaterate > 0 and pregchem >= 0:
+						temp_var = lactaterate/8
+						if temp_var < 1:temp_var = 0
+						lactaterate = temp_var
+						milkoverdemand = 0
+						if pcs_knowsaboutlactation > 0:
+							'Your breasts tingle a little less from milkproduction.'
+						else
+							'The tingling in your breasts eases down.'
+						end
+					elseif lactaterate = 0 and pregchem < 1000:
+						lactate = 0
+						lactateinduced = 0
+						if total_milkinduce_growth > 0: nbsize -= total_milkinduce_growth
+						if total_preg_growth > 0:
+							nbsize -= total_preg_growth
+							nbsize += first_preg_growth/2
+						end
+						total_milkinduce_growth = 0
+						milkoverdemand = 0
+						if pcs_knowsaboutlactation > 0:
+							'You notice that you stopped lactating.'
+						else
+							'Your breasts feel eased today.'
+						end
+					elseif lactaterate = 0 and pregchem >= 1000:
+						lactaterate = 1
+					else
+						lactaterate = 0
+					end
+				end
+				milkgrowday = daystart
+				milkoverdemand = 0
+				breastpumped = 0
+			else
+				milkgrowday = daystart
+				if lactatemm >= lactatemv and salo > 11:
+					if lactaterate > lactaterate_use:
+						temp_lactaterate = lactaterate_use
+					else
+						temp_lactaterate = lactaterate
+					end
+					lactatemv += temp_lactaterate
+					lactaterate_use = lactaterate
+					if lactatemv > lactatemm:
+						lactatemv = lactatemm
+						lact_engorgement += 1
+						if lact_engorgement > 2: lactatemess += 1
+					end
+				end
+			end
+			milkgrowday = daystart
+		end
+		milkgrowday = daystart
 	end
 
 	if cycle <= 0:
@@ -276,9 +547,9 @@ if $ARGS[0] = 'cyc1':
 		if rand(0,9) = 0: EggRH += 1
 		FocH += 1
 		temprand = rand(0,9) - sterileov + tempovbonus
-		if temprand < 0: 
+		if temprand < 0:
 			EggRH -= 1
-		elseif temprand > 9: 
+		elseif temprand > 9:
 			EggRH += 1
 		end
 	else
@@ -295,6 +566,7 @@ if $ARGS[0] = 'cyc1':
 			if temprand > 20: EggRH += 410
 		end
 		FocH = 0
+		lastovulation = daystart
 		Ovulate = 24 + rand(0,20)
 		cycle = 2
 		ferteggage = 0
@@ -316,9 +588,9 @@ if $ARGS[0] = 'cyc2':
 		cum_total = 0
 !!{Compute array of unique fathers known to PC and another two arrays of unique total fathers and their individual sperm totals from all entries in cumarrcpt for that father. Also tally all cum present.}
 		:FatherCumAnalyze
-			!! If the current DNA is new (no occurence in the womb array), it is added to the end of $wombDNA array, and added the amount of cum to the end of cumamount array. 
+			!! If the current DNA is new (no occurence in the womb array), it is added to the end of $wombDNA array, and added the amount of cum to the end of cumamount array.
 			!! If exists, just increase the amount of cum in the womb.
-			
+
 			!! $wombDNA: sperm in womb potent enough to cause pregnancy
 			!! wombAmount: how potent is the sperm of a guy
 			!! $wombName: the name of the NPC
@@ -328,7 +600,7 @@ if $ARGS[0] = 'cyc2':
 				$wombDNA[y] = $npc_dna[$cumarrnam[can_idx]]
 				wombAmount[y] = cumarrcpt[can_idx]
 				$wombName[y] = $cumarrnam[can_idx]
-				
+
 			else
 				!! This DNA is in the womb, but does it belong to the same guy?
 				x = 0
@@ -346,9 +618,9 @@ if $ARGS[0] = 'cyc2':
 				killvar 'z'
 			end
 			killvar 'y'
-			
+
 			if cumarrkno[can_idx] = 1 and arrpos('$wombpotfath', $cumarrnam[can_idx]) < 0:$wombpotfath[arrsize('$wombpotfath')] = $cumarrnam[can_idx]
-			
+
 			!! If the guy is a known/possible element (PC know about the sex, it was actual sex, condom/pill was not used or condom was broken, etc.), he can be considered as father.
 			if instr('14570',str(cumarrcon[can_idx])) > 0 and cumarrdel[can_idx] = 0 and cumarrkno[can_idx] >= 0:
 				!! If guy is recorded already, increase his cumtime, else record him for the first time.
@@ -359,9 +631,9 @@ if $ARGS[0] = 'cyc2':
 					cumtime[arrpos('$cumfthname', $cumarrnam[can_idx])] += 1
 				end
 			end
-			
+
 			cum_total += cumarrcpt[can_idx]
-			
+
 		if can_idx < can_sz:can_idx += 1 & jump 'FatherCumAnalyze'
 
 		!! setting the default believed father if there is no difficult choice or there is no choice
@@ -716,9 +988,18 @@ if $ARGS[0] = 'preg':
 			'You begin lactating'
 			lactate = 1
 			lactatemv = 0
-			lactatemm = 100
+			lactatemm = func('lact_lib','$calc_lactatemm')
+			lacaterate = 10
+			prolactinlvl = 150
 		else
 			if lactate < 1: lactate = 1
+		end
+	end
+	if PregChem > 1000:
+		if prolactinlvl < 100 and lactate <= 0:
+			if rand(0,100) > 50:
+				prolactinlvl +=1
+			end
 		end
 	end
 	if PregChem > 2203:
