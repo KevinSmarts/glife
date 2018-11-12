@@ -28,7 +28,7 @@ $GREP -i -E "\Wa (a|e|i|o|u)." -- locations/ | grep -a -i -vE "\Wa (un|eu|us|ut|
 notice "-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-"
 $GREP -i -E "\Wan (b|c|d|f|g|j|k|l|m|n|p|q|r|s|t|v|w|x|y|z)\w+" -- locations/
 
-notice 'Checking back tags... (e.g. "<<\$var><")'
+notice 'Checking bad tags... (e.g. "<<\$var><")'
 $GREP -a -E '<<\$[^>]+><' -- locations/
 
 notice 'Checking common typos... (e.g. "recieve")'
