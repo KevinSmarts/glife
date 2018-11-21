@@ -75,7 +75,7 @@ echo.
 echo Building ...
 
 @ECHO ON
-python -3 txtmerge.py locations glife.txt
+python txtmerge.py locations glife.txt
 txt2gam.exe glife.txt %QSPFILE% > nul
 @ECHO OFF
 
