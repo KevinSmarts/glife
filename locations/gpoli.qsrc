@@ -14,7 +14,7 @@ if $ARGS[0] = '':
 	'<center><b><font color="maroon">Clinic</font></b></center>'
 	'<center><img <<$set_imgh>> src="images/locations/shared/clinic/poli.jpg"></center>'
 		
-	if prcptn_lvl > 40 and pcs_know_mward <= 0:	'<br><br>You see a sign that reads <a href="exec: minut += 5 & gt ''gpoli'', ''maternity_ward''">"Maternity ward"</a>.'
+	if (lactation['active'] > 0 or thinkpreg = 1 or knowpreg = 1) and pcs_know_mward <= 0:	'<br><br>A sign catches your attention. It reads <a href="exec: minut += 5 & gt ''gpoli'', ''maternity_ward''">"Maternity ward"</a>.'
 
 	if pcs_ask_mward_help >= 1 and pcs_know_mward <= 0: '<br><br><a href="exec: minut += 5 & gt ''gpoli'', ''reception''">Ask</a> at the reception for help with your breasts.'
 
@@ -57,6 +57,7 @@ if $ARGS[0] = '':
 			knowpregrecover = 1
 			vidage += 1
 			pregtalk = 0
+			pregTalkPC = 0
 			pregTalkNat = 0
 			pregTalkbrother = 0
 			pregchem = 0
@@ -209,22 +210,29 @@ if $ARGS[0] = '':
 			act 'Visit the maternity ward (0:05)': gt 'gpoli', 'maternity_ward'
 		end
 
-		if tabletkishot < 5 and money >= 750:
+		if tabletkishot < 5 and money >= 750 and knowpreg = 0:
 			act 'Get a birth control shot for 750 <b>₽</b> (0:15)':
 				*clr & cla
 				menu_off = 1
 				minut += 15
-				tabletkishot = rand(84,91)
-				shotdays = 84
-				tabletkicheck = 2
-				pillcon = 40000
-				pillcon2 = 40000
-				money -= 750
-				gs 'stat'
+				money -= 750				
 				'<center><img <<$set_imgh>> src="images/locations/shared/clinic/poli.jpg"></center>'
-				'You are escorted into an examination room, where you are told to sit and wait. After almost fifteen minutes a nurse comes in.'
-				'She gives you a reassuring smile as she sticks a needle in your arm, and depresses the plunger. Seconds later she explains: "All done! You should be good to go for three months, give or take. It depends a bit from person to person: Body type, hormone levels, and so on. If you want to be perfectly safe, we recommend you come back for another treatment one week before the three months are over. Have a nice day, miss!"'
-				'You thank her and wish her the same, while you gather your things. You silently mutter to yourself: "If it is that simple, why did they make me wait 15 minutes..."'
+				'You are escorted into an examination room, where you are told that say have to do a small test before giving you the shot. You wait for fifteen minutes before the nurse comes back in.'
+				if preg = 0:
+					tabletkishot = rand(84,91)
+					shotdays = 84
+					tabletkicheck = 2
+					pillcon = 40000
+					pillcon2 = 40000
+					'"Everything looks great." She says and gives you a reassuring smile as she sticks a needle in your arm, and depresses the plunger. Seconds later she explains: "All done! You should be good to go for three months, give or take. It depends a bit from person to person: Body type, hormone levels, and so on. If you want to be perfectly safe, we recommend you come back for another treatment one week before the three months are over. Have a nice day, miss!"'
+					'You thank her and wish her the same, while you gather your things. You silently mutter to yourself: "If it is that simple, why did they make me wait 15 minutes..."'
+				else
+					'"I''m sorry, but we can''t give you the shot, because you''re pregnant."'
+					'After the initial shock subsides you pay the 750 <b>₽</b> for the test and leave.' 
+					thinkpreg = 1
+					knowpreg = 1
+				end
+				gs 'stat'
 				act 'Leave':gt $curloc
 			end
 		end
@@ -290,20 +298,22 @@ if $ARGS[0] = '':
 					act 'Leave':gt 'gpoli'
 				end
 			end
-
-			if money >= 1000 and SifNapr > 0 and SifUkolDay ! daystart:
-				act 'Get syphilis shot (1,000 <b>₽</b>). You need <<SifNapr>> more injections to complete the treatment.':
+			if money >= 1000 and SifNapr = 1:
+				act 'Get syphilis shot (1,000 <b>₽</b>).':
 					*clr & cla
+					menu_off = 1
 					money -= 1000
-					minut += 15
-					SifUkolDay = daystart
-					SifNapr -= 1
+					minut += 60
+					SifNapr = 0
+					SifacOnce = 0
+					Sifilis = 0
+					Venera -= 1
 					gs 'stat'
 					'You see the nurse and she gives you a painful injection in your ass.'
 
-					if SifNapr = 0:Sifilis = 0 & 'You have completed the treatment.'
+					'"That''s it, you might still feel a bit off but the infection is now cured".'
 
-					act 'Leave':gt 'gpoli'
+					act 'Leave':gt 'poli', 'start'
 				end
 			end
 		end
@@ -347,9 +357,9 @@ if $ARGS[0] = '':
 					end
 
 					'He looks up from his desk when you enter his office and recognizes you immediately: "Ah, hello <<$pcs_nickname>>. Did you come for a check-up?"'
-					'You nod and take a seat: "Hello, dr. Petrovich. Yes, I''m here for a check-up."'
+					'You nod and take a seat: "Hello, Dr. Petrovich. Yes, I''m here for a check-up."'
 					$gyn1
-					'You smile at him: "It''s true, dr. Petrovich. I am."'
+					'You smile at him: "It''s true, Dr. Petrovich. I am."'
 					'He rubs his hand over his chin, and continues: "Does your mother know?"'
 					$gyn2
 					'The gynaecologist nods, and motions for you to stand up: "Very well, let''s see how you''re doing then. Undress for me, please."'
@@ -362,7 +372,7 @@ if $ARGS[0] = '':
 						$gyn2 = 'In a way, you feel touched that he is so concerned for his patients. You don''t mind answering him, and you might as well be frank: "Doctor, I really just love having sex. I don''t even care about getting paid, it just seems like I can''t ever get enough dick. You understand, right?"'
 					end
 					'He looks up from his desk when you enter his office and recognizes you immediately: "Ah, hello <<$pcs_nickname>>. Back for another check-up?"'
-					'You nod and take a seat: "Hello, dr. Petrovich. Yes, I''m here for a check-up."'
+					'You nod and take a seat: "Hello, Dr. Petrovich. Yes, I''m here for a check-up."'
 					$gyn1
 					'"Yes, doctor. I am," you tell him.'
 					'He rubs his hand over his chin, and continues: "If I may be so bold... why?"'
@@ -464,7 +474,7 @@ if $ARGS[0] = '':
 									*clr & cla
 									gs 'stat'
 									'<center><img <<$set_imgh>> src="images/locations/pavlovsk/clinic/gyno/sex/gpoli_8.jpg"></center>'
-									'You moan, feeling some of your wetness running down your leg as dr. Petrovich keeps rubbing his cock against your clit. He sure knows his way around a woman''s body!'
+									'You moan, feeling some of your wetness running down your leg as Dr. Petrovich keeps rubbing his cock against your clit. He sure knows his way around a woman''s body!'
 									'For a moment you close your eyes and just give in to the pleasure. Before you know it you feel something push against your labia, and your vaginal walls are being stretched by his thick dick entering you. It''s still very slick from the blowjob you gave him earlier, and you can''t help but groan louder when it slides in.'
 
 									gs 'arousal', 'vaginal', 5, 'sub'
@@ -508,8 +518,8 @@ if $ARGS[0] = '':
 												pcs_ass += 1
 												gs 'stat'
 												'<center><img <<$set_imgh>> src="images/locations/pavlovsk/clinic/gyno/sex/gpoli_11.jpg"></center>'
-												'You want to pull away from him, but you''re trapped between dr. Petrovich and a wall. He slowly moves his hips, letting you get used to the size of his thick rod inside your tight little butt. It still stings a lot. Despite your best efforts you can''t relax your anus, only slowly getting used to the size of him.'
-												'When he begins to speed up you you nearly cry, and groan loudly with every thrust.'
+												'You want to pull away from him, but you''re trapped between Dr. Petrovich and a wall. He slowly moves his hips, letting you get used to the size of his thick rod inside your tight little butt. It still stings a lot. Despite your best efforts you can''t relax your anus, only slowly getting used to the size of him.'
+												'When he begins to speed up you nearly cry, and groan loudly with every thrust.'
 												'He softly mutters: "This won''t do, you''re going to alarm the entire clinic if you keep screaming like that!"'
 												'He takes his penis out of your ass, and you feel relieved. And, to be honest, rather turned on. It didn''t feel very good yet, but in a way you want it to. Maybe after a few more minutes?'
 												'"Come on, get on the floor," he says after he throws his coat down. He spreads some more lubricant over his gloved fingers, and smears it over your slightly sore butthole. Guess he''s not done with that yet...'
@@ -590,12 +600,12 @@ if $ARGS[0] = '':
 				'<center><img <<$set_imgh>> src="images/locations/pavlovsk/clinic/gyno/gpoli_1.jpg"></center>'
 				if gpoli_doctorhavesex = 1:
 					'You go to the doctor for help with your addiction, since you trust him enough to know he won''t tell your mother.'
-					'"Hi <<$pcs_nickname>>. What brings you in today?" dr. Petrovich says with a smile.'
+					'"Hi <<$pcs_nickname>>. What brings you in today?" Dr. Petrovich says with a smile.'
 					'"Hello, Doctor. I''m feeling weak and I hurt all over," you reply.'
 					'"Well, let''s take a look, shall we?" the doctor replies as you get up to stand by the examination table.'
 				else
 					'You go to the doctor for help with your addiction.'
-					'"Hello, young lady. I''m dr. Petrovich. Do you have specific complaints, or are you simply here for a check-up?" the doctor asks as he comes into the examination room.'
+					'"Hello, young lady. I''m Dr. Petrovich. Do you have specific complaints, or are you simply here for a check-up?" the doctor asks as he comes into the examination room.'
 					'"Hello sir. I''m feeling really weak and shaky and I hurt all over," you explain.'
 					'"Let''s take a look, shall we?" the doctor replies and gestures for you to stand next to the examination table.'
 				end
@@ -606,8 +616,8 @@ if $ARGS[0] = '':
 					gs 'stat'
 					'You tell the doctor about the white powder you''ve been sniffing while he checks your temperature, blood pressure and pulse.'
 					'"Lift your shirt so we can have a listen," he tells you as he warms his stethoscope by breathing on it.'
-					'You lift your shirt and bra above your breasts as instructed and the doctor presses the stethoscope to various places on your chest. He places his left hand on your tummy to steady you as he listens to your heart and breathing, occasionally bringing the stethescope to his mouth to rewarm it. The hand on your tummy moves in small circles that slip steadily lower until his finger tips slip just below the waistband of your clothes. Unlike any other doctor you have seen before, dr. Petrovich listens by pressing the stethescope against your boobs. Does that even work?'
-					'He also warms it more often now, and it feels moist and warm on your nipples. To your embarrassment, you could feel your nipples begin to get hard. You''re not quite sure, but you''re fairly sure dr. Petrovich was just having fun for the last few minutes of that examination.'
+					'You lift your shirt and bra above your breasts as instructed and the doctor presses the stethoscope to various places on your chest. He places his left hand on your tummy to steady you as he listens to your heart and breathing, occasionally bringing the stethescope to his mouth to rewarm it. The hand on your tummy moves in small circles that slip steadily lower until his finger tips slip just below the waistband of your clothes. Unlike any other doctor you have seen before, Dr. Petrovich listens by pressing the stethescope against your boobs. Does that even work?'
+					'He also warms it more often now, and it feels moist and warm on your nipples. To your embarrassment, you could feel your nipples begin to get hard. You''re not quite sure, but you''re fairly sure Dr. Petrovich was just having fun for the last few minutes of that examination.'
 					'<center><img <<$set_imgh>> src="images/locations/pavlovsk/clinic/gyno/gpoli_2.jpg"></center>'
 					'He nods: "Well, so far everything is OK."'
 					'You notice that there is a certain sparkle in his eyes when he looks at your <<$titsize>> breasts with interest. You feel embarrassed at your nipples hardening even further, and try to think of bad things. You silently think to yourself: "My mother is watching! My mother is watching!"'
@@ -667,9 +677,7 @@ if $ARGS[0] = '':
 				end
 			end
 		end
-		if StoryLine > 0 and SchoolAtestat = 0 and Gspravka < 3 and motherKnowSpravka = 0:
-			act 'Go to the gynaecologist for a referral': gt 'gpoli', 'referral'
-		end
+		if StoryLine > 0 and SchoolAtestat = 0 and Gspravka < 3 and motherKnowSpravka = 0: act 'Go to the gynaecologist for a referral': gt 'gpoli', 'referral'
 	else
 		'The clinic is closed. It''s open every day between 06:00 and 21:00.'
 	end
@@ -698,13 +706,13 @@ if $ARGS[0] = 'referral':
 		gs 'stat'
 
 		'<center><img <<$set_imgh>> src="images/locations/pavlovsk/clinic/gyno/gpoli_1.jpg"></center>'
-		'You''re a bit nervous as you enter the gynaecologist''s office. Your mother expects you to her a referral from him that states you''re still a virgin, except there''s one small problem... you''re not a virgin any more! Maybe you can work something out with him?'
+		'You''re a bit nervous as you enter the gynaecologist''s office. Your mother expects you to get a referral from him that states you''re still a virgin, except there''s one small problem... you''re not a virgin any more! Maybe you can work something out with him?'
 		if gpoliuborka = 2:
-			'"Hi <<$pcs_nickname>>. What brings you in today?" dr. Petrovich says with a smile.'
+			'"Hi <<$pcs_nickname>>. What brings you in today?" Dr. Petrovich says with a smile.'
 			'"Hello, doctor. It''s time for my monthly check-up again. My mother needs a referral from you to make sure I''m still a virgin," you reply.'
 			'"Ah, yes. For... school, right? Let''s take a look," the doctor replies with a chuckle as you are already on your way to stand by the examination table, like last time.'
 		else
-			'"Hello, young lady. I''m dr. Petrovich. Do you have specific complaints, or are you simply here for a check-up?" the doctor asks as he comes into the examination room.'
+			'"Hello, young lady. I''m Dr. Petrovich. Do you have specific complaints, or are you simply here for a check-up?" the doctor asks as he comes into the examination room.'
 			'"Hello sir. I''m here for my monthly referral. My mother needs one from you to establish I''m still a virgin. It''s for school," you explain.'
 			'"For... school?" he asks, a tad confused. Then he snaps out of it and replies: "Anyway... let''s take a look, shall we?" as he gestures for you to stand next to the examination table.'
 		end
@@ -713,8 +721,8 @@ if $ARGS[0] = 'referral':
 			*clr & cla
 			minut += 5
 			gs 'stat'
-			'The doctor breathes on his stethoscope to warm it up and says: "Lift your shirt, please."'
 			'<center><img <<$set_imgh>> src="images/locations/pavlovsk/clinic/gyno/gpoli_2.jpg"></center>'
+			'The doctor breathes on his stethoscope to warm it up and says: "Lift your shirt, please."'
 			'Lift your shirt? What does that have to do with your virginity?'
 			'He sees your hesitation, and reassures you: "I''m just doing some basic check-ups while you''re here anyway. Now... your shirt, please?"'
 			'That makes sense. You expose your <<$titsize>> breasts to him when you lift your shirt up, and he examines you. You''re no medical professional, but you''re fairly sure he''s not supposed to put the stethoscope on your boob like that! Nevertheless... you need him to give you that referral, and calling him out on it will definitely not help your cause.'
@@ -864,13 +872,13 @@ if $ARGS[0] = 'spravka_arrange':
 	minut += 5
 	gs 'stat'
 	if gpoliuborka = 2:
-		'You really need this, but you understand you''re not in a good position to negotiate. Nevertheless, you try to plea your case and beg: "Please, dr. Petrovich. I don''t have any money to offer you, but I really need that referral! My mother would kill me! Please?"'
+		'You really need this, but you understand you''re not in a good position to negotiate. Nevertheless, you try to plea your case and beg: "Please, Dr. Petrovich. I don''t have any money to offer you, but I really need that referral! My mother would kill me! Please?"'
 		'He has a wolfish grin on his face as he gets up from his chair and walks over to you, putting his hands on your shoulders. He softly says in a soothing voice: "Well, if you really need it that badly... I think we can work out a deal. It''d just be between us, no one else has to know."'
 		'You become hopeful, even though you feel a bit uncomfortable. You carefully ask: "Erm... okay, that''s great! What kind of deal are you thinking of?"'
 		'The doctor continues in his soothing voice: "You see, <<$pcs_nickname>>... my wife is away on a business trip, she won''t be home for weeks. I''m a man with needs, and my job is very stressful as you can imagine. I need you to help me relax... relieve the tension, so to speak. What do you think? Do you think you can help me with that?"'
 		'His grip on your shoulders intensifies a little, and he massages you while you think it over. You''re perfectly clear on what he wants from you now... but is it really worth it?'
 	else
-		'You really need this, but you understand you''re not in a good position to negotiate. Nevertheless, you try to plea your case and beg: "Please, dr. Petrovich. I really need that referral! My mother would kill me! Please?"'
+		'You really need this, but you understand you''re not in a good position to negotiate. Nevertheless, you try to plea your case and beg: "Please, Dr. Petrovich. I really need that referral! My mother would kill me! Please?"'
 		'He has a wolfish grin on his face as he gets up from his chair and walks over to you. He softly says: "Well, if you really need it that badly... we all have needs. I bet we could work something out."'
 		'You softly mutter: "But... what if..."'
 		'He looks at you playfully and asks: "What if what?"'
@@ -907,9 +915,9 @@ if $ARGS[0] = 'spravka_arrange':
 			'You want to move back, but there is nowhere to go. His stiff cock is in front of you, and his powerful hand on the back of your head pulling you in closer. The masculine smell of his throbbing cock fills your nose as you breathe and you have to admit, it excites you!'
 			'He begins to relax a little, letting you pull back until just the tip of his cock is between your lips. Then he pulls your head closer again, forcing his cock deeper each time. At first you''re okay, but at a certain point you can''t keep up any more and gag on his cock when he thrusts it in deep again. From the sadistic grin on his face you can tell he quite enjoys you gagging on his cock, and he suggests: "Try breathing through your nose, might be easier."'
 			'You do as he says, and it does indeed make things a bit easier.'
-			'Soon he is fucking your mouth, your saliva drooling down his shaft and over his hairy balls. The air of the office is filled with wet slurps and snorts as he pounds his cock into your mouth deeper and deeper, sometimes making you gag involuntarily as the head of his cock slips down your throat. With a sudden thrust, you can feel his curly pubic hair against your lips as he forces his cock down your throat as far as it''ll go. You panic as you can''t breathe, but dr. Petrovich just as suddenly pulls his dick out of your mouth again. Thankfully, you get a chance to catch your breath.'
-			'"I think that got me lubed up properly," dr. Petrovich says with a lusty voice. You can tell he is very excited now, and are not sure you want to find out what happens next. Nevertheless, you''re too far in to back down now. He urges you: "Come on, now it''s time to go deep."'
-			'"What do you mean?" you start to ask but get your answer almost immediately as dr. Petrovich raises you from the floor, and bends you over the chair. You can''t help but let out a moan as he begins to rub the head of his slippery cock against your engorged clitoris. You didn''t realize how excited you were getting while you were sucking his cock!'
+			'Soon he is fucking your mouth, your saliva drooling down his shaft and over his hairy balls. The air of the office is filled with wet slurps and snorts as he pounds his cock into your mouth deeper and deeper, sometimes making you gag involuntarily as the head of his cock slips down your throat. With a sudden thrust, you can feel his curly pubic hair against your lips as he forces his cock down your throat as far as it''ll go. You panic as you can''t breathe, but Dr. Petrovich just as suddenly pulls his dick out of your mouth again. Thankfully, you get a chance to catch your breath.'
+			'"I think that got me lubed up properly," Dr. Petrovich says with a lusty voice. You can tell he is very excited now, and are not sure you want to find out what happens next. Nevertheless, you''re too far in to back down now. He urges you: "Come on, now it''s time to go deep."'
+			'"What do you mean?" you start to ask but get your answer almost immediately as Dr. Petrovich raises you from the floor, and bends you over the chair. You can''t help but let out a moan as he begins to rub the head of his slippery cock against your engorged clitoris. You didn''t realize how excited you were getting while you were sucking his cock!'
 
 			gs 'arousal', 'bj', 5, 'sub', 'deepthroat'
 			gs 'stat'
@@ -918,7 +926,7 @@ if $ARGS[0] = 'spravka_arrange':
 				*clr & cla
 				gs 'stat'
 				'<center><img <<$set_imgh>> src="images/locations/pavlovsk/clinic/gyno/sex/gpoli_8.jpg"></center>'
-				'You can feel your arousal rising when his body touches yours. As dr. Petrovich keeps massaging your clitoris with his cockhead, you can feel your juices start to leak from your swollen pussy and run down your quivering thighs. You can hear the wet squelching, as he plows his throbbing cock between your soaking wet pussy lips. You close your eyes for a moment as you feel him push against your sopping wet cunt... it feels so good!'
+				'You can feel your arousal rising when his body touches yours. As Dr. Petrovich keeps massaging your clitoris with his cockhead, you can feel your juices start to leak from your swollen pussy and run down your quivering thighs. You can hear the wet squelching, as he plows his throbbing cock between your soaking wet pussy lips. You close your eyes for a moment as you feel him push against your sopping wet cunt... it feels so good!'
 				'Your tender flesh resists for a moment, but then surrenders. You feel the walls of your vagina stretch open, letting the invader in. You let out a passionate groan as he fills you up completely.'
 
 				gs 'arousal', 'vaginal', 5, 'sub'
@@ -932,10 +940,10 @@ if $ARGS[0] = 'spravka_arrange':
 					gs 'cum_manage'
 					gs 'stat'
 					'<center><img <<$set_imgh>> src="images/locations/pavlovsk/clinic/gyno/sex/gpoli_9.jpg"></center>'
-					'Your body feels like it''s getting hotter and hotter, beads of sweat forming on your forehead and upper lip. With every thrust dr. Petrovich fucks you faster and harder, and you can feel your excitement growing too. Involuntarily you start to moan and gasp for air. You groan louder as you become more aroused. His hard hot member penetrates you ever deeper, without giving you any pause.'
+					'Your body feels like it''s getting hotter and hotter, beads of sweat forming on your forehead and upper lip. With every thrust Dr. Petrovich fucks you faster and harder, and you can feel your excitement growing too. Involuntarily you start to moan and gasp for air. You groan louder as you become more aroused. His hard hot member penetrates you ever deeper, without giving you any pause.'
 					'You silently think to yourself: "I hope the room is soundproofed..." as the sound of his body slapping wetly against yours and your cries of passion and his animalistic grunts fill the room.'
 					'You can no longer control yourself and have a thunderous orgasm as the doctor keeps fucking you relentlessly. Waves of bliss sear your nerves and your mouth opens in a silent scream, as you are consumed with pleasure.'
-					'Suddenly, dr. Petrovich pulls his dick out of you and you almost fall to the floor. He catches you with his powerful arms right on time, and lowers you on a table where once again feel his cock slide into your quivering vagina.'
+					'Suddenly, Dr. Petrovich pulls his dick out of you and you almost fall to the floor. He catches you with his powerful arms right on time, and lowers you on a table where once again feel his cock slide into your quivering vagina.'
 
 					$orgasm_or = 'yes'
 					gs 'arousal', 'vaginal', 5, 'sub'
@@ -963,7 +971,7 @@ if $ARGS[0] = 'spravka_arrange':
 							gs 'stat'
 							'<center><img <<$set_imgh>> src="images/locations/pavlovsk/clinic/gyno/sex/gpoli_11.jpg"></center>'
 							'You want to pull away, but you''re trapped between him and a wall. He slowly moves his hips, letting you get used to the size of his thick rod inside your tight little butt. It still stings a lot. Despite your best efforts you can''t relax your anus, only slowly getting used to the size of him.'
-							'When he begins to speed up you you nearly cry, and groan loudly with every thrust.'
+							'When he begins to speed up you nearly cry, and groan loudly with every thrust.'
 							'He softly mutters: "This won''t do, you''re going to alarm the entire clinic if you keep screaming like that!"'
 							'He takes his penis out of your ass, and you feel relieved. And, to be honest, rather turned on! It didn''t feel very good yet, but in a way you want it to. Maybe after a few more minutes?'
 							'"Come on, get on the floor," he says after he throws his coat down. He spreads some more lubricant over his gloved fingers, and smears it over your slightly sore butthole. Guess he''s not done with that hole yet...'
@@ -1139,7 +1147,7 @@ if $ARGS[0] = 'spravka_arrange_pale':
 		act 'Run out of the office':
 			*clr & cla
 			gs 'stat'
-			'In a panic, you grab your clothes and run out of the office. You know you can''t talk about this with anyone... if you say anything, dr. Petrovich would tell your <<$npc_nickname[''A29'']>> about your addiction. You quickly get dressed again in an empty examination room, wondering how you''re going to get out of this mess now.'
+			'In a panic, you grab your clothes and run out of the office. You know you can''t talk about this with anyone... if you say anything, Dr. Petrovich would tell your <<$npc_nickname[''A29'']>> about your addiction. You quickly get dressed again in an empty examination room, wondering how you''re going to get out of this mess now.'
 			if $loc = 'kuhrPar':
 				act 'leave': gt 'mother', 'referral'
 			else
@@ -1166,9 +1174,9 @@ if $ARGS[0] = 'spravka_arrange_pale':
 			'You want to move away, but there is nowhere to go. His stiff cock is in front of you, and his powerful hand on the back of your head is pulling you in closer. The masculine smell of his throbbing cock fills your nose as you breathe and you have to admit, it excites you!'
 			'He begins to relax a little, letting you pull back until just the tip of his cock is between your lips. Then he pulls your head closer again, forcing his cock deeper each time. At first you''re okay, but at a certain point you can''t keep up any more and gag on his cock when he thrusts it in deep again. From the sadistic grin on his face you can tell he quite enjoys you gagging on his cock, and he suggests: "Try breathing through your nose, might be easier."'
 			'You do as he says, and it does indeed make things a bit easier.'
-			'Soon he is fucking your mouth, your saliva drooling down his shaft and over his hairy balls. The air of the office is filled with wet slurps and snorts as he pounds his cock into your mouth deeper and deeper, sometimes making you gag as the head of his cock slips down your throat. With a sudden thrust, you can feel his curly pubic hair against your lips as he forces his cock all the way down your throat. You panic as you can''t breathe, but dr. Petrovich just as suddenly pulls his dick out of your mouth again. Thankfully, you get a chance to catch your breath.'
-			'"I think that got me lubed up properly," dr. Petrovich says with a lusty voice. You can tell he is very excited now, and are not sure you want to find out what happens next. Nevertheless, you''re too far in to back down now. He urges you: "Come on, now it''s time to go deep."'
-			'"What do you mean?" you start to ask but get your answer almost immediately as dr. Petrovich raises you from the floor, and bends you over the chair. You can''t help but let out a moan as he begins to rub the head of his slippery cock against your engorged clitoris. You didn''t realize how excited you were getting while you were sucking his cock!'
+			'Soon he is fucking your mouth, your saliva drooling down his shaft and over his hairy balls. The air of the office is filled with wet slurps and snorts as he pounds his cock into your mouth deeper and deeper, sometimes making you gag as the head of his cock slips down your throat. With a sudden thrust, you can feel his curly pubic hair against your lips as he forces his cock all the way down your throat. You panic as you can''t breathe, but Dr. Petrovich just as suddenly pulls his dick out of your mouth again. Thankfully, you get a chance to catch your breath.'
+			'"I think that got me lubed up properly," Dr. Petrovich says with a lusty voice. You can tell he is very excited now, and are not sure you want to find out what happens next. Nevertheless, you''re too far in to back down now. He urges you: "Come on, now it''s time to go deep."'
+			'"What do you mean?" you start to ask but get your answer almost immediately as Dr. Petrovich raises you from the floor, and bends you over the chair. You can''t help but let out a moan as he begins to rub the head of his slippery cock against your engorged clitoris. You didn''t realize how excited you were getting while you were sucking his cock!'
 
 			gs 'arousal', 'bj', 5, 'sub', 'deepthroat'
 			gs 'stat'
@@ -1177,7 +1185,7 @@ if $ARGS[0] = 'spravka_arrange_pale':
 				*clr & cla
 				gs 'stat'
 				'<center><img <<$set_imgh>> src="images/locations/pavlovsk/clinic/gyno/sex/gpoli_8.jpg"></center>'
-				'You can feel your arousal rising when his body touches yours. As dr. Petrovich keeps massaging your clitoris with his cockhead, you can feel your juices start to leak from your swollen pussy and run down your quivering thighs. You can hear the wet squelching, as he plows his throbbing cock between your soaking wet pussy lips. You close your eyes for a moment as you feel him push against your sopping wet cunt... it feels so good!'
+				'You can feel your arousal rising when his body touches yours. As Dr. Petrovich keeps massaging your clitoris with his cockhead, you can feel your juices start to leak from your swollen pussy and run down your quivering thighs. You can hear the wet squelching, as he plows his throbbing cock between your soaking wet pussy lips. You close your eyes for a moment as you feel him push against your sopping wet cunt... it feels so good!'
 				'Your tender flesh resists for a moment, but then surrenders. You feel the walls of your vagina stretch open, letting the invader in. You let out a passionate groan as he fills you up completely.'
 
 				gs 'arousal', 'vaginal', 5, 'sub'
@@ -1188,10 +1196,10 @@ if $ARGS[0] = 'spravka_arrange_pale':
 					pcs_vag += 1
 					gs 'stat'
 					'<center><img <<$set_imgh>> src="images/locations/pavlovsk/clinic/gyno/sex/gpoli_9.jpg"></center>'
-					'Your body begins to get hotter and hotter, beads of sweat forming on your forehead and upper lip. With every thrust dr. Petrovich fucks you faster and harder, and you can feel your excitement growing too. Involuntarily you start to moan and gasp for air. You groan louder and louder as you become more aroused. His hard hot member penetrates you ever deeper, without giving you any pause.'
+					'Your body begins to get hotter and hotter, beads of sweat forming on your forehead and upper lip. With every thrust Dr. Petrovich fucks you faster and harder, and you can feel your excitement growing too. Involuntarily you start to moan and gasp for air. You groan louder and louder as you become more aroused. His hard hot member penetrates you ever deeper, without giving you any pause.'
 					'You silently think to yourself: "I hope the room is soundproofed..." as the sound of his body slapping wetly against yours and your cries of passion and his animalistic grunts fill the room.'
 					'You can no longer control yourself and have a thunderous orgasm as the doctor keeps fucking you relentlessly. Waves of bliss sear your nerves and your mouth opens in a silent scream, as you are consumed with pleasure.'
-					'Suddenly, dr. Petrovich pulls his dick out of you and you almost fall to the floor. He catches you right on time in his powerful arms, and lowers you on a table where you once again feel his cock slide into your quivering vagina.'
+					'Suddenly, Dr. Petrovich pulls his dick out of you and you almost fall to the floor. He catches you right on time in his powerful arms, and lowers you on a table where you once again feel his cock slide into your quivering vagina.'
 
 					$orgasm_or = 'yes'
 					gs 'arousal', 'vaginal', 5, 'sub', 'rough'
@@ -1220,7 +1228,7 @@ if $ARGS[0] = 'spravka_arrange_pale':
 							gs 'stat'
 							'<center><img <<$set_imgh>> src="images/locations/pavlovsk/clinic/gyno/sex/gpoli_11.jpg"></center>'
 							'You want to pull away, but you''re trapped between him and a wall. He slowly moves his hips, letting you get used to the size of his thick rod inside your tight little butt. It still stings a lot. Despite your best efforts you can''t relax your anus, only slowly getting used to the size of him.'
-							'When he begins to speed up you you nearly cry, and groan loudly with every thrust.'
+							'When he begins to speed up you nearly cry, and groan loudly with every thrust.'
 							'He softly mutters: "This won''t do, you''re going to alarm the entire clinic if you keep screaming like that!"'
 							'He takes his penis out of your ass, and you feel relieved. And, to be honest, rather turned on! It didn''t feel very good yet, but in a way you want it to. Maybe after a few more minutes?'
 							'"Come on, get on the floor," he says after he throws his coat down. He spreads some more lubricant over his gloved fingers, and smears it over your slightly sore butthole. Guess he''s not done yet...'
@@ -1302,7 +1310,7 @@ if $ARGS[0] = 'maternity_ward':
 	if hour >= 6 and hour <= 20:
 		'<center><img <<$set_imgh>> src="images/locations/pavlovsk/clinic/mward/mward.jpg"></center>'
 		'<center>You are at the maternity ward. There are alot of babies and nurses taking care of them.</center>'
-		if lactate > 0 and pcs_gpolimilkdonation = 3:
+		if lactation['active'] > 0 and pcs_gpolimilkdonation = 3:
 			act 'Talk to the nurse (0:05)':
 				gs 'stat'
 				*clr & cla
@@ -1372,14 +1380,14 @@ if $ARGS[0] = 'maternity_ward':
 				act 'Leave': gt 'gpoli', 'maternity_ward'
 			end
 		end
-		if lactate > 0 and lactatemv > lactatemm/8 and pcs_gpolimilkdonation <= 2:
+		if lactation['active'] > 0 and lactatemv > lactatemm/8 and pcs_gpolimilkdonation <= 2:
 			'<br><br><center>One of the nurses looks at you suspiciously.<center>'
 			act 'Talk to the nurse (0:05)':
 				*clr & cla
 				menu_off = 1
 				minut += 5
 				'<center><img <<$set_imgh>> src="images/locations/pavlovsk/clinic/mward/old_nurse.jpg"></center>'
-				if preg >= 0 and pregtimes > 0 and pcs_gpolimilkdonation <= 0:
+				if preg >= 0 and pregtimes > 0 and pcs_gpolimilkdonation <= 0 and pcs_knowsaboutlactation > 0:
 					'You walk up to the nurse'
 					'You: Uhm, Hello...'
 					'Nurse: Which one is yours?'
@@ -1387,7 +1395,7 @@ if $ARGS[0] = 'maternity_ward':
 					'The nurse looks at your face then down at your breast and than back at your face.'
 					'Nurse: Well, you are obviously lactating, so you came here to breastfeed your offspring?'
 					'She concludes on you, giving you a rised eyebrow.'
-				elseif preg = 0 and pregtimes = 0 and pcs_gpolimilkdonation <= 0:
+				elseif preg = 0 and pregtimes = 0 and pcs_gpolimilkdonation <= 0 and pcs_knowsaboutlactation > 0:
 					'You walk up to the nurse'
 					'You: Uhm, Hello...'
 					'The nurse looks you up and down, rising an eyebrow on you.'
@@ -1395,6 +1403,31 @@ if $ARGS[0] = 'maternity_ward':
 					'You are surprised by the sudden and precise analysis of the nurse.'
 					'You: How... how do you know?'
 					'Nurse: I''ve been working here for ages. Trust me ... I can tell by the smell. Now why are you lactating?'
+				elseif preg = 0 and pregtimes = 0 and pcs_gpolimilkdonation <= 0 and pcs_knowsaboutlactation <= 0:
+					'You walk up to the nurse'
+					'You: Uhm, Hello...'
+					'The nurse looks you up and down, rising an eyebrow on you.'
+					'Nurse: You don''t look like you ever had a child, how come you are lactating?'
+					'You are confused by her comment and tilt your head at her clueless.'
+					'You: Huh? What are you talking about?'
+					'The nurse points at your breasts, circling around the pen in her hand.'
+					'Nurse: Your breasts... You obviously have milk in them. Trust me, I''ve been working here for ages and now how lactating breasts look like.'
+					'You look shocked at her, then down at your cleavage, no idea how to react.'
+					'You: This can''t be, I''ve never been pregnant... I mean... why should I be lactating?'
+					'The nurse eyes you up and down again, frowning a bit worried. Then she get''s up and reaches her hand out to you.'
+					'Nurse: Come with me and we have this checked, okay?'
+				elseif preg >= 0 and pregtimes > 0 and pcs_gpolimilkdonation <= 0 and pcs_knowsaboutlactation <= 0:
+					'You walk up to the nurse'
+					'You: Uhm, Hello...'
+					'Nurse: Which one is yours?'
+					'You: Mine? I don''t understand...'
+					'The nurse looks at your face then down at your breast and than back at your face.'
+					'Nurse: Well, you are obviously lactating, so you came here to breastfeed your offspring?'
+					'She concludes on you, giving you a rised eyebrow.'
+					'You look at her, then down at your cleavage, no idea how to react.'
+					'You: This can''t be, I mean... why should I be lactating?'
+					'The nurse eyes you up and down again, frowning a bit worried. Then she get''s up and reaches her hand out to you.'
+					'Nurse: Come with me and we have this checked, okay?'
 				elseif pcs_gpolimilkdonation <= 0:
 					'You walk up to the nurse'
 					'You: Uhm, Hello...'
@@ -1408,191 +1441,223 @@ if $ARGS[0] = 'maternity_ward':
 					'You: Hello...'
 					'Nurse: Ah, it is you again...'
 					'She looks you up and down'
-					if pcs_gpolimilkdonation = 1 and preg = 0 and pregtimes = 0:
+					if pcs_gpolimilkdonation = 1 and preg = 0 and pregtimes = 0 and pcs_knowsaboutlactation <= 0:
+						'Nurse: So... changed your mind and want me to have it checked?'
+					elseif pcs_gpolimilkdonation = 1 and preg = 0 and pregtimes = 0 and pcs_knowsaboutlactation > 0:
 						'Nurse: So, why are you lactating again?'
 					elseif pcs_gpolimilkdonation = 2:
-						'Nurse: Did you change your mind and want donate your breast milk?'
+						'Nurse: So, did you clear your mind up and want donate your breast milk?'
 					else
 						'Nurse: What do you want?'
 					end
 				end
 				if pcs_gpolimilkdonation < 1: pcs_gpolimilkdonation = 1
 				if pcs_gpolimilkdonation < 2:
-					act 'Explain yourself':
-						*clr & cla
-						'<center><img <<$set_imgh>> src="images/locations/pavlovsk/clinic/mward/old_nurse.jpg"></center>'
-						if preg = 0 and pregtimes = 0:
+					if pcs_knowsaboutlactation <= 0:
+						act 'Accept her offer':
+							*clr & cla
+							minut += 10
 							pcs_gpolimilkdonation = 2
-							if lactateinduced = 1:
-								'You: Erm ... I used a breast pump on myself...'
-								'You blush a bit from embarresment, while telling it to her.'
+							milkedvolume = func('lact_lib','$get_breastmilk', 5, 1)
+							milkedvolume = 0
+							pcs_knowsaboutlactation = 1
+							'<center><img <<$set_imgh>> src="images/locations/pavlovsk/clinic/mward/pump_room.jpg"></center>'
+							'The nurse leads you into a room. It is quiet in here. There is a chair a table and a breastpump.'
+							'You sit down and the nurse invites you to take off your top.'
+							'Reluctantly, you pull up your shirt and present your breasts to her.'
+							'<br><center><img <<$set_imgh>> src="images/pc/body/tits/t<<tits>>.jpg"></center><br>'
+							'She reaches up her hands and professionally weights your breasts a bit. Then she grabs up at your areolas and presses them down.'
+							'To your surprise white drops start to develop on your nipples. The nurse gives it another squeeze and suddenly little streams of white liquid jet out of your nipples.'
+							'You: Oh my god!'
+							'<center><img <<$set_imgh>> src="images/pc/body/tits/lactate_start.jpg"></center>'
+							'The nurse looks up at you with a caring expression.'
+							'Nurse: No worries, this can happen from time to time.'
+							'You are still surprised and perplexed by what you are seeing.'
+							'You: I am lactating!'
+							'The nurse takes a small wet wipe and cleans your breasts, then signaling that you can cover yourself up.'
+							'Nurse: You know, we always need breast milk here. You should think about donating your milk. We will even compensate you for your efforts.'
+							'She nods and cleans her hands.'
+							'Nurse: But I think, you should leave for now, so you can get used to your new ability...'
+							'She opens the door to let you out of the room'						
+							act 'Leave': gt 'gpoli'
+						end
+					else
+						act 'Explain yourself':
+							*clr & cla
+							'<center><img <<$set_imgh>> src="images/locations/pavlovsk/clinic/mward/old_nurse.jpg"></center>'
+							if preg = 0 and pregtimes = 0:
+								pcs_gpolimilkdonation = 2
+								if lactation['induced'] = 1:
+									'You: Erm ... I used a breast pump on myself...'
+									'You blush a bit from embarresment, while telling it to her.'
+								else
+									'You: I don''t really now... it just started some day.'
+									'You explain, blushing from embarresment.'
+								end
+								'The nurse nods at you professionally, then pulls some paper together, while she looks really thoughful. She then looks up at you and starts to speak.'
+								'Nurse: Have you ever thought of donating your breast milk?'
+								'You: Donating?'
+								'Nurse: Yes, donating. We would pump your breasts and collect the milk. We can use the milk for the mothers that are not able to breastfeed yet. We also offer a bit of money for your donated breast milk.'
+								'You look at her with wide eyes.'
+								'Nurse: So, what do you think?'
+								pcs_gpolimilkdonation = 2
+								act 'give it a try (0:15)':
+									*clr & cla
+									minut += 15
+									pcs_gpolimilkdonation = 3
+									'<center><img <<$set_imgh>> src="images/locations/pavlovsk/clinic/mward/pump_room.jpg"></center>'
+									'The nurse leads you into a room. It is quiet in here. There is a chair a table and a breastpump.'
+									'You sit down and the nurse invites you to take off your top.'
+									if pain['nipples'] >= 60 and pcs_knows_nipplecream <= 0:
+										'<center><img <<$set_imgh>> src="images/pc/body/nipples/sore_nipple.jpg"></center>'
+										'The nurse looks at your sore nipples and frowns a bit. She then grabs a small tin, and takes a bit of the yellowish cream from the tin.'
+										'You: What is that?'
+										'The nurse looks up at you.'
+										'Nurse: This is nipple balm. It helps with sore nipples during pumping. Don''t you now this?'
+										'You nod your head and watch as the nurse applies the cream to your nipples. The cream feels nice on your nipples and they hurt less.'
+										pain['nipples'] -= 20
+										'You: Where do I get this stuff?'
+										'Nurse: You can buy it in the pharmacy...'
+										pcs_knows_nipplecream = 1
+										'The nurse finishes rubbing you nipples with the nipple balm.'
+									elseif pain['nipples'] >= 60 and pcs_knows_nipplecream > 0:
+										'<center><img <<$set_imgh>> src="images/pc/body/nipples/sore_nipple.jpg"></center>'
+										'The nurse looks at your sore nipples and frowns a bit. She then grabs a small tin, and takes a bit of the yellowish cream from the tin.'
+										'She applies the cream to your nipples. It feels nice on your nipples and they hurt less.'
+										pain['nipples'] -= 20
+									else
+										'The nurse grabs the nipple balm and applies it to your nipples. It feels nice on your nipples as she rubs it in.'
+									end
+									nipple_cream = 1
+									'Nurse: Okay, I am going to pump a bit milk off first, to check the quality and if you are able to donate enough. So this time you won''t get paid for your milk.'
+									'You nod and pull up your shirt. The nurse takes the pumps and puts them on your breasts. She flicks a switch and you can feel your nipples being sucked in with force. The pump slowly working your nipples.'
+									'<center><img <<$set_imgh>> src="images/locations/pavlovsk/clinic/mward/pumping.jpg"></center>'
+									milkedvolume = func('lact_lib','$get_breastmilk', 4, 15)
+									breastpumped += 4
+									pcs_orphanfeed = 0
+									if milkedvolume >= 1000:
+										'Your breasts are able to fill both small bottles easily. The nurse nods at you confidently.'
+										'Nurse: Yes, it seems you are able to make good amount of milk. You could breastfeed a baby with no issue.'
+									elseif milkedvolume >= 500 and milkedvolume < 1000:
+										'Your breasts are not able to fill both small bottles. The nurse rises an eyebrow on you.'
+										'Nurse: Okay... it seems you are able to make enough milk for a 50ml donation, but you could have trouble to breastfeed a baby properly.'
+									else
+										'You have trouble to fill the bottles to the first mark. The nurse shakes her head disappointed.'
+										'Nurse: Mhmm ... your breasts don''t seem to make enough milk. You can still come here and get yourself pumped, but we need at least 50ml for a valid donation.'
+									end
+									'The nurse detaches the pump and allows you to dress up again.'
+									if milkedvolume > 500:
+										mward_donatesv = 500
+									else
+										mward_donatesv = milkedvolume
+									end
+									if salo > 40:
+										mward_donatesf = 60
+									elseif salo > 20:
+										mward_donatesf = 45
+									elseif salo > 15:
+										mward_donatesf = 20
+									else
+										mward_donatesf = 10
+									end
+									if pcs_energy > 30:
+										mward_donatess = rand(69, 80)
+									elseif sick > 1:
+										mward_donatess = rand(0,45)
+									else
+										mward_donatess = rand(45, 69)
+									end
+									act 'Leave':gt 'gpoli'
+								end
+								act 'Deny to donate':
+									*clr & cla
+									'You deny to donate your breast milk. The nurse looks sad at you and let you leave.'
+									act 'Leave':gt 'gpoli'
+								end
 							else
-								'You: I don''t really now... it just started some day.'
-								'You explain, blushing from embarresment.'
-							end
-							'The nurse nods at you professionally, then pulls some paper together, while she looks really thoughful. She then looks up at you and starts to speak.'
-							'Nurse: Have you ever thought of donating your breast milk?'
-							'You: Donating?'
-							'Nurse: Yes, donating. We would pump your breasts and collect the milk. We can use the milk for the mothers that are not able to breastfeed yet. We also offer a bit of money for your donated breast milk.'
-							'You look at her with wide eyes.'
-							'Nurse: So, what do you think?'
-							pcs_gpolimilkdonation = 2
-							act 'give it a try (0:15)':
-								*clr & cla
-								minut += 15
-								pcs_gpolimilkdonation = 3
-								'<center><img <<$set_imgh>> src="images/locations/pavlovsk/clinic/mward/pump_room.jpg"></center>'
-								'The nurse leads you into a room. It is quiet in here. There is a chair a table and a breastpump.'
-								'You sit down and the nurse invites you to take off your top.'
-								if pain['nipples'] >= 60 and pcs_knows_nipplecream <= 0:
-									'<center><img <<$set_imgh>> src="images/pc/body/nipples/sore_nipple.jpg"></center>'
-									'The nurse looks at your sore nipples and frowns a bit. She then grabs a small tin, and takes a bit of the yellowish cream from the tin.'
-									'You: What is that?'
-									'The nurse looks up at you.'
-									'Nurse: This is nipple balm. It helps with sore nipples during pumping. Don''t you now this?'
-									'You nod your head and watch as the nurse applies the cream to your nipples. The cream feels nice on your nipples and they hurt less.'
-									pain['nipples'] -= 20
-									'You: Where do I get this stuff?'
-									'Nurse: You can buy it in the pharmacy...'
-									pcs_knows_nipplecream = 1
-									'The nurse finishes rubbing you nipples with the nipple balm.'
-								elseif pain['nipples'] >= 60:
-									'<center><img <<$set_imgh>> src="images/pc/body/nipples/sore_nipple.jpg"></center>'
-									'The nurse looks at your sore nipples and frowns a bit. She then grabs a small tin, and takes a bit of the yellowish cream from the tin.'
-									'She applies the cream to your nipples. It feels nice on your nipples and they hurt less.'
-									pain['nipples'] -= 20
-								else
-									'The nurse grabs the nipple balm and applies it to your nipples. It feels nice on your nipples as she rubs it in.'
+								pcs_gpolimilkdonation = 2
+								'You: Well ... I don''t have a kid here... I was just looking around for a bit'
+								'You look a bit awkward at the nurse as you try to explain yourself.'
+								'The nurse nods at you professionally, then pulls some paper together, while she looks really thoughful. She then looks up at you and starts to speak.'
+								'Nurse: Have you ever thought of donating your breast milk?'
+								'You: Donating?'
+								'Nurse: Yes, donating. We would pump your breasts and collect the milk. We can use the milk for the mothers that are not able to breastfeed yet. We also offer a bit of money for your donated breast milk.'
+								'You look at her with wide eyes.'
+								'Nurse: So, what do you think?'
+								pcs_gpolimilkdonation = 2
+								act 'Give it a try (0:15)':
+									*clr & cla
+									minut += 15
+									pcs_gpolimilkdonation = 3
+									'<center><img <<$set_imgh>> src="images/locations/pavlovsk/clinic/mward/pump_room.jpg"></center>'
+									'The nurse leads you into a room. It is quiet in here. There is a chair a table and a breastpump.'
+									'You sit down and the nurse invites you to take off your top.'
+									if pain['nipples'] >= 60 and pcs_knows_nipplecream <= 0:
+										'<center><img <<$set_imgh>> src="images/pc/body/nipples/sore_nipple.jpg"></center>'
+										'The nurse looks at your sore nipples and frowns a bit. She then grabs a small tin, and takes a bit of the yellowish cream from the tin.'
+										'You: What is that?'
+										'The nurse looks up at you.'
+										'Nurse: This is nipple balm. It helps with sore nipples during pumping. Don''t you now this?'
+										'You nod your head and watch as the nurse applies the cream to your nipples. The cream feels nice on your nipples and they hurt less.'
+										pain['nipples'] -= 20
+										'You: Where do I get this stuff?'
+										'Nurse: You can buy it in the pharmacy...'
+										pcs_knows_nipplecream = 1
+										'The nurse finishes rubbing you nipples with the nipple balm.'
+									elseif pain['nipples'] >= 60:
+										'<center><img <<$set_imgh>> src="images/pc/body/nipples/sore_nipple.jpg"></center>'
+										'The nurse looks at your sore nipples and frowns a bit. She then grabs a small tin, and takes a bit of the yellowish cream from the tin.'
+										'She applies the cream to your nipples. It feels nice on your nipples and they hurt less.'
+										pain['nipples'] -= 20
+									else
+										'The nurse grabs the nipple balm and applies it to your nipples. It feels nice on your nipples as she rubs it in.'
+									end
+									nipple_cream = 1
+									'Nurse: Okay, I am going to pump a bit milk off first, to check the quality and if you are able to donate enough. So this time you won''t get paid for your milk.'
+									'You nod and pull up your shirt. The nurse takes the pumps and puts them on your breasts. She flicks a switch and you can feel your nipples being sucked in with force. The pump slowly working your nipples.'
+									'<center><img <<$set_imgh>> src="images/locations/pavlovsk/clinic/mward/pumping.jpg"></center>'
+									milkedvolume = func('lact_lib','$get_breastmilk', 4, 15)
+									breastpumped += 4
+									pcs_orphanfeed = 0
+									if milkedvolume >= 1000:
+										'Your breasts are able to fill both small bottles easily. The nurse nods at you confidently.'
+										'Nurse: Yes, it seems you are able to make good amount of milk. You could breastfeed a baby with no issue.'
+									elseif milkedvolume >= 500 and milkedvolume < 1000:
+										'Your breasts are not able to fill both small bottles. The nurse rises an eyebrow on you.'
+										'Nurse: Okay... it seems you are able to make enough milk for a 50ml donation, but you could have trouble to breastfeed a baby properly.'
+									else
+										'You have trouble to fill the bottles to the first mark. The nurse shakes her head disappointed.'
+										'Nurse: Mhmm ... your breasts don''t seem to make enough milk. You can still come here and get yourself pumped, but we need at least 50ml for a valid donation.'
+									end
+									'The nurse detaches the pump and allows you to dress up again.'
+									if milkedvolume > 500:
+										mward_donatesv = 500
+									else
+										mward_donatesv = milkedvolume
+									end
+									if salo > 40:
+										mward_donatesf = 60
+									elseif salo > 20:
+										mward_donatesf = 45
+									elseif salo > 15:
+										mward_donatesf = 20
+									else
+										mward_donatesf = 10
+									end
+									if pcs_energy > 30:
+										mward_donatess = rand(69, 80)
+									elseif sick > 1:
+										mward_donatess = rand(0,45)
+									else
+										mward_donatess = rand(45, 69)
+									end
+									act 'Leave':gt 'gpoli'
 								end
-								nipple_cream = 1
-								'Nurse: Okay, I am going to pump a bit milk off first, to check the quality and if you are able to donate enough. So this time you won''t get paid for your milk.'
-								'You nod and pull up your shirt. The nurse takes the pumps and puts them on your breasts. She flicks a switch and you can feel your nipples being sucked in with force. The pump slowly working your nipples.'
-								'<center><img <<$set_imgh>> src="images/locations/pavlovsk/clinic/mward/pumping.jpg"></center>'
-								milkedvolume = func('lact_lib','$get_breastmilk', 4, 15)
-								breastpumped += 4
-								pcs_orphanfeed = 0
-								if milkedvolume >= 1000:
-									'Your breasts are able to fill both small bottles easily. The nurse nods at you confidently.'
-									'Nurse: Yes, it seems you are able to make good amount of milk. You could breastfeed a baby with no issue.'
-								elseif milkedvolume >= 500 and milkedvolume < 1000:
-									'Your breasts are not able to fill both small bottles. The nurse rises an eyebrow on you.'
-									'Nurse: Okay... it seems you are able to make enough milk for a 50ml donation, but you could have trouble to breastfeed a baby properly.'
-								else
-									'You have trouble to fill the bottles to the first mark. The nurse shakes her head disappointed.'
-									'Nurse: Mhmm ... your breasts don''t seem to make enough milk. You can still come here and get yourself pumped, but we need at least 50ml for a valid donation.'
+								act 'Deny to donate':
+									*clr & cla
+									'You deny to donate your breast milk. The nurse looks sad at you and let you leave.'
+									act 'Leave':gt 'gpoli'
 								end
-								'The nurse detaches the pump and allows you to dress up again.'
-								if milkedvolume > 500:
-									mward_donatesv = 500
-								else
-									mward_donatesv = milkedvolume
-								end
-								if salo > 40:
-									mward_donatesf = 60
-								elseif salo > 20:
-									mward_donatesf = 45
-								elseif salo > 15:
-									mward_donatesf = 20
-								else
-									mward_donatesf = 10
-								end
-								if pcs_energy > 30:
-									mward_donatess = rand(69, 80)
-								elseif sick > 1:
-									mward_donatess = rand(0,45)
-								else
-									mward_donatess = rand(45, 69)
-								end
-								act 'Leave':gt 'gpoli'
-							end
-							act 'Deny to donate':
-								*clr & cla
-								'You deny to donate your breast milk. The nurse looks sad at you and let you leave.'
-								act 'Leave':gt 'gpoli'
-							end
-						else
-							pcs_gpolimilkdonation = 2
-							'You: Well ... I don''t have a kid here... I was just looking around for a bit'
-							'You look a bit awkward at the nurse as you try to explain yourself.'
-							'The nurse nods at you professionally, then pulls some paper together, while she looks really thoughful. She then looks up at you and starts to speak.'
-							'Nurse: Have you ever thought of donating your breast milk?'
-							'You: Donating?'
-							'Nurse: Yes, donating. We would pump your breasts and collect the milk. We can use the milk for the mothers that are not able to breastfeed yet. We also offer a bit of money for your donated breast milk.'
-							'You look at her with wide eyes.'
-							'Nurse: So, what do you think?'
-							pcs_gpolimilkdonation = 2
-							act 'Give it a try (0:15)':
-								*clr & cla
-								minut += 15
-								pcs_gpolimilkdonation = 3
-								'<center><img <<$set_imgh>> src="images/locations/pavlovsk/clinic/mward/pump_room.jpg"></center>'
-								'The nurse leads you into a room. It is quiet in here. There is a chair a table and a breastpump.'
-								'You sit down and the nurse invites you to take off your top.'
-								if pain['nipples'] >= 60 and pcs_knows_nipplecream <= 0:
-									'<center><img <<$set_imgh>> src="images/pc/body/nipples/sore_nipple.jpg"></center>'
-									'The nurse looks at your sore nipples and frowns a bit. She then grabs a small tin, and takes a bit of the yellowish cream from the tin.'
-									'You: What is that?'
-									'The nurse looks up at you.'
-									'Nurse: This is nipple balm. It helps with sore nipples during pumping. Don''t you now this?'
-									'You nod your head and watch as the nurse applies the cream to your nipples. The cream feels nice on your nipples and they hurt less.'
-									pain['nipples'] -= 20
-									'You: Where do I get this stuff?'
-									'Nurse: You can buy it in the pharmacy...'
-									pcs_knows_nipplecream = 1
-									'The nurse finishes rubbing you nipples with the nipple balm.'
-								elseif pain['nipples'] >= 60:
-									'<center><img <<$set_imgh>> src="images/pc/body/nipples/sore_nipple.jpg"></center>'
-									'The nurse looks at your sore nipples and frowns a bit. She then grabs a small tin, and takes a bit of the yellowish cream from the tin.'
-									'She applies the cream to your nipples. It feels nice on your nipples and they hurt less.'
-									pain['nipples'] -= 20
-								else
-									'The nurse grabs the nipple balm and applies it to your nipples. It feels nice on your nipples as she rubs it in.'
-								end
-								nipple_cream = 1
-								'Nurse: Okay, I am going to pump a bit milk off first, to check the quality and if you are able to donate enough. So this time you won''t get paid for your milk.'
-								'You nod and pull up your shirt. The nurse takes the pumps and puts them on your breasts. She flicks a switch and you can feel your nipples being sucked in with force. The pump slowly working your nipples.'
-								'<center><img <<$set_imgh>> src="images/locations/pavlovsk/clinic/mward/pumping.jpg"></center>'
-								milkedvolume = func('lact_lib','$get_breastmilk', 4, 15)
-								breastpumped += 4
-								pcs_orphanfeed = 0
-								if milkedvolume >= 1000:
-									'Your breasts are able to fill both small bottles easily. The nurse nods at you confidently.'
-									'Nurse: Yes, it seems you are able to make good amount of milk. You could breastfeed a baby with no issue.'
-								elseif milkedvolume >= 500 and milkedvolume < 1000:
-									'Your breasts are not able to fill both small bottles. The nurse rises an eyebrow on you.'
-									'Nurse: Okay... it seems you are able to make enough milk for a 50ml donation, but you could have trouble to breastfeed a baby properly.'
-								else
-									'You have trouble to fill the bottles to the first mark. The nurse shakes her head disappointed.'
-									'Nurse: Mhmm ... your breasts don''t seem to make enough milk. You can still come here and get yourself pumped, but we need at least 50ml for a valid donation.'
-								end
-								'The nurse detaches the pump and allows you to dress up again.'
-								if milkedvolume > 500:
-									mward_donatesv = 500
-								else
-									mward_donatesv = milkedvolume
-								end
-								if salo > 40:
-									mward_donatesf = 60
-								elseif salo > 20:
-									mward_donatesf = 45
-								elseif salo > 15:
-									mward_donatesf = 20
-								else
-									mward_donatesf = 10
-								end
-								if pcs_energy > 30:
-									mward_donatess = rand(69, 80)
-								elseif sick > 1:
-									mward_donatess = rand(0,45)
-								else
-									mward_donatess = rand(45, 69)
-								end
-								act 'Leave':gt 'gpoli'
-							end
-							act 'Deny to donate':
-								*clr & cla
-								'You deny to donate your breast milk. The nurse looks sad at you and let you leave.'
-								act 'Leave':gt 'gpoli'
 							end
 						end
 					end
@@ -1723,12 +1788,22 @@ if $ARGS[0] = 'maternity_ward_donation':
 				pcs_gpoli_totalmilkdonation += temp_var*50
 				if temp_var < 2:
 					'She looks satisfied at you as she puts away one bottle with 50ml of your breast milk.'
-				elseif temp_var => 4:
+				elseif temp_var >= 12:
+					'She looks astonished at the at the marvelous amounts of milk you made as she stores away the <<temp_var>> bottles that contain <<temp_var*50>>ml of your breast milk.'
+					'Nurse: <<$pcs_firstname>>, this is so much milk, I think a cow would be jealous!'
+					'She laughts heartily and you blush a bit.'
+				elseif temp_var >= 10:
+					'She looks amazed at the at the copious amounts of milk you made as she stores away the <<temp_var>> bottles that contain <<temp_var*50>>ml of your breast milk.'
+					'Nurse: Oh dear, where do you store all this milk in your breast...?'
+				elseif temp_var >= 8:
+					'She looks surprised at the at the large amount of milk you made as she stores away the <<temp_var>> bottles that contain <<temp_var*50>>ml of your breast milk.'
+					'Nurse: Dear, this is really much milk...'
+				elseif temp_var >= 6:
+					'She looks pleasantly satisfied at you as she puts away the <<temp_var>> bottles containing <<temp_var*50>>ml of your breast milk.'
+					'Nurse: Oh, this is pretty much milk.'
+				elseif temp_var >= 4:
 					'She looks satisfied at you as she puts away the <<temp_var>> bottles containing <<temp_var*50>>ml of your breast milk.'
 					'Nurse: This is a good amount of milk.'
-				elseif temp_var => 8:
-					'She looks surprised at the at the amount of milk you made as she stores away the <<temp_var>> bottles that contain <<temp_var*50>>ml of your breast milk.'
-					'Nurse: Dear, that is much milk...'
 				else
 					'She looks satisfied at you as she puts away <<temp_var>> bottles with <<temp_var*50>>ml of your breast milk inside.'
 				end
@@ -1736,22 +1811,23 @@ if $ARGS[0] = 'maternity_ward_donation':
 				'She looks at you a bit disappointed.'
 				'Nurse: Mhmm... I am sorry, but this isn''t enough milk for a valid donation. You only made <<milkedvolume/10>>ml of breast milk.'
 			end
+			milkedvolume = 0
 			if pcs_gpoli_donationsessioncount > 0:
 				mward_donatemoney = (((pcs_gpoli_donationsessioncount*500)/3)*75)/100
 			else
 				mward_donatemoney = 0
 			end
-			money += mward_donatemoney
-			minut += 15
 			nipple_cream = 0
+			minut += 15
 			if lactatemv > lactatemm/2:
 				'The nurse looks at your breasts'
-				'Nurse: Looks like you could go for a another pumping...shall we?'
+				'Nurse: Looks like you could go for another pumping...shall we?'
 				act 'have your breasts pumped again': gt 'gpoli', 'maternity_ward_donation'
 				act 'enough for today':
 					*clr & cla
 					gs 'stat'
 					if pcs_gpoli_donationsessioncount > 0:
+						money += mward_donatemoney
 						'You put on your top, and the nurse hands you <<mward_donatemoney>><b>₽</b> for your donated breast milk.'
 					else
 						'You put on your top'
@@ -1767,6 +1843,7 @@ if $ARGS[0] = 'maternity_ward_donation':
 					*clr & cla
 					gs 'stat'
 					if pcs_gpoli_donationsessioncount > 0:
+						money += mward_donatemoney
 						'You put on your top, and the nurse hands you <<mward_donatemoney>><b>₽</b> for your donated breast milk.'
 					else
 						'You put on your top'
@@ -1801,14 +1878,9 @@ if $ARGS[0] = 'std_check':
 	end
 
 	if SifacOnce = 1:
-		'He continues: "You have syphilis. Unfortunately, the complete cure for this disease is very expensive and we can''t cure it here. It can be suppressed with a recently developed drug therapy, but it won''t cure you completely. It''s also fairly expensive already."'
-
-		if Sifilis < 15:
-			'Your syphilis is in an inactive stage. Nothing more can be done currently.'
-		elseif Sifilis >= 15:
-			if SifNapr = 0:SifNapr = 10 & '"I''m going to put you on a course of syphilis inhibiting drugs. You''ll need a total of 10 injections (no more than 1 a day), each injection will cost 1,000 <b>₽</b>."'
-			if SifNapr > 0:'You need to see the nurse for your syphilis drug injection.'
-		end
+		sifNapr = 1
+		'You have syphilis. The cure for this disease used to be expensive. However, this deadly disease can now be with a single shot.'
+		'The injection will cost 1,000 <b>₽</b>, you need to see the nurse for your syphilis injection.'
 	end
 
 	if TriperOnce = 1:

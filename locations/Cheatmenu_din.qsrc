@@ -232,6 +232,8 @@ $cheatmenu['bodyMod'] = {
 $cheatmenu['addict'] = {
 	if NarkImmune = 0:
 		NarkImmune = 1
+		smoker = 0
+		smokerNeed = 0
 		dynamic $cheatmenu['permanent']
 		exit
 	elseif NarkImmune = 1:
@@ -331,6 +333,28 @@ $cheatmenu['cumtrait_block'] = {
 	end
 }
 
+$cheatmenu['consolecheat'] = {
+	if cheatConsole = 0:
+		cheatConsole = 1
+		dynamic $cheatmenu['permanent']
+		exit
+	elseif cheatConsole = 1:
+		cheatConsole = 0
+		dynamic $cheatmenu['permanent']
+	end
+}
+
+$cheatmenu['timecheat'] = {
+	if cheatTime = 0:
+		cheatTime = 1
+		dynamic $cheatmenu['permanent']
+		exit
+	elseif cheatTime = 1:
+		cheatTime = 0
+		dynamic $cheatmenu['permanent']
+	end
+}
+
 $cheatmenu['permanent'] = {
 	gs'stat'
 	*clr & cla
@@ -381,6 +405,10 @@ $cheatmenu['permanent'] = {
 	if cumeater_cheat = 1:$cheatcumtrait = 'Disabled'
 	if exhib_cheat = 0:$cheatexhib = 'Enabled'
 	if exhib_cheat = 1:$cheatexhib = 'Disabled'
+	if cheatConsole = 0:$cheatConsole = 'Disabled'
+	if cheatConsole = 1:$cheatConsole = 'Enabled'
+	if cheatTime = 0:$cheatTime = 'Disabled'
+	if cheatTime = 1:$cheatTime = 'Enabled'
 
 	'<center><h1>Cheat Menu - Recurrent Cheats</h1></center>'
 	'<center><table cellspacing="0" cellpadding="20" valign="top"><tr>'
@@ -444,6 +472,10 @@ $cheatmenu['permanent'] = {
 		'No dream chance: <a href="exec:Enable_nodream=input(''Enter no dream chance (%)'') & dynamic $cheatmenu[''permanent'']">Currently OFF</a>'
 	end & !1.2.3 new function
 	*nl
+	'Console input in Objects window: <a href="exec:dynamic $cheatmenu[''consolecheat'']"><<$cheatConsole>></a>'
+	'Time Cheat in Objects window: <a href="exec:dynamic $cheatmenu[''timecheat'']"><<$cheatTime>></a>'
+	*nl
+
 	'<font color="red"><b>WARNING!</b></font>: Disabling states may cause some events not to trigger. Use at your own risk!'
 	'</tr></table></b></center>'
 }
@@ -477,13 +509,13 @@ $cheatmenu['state'] = {
 	'<a href="exec:dynamic $cheatmenu[''cycle''] & gs ''stat''">Set stage of menstrual cycle</a>'
 	*nl
 	
-	if lactate <= 0:
+	if lactation['active'] <= 0:
 		'You are not lactating'
 		'Your current prolactinlvl is <<prolactinlvl>>ng/ml.'
-		'<a href="exec:lactate = 1 & lactateinduced = 1 & total_milkinduce_growth = 8 & nbsize += 8 & prolactinlvl = 200 & lactaterate = 100 & lactatemv = 0 & lactatemm = func(''lact_lib'',''$calc_lactatemm'') & dynamic $cheatmenu[''state'']">Switch ON</a>'
+		'<a href="exec:lactation[''active''] = 1 & lactation[''induced''] = 1 & total_milkinduce_growth = 8 & nbsize += 8 & prolactinlvl = 200 & lactaterate = 100 & lactatemv = 0 & lactatemm = func(''lact_lib'',''$calc_lactatemm'') & dynamic $cheatmenu[''state'']">Switch ON</a>'
 	else
 		'You are lactating'
-		'<a href="exec:lactate = 0 & lactateinduced = 0 & total_milkinduce_growth = 0 & nbsize -= 8 & prolactinlvl = 0 & lactaterate = 0 & lactatemv = 0 & lactatemm = 0 & dynamic $cheatmenu[''state'']">Switch OFF</a>'
+		'<a href="exec:lactation[''active''] = 0 & lactation[''induced''] = 0 & total_milkinduce_growth = 0 & nbsize -= 8 & prolactinlvl = 0 & lactaterate = 0 & lactatemv = 0 & lactatemm = 0 & dynamic $cheatmenu[''state'']">Switch OFF</a>'
 		if lactaterate <= 0:
 			'Lactate Rate: <<lactaterate/10>>ml/h <a href="exec:lactaterate += 100 & dynamic $cheatmenu[''state'']">+10</a>'
 		elseif lactaterate >= 6000:
@@ -494,10 +526,10 @@ $cheatmenu['state'] = {
 		'Milk in Breasts: <<lactatemv/10>>ml'
 		'Max Milk Storage: <<lactatemm/10>>ml'
 		'<font color="grey">Maximum milk storage changes with breast size, and if <<$pcs_firstname>> went through pregnancy</font>'
-		if lactateinduced <= 0:
-			'Is <<$pcs_firstname>>''s lactation Induced?: <a href="exec:lactateinduced = 1 & dynamic $cheatmenu[''state'']">no</a>'
+		if lactation['induced'] <= 0:
+			'Is <<$pcs_firstname>>''s lactation Induced?: <a href="exec:lactation[''induced''] = 1 & dynamic $cheatmenu[''state'']">no</a>'
 		else
-			'Is <<$pcs_firstname>>''s lactation Induced?: <a href="exec:lactateinduced = 0 & dynamic $cheatmenu[''state'']">yes</a>'
+			'Is <<$pcs_firstname>>''s lactation Induced?: <a href="exec:lactation[''induced''] = 0 & dynamic $cheatmenu[''state'']">yes</a>'
 		end
 		'<font color="grey">Does <<$pcs_firstname>> know she induced lactation herself, or not? (This is only used for some events.)</font>'
 	end
@@ -620,12 +652,14 @@ $cheatmenu['looks'] = {
 
 	'</td><td width="33%" cellpadding="20" valign="top">'
 	'<<$hair>>'
-	if pcs_haircol =< 0:
-		'Your hair is now (prev) <<$pcs_haircol>> <a href="exec:pcs_haircol +=1 & dynamic $cheatmenu[''looks''] & pcs_haircol = nathcol">(next)</a>'
+	if pcs_haircol = 0:
+		'Your hair is now (prev) <<$pcs_haircol>> <a href="exec:pcs_haircol +=1 & dynamic $cheatmenu[''looks''] & nathcol = pcs_haircol">(next)</a>'
 	elseif pcs_haircol > 0 and pcs_haircol < 3:
-		'Your hair is now <a href="exec:pcs_haircol -=1 & dynamic $cheatmenu[''looks'']" & pcs_haircol = nathcol>(prev)</a> <<$pcs_haircol>> <a href="exec:pcs_haircol +=1 & dynamic $cheatmenu[''looks'']" & pcs_haircol = nathcol>(next)</a>'
-	elseif pcs_haircol => 3:
-		'Your hair is now <a href="exec:pcs_haircol -=1 & dynamic $cheatmenu[''looks'']" & pcs_haircol = nathcol>(prev)</a> <<$pcs_haircol>> (next)'
+		'Your hair is now <a href="exec:pcs_haircol -=1 & dynamic $cheatmenu[''looks'']" & nathcol = pcs_haircol>(prev)</a> <<$pcs_haircol>> <a href="exec:pcs_haircol +=1 & dynamic $cheatmenu[''looks'']" & pcs_haircol = nathcol>(next)</a>'
+	elseif pcs_haircol = 3:
+		'Your hair is now <a href="exec:pcs_haircol -=1 & dynamic $cheatmenu[''looks'']" & nathcol = pcs_haircol>(prev)</a> <<$pcs_haircol>> (next)'
+	else
+		'To change your natural hair color, you have to <a href="exec:pcs_haircol = nathcol & dynamic $cheatmenu[''looks'']">restore your natural hair color</a> first.'
 	end
 	if pcs_hairlng > 975:
 		'Hair length (<<pcs_hairlng>>)	<a href="exec:pcs_hairlng -= 100 & dynamic $cheatmenu[''looks'']">-100</a> <a href="exec:pcs_hairlng -= 25 & dynamic $cheatmenu[''looks'']">-25</a> <a href="exec:pcs_hairlng -= 5 & dynamic $cheatmenu[''looks'']">-5</a> <a href="exec:pcs_hairlng += 5 & dynamic $cheatmenu[''looks'']">+5</a>'
@@ -710,8 +744,7 @@ $cheatmenu['vneshpara'] = {
 	'pcs_apprncbase = <<pcs_apprncbase>>'
 	'PXCloThinness = <<PXCloThinness>>'
 	'PXCloTopCut = <<PXCloTopCut>>'
-	'PXCloSkirtShortness = <<PXCloSkirtShortness>>'
-	'PXCloPantsShortness = <<PXCloPantsShortness>>'
+	'PXCloBottomShortness = <<PXCloBottomShortness>>'
 	'CloTotalBeauty = <<CloTotalBeauty>>'
 	'mopkoef = <<mopkoef>>'
 	'pcs_hairbsh = <<pcs_hairbsh>>'
@@ -809,12 +842,22 @@ $cheatmenu['setAttrs'] = {
 $cheatmenu['setSkills'] = {
 	loop_index = 0
 	:set_skills_loop
-		dynamic "
-			<<$skl_name[loop_index]>>_lvl = <<ARGS[0]>>
-			<<$skl_name[loop_index]>>_lvlst = <<ARGS[0]>>
-		"
-		loop_index += 1
-		! Inhibition is the last in the array, but it's not really a skill so we'll skip it by ending the loop one iteration early
+		!! Inhibition (number 33) isn''t a skill so we''ll skip it
+		if loop_index ! 33:
+			dynamic "
+				<<$skl_name[loop_index]>>_lvl = <<ARGS[0]>>
+				<<$skl_name[loop_index]>>_lvlst = <<ARGS[0]>>
+			"
+			loop_index += 1
+		else
+			loop_index += 1
+			dynamic "
+				<<$skl_name[loop_index]>>_lvl = <<ARGS[0]>>
+				<<$skl_name[loop_index]>>_lvlst = <<ARGS[0]>>
+			"
+		end
+		
+		!! The size of the array is reduced by 1 because we skipped inhibition
 		if loop_index < arrsize('$skl_name') - 1: jump 'set_skills_loop'
 	killvar 'loop_index'
 	dynamic $cheatmenu['stats']
@@ -897,8 +940,8 @@ $cheatmenu['stats'] = {
 	*nl
 	if workPTU > 1:*pl'<a href="exec:teachlevel += 10 & dynamic $cheatmenu[''stats'']">Reputation teacher+10: <<teachlevel>></a>'
 	if workPTU > 1:*pl'<a href="exec:teachlevel -= 10 & dynamic $cheatmenu[''stats'']">Reputation teacher-10: <<teachlevel>></a>'
-	if pcs_grades >= 0:*pl'<a href="exec:pcs_grades += 10 & dynamic $cheatmenu[''stats'']">Improve their academic performance: <<pcs_grades>></a>'
-	if schoolprogul >= 0:*pl'<a href="exec:schoolprogul = 0 & dynamic $cheatmenu[''stats'']">Zero Absenteeism: <<schoolprogul>></a>'
+	if pcs_grades >= 0:*pl'<a href="exec:pcs_grades += 10 & dynamic $cheatmenu[''stats'']">Improve your academic performance: <<pcs_grades>></a>'
+	if StoryLine > 0 and schoolprogul >= 0:*pl'<a href="exec:schoolprogul = 0 & dynamic $cheatmenu[''stats'']">Zero Absenteeism (School): <<schoolprogul>></a>'
 	*nl
 	*pl'<b>Skills</b> (values 0 - 100, and adjusted total by attributes):'
 	*pl '<a href="exec:dynamic $cheatmenu[''setSkills''], 100" >Max Skills</a>    <a href="exec:dynamic $cheatmenu[''setSkills''], 0" >Min Skills</a>'
@@ -913,6 +956,8 @@ $cheatmenu['stats'] = {
 	*p 'Computers (<<compskl_lvl>>) - Total (<<pcs_compskl>>): ' & dynamic $cheatmenu['printStatLinks'], 'compskl', 'Computer Skill'
 	*p 'Hacking (<<comphckng_lvl>>) - Total (<<pcs_comphckng>>): ' & dynamic $cheatmenu['printStatLinks'], 'comphckng', 'Hacking'
 	*p 'Handy-work (<<hndiwrk_lvl>>) - Total (<<pcs_hndiwrk>>): ' & dynamic $cheatmenu['printStatLinks'], 'hndiwrk', 'Handy-work'
+	*p 'Pool (<<pool_lvl>>) - Total (<<pcs_pool>>): ' & dynamic $cheatmenu['printStatLinks'], 'pool', 'Pool'
+	*p 'Heels (<<pcs_heels>>) - Total (<<pcs_heels>>): ' & dynamic $cheatmenu['printStatLinks'], 'heels', 'Heels'
 	if MagikDostup = 0: *p 'Spell Casting (<<splcstng_lvl>>) - Total (<<pcs_splcstng>>): ' & dynamic $cheatmenu['printStatLinks'], 'splcstng', 'Spellcasting'
 	'</td><td width="50%" cellpadding="10" valign="top">'
 	*pl'<b>Combat:</b>'
@@ -1134,14 +1179,14 @@ $cheatmenu['reputation'] = {
 		if npc_rel['A217'] >= 0:
 			'Pavlin: <<npc_rel[''A217'']>>	<a href="exec:npc_rel[''A217''] += 10 & dynamic $cheatmenu[''reputation'']">+10</a> <a href="exec:npc_rel[''A217''] -= 10 & dynamic $cheatmenu[''reputation'']">-10</a>'
 		end
-		if hantersAndreiQw >= 0:
-			'Hunter Andrew: <<hantersAndreiQw>>	<a href="exec:hantersAndreiQw += 10 & dynamic $cheatmenu[''reputation'']">+10</a> <a href="exec:hantersAndreiQw -= 10 & dynamic $cheatmenu[''reputation'']">-10</a>'
+		if huntersAndreiQw >= 0:
+			'Hunter Andrew: <<huntersAndreiQw>>	<a href="exec:huntersAndreiQw += 10 & dynamic $cheatmenu[''reputation'']">+10</a> <a href="exec:huntersAndreiQw -= 10 & dynamic $cheatmenu[''reputation'']">-10</a>'
 		end
-		if hantersSergeiQw >= 0:
-			'Hunter Sergei: <<hantersSergeiQw>>	<a href="exec:hantersSergeiQw += 10 & dynamic $cheatmenu[''reputation'']">+10</a> <a href="exec:hantersSergeiQw -= 10 & dynamic $cheatmenu[''reputation'']">-10</a>'
+		if huntersSergeiQw >= 0:
+			'Hunter Sergei: <<huntersSergeiQw>>	<a href="exec:huntersSergeiQw += 10 & dynamic $cheatmenu[''reputation'']">+10</a> <a href="exec:huntersSergeiQw -= 10 & dynamic $cheatmenu[''reputation'']">-10</a>'
 		end
-		if hantersIgorQw >= 0:
-			'Hunter Igor: <<hantersIgorQw>>	<a href="exec:hantersIgorQw += 10 & dynamic $cheatmenu[''reputation'']">+10</a> <a href="exec:hantersIgorQw -= 10 & dynamic $cheatmenu[''reputation'']">-10</a>'
+		if huntersIgorQw >= 0:
+			'Hunter Igor: <<huntersIgorQw>>	<a href="exec:huntersIgorQw += 10 & dynamic $cheatmenu[''reputation'']">+10</a> <a href="exec:huntersIgorQw -= 10 & dynamic $cheatmenu[''reputation'']">-10</a>'
 		end
 		if npc_rel['A217'] >= 0:
 			'Martin: <<npc_rel[''A216'']>>	<a href="exec:npc_rel[''A216''] += 10 & dynamic $cheatmenu[''reputation'']">+10</a> <a href="exec:npc_rel[''A216''] -= 10 & dynamic $cheatmenu[''reputation'']">-10</a>'
@@ -1185,30 +1230,50 @@ $cheatmenu['reputation'] = {
 		'You''ve been dating for <<loverdays[2]>> days. <a href="exec:loverdays[2] += 5 & dynamic $cheatmenu[''reputation'']">+5</a> <a href="exec:loverdays[2] -= 5 & dynamic $cheatmenu[''reputation'']">-5</a>'
 	end
 	*nl
-	if pav_slut >= 25:'In Pavlovsk you are known as a <<$gnikname>>'
-	if opusk > 0 or gnewQW < 4 or sipovka > 0:'<a href="exec:opusk = 0 & sipovka = 0 & gnewQW = 0 & dynamic $cheatmenu[''reputation'']">Clear reputation with Gopniks</a>'
+	if pav_slut >= 25:
+		gs 'fame'
+		'In Pavlovsk you are known as a <font color="red"><<$gnikname>></font> <a href="exec:pav_slut = 0 & dynamic $cheatmenu[''reputation'']">Clear</a>'
+	end
+	*nl
+	if opusk > 0 or gnewQW > 0 or sipovka > 0:'<a href="exec:opusk = 0 & gnewQW = 0 & sipovka = 0 & dynamic $cheatmenu[''reputation'']">Clear reputation with Gopniks</a>'
 	if StoryLine = 1:
-		if motherKnowWhore > 0 or motherKnowSpravka > 0 or brotherSex >= 1 or evgenQW >= 3 or brotherknowslut > 0 or sisterknowslut > 0:
-			*nl
-			'<font color="red"><b>WARNING</b></font>: Clearing reputation flags with your family may cause bugs. Use at your own risk!'
-			if motherKnowWhore > 0:
-				'Your mother thinks you are a whore. <a href="exec:motherKnowWhore = 0 & dynamic $cheatmenu[''reputation'']">Clear</a>'
-			elseif motherKnowSpravka > 0:
-				'Your mother thinks that you are a virgin. <a href="exec:motherKnowSpravka = 0 & dynamic $cheatmenu[''reputation'']">Clear</a>'
-			end
-			*nl
-			if evgenQW >= 3:
-				'Your brother thinks you are a slut. <a href="exec:evgenQW = 0 & dynamic $cheatmenu[''reputation'']">Clear</a>'
-			end
-			if brotherknowslut = 1: 'Your brother saw semen on your body and thinks you fuck around. <a href="exec:brotherknowslut = 0 & dynamic $cheatmenu[''reputation'']">Clear</a>'
-			if brotherknowslut >= 2: 'Your brother saw you in the park fucking the Gopniks. <a href="exec:brotherknowslut = 1 & dynamic $cheatmenu[''reputation'']">Clear</a>'
-			*nl
-			if sisterknowslut > 1 and sisboypartyQW > 1:
-				'Your sister says you are a slut <a href="exec:sisboypartyQW = 0 & dynamic $cheatmenu[''reputation'']">Clear</a>'
-			elseif sisterknowslut > 0:
-				'Your sister knows that you sleep around. <a href="exec:sisterknowslut = 0 & dynamic $cheatmenu[''reputation'']">Clear</a>'
-			end
+																																  
+		*nl
+		'<font color="red"><b>WARNING</b></font>: Clearing reputation flags with your family may cause bugs. Use at your own risk!'
+		*nl
+		if motherKnowWhore > 0 or motherKnowSpravka > 0:
+			'Your mother knows, that you are sexually active and considers you a slut. <a href="exec:motherKnowWhore = 0 & motherKnowSpravka = 0 & dynamic $cheatmenu[''reputation'']">Clear</a>'
+		elseif motherKnowWhore > 0:
+			'Your mother thinks you are a whore. <a href="exec:motherKnowWhore = 0 & dynamic $cheatmenu[''reputation'']">Clear</a>'
+		elseif motherKnowSpravka > 0:
+			'Your mother knows that you are sexually active. <a href="exec:motherKnowSpravka = 0 & dynamic $cheatmenu[''reputation'']">Clear</a>'
+		else
+			'Your mother thinks that you are a virgin.'
 		end
+		*nl
+		if evgenQW >= 4 and brotherSex >= 1:
+			'Your brother thinks you are a total whore. <a href="exec:evgenQW = 0 & brotherSex = 0 & dynamic $cheatmenu[''reputation'']">Clear</a>'
+		elseif brotherSex >= 1:
+			'Your brother thinks you are a slut. <a href="exec:brotherSex = 0 & dynamic $cheatmenu[''reputation'']">Clear</a>'
+		elseif evgenQW >= 3:
+			'Your brother thinks you are a slut. <a href="exec:evgenQW = 0 & dynamic $cheatmenu[''reputation'']">Clear</a>'
+		elseif brotherknowslut = 1:
+											   
+			'Your brother saw semen on your body and thinks you fuck around. <a href="exec:brotherknowslut = 0 & dynamic $cheatmenu[''reputation'']">Clear</a>'
+		elseif brotherknowslut >= 2:
+			'Your brother saw you in the park fucking the Gopniks. <a href="exec:brotherknowslut = 1 & dynamic $cheatmenu[''reputation'']">Clear</a>'
+		else
+			'Your brother has a good opinion of you.'
+		end
+		*nl
+		if sisterknowslut > 1 and sisboypartyQW > 1:
+			'Your sister thinks you are a slut <a href="exec:sisboypartyQW = 0 & sisterknowslut = 0 & dynamic $cheatmenu[''reputation'']">Clear</a>'
+		elseif sisterknowslut > 0:
+			'Your sister knows that you sleep around. <a href="exec:sisterknowslut = 0 & dynamic $cheatmenu[''reputation'']">Clear</a>'
+		else
+			'Your sister has a good opinion of you.'
+		end
+		*nl
 		if home_owned[2] = 0 or ParHomeBlock = 1:
 			'<a href="exec:home_owned[2] = 1 & ParHomeBlock = 0 & dynamic $cheatmenu[''reputation'']">Restore</a> access to your parent''s apartment.'
 		end
@@ -1546,6 +1611,7 @@ $cheatmenu['force_preg'] = {
 $cheatmenu['remove_preg'] = {
 	pregtime = 0
 	pregtalk = 0
+	pregTalkPC = 0
 	pregTalkNat = 0
 	pregTalkbrother = 0
 	preg = 0
