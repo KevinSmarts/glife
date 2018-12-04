@@ -1,0 +1,84 @@
+!! Used variables-
+!! Prefix- nich
+!! nichWork- 0= does not work for nicholas and never has, 1= currently works for nicholas, 2= quit job in good faith and could get hired again, 3= quit job in bad faith or got thrown out and nicholas is blocked
+!! nichPerformance- ranging from 0 (fired) to 100 (best)
+!! nichVacationFrom- the first free day if Sveta gets some time off 
+!! nichVactionTil- the last free day if Sveta gets some time off (=nichVacationFrom if she has one free day)
+!! nichLastWorkDay- the last day Sveta was in the appartment... needed because otherwise the player could avoid work performance checks by just not showing up here
+!! nichMissedWorkdays- the number of days Sveta has missed work... hopefully she has a good excuse
+!! nichEvaluationLast- the day Sveta had her last evaluation
+!! nichEvaluationLastReq- the last day Sveta was required to get an evaluation
+!! nichMaidLaundry- 
+!! nichMaidDishes-
+!! nichMaidGroceries:-
+
+
+if $ARGS[0] = '' or $ARGS[0] = 'start':
+	'This page should never appear. Please report this bug including a description of how you got here.'
+end
+
+if $ARGS[0] = 'startWorkday':
+	nichMissedWorkdays = daystart - nichLastWorkDay - 1
+		
+	if nichVactionTil + 1 = daystart:
+		!! this is the first day Sveta has to work after a vacation... maybe work piled up?		
+		nichMissedWorkdays = nichMissedWorkdays - nichVactionTil + nichVacationFrom -1
+	elseif nichVactionTil >= daystart and nichVacationFrom <= daystart:
+		!! Sveta does not have to work today
+		nichMissedWorkdays = nichVacationFrom - nichLastWorkDay - 1
+	end
+	
+	if nichMissedWorkdays > 0:
+		!!Sveta has missed a workday... very bad
+		nichPerformance -= 40 * nichMissedWorkdays
+		if nichPerformance <= 0:
+			'You see a note hanging at the door to your room.'
+			'"<<$pcs_nichname>>, you missed work. This is unacceptable. Take your stuff and leave. You are fired. -Nicholas"'
+			'You see all your belongings standing in front of the door prepared for your departure.'
+			gt 'nichUtil' 'fired'
+		else
+			'You see a note hanging at the door to your room.'
+			'"<<$pcs_nichname>>, you missed work. This is unacceptable. I expect this not to happen again. -Nicholas"'
+		end
+	elseif daystart > nichEvaluationLastReq and nichEvaluationLast < nichEvaluationLastReq:
+		!! Sveta has missed her last evaluation
+		nichPerformance -= 20
+		if nichPerformance <= 0:
+			'You see a note hanging at the door to your room.'
+			'"<<$pcs_nichname>>, you missed your last evaluation. This is unacceptable. Take your stuff and leave. You are fired. -Nicholas"'
+			'You see all your belongings standing in front of the door prepared for your departure.'
+			gt 'nichUtil' 'fired'
+		else
+			'You see a note hanging at the door to your room.'
+			'"<<$pcs_nichname>>, you missed your last evaluation. This is unacceptable. I expect this not to happen again. -Nicholas"'
+		end
+	end
+	
+	nichLastWorkDay = daystart
+	nichEvaluationLastReq = daystart
+end
+
+!! get rid of all variables concerning Nicholas except for nichWork
+if $ARGS[0] = 'clearVars':
+	killvar 'nichPerformance'
+	killvar 'nichVacationFrom'
+	killvar 'nichVactionTil'
+	killvar 'nichLastWorkDay'
+	killvar 'nichMissedWorkdays'
+	killvar 'nichEvaluationLast'
+	killvar 'nichEvaluationLastReq'
+	killvar 'nichMaidLaundry'
+	killvar 'nichMaidDishes'
+	killvar 'nichMaidGroceries'
+end
+
+if $ARGS[0] = 'fired':
+	'It takes you a few moments to process what just happened:'
+	'You have just been fired. And kind of lost your home, too.'
+	
+	nichWork = 2
+	
+	gs 'nichUtil' 'clearVars'
+	
+	act 'Take your belongings and leave':gt 'down'
+end
