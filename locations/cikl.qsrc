@@ -751,6 +751,7 @@ end
 !! Clothing wear and tear
 gs 'starenie'
 
+!!cocaine reduction
 if nark > 60:
 	nark = 60
 elseif nark > 30:
@@ -1423,6 +1424,148 @@ if vidageday > 1080: vidageday = 1080
 if blizoruk < 10: blizoruk -= 1
 if blizoruk < 100: blizoruk -= rand(0,1)
 if blizoruk < 0: blizoruk = 0
+
+
+!!------------------------------------------------------------------------------------------------------------------------
+!!array cleaning moving potential fathers from C to B array and cleaning C array
+
+!First look is there any cum in the womb,when womb is empty random genereted npc record are cleaningare deleted
+
+! mid($npclastgenerated[0],2,9)  number of the last random created npcs
+norandomdads = 1
+!checking if Sveta have children or babies
+if arrsize('$ChildFath') > 0:
+		!Yes she have... cheking if random NPC is the dady
+		!'Sveta have <<$ChildFath>> children'
+		
+		childtmp = 0
+		:childloop
+		if mid($ChildFath[childtmp],1,1) = 'C':
+			!yes child is from random genereted npc
+			norandomdads = 0
+		else
+			!child is not from random genereted npc
+			
+			childtmp += 1
+			if childtmp < arrsize('$ChildFath'): jump 'childloop'
+		end
+end
+
+
+number = 0
+
+
+
+!checking if there is some cum in womb.
+if arrsize('$cumarrnam') > 0:
+	!there is cum in womb	
+
+	:cleaning_records_cum
+	$tmp = 'C' + '<<number>>'
+		
+	cum_number = 0
+	:cumloop
+	!look if cum in womb is from random created npc
+	if($tmp = $cumarrnam[cum_number]):
+		!'cum from <<$tmp>> is in the womb'
+		number +=1
+		if number < mid($npclastgenerated[0],2,9): jump 'cleaning_records_cum'
+	else	
+		cum_number += 1
+		if cum_number < arrsize('$cumarrnam'):
+			jump 'cumloop'
+		else
+			!'no cum in woomb from <<$tmp>>'
+			if norandomdads = 1:
+				!no random dads
+				gs 'npccleanc',$tmp
+			else
+				!some children are from random genereted npc
+				!checking if selected npc is a dady
+				childtmp = 0
+				:childloop3
+				
+				if $ChildFath[childtmp] = $tmp:
+					!selected npc is father of the child, he will stay in record or now
+					!moving npc from C array to B array,
+					gs 'npcpreservec',$tmp
+					!updating the childs data about the father
+					$ChildFath[childtmp] = $npclastsaved
+					!cleaining unnecessary data
+					gs 'npccleanc',$tmp
+					number += 1
+					if number < mid($npclastgenerated[0],2,9): jump 'cleaning_records_cum'
+				else
+					!child is not from random genereted npc
+					childtmp += 1
+					if childtmp < arrsize('$ChildFath'): 
+						jump 'childloop3'
+					else
+						!children are not from seleted random npc, we are cleaning his redords
+						gs 'npccleanc',$tmp
+						number += 1
+						if number < mid($npclastgenerated[0],2,9): jump 'cleaning_records_cum'
+						
+					end
+				end
+				
+				
+			end
+			
+		end
+	end
+	
+else
+	!there is no cum in womb, cleaning random created npc redords
+		
+	if norandomdads = 0:
+	
+		:cleaning_with_babies
+		$tmp = 'C' + '<<number>>'
+		!cheking if random NPC is the dady
+		childtmp2 = 0
+		
+		:childloop2
+		
+		if $ChildFath[childtmp2] = $tmp:
+			!selected random NPC is dady selected child
+			number +=1
+			if number < mid($npclastgenerated[0],2,9): jump 'cleaning_with_babies' 
+		
+			else
+				!selected random NPC is not dady selected child
+				childtmp2 += 1
+				if childtmp2 < arrsize('$ChildFath'):
+					jump 'childloop2'
+				else
+					!selected random npc is not any child dady
+					gs 'npccleanc',$tmp
+					number += 1
+					if number < mid($npclastgenerated[0],2,9): jump 'cleaning_with_babies'
+				end
+			end
+				
+		end
+	else
+		!she have no children or babies, and no cum freom random npc
+		!'cleaning random NPC records'
+		:cleaning_no_babies
+		$tmp = 'C' + '<<number>>'
+		!'clining <<$tmp>>'
+		gs 'npccleanc',$tmp
+		number += 1
+		if number < mid($npclastgenerated[0],2,9): jump 'cleaning_no_babies'
+	end
+end
+
+
+killvar '$tmp'
+killvar 'number'
+killvar 'childtmp2'
+killvar 'childtmp'
+killvar 'norandomdads'
+
+!!------------------------------------------------------------------------------------------------------------
 
 --- cikl ---------------------------------
 
