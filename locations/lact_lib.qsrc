@@ -344,6 +344,38 @@ if $ARGS[0] = 'show_breast_stat':
 	'lactation[''breastmv''] = <<lactation[''breastmv'']>>'
 end
 
+!!	Lactation On/Off switch function
+if $ARGS[0] = 'lact_switch':
+	!!	Usage
+	!!	func('lact_lib','lact_switch')
+	if lactation['active'] <= 0:	
+		!!	Sveta is not aware of the lactation yet. She will notice when playing with her breasts or applying pressure to them. Or during pumping or when she starts to leak.
+		lactation['pc_aware'] = 0
+		!!	setting lactation to active
+		lactation['active'] = 1
+		!!	setting breast maximum milk volume via function
+		func('lact_lib','set_breastmm')
+		!!	resetting prolactinlvl so that the initial production rate is not too high
+		if lactation['prolactinlvl'] < 200: lactation['prolactinlvl'] = 200
+		!!	setting the lactation rate. Warning! lactation rate is in ml*1000 now for higher accuracy.
+		lactation['lactaterate'] = 1000*(lactation['prolactinlvl']/200)
+		!!	setting milk volume in breasts to 0. Will fill up with lactaterate in another part of the breastcycle
+		lactation['breastmv'] = 0
+		!!	nipples will grow a bit with extended milk channels. If lactation stops, this will be substracted from the nipples again and nipples will shrink.
+		lactation['nipgrowth'] = 2
+		pcs_nips += lactation['nipgrowth']
+		if lactation['alveoliexpandlvl'] < 10: lactation['alveoliexpandlvl'] = 10
+	else
+		!!	If lactation is on, the stuff below will switch it off again.
+		lactation['active'] = 0
+		lactation['lactaterate'] = 0
+		lactation['breastmv'] = 0
+		lactation['breastmm']
+		if pcs_nips > lactation['nipgrowth']: pcs_nips -= lactation['nipgrowth']
+		lactation['nipgrowth'] = 0	
+	end
+end
+
 !!	new breast cycle function, will replace the monster lactation function in femcyc
 if $ARGS[0] = 'breastcycle':
 	if lactation['breasttissueinitiated'] <= 0: func('lact_lib','init_breasttissue')
@@ -411,23 +443,7 @@ if $ARGS[0] = 'breastcycle':
 		end
 		!!	If sveta meets alveoliexpandlvl 10 and her prolactinlvl is between random 200 and 250, her lactation will set in. This is happening during induction or during pregnancy
 		if rand(1,50) + lactation['prolactinlvl']  >= rand(200,250) and lactation['alveoliexpandlvl'] >= 10:
-			!!	lactation induced function. Did sveta induce? need to make a function for that.
-			!!	lactation['induced'] = 0
-			!!	Sveta is not aware of the lactation yet. She will notice when playing with her breasts or applying pressure to them. Or during pumping or when she starts to leak.
-			lactation['pc_aware'] = 0
-			!!	setting lactation to active
-			lactation['active'] = 1
-			!!	setting breast maximum milk volume via function
-			func('lact_lib','set_breastmm')
-			!!	resetting prolactinlvl so that the initial production rate is not too high
-			if lactation['prolactinlvl'] < 200: lactation['prolactinlvl'] = 200
-			!!	setting the lactation rate. Warning! lactation rate is in ml*1000 now for higher accuracy.
-			lactation['lactaterate'] = 1000*(lactation['prolactinlvl']/200)
-			!!	setting milk volume in breasts to 0. Will fill up with lactaterate in another part of the breastcycle
-			lactation['breastmv'] = 0
-			!!	nipples will grow a bit with extended milk channels. If lactation stops, this will be substracted from the nipples again and nipples will shrink.
-			lactation['nipgrowth'] = 2
-			pcs_nips += lactation['nipgrowth']
+			func('lact_lib','lact_switch')
 		end
 	else
 	!!	things that happen when Sveta is lactating lactation['active'] > 1
@@ -459,16 +475,12 @@ if $ARGS[0] = 'breastcycle':
 					else
 						lactation['lactaterate'] = (lactation['lactaterate'] - (lactation['lactaterate']/2) + (lactation['lactaterate']/5) - (lactation['lactaterate']/8))
 					end
-				elseif lactation['lactaterate'] <= 0:
-					!!	switching off lactation production and making sure prolactin is dropping. Nipples shrink too. There are some changes that are permanent, especially during pregnancy.
-					lactation['lactaterate'] = 0
-					lactation['active'] = 0
-					lactation['breastmv'] = 0
-					if pcs_nips > lactation['nipgrowth']: pcs_nips -= lactation['nipgrowth']
-					lactation['nipgrowth'] = 0
 				elseif lactation['lactaterate'] <= 0 and lactation['maturebreast'] > 0 and pregchem >= 4383:
 					!!	during pregnancy lactation is not switched off. Svetas breasts will always produce a bit off milk
 					lactation['lactaterate'] = 10
+				elseif lactation['lactaterate'] <= 0:
+					!!	switching off lactation production and making sure prolactin is dropping. Nipples shrink too. There are some changes that are permanent, especially during pregnancy.
+					func('lact_lib','lact_switch')
 				end
 			end
 		end
