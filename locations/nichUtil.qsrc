@@ -2,7 +2,7 @@
 
 !! Used variables-
 !! Prefix- nich
-!! nichWork- 0= does not work for nicholas and never has, 1= currently works for nicholas, 2= quit job in good faith and could get hired again, 3= quit job in bad faith or got thrown out and nicholas is blocked
+!! nichWork- 0= does not work for nicholas and never has, 1=has agreed to work for Nicholas but has not introduced herself yet, 2=sample days, 3= currently works for nicholas, 4= quit job in good faith and could get hired again, 5= quit job in bad faith or got thrown out and nicholas is blocked
 !! nichPerformance- ranging from 0 (fired) to 100 (best)
 !! nichHired- the day Sveta was hired
 !! nichVacationFrom- the first free day if Sveta gets some time off 
@@ -22,6 +22,8 @@
 !! nichMaidLivingItems
 !! nichMaidLivingWindows
 !! nichOutfitState- 0=not wearing an appropriate outfit, 1=wearing an appropriate outfit
+
+!! nichGalaOpinion: 0- Gala has no opinion about PC, 1- Gala thinks PC is a slut
 
 if $ARGS[0] = '' or $ARGS[0] = 'start':
 	'This page should never appear. Please report this bug including a description of how you got here.'
@@ -114,6 +116,7 @@ end
 !! initializes variables when hired, might mess everything up if called at any other time
 if $ARGS[0] = 'hired':
 	nichWork = 1
+	nichWorkState = 0
 	nichPerformance = 20
 	nickHired = daystart
 	nichVacationFrom = daystart
@@ -165,102 +168,36 @@ if $ARGS[0] = 'checkOutfit':
 	end
 end
 
-if $ARGS[0] = 'doJob':
-	*clr & cla
-	gs 'nichUtil', 'setCurrentJob', $ARGS[1]
-	'<center><img <<$set_imgh>> src="images/characters/city/nicholas/maid/'+$nickChorePicture+'.jpg"></center>'
-	minut += nichChoreTime
-	act 'Finish':
-		nichChoresStates[nichChoreID] = 0
-		gt $loc
-	end
-end
 
-if $ARGS[0] = 'renderJob':
-	gs 'nichUtil', 'setCurrentJob', $ARGS[1]
-	
-	if nichChoreState <= nichChoreEvalGood:
-		''+$nichChoreDescGood
-		dyneval ('
-			act "('+nichChoreTime+' minutes) '+$nichChoreDescriptionAction+'":
-				gt "nichUtil", "doJob", "'+$ARGS[1]+'"
-			end
-		')
-	elseif nichChoreState <= nichChoreEvalOk:
-		''+ $nichChoreDescOk
-		dyneval ('
-			act "('+nichChoreTime+' minutes) '+$nichChoreDescriptionAction+'":
-				gt "nichUtil", "doJob", "'+$ARGS[1]+'"
-			end
-		')
-	elseif nichChoreState <= nichChoreEvalBadEffect:
-		''+ $nichChoreDescBad
-		dyneval ('
-			act "('+nichChoreTime*2+' minutes) '+$nichChoreDescriptionAction+' (diligently)":
-				gt "nichUtil", "doJob", "'+$ARGS[1]+'"
-			end
-			act "('+nichChoreTime+' minutes) '+$nichChoreDescriptionAction+' (quickly)":
-				gt "nichUtil", "doJob", "'+$ARGS[1]+'"
-			end
-		')
-	else
-		''+ $nichChoreDescVBad
-		dyneval ('
-			act "('+nichChoreTime*4+' minutes) '+$nichChoreDescriptionAction+' (diligently)":
-				gt "nichUtil", "doJob", "'+$ARGS[1]+'"
-			end
-			act "('+nichChoreTime*2+' minutes) '+$nichChoreDescriptionAction+' (quickly)":
-				gt "nichUtil", "doJob", "'+$ARGS[1]+'"
-			end
-		')
-	end
-	
-	
-end
 
-if $ARGS[0] = 'setCurrentJob':
-	if $ARGS[1] = 'hallwaySweep':
-		nichChoreID = 0
-		nichChoreState = nichChoresStates[nichChoreID]
-		nichChoreDaily = 1
-		nichChoreEvalGood = 0
-		nichChoreEvalOk = 1
-		nichChoreEvalBad = 3
-		nichChoreEvalGoodEffect = 0
-		nichChoreEvalOkEffect = 0
-		nichChoreEvalBadEffect = -10
-		nichChoreEvalVBadEffect = -30
-		$nichChoreCommentBad = 'I expect you to take more care of the hallway. It is way too dirty.'
-		$nichChoreCommentVBad = 'Have you taken a look at the hallway lately? It is in an inacceptable condition.'
-		$nichChoreDescGood = 'The hallway is spotless. There is no reason to clean it.'
-		$nichChoreDescOk = 'The hallway is pretty clean. Only a close look would reveal some tiny amounts of dirt.'
-		$nichChoreDescBad = 'The hallway only appears clean at a first glace. A close look would reveal a small trail of dirt between the entry door and the shoe cabinet.'
-		$nichChoreDescVBad = 'There is a hard to miss trail of dirt between the entry door and the shoe cabinet.'
-		nichChoreTime = 15
-		$nichChoreDescriptionAction = 'Sweep dust'
-		$nickChorePicture = 'sweepDust_001'
-	elseif $ARGS[1] = 'livingSweep':
-		nichChoreState = 1
-		nichChoreDaily = 1
-		nichChoreEvalGood = 0
-		nichChoreEvalOk = 1
-		nichChoreEvalBad = 3
-		nichChoreEvalGoodEffect = 5
-		nichChoreEvalOkEffect = 0
-		nichChoreEvalBadEffect = -10
-		nichChoreEvalVBadEffect = -30
-		nichChoreTime = 30
-		$nichChoreDescriptionAction = 'Sweep dust Liv'
-		$nickChorePicture = ''
-
-	end
-	
-end
 
 if $ARGS[0] = 'whereIs':
 	if $ARGS[1] = 'nicholas':
-		if hour >= 19 and hour <= 21 and week <= 4:
-			$RESULT = 'study'
+		$RESULT = 'nowhere'
+		if week <= 4:
+			if (hour < 6) or (hour = 6 and minut < 45) or (hour > 22) or (hour = 22 and minut >= 45):
+				$RESULT = 'masterBedroom'
+			elseif (hour < 7) or (hour = 7 and minut < 15):
+				$RESULT = 'masterBathroom'
+			elseif hour = 7 and minut < 45:
+				$RESULT = 'study'
+			elseif (hour < 8) or (hour = 8 and minut < 15):
+				$RESULT = 'kitchen'
+			elseif (hour < 18) or (hour = 18 and minut < 45):
+				$RESULT = 'work'
+			elseif hour < 21:
+				$RESULT = 'study'
+			elseif (hour = 22 and minut >= 15 and minut < 45):
+				$RESULT = 'masterBathroom'
+			else
+				if week=1:
+					$RESULT = 'study'
+				elseif week=2 or week = 4:
+					$RESULT = 'tanjaBedroom'
+				else
+					$RESULT = 'living'
+				end
+			end
 		end
 	end
 end
