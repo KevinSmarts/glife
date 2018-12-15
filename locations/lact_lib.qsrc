@@ -296,9 +296,6 @@ if $ARGS[0] = 'BreastGrowth':
 	!!	usage func('lact_lib','BreastGrowth')
 	if lactation['breastccm'] <> func('lact_lib','bsizetoccm',(nbsize + magicf2b + silicone)) or lactation['alveolicount_change'] <> lactation['alveolicount'] or lactation['alveoliexpandlvl_change'] <> lactation['alveoliexpandlvl']:
 		!!	There are general breast growth events that will increase nbsize, magicf2b or silicone. So the breast "contents" have to be recalculated. This is happening here with the breastrecalc function.
-		if lactation['nbsizechange'] <> func('lact_lib','bsizetoccm',(nbsize + magicf2b + silicone)) and (lactation['alveolicount_change'] = lactation['alveolicount'] or lactation['alveoliexpandlvl_change'] = lactation['alveoliexpandlvl']):
-			func('lact_lib','breastrecalc')
-		end
 		!!	Now the fun part. Warning, crazy math ahead. I got headaches while doing this, so better not mess with it or you will break everything.
 		!!	first - check for alveoligrowth: yes, do the crazy stuff
 		if lactation['alveolicount_change'] <> lactation['alveolicount'] or lactation['alveoliexpandlvl_change'] <> lactation['alveoliexpandlvl']:
@@ -306,7 +303,7 @@ if $ARGS[0] = 'BreastGrowth':
 			lactation['breastglandtissue']= (lactation['alveolicount'] * (218 + (lactation['alveoliexpandlvl'] * 20)))/100000
 			!!	Crazy Math going on here. When I was coding this, only god and I knew what I was doing. Now only god knows.
 			!!	Well, this one recalculates all the CCM stuff to normal nbsize, magicf2b and silicone. It works, no idea why, but it works.
-			lactation['breastccm'] = lactation['breastglandtissue'] + lactation['breastfat'] + lactation['breastsiliconeccm']
+			lactation['breastccm'] = (lactation['breastglandtissue'] + lactation['breastfat'] + lactation['breastsiliconeccm'])
 			lactation['siliconepercent'] = (lactation['breastsiliconeccm']/lactation['breastccm'])*100
 			lactation['magicf2bccm'] = ((lactation['breastccm'] - ((lactation['breastccm']*lactation['siliconepercent'])/100))*lactation['magicf2bpercent_wos'])/100
 			lactation['nbsizebccm'] = lactation['breastccm'] - lactation['breastsiliconeccm'] - lactation['magicf2bccm']
@@ -314,6 +311,12 @@ if $ARGS[0] = 'BreastGrowth':
 			lactation['magicf2bpercent'] = (lactation['magicf2bccm']/lactation['nbsizebccm'])*100
 			nbsize = (func('lact_lib','bccmtosize',lactation['breastccm'])*lactation['nbsizepercent'])/100
 			magicf2b = (func('lact_lib','bccmtosize',lactation['breastccm'])*lactation['magicf2bpercent'])/100
+			lactation['nbsizechange'] = nbsize
+			lactation['magicf2bchange'] = magicf2b
+			lactation['siliconechange'] = silicone
+		elseif (lactation['nbsizechange'] + lactation['siliconechange'] + lactation['magicf2bchange']) <> (nbsize + magicf2b + silicone):
+		!!	 and (lactation['alveolicount_change'] = lactation['alveolicount'] or lactation['alveoliexpandlvl_change'] = lactation['alveoliexpandlvl'])
+			func('lact_lib','breastrecalc')
 		end
 	end
 end
@@ -350,12 +353,11 @@ if $ARGS[0] = 'breastcycle':
 		!!	Alveoligrowth/breastgrowth + 78876 new aveoli per breast average during pregnancy
 		!!	Checking pregchem last. It should not be small than 0.
 		if lactation['pregchemlast'] <= 0:
-			lactation['pregchemlast'] = 0
+			lactation['pregchemlast'] = 2191
 		end
 		if lactation['preggrowth'] <= 78876 and (pregchem - lactation['pregchemlast']) > 0:
-			lactation['alveolicount_change'] = lactation['alveolicount']
-			lactation['preggrowth'] = (pregchem - lactation['pregchemlast']) * 36
-			lactation['alveolicount'] = (pregchem - lactation['pregchemlast']) * 36
+			lactation['preggrowth'] = (pregchem - 2191) * 36
+			lactation['alveolicount'] = lactation['alveolicount_start'] + lactation['preggrowth']
 			lactation['growthsoreness_on'] = 1
 			if pain['breasts'] <= 20: pain['breasts'] = 20
 		else
@@ -365,8 +367,8 @@ if $ARGS[0] = 'breastcycle':
 		lactation['pregchemlast'] = pregchem
 	elseif PregChem > 4383 and lactation['maturebreast'] > 0:
 	!!	pregnancy prolactinlvl rise
-		if lactation['prolactinlvl'] < 110 and lactation['active'] <= 0:
-			if rand(0,100) > 50:
+		if lactation['prolactinlvl'] < 200 and lactation['active'] <= 0:
+			if rand(0,100) > 25:
 				lactation['prolactinlvl'] +=1
 			end
 		end
@@ -382,7 +384,7 @@ if $ARGS[0] = 'breastcycle':
 			elseif (lactation['dailyoverdemand']/200) >= 50 and pregtimes > 1:
 				lactation['prolactinlvl'] += 50
 			else
-				if lactation['prolactinlvl'] > 0:
+				if lactation['prolactinlvl'] > 0 and pregchem < 2191:
 					if ((lactation['prolactinlvl']/2) + (lactation['prolactinlvl']/5) - (lactation['prolactinlvl']/8)) < 1:
 						lactation['prolactinlvl'] -= 1
 					else
@@ -471,7 +473,7 @@ if $ARGS[0] = 'breastcycle':
 			end
 		end
 		!!	Filling lactaterate into svetas breast every hour
-		if lactation['breastmv'] < lactation['breastmm']:
+		if lactation['breastmv'] < lactation['breastmm'] and lactation['lactaterate'] > 50:
 			lactation['breastmv'] += lactation['lactaterate']
 			if lactation['breastmv'] > lactation['breastmm']: lactation['breastmv'] = lactation['breastmm']
 		end
@@ -480,6 +482,7 @@ if $ARGS[0] = 'breastcycle':
 	if lactation['milkgrowday'] < daystart:
 		func('lact_lib','BreastGrowth')
 		lactation['dailyoverdemand'] = 0
+		lactation['alveolicount_change'] = lactation['alveolicount']
 		lactation['milkgrowday'] = daystart
 	end	
 end
