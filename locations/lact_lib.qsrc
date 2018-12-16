@@ -296,9 +296,6 @@ if $ARGS[0] = 'BreastGrowth':
 	!!	usage func('lact_lib','BreastGrowth')
 	if lactation['breastccm'] <> func('lact_lib','bsizetoccm',(nbsize + magicf2b + silicone)) or lactation['alveolicount_change'] <> lactation['alveolicount'] or lactation['alveoliexpandlvl_change'] <> lactation['alveoliexpandlvl']:
 		!!	There are general breast growth events that will increase nbsize, magicf2b or silicone. So the breast "contents" have to be recalculated. This is happening here with the breastrecalc function.
-		if lactation['nbsizechange'] <> func('lact_lib','bsizetoccm',(nbsize + magicf2b + silicone)) and (lactation['alveolicount_change'] = lactation['alveolicount'] or lactation['alveoliexpandlvl_change'] = lactation['alveoliexpandlvl']):
-			func('lact_lib','breastrecalc')
-		end
 		!!	Now the fun part. Warning, crazy math ahead. I got headaches while doing this, so better not mess with it or you will break everything.
 		!!	first - check for alveoligrowth: yes, do the crazy stuff
 		if lactation['alveolicount_change'] <> lactation['alveolicount'] or lactation['alveoliexpandlvl_change'] <> lactation['alveoliexpandlvl']:
@@ -306,7 +303,7 @@ if $ARGS[0] = 'BreastGrowth':
 			lactation['breastglandtissue']= (lactation['alveolicount'] * (218 + (lactation['alveoliexpandlvl'] * 20)))/100000
 			!!	Crazy Math going on here. When I was coding this, only god and I knew what I was doing. Now only god knows.
 			!!	Well, this one recalculates all the CCM stuff to normal nbsize, magicf2b and silicone. It works, no idea why, but it works.
-			lactation['breastccm'] = lactation['breastglandtissue'] + lactation['breastfat'] + lactation['breastsiliconeccm']
+			lactation['breastccm'] = (lactation['breastglandtissue'] + lactation['breastfat'] + lactation['breastsiliconeccm'])
 			lactation['siliconepercent'] = (lactation['breastsiliconeccm']/lactation['breastccm'])*100
 			lactation['magicf2bccm'] = ((lactation['breastccm'] - ((lactation['breastccm']*lactation['siliconepercent'])/100))*lactation['magicf2bpercent_wos'])/100
 			lactation['nbsizebccm'] = lactation['breastccm'] - lactation['breastsiliconeccm'] - lactation['magicf2bccm']
@@ -314,6 +311,12 @@ if $ARGS[0] = 'BreastGrowth':
 			lactation['magicf2bpercent'] = (lactation['magicf2bccm']/lactation['nbsizebccm'])*100
 			nbsize = (func('lact_lib','bccmtosize',lactation['breastccm'])*lactation['nbsizepercent'])/100
 			magicf2b = (func('lact_lib','bccmtosize',lactation['breastccm'])*lactation['magicf2bpercent'])/100
+			lactation['nbsizechange'] = nbsize
+			lactation['magicf2bchange'] = magicf2b
+			lactation['siliconechange'] = silicone
+		elseif (lactation['nbsizechange'] + lactation['siliconechange'] + lactation['magicf2bchange']) <> (nbsize + magicf2b + silicone):
+		!!	 and (lactation['alveolicount_change'] = lactation['alveolicount'] or lactation['alveoliexpandlvl_change'] = lactation['alveoliexpandlvl'])
+			func('lact_lib','breastrecalc')
 		end
 	end
 end
@@ -341,6 +344,38 @@ if $ARGS[0] = 'show_breast_stat':
 	'lactation[''breastmv''] = <<lactation[''breastmv'']>>'
 end
 
+!!	Lactation On/Off switch function
+if $ARGS[0] = 'lact_switch':
+	!!	Usage
+	!!	func('lact_lib','lact_switch')
+	if lactation['active'] <= 0:	
+		!!	Sveta is not aware of the lactation yet. She will notice when playing with her breasts or applying pressure to them. Or during pumping or when she starts to leak.
+		lactation['pc_aware'] = 0
+		!!	setting lactation to active
+		lactation['active'] = 1
+		!!	setting breast maximum milk volume via function
+		func('lact_lib','set_breastmm')
+		!!	resetting prolactinlvl so that the initial production rate is not too high
+		if lactation['prolactinlvl'] < 200: lactation['prolactinlvl'] = 200
+		!!	setting the lactation rate. Warning! lactation rate is in ml*1000 now for higher accuracy.
+		lactation['lactaterate'] = 1000*(lactation['prolactinlvl']/200)
+		!!	setting milk volume in breasts to 0. Will fill up with lactaterate in another part of the breastcycle
+		lactation['breastmv'] = 0
+		!!	nipples will grow a bit with extended milk channels. If lactation stops, this will be substracted from the nipples again and nipples will shrink.
+		lactation['nipgrowth'] = 2
+		pcs_nips += lactation['nipgrowth']
+		if lactation['alveoliexpandlvl'] < 10: lactation['alveoliexpandlvl'] = 10
+	else
+		!!	If lactation is on, the stuff below will switch it off again.
+		lactation['active'] = 0
+		lactation['lactaterate'] = 0
+		lactation['breastmv'] = 0
+		lactation['breastmm']
+		if pcs_nips > lactation['nipgrowth']: pcs_nips -= lactation['nipgrowth']
+		lactation['nipgrowth'] = 0	
+	end
+end
+
 !!	new breast cycle function, will replace the monster lactation function in femcyc
 if $ARGS[0] = 'breastcycle':
 	if lactation['breasttissueinitiated'] <= 0: func('lact_lib','init_breasttissue')
@@ -350,12 +385,11 @@ if $ARGS[0] = 'breastcycle':
 		!!	Alveoligrowth/breastgrowth + 78876 new aveoli per breast average during pregnancy
 		!!	Checking pregchem last. It should not be small than 0.
 		if lactation['pregchemlast'] <= 0:
-			lactation['pregchemlast'] = 0
+			lactation['pregchemlast'] = 2191
 		end
 		if lactation['preggrowth'] <= 78876 and (pregchem - lactation['pregchemlast']) > 0:
-			lactation['alveolicount_change'] = lactation['alveolicount']
-			lactation['preggrowth'] = (pregchem - lactation['pregchemlast']) * 36
-			lactation['alveolicount'] = (pregchem - lactation['pregchemlast']) * 36
+			lactation['preggrowth'] = (pregchem - 2191) * 36
+			lactation['alveolicount'] = lactation['alveolicount_start'] + lactation['preggrowth']
 			lactation['growthsoreness_on'] = 1
 			if pain['breasts'] <= 20: pain['breasts'] = 20
 		else
@@ -365,8 +399,8 @@ if $ARGS[0] = 'breastcycle':
 		lactation['pregchemlast'] = pregchem
 	elseif PregChem > 4383 and lactation['maturebreast'] > 0:
 	!!	pregnancy prolactinlvl rise
-		if lactation['prolactinlvl'] < 110 and lactation['active'] <= 0:
-			if rand(0,100) > 50:
+		if lactation['prolactinlvl'] < 200 and lactation['active'] <= 0:
+			if rand(0,100) > 25:
 				lactation['prolactinlvl'] +=1
 			end
 		end
@@ -382,7 +416,7 @@ if $ARGS[0] = 'breastcycle':
 			elseif (lactation['dailyoverdemand']/200) >= 50 and pregtimes > 1:
 				lactation['prolactinlvl'] += 50
 			else
-				if lactation['prolactinlvl'] > 0:
+				if lactation['prolactinlvl'] > 0 and pregchem < 2191:
 					if ((lactation['prolactinlvl']/2) + (lactation['prolactinlvl']/5) - (lactation['prolactinlvl']/8)) < 1:
 						lactation['prolactinlvl'] -= 1
 					else
@@ -409,23 +443,7 @@ if $ARGS[0] = 'breastcycle':
 		end
 		!!	If sveta meets alveoliexpandlvl 10 and her prolactinlvl is between random 200 and 250, her lactation will set in. This is happening during induction or during pregnancy
 		if rand(1,50) + lactation['prolactinlvl']  >= rand(200,250) and lactation['alveoliexpandlvl'] >= 10:
-			!!	lactation induced function. Did sveta induce? need to make a function for that.
-			!!	lactation['induced'] = 0
-			!!	Sveta is not aware of the lactation yet. She will notice when playing with her breasts or applying pressure to them. Or during pumping or when she starts to leak.
-			lactation['pc_aware'] = 0
-			!!	setting lactation to active
-			lactation['active'] = 1
-			!!	setting breast maximum milk volume via function
-			func('lact_lib','set_breastmm')
-			!!	resetting prolactinlvl so that the initial production rate is not too high
-			if lactation['prolactinlvl'] < 200: lactation['prolactinlvl'] = 200
-			!!	setting the lactation rate. Warning! lactation rate is in ml*1000 now for higher accuracy.
-			lactation['lactaterate'] = 1000*(lactation['prolactinlvl']/200)
-			!!	setting milk volume in breasts to 0. Will fill up with lactaterate in another part of the breastcycle
-			lactation['breastmv'] = 0
-			!!	nipples will grow a bit with extended milk channels. If lactation stops, this will be substracted from the nipples again and nipples will shrink.
-			lactation['nipgrowth'] = 2
-			pcs_nips += lactation['nipgrowth']
+			func('lact_lib','lact_switch')
 		end
 	else
 	!!	things that happen when Sveta is lactating lactation['active'] > 1
@@ -457,21 +475,17 @@ if $ARGS[0] = 'breastcycle':
 					else
 						lactation['lactaterate'] = (lactation['lactaterate'] - (lactation['lactaterate']/2) + (lactation['lactaterate']/5) - (lactation['lactaterate']/8))
 					end
-				elseif lactation['lactaterate'] <= 0:
-					!!	switching off lactation production and making sure prolactin is dropping. Nipples shrink too. There are some changes that are permanent, especially during pregnancy.
-					lactation['lactaterate'] = 0
-					lactation['active'] = 0
-					lactation['breastmv'] = 0
-					if pcs_nips > lactation['nipgrowth']: pcs_nips -= lactation['nipgrowth']
-					lactation['nipgrowth'] = 0
 				elseif lactation['lactaterate'] <= 0 and lactation['maturebreast'] > 0 and pregchem >= 4383:
 					!!	during pregnancy lactation is not switched off. Svetas breasts will always produce a bit off milk
 					lactation['lactaterate'] = 10
+				elseif lactation['lactaterate'] <= 0:
+					!!	switching off lactation production and making sure prolactin is dropping. Nipples shrink too. There are some changes that are permanent, especially during pregnancy.
+					func('lact_lib','lact_switch')
 				end
 			end
 		end
 		!!	Filling lactaterate into svetas breast every hour
-		if lactation['breastmv'] < lactation['breastmm']:
+		if lactation['breastmv'] < lactation['breastmm'] and lactation['lactaterate'] > 50:
 			lactation['breastmv'] += lactation['lactaterate']
 			if lactation['breastmv'] > lactation['breastmm']: lactation['breastmv'] = lactation['breastmm']
 		end
@@ -480,6 +494,7 @@ if $ARGS[0] = 'breastcycle':
 	if lactation['milkgrowday'] < daystart:
 		func('lact_lib','BreastGrowth')
 		lactation['dailyoverdemand'] = 0
+		lactation['alveolicount_change'] = lactation['alveolicount']
 		lactation['milkgrowday'] = daystart
 	end	
 end
