@@ -1,6 +1,63 @@
 # nichNicholas
 
-if $ARGS[0] = 'desc':
+if $ARGS[0] = 'start' or $ARGS[0] = '':
+	'<center><img <<$set_imgh>> src="images/characters/city/nicholas/nicholas/01.jpg"></center>'
+	
+	$nichTemp = func('nichUtil','npcActivity','nicholas')
+	
+	if $nichTemp = 'sleep':
+		'Nicholas is sleeping. It would be a bad idea to wake him up now.'
+	elseif $nichTemp = 'bathMorning' or $nichTemp = 'bathEvening' or $nichTemp = 'bathClub':
+		'Nicholas is currently brushing his teeth. It''s not the right time to talk to him now.'
+	elseif $nichTemp = 'study':
+		'Nicholas is sitting at his computer doing his correspondence. When he is finished he might have time for you.'
+		act 'Wait':
+			minut += 5
+			gt 'nichNicholas','approach'
+		end
+	elseif $nichTemp = 'breakfast':
+		'Nicholas is currently enjoying his breakfast.'
+	elseif $nichTemp = 'leaveWork' or $nichTemp = 'leaveShopping' or $nichTemp = 'leaveClub':
+		'Nicholas is putting on his shoes. Apparently he has no time to speak to you now.'
+	!!elseif $nichTemp = 'work':
+	!!	'Nicholas is most likely at work now.'
+	elseif $nichTemp = 'returnWork':
+		'Nicholas just returned from work. You should give him some time before speaking to him.'
+	elseif $nichTemp = 'returnShopping':
+		'Nicholas just returned from a shopping trip. You should give him some time before speaking to him.'
+	elseif $nichTemp = 'living':
+		'Nicholas is sitting on the couch. You could approach him now.'
+		act 'Approach':
+			gt 'nichNicholas','approach'
+		end
+	elseif $nichTemp = 'dinner':
+		'Nicholas is eating dinner.'
+	elseif $nichTemp = 'gala':
+		!! TODO
+	elseif $nichTemp = 'tanya':
+		!! TODO
+	elseif $nichTemp = 'returnClub':
+		'Nicholas just returned from his club. You should give him some time before speaking to him.'
+	end
+	
+	act 'Back':
+		gt $loc
+	end
+	
+	
+elseif $ARGS[0] = 'approach':
+	'<center><img <<$set_imgh>> src="images/characters/city/nicholas/nicholas/01.jpg"></center>'
+	'You wait for Nicholas to notice you, then you approach him and curtsy.'
+	'"<<$pcs_nickname>>, what do you want?"'
+	if nichEvaluationLast ! daystart:
+		act 'Evaluation':
+			gt 'nichNicholas','evaluation'
+		end
+	end
+	act 'Back':
+		gt $loc
+	end
+elseif $ARGS[0] = 'desc':
 	'<center><img <<$set_imgh>> src="images/characters/city/nicholas/nicholas/01.jpg"></center>'
 	
 	$nichTemp = func('nichUtil','npcActivity','nicholas')
@@ -71,7 +128,7 @@ elseif $ARGS[0] = 'evaluation':
 		end
 	elseif nichChoreState[0] <= 5:
 		if rand(1,10) <= 9:
-			'<font color = yellow>Did you notice the dirt in the hallway? I expect you to pay closer attention in the future.</font>'
+			'<font color = orange>Did you notice the dirt in the hallway? I expect you to pay closer attention in the future.</font>'
 			nichTempEval -= 2
 		end
 	elseif nichChoreState[0] <= 15:
@@ -87,7 +144,7 @@ elseif $ARGS[0] = 'evaluation':
 		!! He won't notice a clean guest bathroom
 	elseif nichChoreState[1] <= 5:
 		if rand(1,10) <= 5:
-			'<font color = yellow>Did you take a look into the guest cloakroom today? It needs some cleaning up.</font>'
+			'<font color = orange>Did you take a look into the guest cloakroom today? It needs some cleaning up.</font>'
 			nichTempEval -= 2
 		end
 	elseif nichChoreState[1] <= 15:
@@ -103,17 +160,17 @@ elseif $ARGS[0] = 'evaluation':
 		!! He won't comment a clean servant bedroom
 	elseif nichChoreState[2] <= 5:
 		if rand(1,10) <= 2:
-			'<font color = yellow>Your personal bedroom is a bit chaotic.</font>'
+			'<font color = orange>Your personal bedroom is a bit chaotic.</font>'
 			nichTempEval -= 1
 		end
 	elseif nichChoreState[2] <= 15:
 		if rand(1,10) <= 2:
-			'<font color = yellow>Your personal bedroom is very chaotic.</font>'
+			'<font color = orange>Your personal bedroom is very chaotic.</font>'
 			nichTempEval -= 3
 		end
 	else
 		if rand(1,10) <= 2:
-			'<font color = yellow>Your personal bedroom is extremely chaotic.</font>'
+			'<font color = orange>Your personal bedroom is extremely chaotic.</font>'
 			nichTempEval -= 5
 		end
 	end
@@ -121,14 +178,47 @@ elseif $ARGS[0] = 'evaluation':
 	!! TODO: continue
 	
 	if nichTempEval > 5:
-		'You did an outstanding job today. Well done.'
-	elseif nichTemp >= 0:
-		'Overall you did well today.'
-	elseif nichTemp >= -5:
-		'You didn''t quite meet my expectations today.'
+		if nichPerformance >= 80:
+			'You did an outstanding job today and are consistently performing to my satisfaction. Well done.'
+		elseif nichPerformance < 20:
+			'You did an outstanding job today. If you keep this up I''m willing to forget past shortcomings.'
+		else
+			'You did an outstanding job today. Well done.'
+		end
+	elseif nichTempEval >= 0:
+		if nichPerformance >= 80:
+			'You did your job well job today. Over all I am satisfied by your performance. Well done.'
+		elseif nichPerformance < 20:
+			'You did your job well job today. If you keep this up I might be willing to forget past shortcomings.'
+		else
+			'You did your job well job today.'
+		end
+	elseif nichTempEval >= -5:
+		if nichPerformance >= 80:
+			'You didn''t quite meet my expectations today. Since you are usually performing well that''s not a big issue.'
+		elseif nichPerformance < 20:
+			'You didn''t quite meet my expectations today. I''m getting tired of getting disappointed by you.'
+		else
+			'You didn''t quite meet my expectations today. Your performance has to improve in the future.'
+		end
 	else
 		'You did a bad job today.'
+		!!TODO
 	end
+	
+	'DEBUG: nichTempEval = ' + nichTempEval
+	
+	nichPerformance += nichTempEval
+	killvar 'nichTempEval'
+	
+	nichPerformance = min(100,max(0,nichPerformance))
+	
+	nichEvaluationLast = daystart
+	
+	act 'Leave':
+		gt $loc
+	end
+	
 end
 
 --- nichNicholas ---------------------------------
