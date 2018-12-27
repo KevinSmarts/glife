@@ -48,7 +48,7 @@ if $ARGS[0] = 'start' or $ARGS[0] = '':
 	act 'Go into the hut':gt 'swamphouse'
 
 	!Conditional acts
-	if dirty_swamp_yard > 10:act 'Clean up the trash outside': gs 'hunter_favors', 'yard_cleanup'
+	if dirty_swamp_yard > 10:act 'Clean up the trash outside': gs 'swamp_yard', 'yard_cleanup'
 	if collective_hunter_opinion < 10: act '<b>Escape to the swamp</b>': gs 'swamp_yard', 'swamp_escape'
 
 	! TODO: Figure how to remove the sneaky gotos if not tied to other locations
@@ -69,6 +69,28 @@ if $ARGS[0] = 'start' or $ARGS[0] = '':
 end	
 
 !Code blocks for leaf events (events not calling other  events)
+
+if $ARGS[0] = 'yard_cleanup':
+	cla & *clr
+
+	if dirty_swamp_yard < 10:
+		minut += 60 & pcs_sweat += 10
+	elseif dirty_swamp_yard < 20:
+		minut += 120 & pcs_sweat += 20
+	else 
+		minut += 180 & pcs_sweat += 30
+	end
+
+	gs 'stat'
+
+	'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/dirty_swamp_yard.jpg"></center>'
+	'You notice that the yard has gotten pretty dirty. "I need to do something about this." you think to yourself.'
+	'You grab a garbage bag and start picking up trash.'
+	'After a while you''ve finished tidying up the yard and put the trash in the garbage bag. You''re quite pleased with yourself.'
+
+	act 'Done':dirty_swamp_yard = 0 & hunter_collective_opinion += 2 & gt 'swamp_yard'
+end
+
 if $ARGS[0] = 'swamp_escape': 
 	!add chance to swamped by illume
 	if hunters = 1:
@@ -519,9 +541,148 @@ if $ARGS[0] = 'naked_encounter':
 	end
 end
 
+if $ARGS[0] = 'hunter_cleanup_request':
+	
+	if hunters > 0 and huntersKnow = 1 and swiss_army_random_number < 3:
+		*clr & cla
+		swiss_army_random_number = rand(1,3)
+		minut += 5
+		if swiss_army_random_number = 1:
+			gs 'boyStat', 'A172'
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/andreihanter.jpg"></center>'
+		elseif swiss_army_random_number = 2:
+			gs 'boyStat', 'A174'
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/sergeihanter.jpg"></center>'
+		elseif swiss_army_random_number = 3:
+			gs 'boyStat', 'A173'
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/igorhanter.jpg"></center>'
+		end
+		gs 'stat'
+
+		'<<$boydesc>> approaches you. "Hey I need your help with something"'
+		
+		act 'Sure what is it?':
+			if dirty_swamphouse > 5:
+				if huntersKnowSlut = 0:'"<<$pcs_nickname>>," he says. "The hut is a mess, could you take care of it please?"'
+				if huntersKnowSlut = 1:'"<<$pcs_nickname>>," he uses his stern voice. "The house is a mess, take care of it."'
+				act 'Clean the hut':hunter_collective_opinion += 2 & gt 'swamphouse', 'dirty_swamphouse'
+			elseif dirty_swamp_yard > 5:
+				if hunter_collective_opinion >= 15:'"<<$pcs_nickname>>," he says. "The yard is a mess. Can you please take care of it?"'
+				if hunter_collective_opinion < 15:'"<<$pcs_nickname>>," he says sternly. "What the hell is all this trash doing out there? Go and pick it all."'
+				act 'Clean the hut':hunter_collective_opinion += 2 & gs 'swamp_yard', 'yard_cleanup'
+			else
+				if hunter_collective_opinion >= 15:'"Actually, nevermind. I got this, thanks though."'
+				if hunter_collective_opinion < 15:'"Actually, nevermind. You are kinda useless for what I need"'
+				act 'O...kay':hunter_collective_opinion += 1 & gt 'swamp_yard'
+			end	
+		end
+	
+		act '"I''ll help later, busy right now"':
+			*clr & cla
+			minut += 5
+			hunter_collective_opinion -= 3
+			
+			!TODO: Find new image
+			gt 'swamp_yard'
+		end	
+
+		!TODO: Make this act mood dependent
+		act '"What?! Do I look like a servant to you?':	
+			'<center><img <<$set_imgh>> src="images/pc/speak_to_the_hand.jpg"></center>'
+			'You walk away from <<$boydesc>>'
+			hunter_collective_opinion -= 10
+			gt 'swamp_yard'
+		end
+	end
+end
+
+if $ARGS[0] = 'hunter_ambient_convo':
+	    minut += 5
+
+		*clr & cla
+		'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/hanterstalk.jpg"></center>'
+		'While walking around the yard you hear the hunters discussing something excitedly.'
+		
+		convo_rng_roll = rand(1,50)
+		
+		!TODO: They do not just shut up when they notice Sveta, there is an opinion or comfort check
+		if fame_sexind > 10 and city_modelling > 30 and huntersknowfoto = 0 and convo_rng_roll = 1:
+			huntersknowfoto = 1
+			
+			hunter_sexual_comfort += 5
+			hunter_collective_opinion += 3
+			
+			gs 'stat'
+			
+			'"I''m telling you, I''ve seen her pictures in a men''s magazine." you overhear Igor.'
+			'As soon as they noticed you the men stop talking and changed the subject to another topic.'
+			act 'Further':gt 'swamp_yard'
+		
+		elseif stripdancesum > 0 and huntersknowstrip = 0 and convo_rng_roll = 2:
+			huntersknowstrip = 1
+
+			hunter_sexual_comfort += 5
+			hunter_collective_opinion -= 3
+
+			gs 'stat'
+
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/hanterstalk.jpg"></center>'
+			'While walking around the swamp you hear the hunters discussing something very lively.'
+			'"I promise you, it was her, I swear!" you overhear Sergei. "She was on the stage, stripping and dancing."'
+			'As soon as they noticed you the men stop talking and changed the subject to another topic.'
+
+			act 'Further':gt 'swamp_yard'
+
+		elseif film > 0 and huntersknowfilm = 0 and convo_rng_roll = 3:
+			huntersknowfilm = 1
+
+			hunter_sexual_comfort += 7
+			hunter_collective_opinion -= 5
+
+			gs 'stat'
+			'"I recently downloaded some porn, and guess who was getting fucked in the video. Trust me, it was <<$pfname>>." you overhear Andrei.'
+			'As soon as they noticed you the men stop talking and changed the subject to another topic.'
+
+			act 'Further':gt 'swamp_yard'
+		
+		elseif gadriver_gang > 0 and convo_rng_roll > 45 and huntersRape = 0:
+			huntersRape = 1
+			gs 'stat'
+
+			hunter_sexual_comfort += 7
+			hunter_collective_opinion -= 5
+
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/hanterstalk.jpg"></center>'
+			'While walking around the swamp you hear the hunters discussing something very lively.'
+			'"I''m telling you, everyone in Gadukino has had the pleasure to "test out" the goods." you overhear Andrei. As soon as they noticed you the men stop talking and changed the subject to another topic.'
+
+			act 'Further':gt 'swamp_yard'
+		
+		elseif convo_rng_roll = 11:
+		
+			'"I swear, it was a large orangutan standing by the trees watching us! I also saw those massive prints the other day!" you overhear Andrei'
+			'"Sure, it had nothing to with that vodka bottle you were chugging." says Igor'
+			'"Nah I totally believe him. It was just his mom making sure his baby boy was fine" says Sergei before starting to laugh loudly' 
+
+			'As soon as they noticed you the men stop talking and changed the subject to another topic.'
+
+			act 'Further':gt 'swamp_yard'
+		
+		elseif convo_rng_roll = 12:
+			'"Guys do you all ever look into the sky and thing whether if we are all alone in the universe?" you overhear Andrei'
+			'"Not really. The universe is massive. There is no way no other life exists out there" says Igor'
+			'"Then how do we not see any signs of other life out there? We should have been seeing something, anything by now." says Sergei' 
+
+			'As soon as they noticed you the men stop talking and changed the subject to another topic.'
+
+			act 'Further':gt 'swamp_yard'
+		end
+	end
+end
+
 if $ARGS[0] = 'daytime_flavor_events': 
 	if rand(1,20) = 1: gs 'swamp_yard', 'skirt_breeze'
-	if rand(1,12) = 1 : gs 'hunter_favors', 'hunter_cleanup_request'
+	if rand(1,12) = 1 : gs 'swamp_yard', 'hunter_cleanup_request'
 	if rand(1,20) = 1: gs 'swamp_yard' , 'hunter_ambient_convo'
 	if rand(1,10) = 1: gs 'swamp_yard', 'naked_encounter'
 end
