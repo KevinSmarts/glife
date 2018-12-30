@@ -350,62 +350,72 @@ if $ARGS[0] = 'prod_milk':
 	!!	func('lact_lib','prod_milk',milkamount)
 	!!	result = produced breast milk amount in ml*1000
 	!!	ARGS[1] = Requested milk production amount produced in ml*1000. Usually should be the lactaterate.
+	!!	If there was milk pumped or produced during the hour, this has to be substracted.
+	if lactation['used_lactaterate'] > 0:
+		lactation['prod_milk_req'] = (ARGS[1] - lactation['used_lactaterate'])
+		lactation['used_lactaterate'] += ARGS[1]
+		if lactation['used_lactaterate'] > lactation['lactaterate']: lactation['used_lactaterate'] = lactation['lactaterate']
+	else
+		lactation['prod_milk_req'] = ARGS[1]
+		lactation['used_lactaterate'] += ARGS[1]
+		if lactation['used_lactaterate'] > lactation['lactaterate']: lactation['used_lactaterate'] = lactation['lactaterate']
+	end
 	!!	If Sveta has salo <= 15, she will not produce breast milk as she is basically starving and her body will shut down everything that is causing too much energy consumption.
 	if lactation['active'] > 0 and salo > 15:
 		!!	checking how much hydration, stamina and hunger is needed to produce x amount of breast milk
 		!!	checking if enough stamina and hydra is available
-		if (ARGS[1]/10000) < pcs_stam and (ARGS[1]/10000) < pcs_hydra:
+		if (lactation['prod_milk_req']/10000) < pcs_stam and (lactation['prod_milk_req']/10000) < pcs_hydra:
 			!!	full requested milk amount can be produced. substracting from stamina, hydration energy.
-			if (ARGS[1]/10000) < 1:
+			if (lactation['prod_milk_req']/10000) < 1:
 				pcs_stam -= 1
 				pcs_hydra -= 1
 			else
-				pcs_stam -= (ARGS[1]/10000)
-				pcs_hydra -= (ARGS[1]/10000)
+				pcs_stam -= (lactation['prod_milk_req']/10000)
+				pcs_hydra -= (lactation['prod_milk_req']/10000)
 			end
 			if pcs_stam < 1: pcs_stam = 1
 			if pcs_hydra < 1: pcs_hydra = 1
-			if (ARGS[1]/9000) < pcs_energy:
-				if (ARGS[1]/9000) < 1:
+			if (lactation['prod_milk_req']/9000) < pcs_energy:
+				if (lactation['prod_milk_req']/9000) < 1:
 					pcs_energy -= 1
 				else
-					pcs_energy -= (ARGS[1]/9000)
+					pcs_energy -= (lactation['prod_milk_req']/9000)
 					if pcs_energy < 1: pcs_energy = 1
 				end
-				result = ARGS[1]
+				result = lactation['prod_milk_req']
 			else
 				!!	If energy is too low, milk will be produced but there is a chance that salo will shrink.
 				pcs_energy = 1
 				if rand(0,100) > 95: salo -= 1
 				if pain['breasts'] < 20: pain['breasts'] += 1
-				result = ARGS[1]
+				result = lactation['prod_milk_req']
 			end
 		elseif pcs_stam <= 0 or pcs_hydra <= 0:
 			!!	if sveta has not enough hydration or stamina, no milk is produced.
 			result = 0
 		else
 			if (pcs_stam*10000) < (pcs_hydra*10000):
-				temp_var = (pcs_stam*10000)
+				lactation['prod_milk_temp_var'] = (pcs_stam*10000)
 				pcs_stam = 1
-				if (ARGS[1]/10000) < pcs_hydra:
-					pcs_hydra -= (ARGS[1]/10000)
+				if (lactation['prod_milk_req']/10000) < pcs_hydra:
+					pcs_hydra -= (lactation['prod_milk_req']/10000)
 				else
 					pcs_hydra = 1
 				end
 			else
-				temp_var = (pcs_hydra*10000)
+				lactation['prod_milk_temp_var'] = (pcs_hydra*10000)
 				pcs_hydra = 1
-				if (ARGS[1]/10000) < pcs_stam:
-					pcs_stam -= (ARGS[1]/10000)
+				if (lactation['prod_milk_req']/10000) < pcs_stam:
+					pcs_stam -= (lactation['prod_milk_req']/10000)
 				else
 					pcs_stam = 1
 				end
 			end
-			if (temp_var/9000) < pcs_energy:
-				if (temp_var/9000) < 1:
+			if (lactation['prod_milk_temp_var']/9000) < pcs_energy:
+				if (lactation['prod_milk_temp_var']/9000) < 1:
 					pcs_energy -= 1
 				else
-					pcs_energy -= (temp_var/9000)
+					pcs_energy -= (lactation['prod_milk_temp_var']/9000)
 					if pcs_energy < 1: pcs_energy = 1
 				end
 			else
@@ -417,7 +427,7 @@ if $ARGS[0] = 'prod_milk':
 			if pcs_energy < 1: pcs_energy = 1
 			if pcs_hydra < 1: pcs_hydra = 1
 			if pcs_stam < 1: pcs_stam = 1
-			result = temp_var			
+			result = lactation['prod_milk_temp_var']			
 		end
 	else
 		result = 0
@@ -654,6 +664,8 @@ if $ARGS[0] = 'breastcycle':
 			lactation['breastmv'] += lactation['lactaterate']
 			if lactation['breastmv'] > lactation['breastmm']: lactation['breastmv'] = lactation['breastmm']
 		end
+		!!	Reset used_lactaterate, so milk can be produced again.
+		lactation['used_lactaterate'] = 0
 		func('lact_lib','breast_engorment')
 	end
 	if lactation['milkgrowday'] < daystart:
@@ -812,10 +824,10 @@ if $ARGS[0] = '$get_breastmilk_time':
 		!!	max nip flow rate initialized
 		lactation['max_nip_flow_rate'] = func('lact_lib','get_maxnipflowrate')
 		!!	getting temp lactaterate
-		if (lactaterate/60) < 1 and lactaterate > 0:
+		if (lactation['lactaterate']/60) < 1 and lactation['lactaterate'] > 0:
 			temp_lactaterate = 1
 		else
-			temp_lactaterate = lactaterate/60
+			temp_lactaterate = lactation['lactaterate']/60
 		end
 
 		if lactation['breastmv'] >= (ARGS[2]*10):
@@ -933,16 +945,16 @@ if $ARGS[0] = '$get_breastmilk':
 		!!	We want to know if we can just suck out what is already stored or if additional milk production is needed to go through the whole pumping/sucking.
 		!!	If we only need 20ml from a 100ml storage, we would only substract 20ml, leaving 80ml inside the breasts.
 		!!	Also lets make sure we start at zero from the stuff we get from Sveta.
-		milkedvolume = 0
+		lactation['get_bm_milkedvolume'] = 0
 		!!	Case: Enough milk in Svetas breasts, covering the demand
 		if lactation['breastmv'] >= max_sucktion_demand:
 			!!	Checking if svetas nipple flow is enough to serve the demand. If yes - get the demand; If no - get what she is able to give us.
 			if lactation['max_nip_flow_rate'] >= lactation['suck_flow_rate']:
-				milkedvolume = max_sucktion_demand
+				lactation['get_bm_milkedvolume'] = max_sucktion_demand
 				lactation['breastmv'] -= max_sucktion_demand
 			else:
-				milkedvolume = lactation['max_nip_flow_rate']*ARGS[2]
-				lactation['breastmv'] -= milkedvolume
+				lactation['get_bm_milkedvolume'] = lactation['max_nip_flow_rate']*ARGS[2]
+				lactation['breastmv'] -= lactation['get_bm_milkedvolume']
 			end
 		!!	Case: Not enough milk in Svetas breasts.
 		elseif lactation['breastmv'] < max_sucktion_demand:
@@ -962,58 +974,51 @@ if $ARGS[0] = '$get_breastmilk':
 			end
 			!!	Now we know how much time we have and how much demand we have. Time to check if Sveta can do it.
 			!!	For the case, that svetas milk flow is not big enough pumptime left will be 0, therefore this is handled here.
-			if pumptime_left >0:
+			if pumptime_left > 0:
 				if lactation['max_nip_flow_rate'] >= lactation['suck_flow_rate']:
 					!!	the lactaterate is per hour, so it is possible that lactaterate will end up being zero when devided by 60. therefore everything here is multiplied by 100.
-					if (lactation['suck_flow_rate']*100) <= ((lactaterate*100)/60):
-						milkedvolume += lactation['suck_flow_rate']*pumptime_left
+					if (lactation['suck_flow_rate']*100) <= ((lactation['lactaterate']*100)/60):
+						lactation['get_bm_milkedvolume'] += lactation['suck_flow_rate']*pumptime_left
 					else
-						milkedvolume += ((((lactaterate*100)/60)*pumptime_left)/100)
+						lactation['get_bm_milkedvolume'] += ((((lactation['lactaterate']*100)/60)*pumptime_left)/100)
 						breastcounter += 2
 					end
 				else
 					!!	Same here as above.
-					if (lactation['max_nip_flow_rate']*100) <= ((lactaterate*100)/60):
-						milkedvolume += lactation['max_nip_flow_rate']*pumptime_left
+					if (lactation['max_nip_flow_rate']*100) <= ((lactation['lactaterate']*100)/60):
+						lactation['get_bm_milkedvolume'] += lactation['max_nip_flow_rate']*pumptime_left
 						breastcounter += 2
 					else
-						milkedvolume += ((((lactaterate*100)/60)*pumptime_left)/100)
+						lactation['get_bm_milkedvolume'] += ((((lactation['lactaterate']*100)/60)*pumptime_left)/100)
 						breastcounter += 2
 					end
 				end
-				!!	Produced milk needs to be subtracted from the hourly lactate rate, so femcycle is only adding the milk that was not produced yet in the next hour
+				!!	Produced milk needs to be subtracted from the hourly lactate rate, so femcycle is only adding the milk that was not produced yet in the next hour - lactaterate_use
 				if pumptime_left > 60:
 					if ((pumptime_left*100)/60) > 100:
-						lactaterate_use -= ((((lactaterate*100)/60)*(pumptime_left mod 60))/100)
+						lactation['used_lactaterate'] -= ((((lactation['lactaterate']*100)/60)*(pumptime_left mod 60))/100)
 					else
-						lactaterate_use = lactaterate
+						lactation['used_lactaterate'] = lactation['lactaterate']
 					end
 				else
-					if lactaterate >= lactaterate_use:
-						lactaterate_use -= milkedvolume
+					if lactation['lactaterate'] >= lactation['used_lactaterate']:
+						lactation['used_lactaterate'] -= lactation['get_bm_milkedvolume']
 					else
-						lactaterate_use = lactaterate
+						lactation['used_lactaterate'] = lactation['lactaterate']
 					end
 				end
-				if lactaterate_use <= 0: lactaterate_use = 0
+				if lactation['used_lactaterate'] <= 0: lactation['used_lactaterate'] = 0
 				!!	Sveta had to make milk, so she needs to use some of her body resources to make the milk.
-				if milkedvolume > 0:
+				if lactation['get_bm_milkedvolume'] > 0:
 					!!	energy usage flag on. Can be used in events to show that sveta is getting hungry or thirsty
 					energytomilkpump = 1
-					pcs_stam -= max_sucktion_demand/30000
-					if pcs_stam <= 0: pcs_stam = 0
-					pcs_sweat += pumptime/30
-					pcs_hydra -= milkedvolume/120
-					if pcs_hydra < 1: pcs_hydra = 1
-					pcs_energy -= milkedvolume/1200
+					func('lact_lib','prod_milk',lactation['get_bm_milkedvolume'])
 				end
 			end
 			!!	Now we check if sveta was able to make it or not. If not we have milk overdemand which will be used in femcycle to make her produce more milk next day.
-			if temp_var > milkedvolume:
-				lactation['dailyoverdemand'] += (temp_var - milkedvolume)
-			end
+			if temp_var > lactation['get_bm_milkedvolume']: lactation['dailyoverdemand'] += (temp_var - lactation['get_bm_milkedvolume'])
 			!!	time to add the pumped lactation['breastmv'] to the milkedvolume and empty lactation['breastmv'].
-			milkedvolume += lactation['breastmv']
+			lactation['get_bm_milkedvolume'] += lactation['breastmv']
 			lactation['breastmv'] = 0
 			!!	Here we have nipple and breastpain. The idea is - if there is more sucktion than the nipples can take more pain is applied. If the breasts make less milk then demanded pain to the breasts is applied.
 			!!	Else - there will only be nipple pain.
@@ -1036,21 +1041,21 @@ if $ARGS[0] = '$get_breastmilk':
 				end
 			end
 			if lactation['max_nip_flow_rate'] >= lactation['suck_flow_rate']:
-				if (lactation['suck_flow_rate']*100) > ((lactaterate*100)/60):
-					temp_var = pain['breasts'] + (((lactation['suck_flow_rate']*100)-((lactaterate*100)/60))*pumptime_left)/1000
+				if (lactation['suck_flow_rate']*100) > ((lactation['lactaterate']*100)/60):
+					temp_var = pain['breasts'] + (((lactation['suck_flow_rate']*100)-((lactation['lactaterate']*100)/60))*pumptime_left)/1000
 					if temp_var > 20:
 						pain['breasts'] = 20
 					else
-						pain['breasts'] += (((lactation['suck_flow_rate']*100)-((lactaterate*100)/60))*pumptime_left)/1000
+						pain['breasts'] += (((lactation['suck_flow_rate']*100)-((lactation['lactaterate']*100)/60))*pumptime_left)/1000
 					end
 				end
 			else
-				if (lactation['max_nip_flow_rate']*100) > ((lactaterate*100)/60):
-					temp_var = pain['breasts'] + (((lactation['max_nip_flow_rate']*100)-((lactaterate*100)/60))*pumptime_left)/1000
+				if (lactation['max_nip_flow_rate']*100) > ((lactation['lactaterate']*100)/60):
+					temp_var = pain['breasts'] + (((lactation['max_nip_flow_rate']*100)-((lactation['lactaterate']*100)/60))*pumptime_left)/1000
 					if temp_var > 20:
 						pain['breasts'] = 20
 					else
-						pain['breasts'] += (((lactation['max_nip_flow_rate']*100)-((lactaterate*100)/60))*pumptime_left)/1000
+						pain['breasts'] += (((lactation['max_nip_flow_rate']*100)-((lactation['lactaterate']*100)/60))*pumptime_left)/1000
 					end
 				end
 			end
@@ -1061,7 +1066,7 @@ if $ARGS[0] = '$get_breastmilk':
 			breastcounter += pumptime/10
 		end
 		!!	Done - Result is the milked volume.
-		RESULT = milkedvolume
+		result = lactation['get_bm_milkedvolume']
 	end
 end
 
