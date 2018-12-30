@@ -1,54 +1,79 @@
 # mitkabuh
 
-!MiraLoc tells us where Mira is Located
-!----------------------------------------------
-!MiraLoc = 0 (Mira at home)
-!MiraLoc = 1 (Mira at river)
-!MiraLoc = 2 (Mira at meadow)
-!MiraLoc = 3 (Mira at forest)
-!MiraLoc = 4 (Mira at field)
-!MiraLoc = 5 (Mira with gop)
-!---------------------------------------------
-! gadriver_gang > 3 village guys promised not to have sex with PC
-
-!! default entry point
 if $ARGS[0] = '':
+	menu_off = 1
+	CLOSE ALL
 	gs 'stat'
-	if hour >= 17:
-		if MiraLoc ! 5 :
-			gt 'mitkabuh','partyalone'
+	
+	'<center><img <<$set_imgh>> src="images/locations/gadukino/village/mitka_old_trailer.jpg"></center>'
+	*nl
+	if mitka_first_drink = 1:
+		'You follow the boys into the woods. After about 15 minutes you get to an old rusty trailer partially overgrown with vegetation. It obviously has been here a long time.'
+		'Mitka announces that we''ve arrived. He wasn''t joking when he said that no one would ever bother them out here.'
+		'It isn''t a very far walk but you would definitely have to know where you are going to find this place.'
+	else
+		'You follow the boys into the woods. Soon the familiar old trailer comes into view.'
+	end
+	*nl
+	if sunWeather = 1:
+		'The skies are clear today so you all decide to drink outside tonight.'
+		if mitka_first_drink = 1:
+			'The boys have arranged a couple of logs and a bench into a small circle for everyone to sit on. Not the most comfortable seating ever but you''ll probably be too drunk to care soon enough.'
 		else
-			gt 'mitkabuh','partywithMira'
+			'You quickly head over to the bench and sit down before anyone else can claim it.'
+		end
+		
+		act 'Sit down outside':
+			if MiraLoc ! 5:
+				gt 'mitkabuh','partyalone'
+			else
+				gt 'mitkabuh','partywithMira'
+			end
 		end
 	else
-		if MiraLoc = 5 : MiraLoc = 0
-		gt 'Gaddvor'
+		'The weather is poor outside today so you all decide to drink inside tonight.'
+		if mitka_first_drink = 1:
+			'The inside of the trailer is about what you expected. A couple couches and tables in the main area along with a bedroom at the back, not that it is ever used for sleeping.'
+			'There are empty bottles and cups scattered around the whole interior of the trailer and you can still smell the alcohol. This obviously not the first party in the trailer and certainly won''t be the last.'
+		else
+			'The inside of the trailer looks like last time, just with maybe a few more empty bottles and cups strewn about. You quickly head over to the best couch and sit down before anyone else can claim it.'
+		end
+		
+		act 'Go inside the trailer':
+			if MiraLoc ! 5:
+				gt 'mitkabuh','partyalone'
+			else
+				gt 'mitkabuh','partywithMira'
+			end
+		end
 	end
 end
 
 if $ARGS[0] = 'partyalone':
 	$loc = 'mitkabuh'
 	$metka = 'partyalone'
+	$location_type = 'secluded'
+	
 	$menu_loc = 'mitkabuh'
 	$menu_arg = 'partyalone'
-	menu_off = 0
-	$location_type = 'public_outdoors'
-	CLOSE ALL
-
-	$menu_loc = 'mitkabuh'
-	$menu_arg = 'partyalone'
-	menu_off = 0
-
-	!! repeat until drunk
+	menu_off = 0	
+	
+	'<center><img <<$set_imgh>> src="images/locations/gadukino/village/drunk.jpg"></center>'
+	*nl
+	'You, Mitka, Kolyamba and Vasyan are sitting on some '+iif(sunWeather=1,'logs outside','couches inside')+' the trailer. There is plenty of moonshine to go around but no snacks.'
+	
+	! prevent drinking events from repeating after sex is done because the passage of time in the sex events allowed alko to decrease again
+	if mitkabuhday = 1 and alko < 10: alko = 10
+	
 	! Sveta is not drunk
-	if alko < 8:
-		'<center><img <<$set_imgh>> src="images/locations/gadukino/village/drunk.jpg"></center>'
-		'Sitting in a secluded spot behind your grandparents'' house the three village boys, Mitka Shkvoryen, Vasyan Paket and Kolyamba Pyut are drinking moonshine, without any snacks. Mitka pours the brew into a clear plastic shot glass and hands it over to you.'
-		act 'Leave':gt 'Gaddvor'
-		act 'Drink':
-			menu_off = 1
+	if alko < 10:
+		act 'Drink with the boys':
 			*clr & cla
+			menu_off = 1
 			minut += 30
+			npc_rel['A63'] += 1
+			npc_rel['A62'] += 1
+			npc_rel['A61'] += 1
 			alko += rand(3,5)
 			cumspclnt = 2
 			gs 'cum_cleanup'
@@ -59,628 +84,579 @@ if $ARGS[0] = 'partyalone':
 				pcs_hydra -= 10
 			end
 			gs 'stat'
-			'<center><img <<$set_imgh>> src="images/locations/gadukino/village/drunk.jpg"></center>'
-			'You drink the moonshine and it burns as it goes down your throat. Your eyes water a little and you have a tough time catching your breath. You wipe your eyes and mouth on your sleeve, and look around but are a little disappointed because of the lack of snacks to munch on. Mitka said approvingly "Good shit, huh."'
+			
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/village/drinking.jpg"></center>'
+			*nl
+			'Mitka pours some of the brew into a clear plastic shot glass and hands it over to you.'
+			'The moonshine burns as it goes down your throat. Your eyes water a little and you have a tough time catching your breath. You compose yourself, and look around but remember no one brought anything to eat.'
+			'Mitka looks at you approvingly, "Good shit, right?"'
+			if mitka_first_drink = 1:
+				mitka_first_drink = 2
+				'"That was stronger than I expected!" you reply.'
+			else
+				'"Just as good as the last batch you made!" you reply.'
+			end
 
-			act 'Continue drinking':gt 'mitkabuh'
+			act 'Continue drinking':gt 'mitkabuh', 'partyalone'
 		end
+		act 'Leave': mitkabuhday = 0 & minut += 15 & gt 'gadroad'
 	! Sveta is drunk and is a sub or already had sex with Mitka or is the village whore
 	elseif gadriver_gang < 3 and (npc_QW['A63'] > 0 or sub >= 25):
 		*clr & cla
-		if mitkadaybuh ! daystart:
-			menu_off = 1
-			mitkadaybuh = daystart
-			'<center><img <<$set_imgh>> src="images/locations/gadukino/village/drunk.jpg"></center>'
-			'You are trashed - your legs can barely keep you upright. Mitka, noticing your condition, grabs you by the waist. "Well, well little <<$pcs_nickname>>, come with me."'
-			if npc_QW['A63'] < 3:
-				act 'You nod and slur your words...mumbling something as you fell into his waiting arms':
-					*clr & cla
-					if pcs_vag = 0:
-						'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkafirst.jpg"></center>'
-					else
-						'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitka2.jpg"></center>'
-					end
-					*nl
-					'Mitka takes you to his house and onto the veranda. He has you sit on the couch and begins pawing at your clothes pulling them off you.'
-					*nl
-					'Mitka, breathing heavily gets off of you and says, "You''re a good fuck! We should do it again soon!"'
-					gs 'boyStat', 'A63'
-					npc_sex[$boy] += 1
-					pose = 0
-					npc_QW['A63'] += 1
-					gs 'dinsex', 'boy_puts_condom'
-					gs 'dinsex','vaginal_sex',10
-					gs 'dinsex','sexcum'
-					gs 'arousal', 'end'
-					gs 'stat'
-
-					act 'Leave':gt 'Gaddvor'
-				end
-			elseif npc_QW['A63'] < 10:
-				xgt 'mitkabuh','solo_3to9'
+		menu_off = 1
+		if mitkabuhday = 0:
+			mitkabuhday = 1
+			if npc_QW['A63'] < 10:
+				gt 'mitkabuh','solo_1to9'
 			elseif npc_QW['A63'] = 10:
-				xgt 'mitkabuh','solo_10'
-			elseif npc_QW['A63'] = 11:
-				xgt 'mitkabuh','solo_11'
-			elseif npc_QW['A63'] = 12:
-				xgt 'mitkabuh','solo_12'
-			elseif npc_QW['A63'] = 13:
-				xgt 'mitkabuh','solo_13'
-			elseif npc_QW['A63'] = 14:
-				xgt 'mitkabuh','solo_14'
+				gt 'mitkabuh','solo_10'
 			else
-				xgt 'mitkabuh','solo_ge15'
+				mitkarand = rand(1,10)
+				if mitkarand < 4:
+					gt 'mitkabuh','solo_11andup_1boy'
+				elseif mitkarand < 10:
+					gt 'mitkabuh','solo_11andup_2boys'
+				else
+					gt 'mitkabuh','solo_11andup_3boys'
+				end
 			end
 		else
-			menu_off = 1
 			'<center><img <<$set_imgh>> src="images/locations/gadukino/village/drunk.jpg"></center>'
+			*nl
 			if npc_QW['A63'] < 10:
-				'The guys talk about you, not paying you any attention.'
+				'You are way too drunk and can barely stand. You decide it is time to go for the night.'
+				'As you are leaving you overhear the guys talking about you, but can''t make out what they are saying.'
 			else
-				' "Hey, <<$pcs_nickname>>, come drink with us again, we love fucking you!! Ha-ha!" They laugh as you make your way back to your grandparents cottage. You are too drunk to come up with a proper insult and just mumble, "I''m sure you can find someone else instead..."'
+				'You are way too drunk and can barely stand. The guys tell you to leave, they already fucked you tonight, but to make sure to come back tomorrow for another round.'
+				if npc_QW['A60'] < 11:
+					'As you are leaving the guys call after you "Hey, <<$pcs_nickname>>, come drink with us again, we love fucking you!! Ha-ha!" They laugh as you make your way out. You are too drunk to come up with a proper insult and just mumble, "I''m sure you can find someone else instead..."'
+				else
+					'As you are leaving the guys call after you "Hey, <<$pcs_nickname>>, come drink with us again, we love fucking you!! Ha-ha!" They laugh as you make your way out. You are too drunk to come up with a proper insult and just walk away.'
+				end
 			end
-			act 'Leave':gt'Gaddvor'
+			
+			act 'Leave': mitkabuhday = 0 & minut += 15 & gt 'gadroad'
 		end
 	! Sveta is drunk but hasn''t done anything to encourage Mitka yet
 	else
+		*clr & cla
 		menu_off = 1
-		'<center><img <<$set_imgh>> src="images/locations/gadukino/village/drunk.jpg"></center>'
-		'You are absolutely trashed, your legs refuse to follow your directions and you slowly slide to the ground. Mitka, noticing your condition, he steps over to you and picks you up and laughs, "It seems, you''ve had enough..."'
-		act 'Leave':gt'Gaddvor'
+		'<center><img <<$set_imgh>> src="images/locations/gadukino/village/mitka.jpg"></center>'
+		*nl
+		'You are way too drunk, and can barely stand. Mitka, noticing your condition, walks over to you and laughs, "It seems, you''ve had enough for tonight. Get out of here."'
+		
+		act 'Leave': mitkabuhday = 0 & minut += 15 & gt 'gadroad'
 	end
 end
 
 if $ARGS[0] = 'partywithMira':
 	$loc = 'mitkabuh'
 	$metka = 'partywithMira'
+	$location_type = 'secluded'
+	
 	$menu_loc = 'mitkabuh'
 	$menu_arg = 'partywithMira'
 	menu_off = 0
-	$location_type = 'public_outdoors'
-	CLOSE ALL
-
-	$menu_loc = 'mitkabuh'
-	$menu_arg = 'partywithMira'
-	menu_off = 0
-
-	! first time to kick off Mira quest
-	if npc_QW['A60'] = 0:
-		'<center><img <<$set_imgh>> src="images/locations/gadukino/village/drunk.jpg"></center>'
-		'Set in a secluded spot behind your grandparents'' house the three village boys, Mitka Shkvoryen, Vasyan Paket and Kolyamba Pyut are drinking moonshine, without any snacks. You and Mira approach them and ask for a drink. The guys immediately brighten up and nod their heads. They introduce theyselves and welcome you both to the party. Mitka pours the brew into a clear plastic shot glass and hands it over to you and Mira.'
-		npc_QW['A60'] = 1
-		act 'Drink with the boys': gt 'mitkabuh'
-	else
-		'<center><img <<$set_imgh>> src="images/locations/gadukino/village/drunk.jpg"></center>'
-		if alko = 0: 'Set in a secluded spot behind your grandparents'' house the three village boys, Mitka Shkvoryen, Vasyan Paket and Kolyamba Pyut are drinking moonshine, without any snacks. You and Mira approach them and ask for a drink. The guys immediately brighten up and actively nod their heads. Mitka pours the brew into a clear plastic shot glass and hands it over to you and Mira.'
-		if alko > 0: 'Set in a secluded spot behind your grandparents'' house the three village boys, Mitka Shkvoryen, Vasyan Paket and Kolyamba Pyut are drinking moonshine, without any snacks. Mitka pours the brew into a clear plastic shot glass and hands it over to you and Mira.'
-		!Sveta is not drunk and Mira is not drunk
-		if alko < 8 and npc_drunk['A60'] < 8:
-
-			if alko <4: act 'Leave':MiraLoc = 0 & gt'Gaddvor'
-
-			temp_mb = RAND(0,1)
-			if temp_mb = 0:
-				act 'You take the liquor and swallow it quickly':
-					menu_off = 1
-					*clr & cla
-					'<center><img <<$set_imgh>> src="images/locations/gadukino/village/drinking.jpg"></center>'
-					'You take a glass of moonshine and quickly gulp it down, you cough and suck in your breath. Mira meanwhile holds her drink and slowly sips on it, while the local youths encourage her to slug it down like you did.'
-					minut += 15
+	
+	!start Mira''s quest
+	if npc_QW['A60'] = 0: npc_QW['A60'] = 1
+	
+	'<center><img <<$set_imgh>> src="images/locations/gadukino/village/drunk.jpg"></center>'
+	*nl
+	'You, Mira, Mitka, Kolyamba and Vasyan are sitting on some '+iif(sunWeather=1,'logs outside','couches inside')+' the trailer. There is plenty of moonshine to go around but no snacks.'
+	
+	! prevent drinking events from repeating after sex is done because the passage of time in the sex events allowed alko to decrease again
+	if mitkabuhday = 1 and alko < 10: alko = 10
+	if mitkabuhmiraday = 1 and npc_drunk['A60'] < 10: npc_drunk['A60'] = 10
+	
+	! Sveta is drunk and Mira is drunk and boys fucked both already tonight
+	if npc_drunk['A60'] >= 10 and alko >= 10 and mitkabuhday = 1 and mitkabuhmiraday = 1:
+		*clr & cla
+		'<center><img <<$set_imgh>> src="images/characters/village/mira/girls_go.jpg"></center>'
+		*nl
+		if npc_QW['A63'] < 11 and npc_QW['A60'] < 11:
+			'You and Mira are both way too drunk and can barely stand. You decide it is time to go for the night and you should walk home together.'
+			'As you are leaving you overhear the guys talking about you both, but can''t make out what they are saying.'
+		elseif npc_QW['A63'] < 11 and npc_QW['A60'] >= 11:
+			'You and Mira are both way too drunk and can barely stand. You decide it is time to go for the night and you should walk home together.'
+			'As you are leaving the guys call after Mira "Hey, Mira, come drink with us again, we love fucking you!! Ha-ha!" They laugh as you make your way out.'
+		elseif npc_QW['A63'] >= 11 and npc_QW['A60'] < 11:
+			'You and Mira are both way too drunk and can barely stand. The guys tell you to leave, they already fucked you tonight, but to make sure to come back tomorrow for another round.'
+			'As you are leaving the guys call after you "Hey, <<$pcs_nickname>>, come drink with us again, we love fucking you!! Ha-ha!" They laugh as you make your way out. You are too drunk to come up with a proper insult and just mumble, "I''m sure you can find someone else instead..."'
+		elseif npc_QW['A63'] >= 11 and npc_QW['A60'] >= 11:
+			'You and Mira are both way too drunk and can barely stand. The guys tell you to leave, they already fucked you tonight, but to make sure to come back tomorrow for another round.'
+			'As you are leaving the guys call after you both "Hey, <<$pcs_nickname>> and Mira, come drink with us again, we love fucking you both!! Ha-ha!" They laugh as you make your way out. You are too drunk to come up with a proper insult and just walk away with Mira.'
+		end
+		
+		act 'Leave': MiraLoc = 0 & npc_drunk['A60'] = 0 & mitkabuhmiraday = 0 & mitkabuhday = 0 & minut += 15 & gt 'gadroad'
+	! Mira is drunk and not had sex with the boys or refused a drink yet tonight
+	elseif npc_drunk['A60'] >= 10 and mitkabuhmiraday = 0:
+		*clr & cla
+		mitkabuhmiraday = 1
+		if npc_QW['A60'] = 5:
+			gt 'mitkabuh','mira_5'
+		elseif npc_QW['A60'] = 7:
+			gt 'mitkabuh','mira_7'
+		elseif npc_QW['A60'] = 8:
+			gt 'mitkabuh','mira_8'
+		elseif npc_QW['A60'] = 9:
+			gt 'mitkabuh','mira_9'
+		elseif npc_QW['A60'] >= 11:
+			gt 'mitkabuh','mira_11andup'
+		else
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/village/drinking.jpg"></center>'
+			*nl
+			'You attempt to pass Mira a shot glass full of liquor, but she refuses. She has already had too much tonight and is happy to just chat the rest of the night.'
+			if alko < 10:
+				act 'Drink the shot yourself':
+					cla
+					minut += 30
+					npc_rel['A63'] += 1
+					npc_rel['A62'] += 1
+					npc_rel['A61'] += 1
+					npc_rel['A60'] += 1
 					alko += rand(3,5)
 					cumspclnt = 2
 					gs 'cum_cleanup'
 					pcs_breath = 0
-					gs 'stat'
-
-					act 'Continue drinking':gt 'mitkabuh'
-				end
-			elseif temp_mb = 1:
-				act 'You pass the shot glass of liquor to Mira':
-					menu_off = 1
-					*clr & cla
-					npc_drunk['A60'] += RAND(3,5)
-					minut += 15
-					gs 'stat'
-					mirapiss = RAND(0,10)
-					if npc_QW['A60'] >= 8 and mirapiss <= 2:
-						gt 'mitkabuh','with_mira_piss_1'
-					elseif npc_QW['A60'] >= 11 and mirapiss >= 3 and mirapiss < 6:
-						gt 'mitkabuh','with_mira_piss_2'
-					elseif npc_QW['A60'] >= 15 and mirapiss = 6:
-						gt 'mitkabuh','with_mira_piss_3'
+					if pcs_hydra >= 100:
+						pcs_hydra -= 5
 					else
-						'<center><img <<$set_imgh>> src="images/locations/gadukino/village/drinking.jpg"></center>'
-						'You pass Mira a shot glass full of liquor, she examines the glass''s contents for a moment, then gulps down the entire glass with a single tose of her head. Her eyes wided and she coughs a little, sucking in her breath with a smile. You talk lively with the guys as they drink as well.'
-						act 'Continue drinking':gt 'mitkabuh'
+						pcs_hydra -= 10
 					end
+					gs 'stat'
+					
+					act 'Continue drinking':gt 'mitkabuh','partywithMira'
 				end
-			end
-		! Sveta is drunk
-		elseif alko >= 8:
-			menu_off = 1
-			mitkadaybuh = daystart
-			! never had sex with Mitka and Mira is not already the boys slut or Sveta is not the village whore
-			if (npc_QW['A63'] = 0 and npc_QW['A60'] < 11) or gadriver_gang > 2:
-				*clr & cla
-				'<center><img <<$set_imgh>> src="images/locations/gadukino/village/drunk.jpg"></center>'
-				'You got absolutely trashed, your legs refuse to follow your directions and you slowly slide to the ground. Mitka, noticing your condition, he steps over to you and picks you up and laughs, "It seems, you''ve had enough..."'
-				'Mira comes over and takes you back to your grandparents house.'
-				gs 'stat'
-
-				act 'Leave':MiraLoc = 0 & gt 'Gaddvor'
-			! Mira is already the boys slut and cannot stand up to them to take you home anymore or Sveta has already had sex with Mitka
 			else
 				*clr & cla
-				'<center><img <<$set_imgh>> src="images/locations/gadukino/village/drunk.jpg"></center>'
-				if mirasextimes < 13:'You are trashed, your legs can barely hold you upright. Mitka, noticing your condition, steps over to you and grabs you by the waist and pulls you close. "Well now, <<$pcs_nickname>>, come with me and lets have some fun?"'
-				if mirasextimes >= 13:'You got so drunk on the swill they served you, your legs can barely hold you upright. Mitka notices your condition, he walks over and offers to fuck you right there in front of the others.'
-!				if npc_QW['A63'] < 10:
-					temp_mb = RAND(0,5)
-					if temp_mb = 0 or (temp_mb < 3 and pcs_vag > 0):
-						act 'You mumble and slur your words':
-							*clr & cla
-						if pcs_vag = 0:
-							'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkafirst.jpg"></center>'
-						else
-							'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkasex1.jpg"></center>'
-						end
-						'Mitka, with a last wink to the other guys, and not paying Mira any attention, walks you back to his house''s porch where he quickly began to undress you.'
-						if pcs_vag = 0: 'You''re so drunk you don''t even feel your hymen break as Mitka penetrates you. Mitka looks down at you in surprise and says, "Wow, how were you still a virgin? If I had known, I would have savoured moment this longer!"'
-							gs 'boyStat', 'A63'
-							npc_sex[$boy] += 1
-							pose = 0
-							npc_QW['A63'] += 1
-							if mesec = 0:
-								gs 'dinsex', 'boy_puts_condom'
-								gs 'dinsex','vaginal_sex',10
-								gs 'dinsex','sexcum'
-							else
-								gs 'dinSex','boy_wants_anal','lubri'
-								gs 'dinsex','analsex',10
-							end
-							'Mitka, get off of you after cumming. "I really liked fucking you <<$pcs_nickname>>!"'
-							gs 'arousal', 'end'
-							gs 'stat'
-
-							act 'Leave':MiraLoc = 0 & gt'Gaddvor'
-						end
-					elseif temp_mb < 5:
-						act 'Suck':
-							*clr & cla
-							'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkabj.jpg"></center>'
-							'Mitka, with a last wink to the other guys, and not paying Mira any attention, walks you back to his house''s porch where he demanded you get on knees and give him a blowjob.'
-							gs 'boyStat', 'A63'
-							npc_sex[$boy] += 1
-							gs 'oral','start'
-							npc_QW['A63'] += 1
-							gs 'stat'
-							if rand(0,5) < 3:
-								act 'Swallow':
-									*clr & cla
-									'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkabjcum.jpg"></center>'
-									'Mitka, suddenly stops fucking your mouth for a few seconds. You tighten your grip around his cock without taking it out of your mouth. Mitka yells fiercely, as he begins to erupt into your mouth. Cum...you love the taste of the warm sticky liquid of life.'
-									minut += 10
-									gs 'cum_call','mouth',$boy,1
-									gs 'arousal', 'end'
-									gs 'stat'
-
-									act 'Leave':MiraLoc = 0 & gt'Gaddvor'
-								end
-							elseif temp_mb < 5:
-								act 'Swallow':
-									*clr & cla
-									'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkabjcum1.jpg"></center>'
-									'You don''t have time enough to take Mitka''s cock in her mouth before he starts to cum on your lips and face, while you''re trying to figure out, what just happened...'
-									minut += 10
-									gs 'cum_call','face',$boy,1
-									gs 'arousal', 'end'
-									gs 'stat'
-
-									act 'Leave':MiraLoc = 0 & gt'Gaddvor'
-								end
-							else
-								act 'Swallow':
-									*clr & cla
-									'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkabjcum2.jpg"></center>'
-									'You''re trying to take Mitka''s cock in your mouth, but he rudely grabs you by the hair and pulls his cock out of your mouth and starts to spray cum on your face...'
-									minut += 10
-									swallow += 1
-									sub += 1
-									gs 'cum_call','face',$boy,1
-									gs 'arousal', 'end'
-									gs 'stat'
-
-									act 'Leave':MiraLoc = 0 & gt'Gaddvor'
-								end
-							end
-						end
-					else
-						act 'Slurred mumble':
-							*clr & cla
-							if pcs_ass < 10:
-								'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkaanal.jpg"></center>'
-							else
-								'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkaanal1.jpg"></center>'
-							end
-							'Mitka, with a last wink to the other guys, and not paying Mira any attention, walks you back to his house''s porch where he quickly began to undress you.'
-							gs 'boyStat', 'A63'
-							npc_sex[$boy] += 1
-							pose = 0
-							npc_QW['A63'] += 1
-							gs 'dinSex','boy_wants_anal','lubri'
-							gs 'dinsex','analsex',10
-							gs 'cum_call','anus',$boy,1
-							gs 'arousal', 'end'
-							gs 'stat'
-
-							act 'Leave':MiraLoc = 0 & gt'Gaddvor'
-						end
-					end
-!				end
+				'<center><img <<$set_imgh>> src="images/characters/village/mira/girls_go.jpg"></center>'
+				*nl
+				'You and Mira are both way too drunk and can barely stand. You decide it is time to go for the night and you should walk home together.'
+				'As you are leaving you overhear the guys talking about you both, but can''t make out what they are saying.'
+				
+				act 'Leave': MiraLoc = 0 & npc_drunk['A60'] = 0 & mitkabuhmiraday = 0 & mitkabuhday = 0 & minut += 15 & gt 'gadroad'
 			end
-		! Mira is drunk
+		end
+	! Sveta is drunk and not had sex with the boys or refused a drink yet tonight
+	elseif alko >= 10 and mitkabuhday = 0:
+		*clr & cla
+		mitkabuhday = 1
+		! Sveta is the village whore and already had sex with Mitka or is a sub
+		if gadriver_gang < 3 and (npc_QW['A63'] > 0 or sub >= 25):
+			if npc_QW['A63'] < 10:
+				gt 'mitkabuh','solo_1to9'
+			elseif npc_QW['A63'] = 10:
+				gt 'mitkabuh','solo_10'
+			else
+				mitkarand = rand(1,10)
+				if mitkarand < 4:
+					gt 'mitkabuh','solo_11andup_1boy'
+				elseif mitkarand < 10:
+					gt 'mitkabuh','solo_11andup_2boys'
+				else
+					gt 'mitkabuh','solo_11andup_3boys'
+				end
+			end
 		else
-			menu_off = 1
-			if npc_QW['A60'] = 5:
-				menu_off = 1
-				*clr & cla
-				'<center><img <<$set_imgh>> src="images/locations/gadukino/village/drunkgirl.jpg"></center>'
-				'You''re already drunk, but remember Mira''s words, Therefore, still trying not to touch any of the others. Mira threw you a knowing look, and as soon as they said their goodbyes to you, you waited a couple of minutes before following behind Vasya and Kolambaya and go to Mitka''s home. A little short of a the house you hear the couple a few dozen feet in front of you, loudly chattering at each other. You fumble in the dark a bit before you find a hiding place to watch from without being seen yourself. You watch what is happening to Mira in the yard....'
-				minut += 10
-				gs 'stat'
-				act 'Watch':
-					*clr & cla
-					'<center><img <<$set_imgh>> src="images/characters/village/mira/sex/mirawish1_2.jpg"></center>'
-					'A drunk and naked Mira is lying on a wooden table, leaning against a fence. Mitka was, with measured movements, nailing her with his cock. Each time he pushes into her, Mira softly moaned and the table creaked under her. Looking closer you can see that Mira kept her promise letting Mitka ravage her ass while you watch. The loud slaps of their contacting bodies could easily be heard from where you were spying from. After 10 minutes Mira is wriggling her ass and mooing, having the time of her life. This is too much for Mitka and he begins to noisily cum in her ass, not even bothering to pull out. Mira''s now looking around trying to find you in her drunk state, but can''t spot you. Mitka pulls out and get Mira to clean his cock before she cleans herself up...'
-					mirasextimes += 1
-					npc_QW['A60'] = 6
-					pcs_horny += 50
-					minut += 10
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/village/drinking.jpg"></center>'
+			*nl
+			'Mira attempts to pass you another shot glass full of liquor, but you refuse. You have already had too much tonight and are happy to just chat the rest of the night.'
+			if npc_drunk['A60'] < 10:
+				act 'Mira drinks the shot instead':
+					cla
+					minut += 30
+					npc_rel['A63'] += 1
+					npc_rel['A62'] += 1
+					npc_rel['A61'] += 1
+					npc_rel['A60'] += 1
+					npc_drunk['A60'] += rand(3,5)
 					gs 'stat'
-
-					act 'Leave':MiraLoc = 0 & minut += 15 & gt'Gaddvor'
+					
+					act 'Continue drinking':gt 'mitkabuh','partywithMira'
 				end
 			else
 				*clr & cla
-				'<center><img <<$set_imgh>> src="images/locations/gadukino/village/drunkgirl.jpg"></center>'
-				'Mira got blind drunk, you had to support her all the way home so that she didn''t fall down. She mumbles something completely unintelligible at times and has no idea where she is. You yourself are no better - you can barely see in the dark and just want to get home and sleep in a soft warm bed. If you drink even one more glass you will fall over so you decide to leave for the night. You say goodbye to the boys and go home.'
-				mirasextimes += 1
-				minut += 10
-				gs 'stat'
-
-				act 'Leave':MiraLoc = 0 & gt'Gaddvor'
+				'<center><img <<$set_imgh>> src="images/characters/village/mira/girls_go.jpg"></center>'
+				*nl
+				'You and Mira are both way too drunk and can barely stand. You decide it is time to go for the night and you should walk home together.'
+				'As you are leaving you overhear the guys talking about you both, but can''t make out what they are saying.'
+				
+				act 'Leave': MiraLoc = 0 & npc_drunk['A60'] = 0 & mitkabuhmiraday = 0 & mitkabuhday = 0 & minut += 15 & gt 'gadroad'
 			end
+		end
+	else
+		! Sveta is not drunk and Mira is not drunk
+		if alko < 10 and npc_drunk['A60'] < 10:
+			act 'Drink with Mira and the boys':
+				*clr & cla
+				menu_off = 1
+				minut += 30
+				npc_rel['A63'] += 1
+				npc_rel['A62'] += 1
+				npc_rel['A61'] += 1
+				npc_rel['A60'] += 1
+				gs 'stat'
+				
+				'<center><img <<$set_imgh>> src="images/locations/gadukino/village/drinking.jpg"></center>'
+				*nl
+				mirarand = rand(0,1)
+				if mirarand = 0:
+					'Mitka pours some of the brew into a clear plastic shot glass and hands it over to you.'
+					'You take the shot glass full of moonshine and quickly gulp it down, you cough and suck in your breath. Mira chats with the boys as they drink as well.'
+					'Mitka looks at you approvingly, "Good shit, right?"'
+					if mitka_first_drink = 1:
+						mitka_first_drink = 2
+						'"That was stronger than I expected!" you reply.'
+					else
+						'"Just as good as the last batch you made!" you reply.'
+					end
+					alko += rand(3,5)
+					cumspclnt = 2
+					gs 'cum_cleanup'
+					pcs_breath = 0
+					if pcs_hydra >= 100:
+						pcs_hydra -= 5
+					else
+						pcs_hydra -= 10
+					end
+					gs 'stat'
+				else
+					'Mitka pours some of the brew into a clear plastic shot glass and hands it over to Mira.'
+					'Mira examines the glass''s contents for a moment, then gulps down the entire glass with a single toss of her head. Her eyes widen and she coughs a little, sucking in her breath with a smile. You chat with the boys as they drink as well.'
+					npc_drunk['A60'] += rand(3,5)
+					gs 'stat'
+				end
+				
+				act 'Continue drinking':gt 'mitkabuh','partywithMira'
+			end
+			act 'Leave': MiraLoc = 0 & npc_drunk['A60'] = 0 & mitkabuhmiraday = 0 & mitkabuhday = 0 & minut += 15 & gt 'gadroad'
+		! Sveta is not drunk
+		elseif alko < 10:
+			act 'Drink with the boys':
+				*clr & cla
+				menu_off = 1
+				minut += 30
+				npc_rel['A63'] += 1
+				npc_rel['A62'] += 1
+				npc_rel['A61'] += 1
+				alko += rand(3,5)
+				cumspclnt = 2
+				gs 'cum_cleanup'
+				pcs_breath = 0
+				if pcs_hydra >= 100:
+					pcs_hydra -= 5
+				else
+					pcs_hydra -= 10
+				end
+				gs 'stat'
+				
+				'<center><img <<$set_imgh>> src="images/locations/gadukino/village/drinking.jpg"></center>'
+				*nl
+				'Mitka pours some of the brew into a clear plastic shot glass and hands it over to you.'
+				'The moonshine burns as it goes down your throat. Your eyes water a little and you have a tough time catching your breath. You compose yourself, and look around but remember no one brought anything to eat.'
+				'Mitka looks at you approvingly, "Good shit, right?"'
+				if mitka_first_drink = 1:
+					mitka_first_drink = 2
+					'"That was stronger than I expected!" you reply.'
+				else
+					'"Just as good as the last batch you made!" you reply.'
+				end
+
+				act 'Continue drinking':gt 'mitkabuh', 'partywithMira'
+			end
+			act 'Leave': MiraLoc = 0 & npc_drunk['A60'] = 0 & mitkabuhmiraday = 0 & mitkabuhday = 0 & minut += 15 & gt 'gadroad'
+		! Mira is not drunk
+		elseif npc_drunk['A60'] < 10:
+			act 'Watch Mira drink with the boys':
+				*clr & cla
+				menu_off = 1
+				npc_rel['A63'] += 1
+				npc_rel['A62'] += 1
+				npc_rel['A61'] += 1
+				npc_rel['A60'] += 1
+				minut += 30
+				npc_drunk['A60'] += rand(3,5)
+				gs 'stat'
+				
+				'<center><img <<$set_imgh>> src="images/locations/gadukino/village/drinking.jpg"></center>'
+				*nl
+				'Mitka pours some of the brew into a clear plastic shot glass and hands it over to Mira.'
+				'Mira examines the glass''s contents for a moment, then gulps down the entire glass with a single toss of her head. Her eyes widen and she coughs a little, sucking in her breath with a smile. You chat with the boys as they drink as well.'
+				
+				act 'Continue watching':gt 'mitkabuh','partywithMira'
+			end
+			act 'Leave': MiraLoc = 0 & npc_drunk['A60'] = 0 & mitkabuhmiraday = 0 & mitkabuhday = 0 & minut += 15 & gt 'gadroad'
 		end
 	end
 end
 
-if $ARGS[0] = 'solo_3to9':
+if $ARGS[0] = 'solo_1to9':
+	*clr & cla
 	menu_off = 1
-	temp_mb = RAND(0,5)
-	if temp_mb = 0 or (temp_mb < 3 and pcs_vag > 0):
-		act 'Slurred mumble':
+	'<center><img <<$set_imgh>> src="images/locations/gadukino/village/mitka.jpg"></center>'
+	*nl
+	'You are way too drunk and can barely stand. Mitka, noticing your condition, grabs you by the waist. "Well, well little <<$pcs_nickname>>, had a bit too much to drink? Come with me."'
+	
+	mitkarand = rand(1,10)
+	if (mitkarand = 1 or (mitkarand < 5 and pcs_vag > 0)) and mesec = 0:
+		act 'You nod and slur your words...mumbling something as you fall into his waiting arms':
 			*clr & cla
 			if pcs_vag = 0:
 				'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkafirst.jpg"></center>'
 			else
 				'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitka2.jpg"></center>'
 			end
-			'Mitka takes you to his house and starts pulling off your clothes and tosses them aside.'
 			*nl
-			if pcs_vag = 0: 'You''re so drunk you don''t even feel your hymen break as Mitka penetrates you. Mitka looks down at you in surprise and says, "Wow, how were you still a virgin? If I had known, I would have savoured moment this longer!"'
-			'"Fuck me <<$pcs_nickname>>, your pussy felt so good wrapped around my dick!", Mitka whispered in your ear.'
-			gs 'boyStat', 'A63'
-			npc_sex[$boy] += 1
-			pose = 0
-			npc_QW['A63'] += 1
-			if mesec = 0:
-				gs 'dinsex', 'boy_puts_condom'
-				gs 'dinsex','vaginal_sex',10
-				gs 'dinsex','sexcum'
+			'He takes you '+iif(sunWeather=1,'inside the trailer,','into the bedroom of the trailer,')+' has you lie down on the bed and begins removing your clothes.'
+			if pcs_vag = 0:
+				'You feel your hymen break as Mitka penetrates you. Mitka looks down at you and says, "Wow, how were you still a virgin? I should have savoured this moment longer!"'
 			else
-				gs 'dinSex','boy_wants_anal','lubri'
-				gs 'dinsex','analsex',10
+				'Mitka is clearly enjoying fucking you. He has a huge smile on his face as he holds you in place beneath him.'
 			end
-			*nl
+			'Mitka doesn''t bother to pull out and cums deep inside you. Breathing heavily, he gets off of you and says, "You''re an even better slut when drunk!"'
+			'He gets up and goes back to drinking with Kolyamba and Vasyan, leaving you naked on the bed. After a little while you sober up enough to get dressed and go sit back by the boys.'
+			
+			npc_rel['A63'] += 1
+			if npc_QW['A63'] < 10: npc_QW['A63'] += 1
+			gs 'boyStat', 'A63'
+			npc_sex['A63'] += 1
+			sub += 1
+			gs 'cum_call','vagina','A63',1
+			gs 'arousal', 'vaginal', 20, 'sub'
 			gs 'arousal', 'end'
 			gs 'stat'
-
-			act 'Leave':gt'Gaddvor'
-		end
-	elseif temp_mb < 5:
-		act 'Suck':
-			*clr & cla
-			gs 'boyStat', 'A63'
-			npc_sex[$boy] += 1
-			'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkabj.jpg"></center>'
-			'Mitka takes you to his house, pulls off your shirt and then presses down on your shoulders; you know what he wants...'
-			gs 'oral','start'
-			gs 'stat'
-			if RAND(0,2) = 0:
-				act 'Swallow':
-					*clr & cla
-					'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkabjcum.jpg"></center>'
-					'You tighten your lips and suck harder on Mitka''s cock. Your head bobs up and down fiercely as you cram as much of his ''yummy'' cock as deep in your mouth and throat as you can take it. Finally, with a shout of beastial preasure, Mitka erupts into your mouth. You swallow all of the warm sticky sperm...'
-					minut += 10
-					gs 'cum_call','mouth',$boy, 1
-					swallow += 1
-					npc_QW['A63'] += 1
-					gs 'arousal', 'end'
-					gs 'stat'
-
-					act 'Leave':gt'Gaddvor'
-				end
-			elseif RAND(0,1) = 0:
-				act 'Swallow':
-					*clr & cla
-					'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkabjcum1.jpg"></center>'
-					'You are sucking his cock fiercely until suddenly he starts to spurt warm sticky spunk into your mouth and coats your lips too. Slowly, you shake your head trying to clear your head, what just happened...'
-					minut += 10
-					gs 'cum_call','face',$boy, 1,'','',20
-					gs 'cum_call','mouth',$boy, 1,'','',20
-					npc_QW['A63'] += 1
-					gs 'arousal', 'end'
-					gs 'stat'
-
-					act 'Leave':gt'Gaddvor'
+			
+			if sunWeather = 1:
+				if MiraLoc ! 5:
+					act 'Sit down outside':gt 'mitkabuh','partyalone'
+				else
+					act 'Sit down outside':gt 'mitkabuh','partywithMira'
 				end
 			else
-				act 'Swallow':
-					*clr & cla
-					'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkabjcum2.jpg"></center>'
-					'You''re bobbing your head up and down fiercely as you cram as much of his ''yummy'' cock as deep in your mouth and throat as you can take it. Mitka, roughly grabs you by the hair and pulls his cock out of your earger mouth and starts to spurt warm sticky spunk all over your face and hair...'
-					minut += 10
+				if MiraLoc ! 5:
+					act 'Sit down in the trailer':gt 'mitkabuh','partyalone'
+				else
+					act 'Sit down in the trailer':gt 'mitkabuh','partywithMira'
+				end
+			end
+		end
+	elseif mitkarand < 9:
+		act 'You nod and slur your words...mumbling something as you fall into his waiting arms':
+			*clr & cla
+			
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkabj.jpg"></center>'
+			*nl
+			'He takes you '+iif(sunWeather=1,'inside the trailer','into the bedroom of the trailer')+' and pushes you to your knees.'
+			'He makes you remove your clothes before he puts his cock in your mouth for you to suck on.'
+			
+			npc_rel['A63'] += 1
+			if npc_QW['A63'] < 10: npc_QW['A63'] += 1
+			gs 'boyStat', 'A63'
+			npc_sex['A63'] += 1
+			gs 'arousal', 'bj', 10, 'sub'
+			sub += 1
+			gs 'stat'
+			
+			act 'Make him cum':
+				*clr & cla
+				mitkarand = rand(0,5)
+				if mitkarand = 5:
+					'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkabjcum1.jpg"></center>'
+					*nl
+					'You are sucking his cock fiercely until suddenly warm cum starts to fill your mouth. Surprised, you pull his cock out of you mouth which continues to shoot cum onto your face and breasts.'
+					'He makes you lick his dick clean before he leaves you to go back to drinking with Kolyamba and Vasyan. After a little while you sober up enough to get dressed and go sit back by the boys.'
+					
+					minut += 5
+					gs 'cum_call','face','A63',1
+					gs 'cum_call','mouth','A63',1
+					gs 'cum_call','breasts','A63',1
+				elseif mitkarand >= 3:
+					'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkabjcum.jpg"></center>'
+					*nl
+					'You tighten your lips and suck harder on Mitka''s cock. Your head bobs up and down as you cram as much of his cock as deep in your mouth and throat as you can take it.'
+					'Eventually, you feel Mitka''s cock pulse and a few seconds later your mouth is filled with his salty sperm. You quickly swallow it all down.'
+					'He makes you lick his dick clean before he leaves you to go back to drinking with Kolyamba and Vasyan. After a little while you sober up enough to get dressed and go sit back by the boys.'
+					
+					gs 'arousal', 'bj', 5, 'sub', 'deepthroat'
+					gs 'cum_call','mouth','A63',1
 					swallow += 1
-					sub += 1
-					gs 'cum_call','face',$boy, 1,'','',20
-					gs 'cum_call','hair',$boy, 1,'','',20
-					npc_QW['A63'] += 1
-					gs 'arousal', 'end'
-					gs 'stat'
+				else
+					'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkabjcum2.jpg"></center>'
+					*nl
+					'Mitka, roughly grabs you by by the hair and face fucks you. All you can do is keep your mouth open as his cock hits the back of your throat.'
+					'As he gets close to cumming, he pulls your head back and starts to spurt warm sticky spunk all over your face and hair.'
+					'He makes you lick his dick clean before he leaves you to go back to drinking with Kolyamba and Vasyan. After a little while you sober up enough to get dressed and go sit back by the boys.'
+					
+					gs 'arousal', 'bj', 5, 'sub', 'deepthroat', 'rough'
+					gs 'cum_call','face','A63',1
+					gs 'cum_call','mouth','A63',1
+					gs 'cum_call','hair','A63',1
+					swallow += 1
+				end
+				gs 'arousal', 'end'
+				gs 'stat'
 
-					act 'Leave':gt'Gaddvor'
+				if sunWeather = 1:
+					if MiraLoc ! 5:
+						act 'Sit down outside':gt 'mitkabuh','partyalone'
+					else
+						act 'Sit down outside':gt 'mitkabuh','partywithMira'
+					end
+				else
+					if MiraLoc ! 5:
+						act 'Sit down in the trailer':gt 'mitkabuh','partyalone'
+					else
+						act 'Sit down in the trailer':gt 'mitkabuh','partywithMira'
+					end
 				end
 			end
 		end
 	else
-		act 'You mumble and slur your words...':
+		act 'You nod and slur your words...mumbling something as you fall into his waiting arms':
 			*clr & cla
 			if pcs_ass < 10:
 				'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkaanal.jpg"></center>'
 			else
 				'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkaanal1.jpg"></center>'
 			end
-			'Mitka takes you to his house and onto the veranda. He has you sit on the couch and begins pawing at your clothes, pulling them off you.'
-			minut += 15
+			*nl
+			'He takes you '+iif(sunWeather=1,'inside the trailer,','into the bedroom of the trailer,')+' has you bend over on the bed and begins removing your clothes.'
+			if pcs_ass = 0:
+				'"An anal virgin, huh? Well your ass will never be the same after this!" Mitka says as he pushes his cock inside your ass.'
+			else
+				'Mitka is clearly enjoying fucking your ass. He has a huge smile on his face as he holds you in place beneath him.'
+			end
+			'Mitka doesn''t bother to pull out and cums deep inside your ass. Breathing heavily, he gets off of you and says, "You''re an even better slut when drunk!"'
+			'He gets up and goes back to drinking with Kolyamba and Vasyan, leaving you naked on the bed. After a little while you sober up enough to get dressed and go sit back by the boys.'
+			
+			npc_rel['A63'] += 1
+			if npc_QW['A63'] < 10: npc_QW['A63'] += 1
 			gs 'boyStat', 'A63'
-			npc_sex[$boy] += 1
-			pose = 0
-			gs 'dinSex','boy_wants_anal','lubri'
-			gs 'dinsex','analsex',10
-			if pcs_ass < 10:sub += RAND(0,1)
-			npc_QW['A63'] += 1
+			npc_sex['A63'] += 1
+			sub += 1
+			gs 'cum_call','anus','A63',1
+			gs 'arousal', 'anal', 15, 'sub', 'rough'
 			gs 'arousal', 'end'
 			gs 'stat'
 
-			act 'Leave':gt'Gaddvor'
+			if sunWeather = 1:
+				if MiraLoc ! 5:
+					act 'Sit down outside':gt 'mitkabuh','partyalone'
+				else
+					act 'Sit down outside':gt 'mitkabuh','partywithMira'
+				end
+			else
+				if MiraLoc ! 5:
+					act 'Sit down in the trailer':gt 'mitkabuh','partyalone'
+				else
+					act 'Sit down in the trailer':gt 'mitkabuh','partywithMira'
+				end
+			end
 		end
 	end
 end
 
 if $ARGS[0] = 'solo_10':
+	*clr & cla
 	menu_off = 1
-	act 'You mumble and slur your words...':
+	'<center><img <<$set_imgh>> src="images/locations/gadukino/village/mitka.jpg"></center>'
+	*nl
+	'You are way too drunk and can barely stand. Mitka, noticing your condition, grabs you by the waist. "Well, well little <<$pcs_nickname>>, had a bit too much to drink? Come with me."'
+	
+	act 'You mumble something about needing to pee':
 		*clr & cla
-		minut += 5
 		'<center><img <<$set_imgh>> src="images/locations/gadukino/village/drunkgirl.jpg"></center>'
-		'You stumble and fall to the ground, and giggle drunkenly. You just pissed yourself. Mitka watches you and laughs when he sees you fall and piss. Mitka stumbles over to you, barely able to stand himself and pulls you to your feet. "Listen, <<$pcs_nickname>>, come with me," Mitka says loudly. You want to hide from the hungry eyes of the village boys in the bushes, but the guys already know what happened. "I''m going have you fucked like the whore you are. You don''t mind, do you?" Mitka grins evilly.'
-		'He turns to his drunken friends, "Here," pointing to a drunken Kolyamba. "Get your ass over here and have some fun with this cunt," Kolyamba stumbles forward pulling his pants down as he approaches. "We may be drunk, but we can still service this cunt''s pussy..."'
-		'"Well, that''s ... a beautifully sight," Mitka stammers smugly. "So let''s get this party started!"'
+		*nl
+		'Mitka helps you '+iif(sunWeather=1,'get up','go outside')+' and lean against a tree, as you giggle drunkenly and pee. Mitka watches you and laughs at your the whole time. He stumbles over to you, barely able to stand himself and pulls you into him.'
+		'"Listen, <<$pcs_nickname>>, come with me," Mitka says loudly. You try to hide it from us but, we already know. "I''m going have you fucked like the slut you are. I know you won''t mind." Mitka grins evilly.'
+		'He turns to his friends, "Here," pointing to a drunken Kolyamba. "Get yourself over here and have some fun with this cunt," Kolyamba stumbles forward pulling his pants down as he approaches. "We may be drunk, but we can still have fun with this whore''s pussy..."'
+		'"Well, that''s a beautiful sight," Mitka stammers smugly as he exposes you for everyone to see. "Let''s get this party started!"'
 
-		if sub > 0:
-			act 'Bend over':
-				*clr & cla
-				minut += 15
-				gs 'boyStat', 'A61'
-				npc_sex[$boy] += 1
-				pose = 1
-				sub += 1
-				npc_QW['A63'] += 1
-				'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkasexpublic.jpg"></center>'
-				'You, drunkenly wallow to a nearby log, feeling a hand on your ass as Kolyamba steps up behind you and pulls your piss soaked panties down. '
-
-				if mesec = 0:
-					gs 'dinsex', 'boy_puts_condom'
-					gs 'dinsex','vaginal_sex',10
-					gs 'dinsex','sexcum'
-				else
-					gs 'dinSex','boy_wants_anal','lubri'
-					gs 'dinsex','analsex',10
-				end
-				gs 'arousal', 'end'
-				gs 'stat'
-
-				act 'Leave':gt'Gaddvor'
+		act 'Bend over':
+			*clr & cla
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkasexpublic.jpg"></center>'
+			*nl
+			'Kolyamba bends you over a nearby log. He places one hand on your back to steady himself while guiding his dick into your '+iif(mesec=0,'pussy','ass')+'.'
+			'All you can manage are moans as Kolyamba fucks you, but you can''t help but think to yourself that the other guys may start treating you differently after tonight.'
+			'You are both so drunk that any type of rhythm is hard to maintain. Eventually Kolyamba speeds up a little and finishes inside of your '+iif(mesec=0,'pussy','ass')+'.'
+			'He gets up and goes back to drinking with Mitka and Vasyan, leaving you naked outside. After a little while you sober up enough to get dressed and go sit back by the boys.'
+			
+			npc_rel['A63'] += 1
+			npc_rel['A61'] += 5
+			npc_QW['A63'] = 11
+			gs 'boyStat', 'A61'
+			npc_sex['A61'] += 1
+			sub += 2
+			if mesec = 0:
+				gs 'cum_call','vagina','A61',1
+				gs 'arousal', 'vaginal', 10, 'sub'
+			else
+				gs 'cum_call','anus','A61',1
+				gs 'arousal', 'anal', 10, 'sub'
 			end
-		else
+			gs 'arousal', 'end'
+			gs 'stat'
+
+			if sunWeather = 1:
+				if MiraLoc ! 5:
+					act 'Sit down outside':gt 'mitkabuh','partyalone'
+				else
+					act 'Sit down outside':gt 'mitkabuh','partywithMira'
+				end
+			else
+				if MiraLoc ! 5:
+					act 'Sit down in the trailer':gt 'mitkabuh','partyalone'
+				else
+					act 'Sit down in the trailer':gt 'mitkabuh','partywithMira'
+				end
+			end
+		end
+		if pcs_dom > 0:
 			act 'Protest':
 				*clr & cla
-				minut += 10
-				gs 'stat'
 				'<center><img <<$set_imgh>> src="images/locations/gadukino/village/drunkgirl.jpg"></center>'
-				'You refuse, drunkenly trying to fight off the advancing Kolyamba while barely standing on your feet. Your struggles piss Mitka off, he finally walks forward and grabs you by the arm and leads you to his veranda...'
+				*nl
+				'You refuse, drunkenly trying to fight off the advancing Kolyamba while barely standing on your feet.'
+				'Your struggles piss Mitka off, who grabs you by the arm and leads you '+iif(sunWeather=1,'inside the trailer','into the bedroom of the trailer')+'.'
 				'Mitka whispers in your ear, "You want my dick so bad then you can have it this time. But, next time you will do as I say. Understand?"'
+				
 				act 'Moan in affirmation':
 					*clr & cla
-					minut += 15
-					gs 'boyStat', 'A63'
-					npc_sex[$boy] += 1
-					sub += 2
-					pose = 1
 					'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkasexnopublic.jpg"></center>'
-					'All you can manage are moans as Mitka fucks you, but you can''t help but think to yourself that the other guys may start treating you differently after tonight.'
+					*nl
+					'Mitka roughly rips all your clothes off, bends you over the bed and begins mercilessly pounding you. You''ve never seen him this way before, maybe everyone is just more drunk than usual and this will all blow over tomorrow.'
+					'All you can manage are moans as Mitka fucks you. They are so loud you are sure everyone else can hear you outside the bedroom. You can''t help but think to yourself that the other guys may start treating you differently after tonight.'
+					'He cums inside of you and then goes back to drinking with Kolyamba and Vasyan, leaving you naked on the bed. After a little while you sober up enough to get dressed and go sit back by the boys.'
+					
+					npc_rel['A63'] += 1
+					npc_rel['A61'] -= 5
+					npc_QW['A63'] = 11
+					gs 'boyStat', 'A63'
+					npc_sex['A63'] += 1
+					sub += 5
 					if mesec = 0:
-						gs 'dinsex', 'boy_puts_condom'
-						gs 'dinsex','vaginal_sex',10
-						gs 'dinsex','sexcum'
+						gs 'cum_call','vagina','A63',1
+						gs 'arousal', 'vaginal', 10, 'sub', 'rough'
 					else
-						gs 'dinSex','boy_wants_anal','lubri'
-						gs 'dinsex','analsex',10
+						gs 'cum_call','anus','A63',1
+						gs 'arousal', 'anal', 10, 'sub', 'rough'
 					end
 					gs 'arousal', 'end'
 					gs 'stat'
 
-					act 'Leave':gt'Gaddvor'
-				end
-			end
-		end
-	end
-end
-
-if $ARGS[0] = 'solo_11':
-	menu_off = 1
-	if rand(0,5) < 5:
-		act 'Bend over':
-			*clr & cla
-			minut += 15
-			gs 'boyStat', 'A61'
-			npc_sex[$boy] += 1
-			pose = 1
-			sub += 1
-			'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkasexpublic.jpg"></center>'
-			'You, drunkenly wallow to a nearby log, feeling a hand on your ass as Kolyamba steps up behind you and pulls your piss soaked panties down...'
-			if mesec = 0:
-				gs 'dinsex', 'boy_puts_condom'
-				gs 'dinsex','vaginal_sex',10
-				gs 'dinsex','sexcum'
-			else
-				gs 'dinSex','boy_wants_anal','lubri'
-				gs 'dinsex','analsex',10
-			end
-			gs 'arousal', 'end'
-			gs 'stat'
-
-			act 'Leave':gt'Gaddvor'
-		end
-	else
-		act 'Suck':
-			*clr & cla
-			gs 'boyStat', 'A61'
-			npc_sex[$boy] += 1
-			sub += 1
-			'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkabjpublic.jpg"></center>'
-			gs 'oral','start'
-			gs 'stat'
-			if rand(0,5) < 5:
-				act 'Swallow':
-					*clr & cla
-					'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkabjpubliccum.jpg"></center>'
-					'Kolyamba, suddenly stops fucking your mouth for a few seconds. You tighten your grip around his cock without taking it out of his mouth. Kolyamba yells fiercely, as he begins to erupt into your mouth. Cum...you love the taste of the warm sticky liquid of life.'
-					minut += 10
-					gs 'cum_call','mouth',$boy, 1
-					swallow += 1
-					gs 'arousal', 'end'
-					gs 'stat'
-
-					act 'Leave':gt'Gaddvor'
-				end
-			else
-				'You keep sucking Kolyamba''s dick, until suddenly you feel his strong meaty hands slap your ass and lift your pelvis. You maintain your suction on his cock and your head bobs up and down. You feel his hand pawing your ass, until Koyamba slips one of his rough calloused fingers into your ass and another finger glides into your pussy too.'
-				act 'Swallow':
-					*clr & cla
-					'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkabjpublicguys.jpg"></center>'
-					'Kolyamba, suddenly stops fucking your mouth for a few seconds. You tighten your grip around his cock without taking it out of his mouth. Kolyamba yells fiercely, as he begins to erupt into your mouth. Cum...you love the taste of the warm sticky liquid of life. As he is cumming into your open mouth, you feel him start to fiercely start to driver meaty fingers into both in your pussy and ass.'
-					minut += 10
-					pcs_horny += 10
-					gs 'cum_call','mouth',$boy, 1
-					swallow += 1
-					npc_QW['A63'] += 1
-					gs 'arousal', 'end'
-					gs 'stat'
-
-					act 'Leave':gt'Gaddvor'
-				end
-			end
-		end
-	end
-end
-
-if $ARGS[0] = 'solo_12':
-	menu_off = 1
-	if rand(0,5) < 4:
-		act 'Bend over':
-			*clr & cla
-			gs 'boyStat', 'A63'
-			npc_sex[$boy] += 1
-			pose = 1
-			'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkasexpublic.jpg"></center>'
-			'You''re startled and stumble to your feet, you make your way over to Mitka and fall into his waiting arms. You feel Mitka pull up your skirt up and bare your ass...'
-			if mesec = 0:
-				gs 'dinsex', 'boy_puts_condom'
-				gs 'dinsex','vaginal_sex',10
-				gs 'dinsex','sexcum'
-			else
-				gs 'dinSex','boy_wants_anal','lubri'
-				gs 'dinsex','analsex',10
-			end
-			gs 'arousal', 'end'
-			gs 'stat'
-
-			act 'Leave':gt'Gaddvor'
-		end
-	else
-		act 'Suck':
-			*clr & cla
-			gs 'boyStat', 'A63'
-			npc_sex[$boy] += 1
-			'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkabjpublic.jpg"></center>'
-			gs 'oral','start'
-			if RAND(0,5) < 4:
-				act 'Swallow':
-					*clr & cla
-					'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkabjpubliccum.jpg"></center>'
-					'Mitka, suddenly stops fucking your mouth for a few seconds. You tighten your grip around his cock without taking it out of his mouth. Mitka yells fiercely, as he begins to erupt into your mouth. Cum...you love the taste of the warm sticky liquid of life.'
-					minut += 10
-					pcs_horny += 10
-					gs 'cum_call','mouth',$boy, 1
-					swallow += 1
-					gs 'arousal', 'end'
-					gs 'stat'
-
-					act 'Leave':gt'Gaddvor'
-				end
-			else
-				act 'Swallow':
-					*clr & cla
-					'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkabjpubliccum.jpg"></center>'
-					'Mitka, suddenly stops fucking your mouth for a few seconds. You tighten your grip around his cock without taking it out of his mouth. Mitka yells fiercely, as he begins to erupt into your mouth. Cum...you love the taste of the warm sticky liquid of life. As soon as you finish licking his dick clean, he puts his dick back into his pants. You look around and see Kolyamba and Vasya walking over to you. You search for Mitka and you find him looking at you with a burning excitement in his eyes. He indifferently waves, and immediately Kolyamba steps up to you and unbuttons his pants. You suck him dry after a few minutes, swallowing all of his tangy spunk, once he was done his place was taken by Vasya, who got sloppy thirds.'
-					minut += 10
-					pcs_horny += 10
-					swallow += 1
-					gs 'cum_call','mouth',$boy, 1
-					gs 'stat'
-
-					act 'Suck':
-						*clr & cla
-						'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkabjpublicguys2.jpg"></center>'
-						'You, drunkenly and messily start sucking and kissing Kolyamba''s cock.'
-						'You feel that soon they will cum all over your face and then lose interest in you...'
-						gs 'boyStat', 'A61'
-						npc_sex[$boy] += 1
-						gs 'arousal', 'bj', 10, 'sub','gangbang'
-						gs 'cum_call','face',$boy, 1
-						gs 'boyStat', 'A62'
-						npc_sex[$boy] += 1
-						gs 'arousal', 'bj', 10, 'sub','gangbang'
-						gs 'cum_call','face',$boy, 1
-						cumface += 2
-						gang += 1
-						sub += 1
-						npc_QW['A63'] += 1
-						gs 'arousal', 'end'
-						gs 'stat'
-
-						act 'Leave':gt'Gaddvor'
+					if sunWeather = 1:
+						if MiraLoc ! 5:
+							act 'Sit down outside':gt 'mitkabuh','partyalone'
+						else
+							act 'Sit down outside':gt 'mitkabuh','partywithMira'
+						end
+					else
+						if MiraLoc ! 5:
+							act 'Sit down in the trailer':gt 'mitkabuh','partyalone'
+						else
+							act 'Sit down in the trailer':gt 'mitkabuh','partywithMira'
+						end
 					end
 				end
 			end
@@ -688,723 +664,715 @@ if $ARGS[0] = 'solo_12':
 	end
 end
 
-if $ARGS[0] = 'solo_13':
+if $ARGS[0] = 'solo_11andup_1boy':
+	*clr & cla
 	menu_off = 1
-	temp_mb = RAND(0,5)
-	if temp_mb < 3:
-		act 'Bend over':
-			*clr & cla
-			'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkasexpublic.jpg"></center>'
-			'You''re startled and stumble to your feet, you make your way over to Mitka and fall into his waiting arms. You feel Mitka pull up your skirt up and bare your ass...'
-			gs 'boyStat', 'A63'
-			npc_sex[$boy] += 1
-			pose = 1
-			if mesec = 0:
-				gs 'dinsex', 'boy_puts_condom'
-				gs 'dinsex','vaginal_sex',10
-				gs 'dinsex','sexcum'
-			else
-				gs 'dinSex','boy_wants_anal','lubri'
-				gs 'dinsex','analsex',10
-			end
-			gs 'arousal', 'end'
-			gs 'stat'
-
-			act 'Leave':gt'Gaddvor'
+	mitkarand = rand(0,1)
+	mitkabuhrand = rand(1,3)
+	if mitkarand = 0:
+		if mitkabuhrand = 1:
+			gs 'boyStat','A63',0
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/village/mitka.jpg"></center>'
+		elseif mitkabuhrand = 2:
+			gs 'boyStat','A61',0
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/village/kolyamba.jpg"></center>'
+		else
+			gs 'boyStat','A62',0
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/village/vasyan.jpg"></center>'
 		end
-	elseif temp_mb = 3:
-		act 'Suck':
+		*nl
+		'While you are drinking, <<$boydesc[0]>> comes up to you and takes the shot glass out of your hand. You can have this back after you do something for me.'
+		'"Get down on your knees and suck my dick." <<$boydesc[0]>> commands as he pulls his pants down.'
+		
+		act 'Suck his dick':
 			*clr & cla
-			'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkabjpublic.jpg"></center>'
-			gs 'boyStat', 'A63'
-			npc_sex[$boy] += 1
-			gs 'oral','start'
+			npc_rel[$boy[0]] += 1
+			if npc_QW['A63'] < 20: npc_QW['A63'] += 1
+			npc_sex[$boy[0]] += 1
+			gs 'arousal', 'bj', 10, 'sub'
+			sub += 1
 			gs 'stat'
-
-			act 'Swallow':
+			
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkabjpublic.jpg"></center>'
+			*nl
+			'You kneel and take his cock in your mouth and it quickly stiffens as you lick it. You fit as much of it in your mouth as you can.'
+			
+			act 'Make him cum':
 				*clr & cla
-				'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkabjpubliccum.jpg"></center>'
-				'You tightly squeeze Mitka''s cock in your hand and without taking it out of your mouth, he starts to fiercely slam his cock into your gaping mouth until he finally erupts into your mouth. You taste his warm sticky sperm in your mouth and sliding down your throat as you swallow it all.'
-				minut += 10
-				gs 'cum_call','mouth',$boy, 1
+				'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkagroupcum2.jpg"></center>'
+				*nl
+				'<<$boydesc[1]>> groans as your head quickly bobs up and down his dick. As he begins to cum you open your mouth to give him a good view as he shoots his load down your throat.'
+				if gadriver_gang = 2:
+					'After he''s done he looks at you and says, "What are you waiting for? Oh right, money. You''ll do anything for a ruble. Here you go."'
+					'He takes a 5 ruble note out of his pocket and throws it at you, "Clean yourself up with that."'
+					money += 5
+				end
+				'He makes you lick his dick clean before he leaves you to go back to drinking again. After a little while you sober up enough to get dressed and go sit back by the boys.'
+				
+				gs 'arousal', 'bj', 5, 'sub', 'deepthroat'
+				gs 'cum_call','mouth',$boy[0],1
 				swallow += 1
 				gs 'arousal', 'end'
 				gs 'stat'
 
-				act 'Leave':gt'Gaddvor'
-			end
-		end
-	elseif temp_mb = 4:
-		act 'Suck':
-			*clr & cla
-			'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkabjpublicguys2.jpg"></center>'
-			'You, drunkenly and messily start sucking and kissing Kolyamba''s cock.'
-			gs 'boyStat', 'A61'
-			npc_sex[$boy] += 1
-			gs 'oral','start'
-			gs 'cum_call','face',$boy, 1
-			gs 'boyStat', 'A63'
-			gs 'cum_call','face',$boy, 1
-			gs 'arousal', 'end'
-			'You feel that soon they will cum all over your face and then lose interest in you...'
-			gs 'stat'
-
-			act 'Leave':gt'Gaddvor'
-		end
-	elseif temp_mb = 5:
-		act 'Sit on the bench':
-			*clr & cla
-			'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkagroup.jpg"></center>'
-			'You sit on the bench and the boys immediately begin to touch you and push there fingers into all your holes.'
-			gs 'arousal', 'vaginal_finger', 15, 'sub', 'gangbang'
-			gs 'arousal', 'anal_finger', 15, 'sub', 'gangbang'
-			minut -=15
-			gs 'stat'
-
-			act 'Lie down':
-				*clr & cla
-				'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkagroupcum.jpg"></center>'
-				'You undress and lie down on a wooden bench...'
-				pose = 0
-				gang += 1
-				sub += 1
-				npc_QW['A63'] += 1
-				gs 'stat'
-
-
-				act 'Get fucked':
-					*clr & cla
-					'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkagroupcum.jpg"></center>'
-					gs 'boyStat', 'A61'
-					npc_sex[$boy] += 1
-					gs 'cum_manage'
-					gs 'dinSex','boy_wants_anal','lubri'
-					gs 'dinsex','analsex',10,'gangbang'
-					gs 'stat'
-
-					act 'Moan':
-						*clr & cla
-						'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkagroupcum1.jpg"></center>'
-						gs 'boyStat', 'A63'
-						npc_sex[$boy] += 1
-						gs 'dinsex', 'boy_puts_condom'
-						gs 'dinsex','vaginal_sex',10,'gangbang'
-						gs 'dinsex','sexcum'
-						gs 'stat'
-
-						act 'Suck':
-							*clr & cla
-							'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkagroupcum2.jpg"></center>'
-							gs 'boyStat', 'A62'
-							npc_sex[$boy] += 1
-							gs 'oral','start'
-							gs 'cum_call','mouth',$boy,1
-							gs 'arousal', 'end'
-							gs 'stat'
-
-							'Exhausted, you hear Vasya straining as he fucks your mouth. You immediately tighten your grip around his cock and squeeze it and guide it into your mouth. A few seconds later you feel the tart taste of semen...'
-
-							act 'Leave':gt'Gaddvor'
-						end
+				if sunWeather = 1:
+					if MiraLoc ! 5:
+						act 'Sit down outside':gt 'mitkabuh','partyalone'
+					else
+						act 'Sit down outside':gt 'mitkabuh','partywithMira'
 					end
-				end
-			end
-		end
-	end
-end
-
-if $ARGS[0] = 'solo_14':
-	menu_off = 1
-	temp_mb = RAND(0,5)
-	if temp_mb < 2:
-		act 'Suck':
-			*clr & cla
-			'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkabjpublic.jpg"></center>'
-			gs 'boyStat', 'A63'
-			npc_sex[$boy] += 1
-			gs 'oral','start'
-			gs 'stat'
-
-			act 'Swallow':
-				*clr & cla
-				'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkabjpubliccum.jpg"></center>'
-				'You tightly squeeze Mitka''s cock in your hand and without taking it out of your mouth, he starts to fiercely slam his cock into your gaping mouth until he finally erupts into your mouth. You taste his warm sticky sperm in your mouth and sliding down your throat as you swallow it all'
-				swallow += 1
-				gs 'cum_call','mouth',$boy,1
-				gs 'arousal', 'end'
-				gs 'stat'
-
-				act 'Leave':gt'Gaddvor'
-			end
-		end
-	elseif temp_mb = 2:
-		act 'Bend over':
-			*clr & cla
-			'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkasexpublic.jpg"></center>'
-			'You stumble around until you come to reach a nearby log and placing both hands on it lean against it for support. Mitka walks up behind you and grabs your clothes and pulls them down, exposing your bare ass...'
-			gs 'boyStat', 'A63'
-			npc_sex[$boy] += 1
-			pose = 1
-			if mesec = 0:
-				gs 'dinsex', 'boy_puts_condom'
-				gs 'dinsex','vaginal_sex',10
-				gs 'dinsex','sexcum'
-			else
-				gs 'dinSex','boy_wants_anal','lubri'
-				gs 'dinsex','analsex',10
-			end
-			gs 'arousal', 'end'
-			gs 'stat'
-
-			act 'Leave':gt'Gaddvor'
-		end
-	elseif temp_mb = 3:
-		act 'Suck':
-			*clr & cla
-			'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkabjpublicguys2.jpg"></center>'
-			'You, drunkenly and messily start sucking and kissing Kolyamba''s cock.'
-			gs 'boyStat', 'A63'
-			npc_sex[$boy] += 1
-			gs 'arousal', 'bj', 10, 'sub','gangbang'
-			gs 'cum_call','face',$boy,1
-			gs 'boyStat', 'A61'
-			npc_sex[$boy] += 1
-			gs 'arousal', 'bj', 10, 'sub','gangbang'
-			'You feel that soon they will cum all over your face and then lose interest in you...'
-			gs 'cum_call','face',$boy,1
-			cumface += 2
-			sub += 1
-			gs 'arousal', 'end'
-			gs 'stat'
-
-			act 'Leave':gt'Gaddvor'
-		end
-	elseif temp_mb = 4:
-		act 'Sit on the bench':
-			*clr & cla
-			'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkagroup.jpg"></center>'
-			'You sit on the bench and the boys immediately begin to touch you and push there fingers into all your holes.'
-			gs 'arousal', 'vaginal_finger', 15, 'sub', 'gangbang'
-			gs 'arousal', 'anal_finger', 15, 'sub', 'gangbang'
-			minut -=15
-			gs 'stat'
-
-			act 'Lie down':
-				*clr & cla
-				'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkagroupcum.jpg"></center>'
-				'You undress and lie down on a wooden bench...'
-				pose = 0
-				gang += 1
-				minut += 10
-				gs 'stat'
-
-				act 'Get fucked':
-					*clr & cla
-					'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkagroupcum.jpg"></center>'
-					gs 'boyStat', 'A61'
-					npc_sex[$boy] += 1
-					gs 'dinSex','boy_wants_anal','lubri'
-					gs 'dinsex','analsex',10,'gangbang'
-					gs 'stat'
-
-					act 'Moan':
-						*clr & cla
-						'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkagroupcum1.jpg"></center>'
-						gs 'boyStat', 'A63'
-						npc_sex[$boy] += 1
-						gs 'dinsex', 'boy_puts_condom'
-						gs 'dinsex','vaginal_sex',10,'gangbang'
-						gs 'dinsex','sexcum'
-						gs 'stat'
-
-						act 'Suck':
-							*clr & cla
-							'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkagroupcum2.jpg"></center>'
-							gs 'boyStat', 'A62'
-							npc_sex[$boy] += 1
-							sub += 1
-							gs 'oral','start'
-							'Exhausted, you hear Vasya straining as he fucks your mouth. You immediately tighten your grip around his cock and squeeze it and guide it into your mouth. A few seconds later you feel the tart taste of semen...'
-							gs 'cum_call','mouth',$boy,1
-							gs 'arousal', 'end'
-							gs 'stat'
-
-							act 'Leave':gt'Gaddvor'
-						end
-					end
-				end
-			end
-		end
-	elseif temp_mb = 5:
-		act 'Slurred mumble':
-			*clr & cla
-			'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkaguys2.jpg"></center>'
-			'Vasya and Kolyamba took you to Vasyan''s house and into the summer kitchen, where they quickly began to take off your clothes...'
-			gs 'boyStat', 'A61'
-			npc_sex[$boy] += 1
-			pose = 1
-			npc_QW['A63'] += 1
-			gs 'stat'
-			if RAND(0,5) < 4:
-				act 'Moan':
-					*clr & cla
-					'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkaguys2.jpg"></center>'
-					gs 'boyStat', 'A62'
-					npc_sex[$boy] += 1
-					gs 'dinsex', 'boy_puts_condom'
-					gs 'dinsex','vaginal_sex',10,'gangbang'
-					gs 'dinsex','sexcum'
-					gs 'stat'
-
-					act 'Suck':
-						*clr & cla
-						'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkaguys2.jpg"></center>'
-						gs 'boyStat', 'A61'
-						gs 'oral','start'
-						'Exhausted, you hear Vasyan straining as he fucks your mouth. You immediately tighten your grip around his cock and squeeze it and guide it into your mouth. A few seconds later you feel the tart taste of semen...'
-						gs 'cum_call','mouth',$boy,1
-						gs 'arousal', 'end'
-						gs 'stat'
-
-						act 'Leave':gt'Gaddvor'
-					end
-				end
-			else
-				act 'Moan':
-					*clr & cla
-					'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkaguys2.jpg"></center>'
-					gs 'boyStat', 'A61'
-					gs 'dinSex','boy_wants_anal','lubri'
-					gs 'dinsex','analsex',10,'gangbang'
-					gs 'cum_call','anus',$boy,1
-					gs 'stat'
-
-					act 'Suck':
-						*clr & cla
-						'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkaguys2.jpg"></center>'
-						gs 'boyStat', 'A62'
-						npc_sex[$boy] += 1
-						gs 'oral','start'
-						'Exhausted, you hear Vasyan straining as he fucks your mouth. You immediately tighten your grip around his cock and squeeze it and guide it into your mouth. A few seconds later you feel the tart taste of semen...'
-						gs 'cum_call','mouth',$boy,1
-						gs 'arousal', 'end'
-						gs 'stat'
-
-						act 'Leave':gt'Gaddvor'
-					end
-				end
-			end
-		end
-	end
-end
-
-if $ARGS[0] = 'solo_ge15':
-	menu_off = 1
-	temp_mb = RAND(0,5)
-	if temp_mb = 0:
-		act 'Suck':
-			*clr & cla
-			'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkabjpublic.jpg"></center>'
-			gs 'boyStat', 'A63'
-			npc_sex[$boy] += 1
-			gs 'oral','start'
-			gs 'stat'
-
-			act 'Swallow':
-				*clr & cla
-				'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkabjpubliccum.jpg"></center>'
-				'You tightly squeeze Mitka''s cock in your hand and without taking it out of your mouth, he starts to fiercely slam his cock into your gaping mouth until he finally erupts into your mouth. You taste his warm sticky sperm in your mouth and sliding down your throat as you swallow it all'
-				gs 'arousal','bj',10,'sub','deepthroat'
-				gs 'cum_call','mouth',$boy,1
-				gs 'arousal', 'end'
-				gs 'stat'
-
-				act 'Leave':gt'Gaddvor'
-			end
-		end
-	elseif temp_mb = 1:
-		act 'Bend over':
-			*clr & cla
-			'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkasexpublic.jpg"></center>'
-			'You stumble around until you come to reach a nearby log and placing both hands on it lean against it for support. Mitka walks up behind you and grabs your cloths and pulls them down, exposing your bare your ass...'
-			gs 'boyStat', 'A63'
-			npc_sex[$boy] += 1
-			if mesec = 0:
-				gs 'dinsex', 'boy_puts_condom'
-				gs 'dinsex','vaginal_sex',10
-				gs 'dinsex','sexcum'
-			else
-				gs 'dinSex','boy_wants_anal','lubri'
-				gs 'dinsex','analsex',10
-			end
-			gs 'arousal', 'end'
-			gs 'stat'
-
-			act 'Leave':gt'Gaddvor'
-		end
-	elseif temp_mb = 2:
-		act 'Suck':
-			*clr & cla
-			'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkabjpublicguys2.jpg"></center>'
-			'You, drunkenly and messily start sucking and kissing Kolyamba''s cock.'
-			'You feel that soon they will cum all over your face and then lose interest in you...'
-			gs 'boyStat', 'A61'
-			npc_sex[$boy] += 1
-			gs 'arousal','bj',10,'sub','deepthroat'
-			gs 'cum_call','mouth',$boy,1
-			gs 'arousal', 'end'
-			gs 'stat'
-
-			act 'Leave':gt'Gaddvor'
-		end
-	elseif temp_mb = 3:
-		act 'Sit on the bench':
-			*clr & cla
-			'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkagroup.jpg"></center>'
-			'You sit on the bench and the boys immediately begin to touch you and push their fingers into all your holes.'
-			pcs_horny += 20
-			sub += 1
-			minut += 5
-			gs 'stat'
-
-			act 'Post a kid':
-				*clr & cla
-				'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkagroupcum.jpg"></center>'
-				'You undress and lie down on a wooden bench...'
-				pose = 0
-				gang += 1
-				minut += 10
-				gs 'stat'
-
-				act 'Moan':
-					*clr & cla
-					'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkagroupcum.jpg"></center>'
-					gs 'boyStat', 'A61'
-					npc_sex[$boy] += 1
-					gs 'dinSex','boy_wants_anal','lubri'
-					gs 'dinsex','analsex',10,'gangbang'
-					gs 'cum_call','anus',$boy,1
-					gs 'stat'
-
-					act 'Moan':
-						*clr & cla
-						'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkagroupcum1.jpg"></center>'
-						gs 'boyStat', 'A63'
-						npc_sex[$boy] += 1
-						gs 'dinsex', 'boy_puts_condom'
-						gs 'dinsex','vaginal_sex',10,'gangbang'
-						gs 'dinsex','sexcum'
-						gs 'stat'
-
-						act 'Suck':
-							*clr & cla
-							'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkagroupcum2.jpg"></center>'
-							gs 'boyStat', 'A62'
-							npc_sex[$boy] += 1
-							gs 'oral','start'
-							'Exhausted, you hear Vasyan straining as he fucks your mouth. You immediately tighten your grip around his cock and squeeze it and guide it into your mouth. A few seconds later you feel the tart taste of semen...'
-							gs 'cum_call','mouth',$boy,1
-							gs 'arousal', 'end'
-							gs 'stat'
-
-							act 'Leave':gt'Gaddvor'
-						end
-					end
-				end
-			end
-		end
-	elseif temp_mb = 4:
-		act 'Slurred mumble':
-			*clr & cla
-			'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkaguys2.jpg"></center>'
-			'Vasya and Kolyamba take you to Vasyan''s and into the summer kitchen, where they quickly began to take off your clothes...'
-			gs 'boyStat', 'A61'
-			npc_sex[$boy] += 1
-			npc_QW['A63'] += 1
-			sub += 1
-			minut += 15
-			gs 'stat'
-			if rand(0,5) < 4:
-				act 'Moan':
-					*clr & cla
-					'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkaguys2.jpg"></center>'
-					gs 'boyStat', 'A62'
-					npc_sex[$boy] += 1
-					gs 'dinsex', 'boy_puts_condom'
-					gs 'dinsex','vaginal_sex',10,'gangbang'
-					gs 'dinsex','sexcum'
-					gs 'stat'
-
-					act 'Suck':
-						*clr & cla
-						'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkaguys2.jpg"></center>'
-						gs 'boyStat', 'A61'
-						gs 'oral','start'
-						'Exhausted, you hear Vasyan straining as he fucks your mouth. You immediately tighten your grip around his cock and squeeze it and guide it into your mouth. A few seconds later you feel the tart taste of semen...'
-						gs 'cum_call','mouth',$boy,1
-						gs 'arousal', 'end'
-						gs 'stat'
-
-						act 'Leave':gt'Gaddvor'
-					end
-				end
-			else
-				act 'Moan':
-					*clr & cla
-					'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkaguys2.jpg"></center>'
-					gs 'boyStat', 'A61'
-					gs 'dinSex','boy_wants_anal','lubri'
-					gs 'dinsex','analsex',10,'gangbang'
-					gs 'cum_call','anus',$boy,1
-					gs 'stat'
-
-					act 'Suck':
-						*clr & cla
-						'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkaguys2.jpg"></center>'
-						gs 'boyStat', 'A62'
-						npc_sex[$boy] += 1
-						gs 'oral','start'
-						'Exhausted, you hear Vasyan straining as he fucks your mouth. You immediately tighten your grip around his cock and squeeze it and guide it into your mouth. A few seconds later you feel the tart taste of semen...'
-						gs 'cum_call','mouth',$boy,1
-						gs 'arousal', 'end'
-						gs 'stat'
-
-						act 'Leave':gt'Gaddvor'
+				else
+					if MiraLoc ! 5:
+						act 'Sit down in the trailer':gt 'mitkabuh','partyalone'
+					else
+						act 'Sit down in the trailer':gt 'mitkabuh','partywithMira'
 					end
 				end
 			end
 		end
 	else
-		act 'Get in position':
+		if mitkabuhrand = 1:
+			gs 'boyStat','A63',0
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/village/mitka.jpg"></center>'
+		elseif mitkabuhrand = 2:
+			gs 'boyStat','A61',0
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/village/kolyamba.jpg"></center>'
+		else
+			gs 'boyStat','A62',0
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/village/vasyan.jpg"></center>'
+		end
+		*nl
+		'While you are drinking, <<$boydesc[0]>> comes up to you and takes the shot glass out of your hand. You can have this back after you do something for me.'
+		'"Bend over and let me fuck you." <<$boydesc[0]>> commands as he pulls his pants down.'
+		
+		act 'Bend over':
 			*clr & cla
-			'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkapublicguys2.jpg"></center>'
-			'You climb up on the bench and obediently get on all fours. The boys drunkenly talk among themselves about who will go first, you pull down your panties and get a couple seconds later a cock is crammed into your pussy...'
-			gs 'boyStat', 'A63'
-			npc_sex[$boy] += 1
-			gs 'arousal','vaginal',10,'sub','gangbang'
-			gang +=1
+			npc_rel[$boy[0]] += 1
+			if npc_QW['A63'] < 20: npc_QW['A63'] += 1
+			npc_sex[$boy[0]] += 1
+			if mesec = 0:
+				gs 'arousal', 'vaginal', 20, 'sub'
+			else
+				gs 'arousal', 'anal', 20, 'sub'
+			end
 			sub += 1
 			gs 'stat'
-			if RAND(0,5) < 4:
-				act 'Moan':
-					*clr & cla
-					'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkapublicguys2.jpg"></center>'
-					gs 'boyStat', 'A62'
-					npc_sex[$boy] += 1
-					gs 'dinsex', 'boy_puts_condom'
-					gs 'dinsex','vaginal_sex',10,'gangbang'
-					gs 'dinsex','sexcum'
-					gs 'stat'
-
-					act 'Suck':
-						*clr & cla
-						'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkapublicguys2.jpg"></center>'
-						gs 'boyStat', 'A61'
-						npc_sex[$boy] += 1
-						gs 'oral','start'
-						'Exhausted, you hear Vasya straining as he fucks your mouth. You immediately tighten your grip around his cock and squeeze it and guide it into your mouth. A few seconds later you feel the tart taste of semen...'
-						gs 'cum_call','mouth',$boy,1
-						gs 'arousal', 'end'
-						gs 'stat'
-
-						act 'Leave':gt'Gaddvor'
-					end
+			
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkasexpublic.jpg"></center>'
+			*nl
+			'<<$boydesc[0]>> bends you over a nearby log outside the trailer. He places one hand on your back to steady himself while guiding his dick into your '+iif(mesec=0,'pussy','ass')+'.'
+			if mesec = 0:
+				gs 'cum_call','vagina',$boy[0],1
+			else
+				gs 'cum_call','anus',$boy[0],1
+			end
+			'He quickly picks up the pace, and you feel as if every thrust goes deeper than the last. Soon enough, he cums inside of your '+iif(mesec=0,'pussy','ass')+'.'
+			if gadriver_gang = 2:
+				'After he''s done <<$boydesc[0]>> looks at you and says, "What are you waiting for? Oh right, money. You''ll do anything for a ruble. Here you go."'
+				'He takes a 5 ruble note out of his pocket and throws it at you, "Clean yourself up with that."'
+				money += 5
+			end
+			'He gets up and goes back to drinking again, leaving you alone outside. After a little while you sober up enough to get dressed and go sit back by the boys.'
+			
+			gs 'arousal', 'end'
+			gs 'stat'
+			
+			if sunWeather = 1:
+				if MiraLoc ! 5:
+					act 'Sit down outside':gt 'mitkabuh','partyalone'
+				else
+					act 'Sit down outside':gt 'mitkabuh','partywithMira'
 				end
 			else
-				act 'Moan':
-					*clr & cla
-					'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkapublicguys2.jpg"></center>'
-					gs 'boyStat', 'A61'
-					npc_sex[$boy] += 1
-					gs 'dinSex','boy_wants_anal','lubri'
-					gs 'dinsex','analsex',10,'gangbang'
-					gs 'cum_call','anus',$boy,1
-					gs 'stat'
-
-					act 'Suck':
-						*clr & cla
-						'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkapublicguys2.jpg"></center>'
-						gs 'boyStat', 'A62'
-						npc_sex[$boy] += 1
-						gs 'oral','start'
-						'Exhausted, you hear Vasyan straining as he fucks your mouth. You immediately tighten your grip around his cock and squeeze it and guide it into your mouth. A few seconds later you feel the tart taste of semen...'
-						gs 'cum_call','mouth',$boy,1
-						gs 'arousal', 'end'
-						gs 'stat'
-
-						act 'Leave':gt'Gaddvor'
-					end
+				if MiraLoc ! 5:
+					act 'Sit down in the trailer':gt 'mitkabuh','partyalone'
+				else
+					act 'Sit down in the trailer':gt 'mitkabuh','partywithMira'
 				end
 			end
 		end
 	end
 end
 
-if $ARGS[0] = 'with_mira_piss_1':
+
+if $ARGS[0] = 'solo_11andup_2boys':
+	*clr & cla
 	menu_off = 1
-	'<center><img <<$set_imgh>> src="images/characters/village/mira/mirapiss.jpg"></center>'
-	'You give Mira a shot glass of moonshine, but she asks you wait a few of minutes. You watch as she goes over to the nearest tree, where she lifts up her skirt, squats down and startis to pee. Vasya and Kolyamba are laughing loudly and stare hungerly at Mira. Mitka smiles and looks on indifferently. Having finish peeing, Mira walks back over to you as if nothing had happened and starts speaking to you and the guys as if nothing had happened. She gulps down her moonshine and asks for more.'
+	mitkarand = rand(0,1)
+	mitkabuhrand = rand(1,3)
+	if mitkarand = 0:
+		if mitkabuhrand = 1:
+			gs 'boyStat','A63',0
+			gs 'boyStat','A61',1
+		elseif mitkabuhrand = 2:
+			gs 'boyStat','A63',0
+			gs 'boyStat','A62',1
+		else
+			gs 'boyStat','A61',0
+			gs 'boyStat','A62',1
+		end
+		if month >= 6 and month <= 8:
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/village/2boys.1.jpg"></center>'
+		else
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/village/2boys.2.jpg"></center>'
+		end
+		*nl
+		'While you are drinking, <<$boydesc[0]>> and <<$boydesc[1]>> come up to you and takes the shot glass out of your hand. You can have this back after you do something for us.'
+		'"Get down on your knees and suck our dicks." <<$boydesc[0]>> commands as he pulls his pants down. <<$boydesc[1]>> quickly follows his lead and start getting his own dick out.'
+		
+		act 'Suck them one a time':
+			*clr & cla
+			npc_rel[$boy[0]] += 1
+			npc_rel[$boy[1]] += 1
+			if npc_QW['A63'] < 20: npc_QW['A63'] += 1
+			npc_sex[$boy[0]] += 1
+			npc_sex[$boy[1]] += 1
+			gs 'arousal', 'bj', 10, 'sub'			
+			sub += 1
+			gang += 1
+			gs 'stat'
+			
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkabjpublicguys.jpg"></center>'
+			*nl
+			'As you bend over to suck <<$boydesc[0]>>''s cock, <<$boydesc[1]>> moves behind you and begins to finger your '+iif(mesec=0,'pussy','ass')+'.'
+			'After a few minutes they switch positions, each taking turns having you blow them while the other fingers you.'
+			
+			act 'Make them cum':
+				*clr & cla
+				'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkabjpublicguys2.jpg"></center>'
+				*nl
+				'You kneel in front of <<$boydesc[0]>> and <<$boydesc[1]>> and shove both cocks in your mouth. The two boys begin to cum and you have to quickly swallow their combined loads before it overflows from your mouth.'
+				if gadriver_gang = 2:
+					'After they''re done <<$boydesc[0]>> looks at you and says, "What are you waiting for? Oh right, money. You''ll do anything for a ruble. Here you go."'
+					'He takes a 5 ruble note out of his pocket and throws it at you, "Clean yourself up with that."'
+					money += 5
+				end
+				'They make you lick them both clean before going back to drinking again. After a little while you sober up enough to get dressed and go sit back by the boys.'
+				
+				gs 'arousal', 'bj', 5, 'sub', 'deepthroat'
+				gs 'cum_call','mouth',$boy[0],1
+				gs 'cum_call','mouth',$boy[1],1
+				swallow += 1
+				gs 'arousal', 'end'
+				gs 'stat'
+
+				if sunWeather = 1:
+					if MiraLoc ! 5:
+						act 'Sit down outside':gt 'mitkabuh','partyalone'
+					else
+						act 'Sit down outside':gt 'mitkabuh','partywithMira'
+					end
+				else
+					if MiraLoc ! 5:
+						act 'Sit down in the trailer':gt 'mitkabuh','partyalone'
+					else
+						act 'Sit down in the trailer':gt 'mitkabuh','partywithMira'
+					end
+				end
+			end
+		end
+	else
+		if mitkabuhrand = 1:
+			gs 'boyStat','A63',0
+			gs 'boyStat','A61',1
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/village/mitka.jpg"></center>'
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/village/kolyamba.jpg"></center>'
+		elseif mitkabuhrand = 2:
+			gs 'boyStat','A63',0
+			gs 'boyStat','A62',1
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/village/mitka.jpg"></center>'
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/village/vasyan.jpg"></center>'
+		else
+			gs 'boyStat','A61',0
+			gs 'boyStat','A62',1
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/village/kolyamba.jpg"></center>'
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/village/vasyan.jpg"></center>'
+		end
+		*nl
+		'While you are drinking, <<$boydesc[0]>> and <<$boydesc[1]>> come up to you and takes the shot glass out of your hand. You can have this back after you do something for us.'
+		'"Let us double team you." <<$boydesc[0]>> commands as he pulls his pants down. <<$boydesc[1]>> quickly follows his lead and start getting his own dick out.'
+		
+		act 'Bend over for them':
+			*clr & cla
+			npc_rel[$boy[0]] += 1
+			npc_rel[$boy[1]] += 1
+			if npc_QW['A63'] < 20: npc_QW['A63'] += 1
+			npc_sex[$boy[0]] += 1
+			npc_sex[$boy[1]] += 1
+			gs arousal, 'bj', 10, 'sub', 'rough'
+			if mesec = 0:
+				gs 'arousal', 'vaginal', 10, 'sub', 'rough', 'deepthroat'
+			else
+				gs 'arousal', 'anal', 10, 'sub', 'rough'
+			end
+			sub += 1
+			gang += 1
+			gs 'stat'
+			
+			if sunWeather = 1:
+				'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkapublicguys2.jpg"></center>'
+			else
+				'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkaguys2.jpg"></center>'
+			end
+			*nl
+			'First the boys remove your clothes exposing your body for everyone to see.'
+			'<<$boydesc[0]>> bends you over '+iif(sunWeather=1,'the bench outside the trailer.','in the kitcen of the trailer.')+' He places his hands on your hips and pulls your '+iif(mesec=0,'pussy','ass')+' onto his dick.'
+			'<<$boydesc[1]>> grabs you by the hair and shoves his cock into your mouth. You rock back and forth between the two boys as they thrust into you.'
+			'They quicken their pace and it doesn''t take long for them both to cum inside of you.'
+			if gadriver_gang = 2:
+				'After they''re done <<$boydesc[0]>> looks at you and says, "What are you waiting for? Oh right, money. You''ll do anything for a ruble. Here you go."'
+				'He takes a 5 ruble note out of his pocket and throws it at you, "Clean yourself up with that."'
+				money += 5
+			end
+			'They make you lick them both clean before going back to drinking again. After a little while you sober up enough to get dressed and go sit back by the boys.'
+			
+			if mesec = 0:
+				gs 'cum_call','vagina',$boy[0],1
+			else
+				gs 'cum_call','anus',$boy[0],1
+			end
+			gs 'cum_call','mouth',$boy[1],1
+			gs 'arousal', 'end'
+			gs 'stat'
+			
+			if sunWeather = 1:
+				if MiraLoc ! 5:
+					act 'Sit down outside':gt 'mitkabuh','partyalone'
+				else
+					act 'Sit down outside':gt 'mitkabuh','partywithMira'
+				end
+			else
+				if MiraLoc ! 5:
+					act 'Sit down in the trailer':gt 'mitkabuh','partyalone'
+				else
+					act 'Sit down in the trailer':gt 'mitkabuh','partywithMira'
+				end
+			end
+		end
+	end
+end
+
+if $ARGS[0] = 'solo_11andup_3boys':
+	*clr & cla
+	menu_off = 1
+	'<center><img <<$set_imgh>> src="images/locations/gadukino/village/drunk.jpg"></center>'
+	*nl
+	'While you are drinking, Mitka, Kolyamba and Vasyan come up to you and take the shot glass out of your hand. You can have this back after you do something for us.'
+	'"Let us all gangbang you." Mitka commands as he pulls his pants down. Kolyamba and Vasyan quickly follow his lead and start getting their own dicks out.'
+	
+	act 'Smile at them':
+		*clr & cla
+		'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkagroup.jpg"></center>'
+		*nl
+		'You have a seat on the bench outside the trailer and expose your breasts to the boys. This is all the encouragement the boys need as they quickly surround you.'
+		'You start jerking off Kolyamba and Vasyan while Mitka pushes his fingers into your '+iif(mesec=0,'pussy','ass')+'.'
+		
+		npc_rel['A63'] += 1
+		npc_rel['A62'] += 1
+		npc_rel['A61'] += 1
+		if npc_QW['A63'] < 10: npc_QW['A63'] += 1
+		gs 'boyStat', 'A63'
+		npc_sex['A63'] += 1
+		gs 'boyStat', 'A62'
+		npc_sex['A62'] += 1
+		gs 'boyStat', 'A61'
+		npc_sex['A61'] += 1
+		sub += 1
+		gang += 1
+		gs 'arousal', 'hj', 5, 'sub', 'gangbang'
+		if mesec = 0:
+			gs 'arousal', 'vaginal_finger', 5, 'sub', 'gangbang'
+		else
+			gs 'arousal', 'anal_finger', 5, 'sub', 'gangbang'
+		end
+		gs 'stat'
+		
+		act 'Get gangbanged':
+			*clr & cla
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkagroupcum.jpg"></center>'
+			*nl
+			'Kolyamba and Vasyan hold you down as Mitka penetrates your '+iif(mesec=0,'pussy','ass')+'. You do your best to please them both with your mouth and hands at the same time.'
+			'They switch positions so everyone gets a chance will all your holes. After a while you get used to the constant pounding as the three boys don''t seem to be tiring out as quick as usual.'
+			'You have a feeling they may be competing to see who can go the longest without telling you.'
+			'Vasyan is the first to go, spraying cum all over your body. This sets off a chain reaction as Kolyamba begins cumming all over your face and hair and Mitka fills your '+iif(mesec=0,'pussy','ass')+' at the same time.'
+			if gadriver_gang = 2:
+				'After they''re done Mitka looks at you and says, "What are you waiting for? Oh right, money. You''ll do anything for a ruble. Here you go."'
+				'He takes a 5 ruble note out of his pocket and throws it at you, "Clean yourself up with that."'
+				money += 5
+			end
+			'The guys then go back to drinking and leave you naked and alone outside. After a little while you sober up enough to get dressed and go sit back by the boys.'
+			
+			gs 'arousal', 'hj', 10, 'sub', 'gangbang', 'rough'
+			gs 'arousal', 'bj', 10, 'sub', 'gangbang', 'rough'
+			if mesec = 0:
+				gs 'arousal', 'vaginal', 10, 'sub', 'gangbang', 'rough'
+			else
+				gs 'arousal', 'anal', 10, 'sub', 'gangbang', 'rough'
+			end
+			gs 'cum_call','breasts','A62',1
+			gs 'cum_call','stomach','A62',1
+			gs 'cum_call','face','A61',1
+			gs 'cum_call','mouth','A61',1
+			if mesec = 0:
+				gs 'cum_call','vagina','A63',1
+			else
+				gs 'cum_call','anus','A63',1
+			end
+			gs 'arousal', 'end'
+			gs 'stat'
+			
+			if sunWeather = 1:
+				if MiraLoc ! 5:
+					act 'Sit down outside':gt 'mitkabuh','partyalone'
+				else
+					act 'Sit down outside':gt 'mitkabuh','partywithMira'
+				end
+			else
+				if MiraLoc ! 5:
+					act 'Sit down in the trailer':gt 'mitkabuh','partyalone'
+				else
+					act 'Sit down in the trailer':gt 'mitkabuh','partywithMira'
+				end
+			end
+		end
+	end
+end
+
+
+if $ARGS[0] = 'mira_5':
+	*clr & cla
+	menu_off = 1
 	minut += 5
-	if npc_QW['A60'] < 10: npc_QW['A60'] += 1
+	npc_QW['A60'] = 6
+	gs 'stat'
+	
+	gs 'Miroslava','miraclothes'
+	*nl
+	'Mira is absolutely trashed now, she looks at you and winks before taking Mitka''s hand and leading him '+iif(sunWeather=1,'behind the trailer out of view ',' outside the trailer away')+' from the other boys.'
+	'A few minutes later, you excuse yourself from talking with Kolyamba and Vasyan and follow after them.'
+	
+	act 'Watch them':
+		*clr & cla
+		gs 'arousal', 'voyeur', 15, 'sub'
+		gs 'stat'
+		
+		'<center><img <<$set_imgh>> src="images/characters/village/mira/sex/mirawish1_2.jpg"></center>'
+		*nl
+		'By the time you catch up and find a good hiding spot, Mitka and Mira have already started. Mira is naked, lying on a wooden table with her fit up in the air.'
+		'Mitka is nailing her in the ass with his cock, just like Mira promised he would. Each time he pushes into her, Mira softly moans and the table creaks uder her.'
+		'The loud sounds of Mitka''s thursts can easily be heard from you where you are spying from. After 15 minutes Mira is wriggling her ass and mooing, having the time of her life.'
+		'This is too much for Mitka and he begins to noisily cum in her ass, not even bothering to pull out. He makes her clean his cock before heading back to drink with the other boys some more.'
+		'Mira looks around to try and spot you, but cannot see you in her drunk state.'
+		
+		act 'Talk to Mira':
+			*clr & cla
+			minut += 5
+			npc_QW['A60'] = 7
+			gs 'stat'
+			
+			gs 'Miroslava','miraclothes'
+			*nl
+			'You emerge from your hiding spot and go up to Mira. You tell her that you saw everything as Mitka fucked her in the ass.'
+			'You ask her if she likes having her ass fucked. To your surprise, Mira responds that yes she did enjoy it.'
+			'You are slightly disappointed because this was supposed to be a punishment, and then remind her, that she still has two wishes to fullfill. Once they are all fullfilled, she will have satisfied her debt to you. Mira nods her head and says, she is ready to obey your wishes upon demand.'
+		
+			if sunWeather = 1:
+				act 'Go back to the trailer':gt 'mitkabuh','partywithMira'
+			else
+				act 'Go back in the trailer':gt 'mitkabuh','partywithMira'
+			end
+		end
+	end
+end		
+	
+if $ARGS[0] = 'mira_7':
+	*clr & cla
+	menu_off = 1
+	minut += 5
+	npc_QW['A60'] = 8
+	gs 'stat'
+	
+	gs 'Miroslava','miraclothes'
+	*nl
+	'"I''m bored!" Mitka yells. "Mira get your ass down and give us a show to remember!" he snorts like a pig. "Show us how how loose your holes are whore..."'
+	'Mira refuses. Mitka and the others immediately demand she follow their orders. She continues to refuse to do their bidding. Eventually Mira offers a compromise and they agree with it, she''ll just strip naked and be made to crawl around in front of them on all fours, portraying a dog...'
+		
+	act 'Watch her':
+		*clr & cla
+		gs 'arousal', 'voyeur', 15, 'sub'
+		gs 'stat'
+		
+		'<center><img <<$set_imgh>> src="images/characters/village/mira/miraqw15_1.jpg"></center>'
+		*nl
+		'Mira takes off all her clothes and for the next fifteen minutes crawls around on all fours on the grass, constantly rolling her head from side to side and barking a little. The guys laugh and drink as Mira demeans herself for their entertainment.'
 
-	if npc_QW['A60'] = 10:
+		if sunWeather = 1:
+			act 'Go back to the trailer':gt 'mitkabuh','partywithMira'
+		else
+			act 'Go back in the trailer':gt 'mitkabuh','partywithMira'
+		end
+	end
+end
+
+if $ARGS[0] = 'mira_8':
+	*clr & cla
+	menu_off = 1
+	minut += 5
+	npc_QW['A60'] = 9
+	gs 'stat'
+	
+	gs 'Miroslava','miraclothes'
+	*nl
+	'"I''m bored!" Mitka yells. "Mira get your ass down and give us a show to remember!" he snorts like a pig. "Show us how how loose your holes are whore..."'
+	'Mira mumbles affirmatively, and undresses.'
+
+	act 'Watch her':
+		*clr & cla
+		gs 'arousal', 'voyeur', 15, 'sub'
+		gs 'stat'
+		
+		'<center><img <<$set_imgh>> src="images/characters/village/mira/sex/miraqw15.jpg"></center>'
+		*nl
+		'Mira gets down on all fours and sticks out her ass in the direction of the party. She begins to push her fingers into both holes. Mira moans as she forces more fingers into her stretched holes.'
+		'She continues to awkwardly thrust her fingers deep into both her pussy and ass. Eventually she brings himself to the first of many orgasms she will have this night.'
+
+		if sunWeather = 1:
+			act 'Go back to the trailer':gt 'mitkabuh','partywithMira'
+		else
+			act 'Go back in the trailer':gt 'mitkabuh','partywithMira'
+		end
+	end
+end
+
+if $ARGS[0] = 'mira_9':
+	*clr & cla
+	menu_off = 1
+	minut += 5
+	npc_QW['A60'] = 10
+	gs 'stat'
+	
+	gs 'Miroslava','miraclothes'
+	*nl
+	'Mira is super drunk now and can barely stand but keeps asking for more moonshine. Vasyan comes over to her and says with a devilish grin on his face "I have a better idea. How about you service both mine and Kolyamba''s dicks instead? Then you can have more to drink."'
+	'Mira only chuckles in response and says, "Sure, but can you guys get it up with all the moonshine you have been drinking?" Mitka gives her a pat on the ass, and says that she is a responsible adult and can make up her own mind. Kolyamba meanwhile, walks over to Mira and forcefully presses down on her shoulders.'
+	'Mira, drunkenly giggles, and playfully resists for a few seconds, but eventually gets on her knees. She watches as he unzips his pants and pulls them down to his ankles...'
+	
+	act 'Watch her and Kolyamba':
+		*clr & cla
+		gs 'arousal', 'voyeur', 5, 'sub'
+		gs 'stat'
+		
+		'<center><img <<$set_imgh>> src="images/characters/village/mira/sex/miraqw10.jpg"></center>'
+		*nl
+		'Mira, seeing that his dick is not yet fully erect, immediately leans forward and swallows it down to the balls and begins to give him an excellent blowjob. Her lips slide over the skin, then sucking it fully into her mouth, then releasing the dick and licking the head and shaft. Kolyamba blissfully closes his eyes and enjoys Mira''s blowjob.'
+		if npc_QW['A63'] < 10: 'Mitka askes if you will do the same for him, but you snort and tell him no. Mitka looks disappointed, but hands you another shot glass full of moonshine.'
+		
 		act 'Continue':
 			*clr & cla
-			'<center><img <<$set_imgh>> src="images/locations/gadukino/village/drunk.jpg"></center>'
-			'As soon as she drank the liquor, a tipsy Vasyan asks her, with a devilish grin on his face, if she will service both his and Kolyamba''s dicks.'
-			minut += 5
+			gs 'arousal', 'voyeur', 5, 'sub'
 			gs 'stat'
-			if npc_drunk['A60'] >= 4:
-				'Mira, already pretty tipsy, only chuckles in response and says, "Sure, but can you guys get it up with all the moonshine you have been drinking?" Mitka then gives her a slight pat on the ass, and says that she is a responsible adult and can make up her own mind. Kolyamba meanwhile, walks over to Mira and hugs her, then he persistently and forcefully presses down on her shoulders. Mira, drunkenly giggles, but willfully resists for a few seconds, but eventually gets on her on knees. She watches in a daze as he unzips his pants and pulls them down to his ankles...'
-				act 'Watch':
+			
+			'<center><img <<$set_imgh>> src="images/characters/village/mira/sex/miraqw10_1.jpg"></center>'
+			*nl
+			'After a several minutes of Mira sucking on his cock, Kolyamba roughly pushes her mouth off his cock and he begins to shoot ropes of cum onto her face. Mira''s eyes are closed, she drunkenly mumbles, trying to act like a sexy pornstar, while slowly wiping her fingers across her face collecting the sperm. She then puts her fingers in her mouth and sucks them clean.'
+			
+			act 'Watch her and Vasyan':
+				*clr & cla
+				gs 'arousal', 'voyeur', 5, 'sub'
+				gs 'stat'
+				
+				'<center><img <<$set_imgh>> src="images/characters/village/mira/sex/miraqw10_2.jpg"></center>'
+				*nl
+				'"Well, now it''s my turn", says Vasyan and steps before Mira. She enthusiastically sucks him as well and he eventually cums on her tongue and in her mouth. She swallows his entire load.'
+				
+				act 'Watch her and Mitka':
 					*clr & cla
-					'<center><img <<$set_imgh>> src="images/characters/village/mira/sex/miraqw10.jpg"></center>'
-					'Mira, seeing that his dick is not yet fully erect, immediately leans forward and swallows it down to the balls and begins to give him an excellent blowjob. Her lips slide over the skin, then sucking it fully into her mouth, then releasing the dick and licking the head and shaft. Kolyamba blissfully closes his eyes and enjoys Mira''s blowjob. Mitka askes if you will do the same for him, but you snort and tell him no. Mitka looks disappointed, but hands you another shot glass full of moonshine.'
-					gs 'arousal', 'voyeur', 5, 'group'
-					minut += 5
+					gs 'arousal', 'voyeur', 5, 'sub'
 					gs 'stat'
-
-					act 'Watch':
+					
+					'<center><img <<$set_imgh>> src="images/characters/village/mira/sex/miraqw10_3.jpg"></center>'
+					*nl
+					'Mitka, having drunk several shots himself already, silently walks over to Mira and without saying a word, signals for her to bend over. Mira, drunkenly staggers about for a few seconds before obediently turning her ass to him, and sliding her panties out of the way, exposing her wet cunt for all to see. Mitka pulls out his cock and places the head between her pussy lips, rubbing it up and down lubricating it with her juices.'
+					
+					act 'Continue':
 						*clr & cla
-						'<center><img <<$set_imgh>> src="images/characters/village/mira/sex/miraqw10_1.jpg"></center>'
-						'After a several minutes of Mira sucking on his cock, Kolyamba roughly pushes her away from his cock and he begins to shoot ropes of cum onto her face. Mira''s eyes are closed, she drunkenly mumbles, trying seem like a sexy pronstar and slowly wipes her fingers across her face collecting the sperm and then places the fingers into her mouth and sucks them clean.'
-						gs 'arousal', 'voyeur', 5, 'group'
+						gs 'arousal', 'voyeur', 10, 'sub'
 						gs 'stat'
-
-						act 'Watch':
+						
+						'<center><img <<$set_imgh>> src="images/characters/village/mira/sex/miraqw10_4.jpg"></center>'
+						'Mitka slaps her on the butt hard, leaving a red hand print on her ass. He roughly grabs her panties and pulls them down to her knees before starting to fuck her roughly. Mitka is extremely drunk and doesn''t last long at all, quickly cumming in her pussy. Mira sighs with a look of satisfaction on her face as she orgasms too. Your own crotch is on fire and all you want is to masturbate. The boys look at you and smile knowlingly, seeing your hand slightly touching your own crotch and rubbing your legs together. You need to get away before you lose control and ask the guys to fuck you too.'
+						
+						
+						act 'Talk to Mira':
 							*clr & cla
-							'<center><img <<$set_imgh>> src="images/characters/village/mira/sex/miraqw10_2.jpg"></center>'
-							'"Well, now it''s my turn", says Vasyan and steps before Mira. She enthusiastically sucks him as well and he eventually cums on her tongue and in her mouth. She swallows his entire load.'
-							gs 'arousal', 'voyeur', 5, 'group'
+							minut += 5
+							npc_QW['A60'] = 11
 							gs 'stat'
-
-							act 'Watch':
-								*clr & cla
-								'<center><img <<$set_imgh>> src="images/characters/village/mira/sex/miraqw10_3.jpg"></center>'
-								'Mitka, having drunk several shots himself already, silently walks over to Mira and without saying a word, signals for her to get into a position. Mira, drunkenly staggered about a few second before she obediently turns her ass to him and a slips her panties aside exposing her wet cunt to all to see. Mitka pulls out his cock and places the head between her pussy lips, rubbing it up and down lubricating it with her cunt juices.'
-								gs 'arousal', 'voyeur', 5, 'group'
-								gs 'stat'
-
-								act 'Watch':
-									*clr & cla
-									'<center><img <<$set_imgh>> src="images/characters/village/mira/sex/miraqw10_4.jpg"></center>'
-									'Mitka slaps her on the butt hard, leaving a red hand print on her ass cheek. He then roughly grabs her panties and pulls them down to her knees. He starts to fuck her roughly. Mira sighs with a look of satisfaction on her face, even though sometimes she bumps her head into a tree. Your own crotch is on fire and all you want is to masturbate. You tell the guys that your tired and need to go...they all smile knowlingly, seeing your hand slightly touching your own crotch and rubbing your legs together. You need to get away before you lose control and ask the guys to fuck you too...'
-									gs 'arousal', 'voyeur', 10, 'group'
-									npc_QW['A60'] = 11
-									mirasextimes += 3
-									gs 'arousal', 'end'
-									gs 'stat'
-
-									act 'Leave':MiraLoc = 0 & minut += 30 & gt'Gaddvor'
-								end
+							
+							gs 'Miroslava','miraclothes'
+							*nl
+							'You don''t know where to begin, as you walk up to Mira. Mira is slowly coming back to her senses as she looks at herself and begins to blush.'
+							'Finally you gather your courage and ask her what just happened. Mira, still not looking you in the eye, stammers out that she doesn''t know why she did it. She says that she was out of control.'
+							'You can see the shame on Mira''s face as she continues to stare at the ground.'
+							'But you were also drunk, and did not do what she did. Her face sinks with shame and she continues to look at the ground.'
+							'You manage to soothe her and tell her that, she should just bite the bullet and move on. Everything will be okay and you should just go back to drinking and having fun.'
+							'Mira thanks you for your support, but she still can''t bring herself to look at you.'
+						
+							if sunWeather = 1:
+								act 'Go back to the trailer':gt 'mitkabuh','partywithMira'
+							else
+								act 'Go back in the trailer':gt 'mitkabuh','partywithMira'
 							end
 						end
 					end
 				end
-			else
-				'Mira only chuckles in response, and Mitka cuffs Vasyan on the head...'
-				act 'Continue drinking':gt 'mitkabuh'
 			end
 		end
-	else
-		act 'Continue drinking':gt 'mitkabuh'
 	end
 end
 
-if $ARGS[0] = 'with_mira_piss_2':
+if $ARGS[0] = 'mira_11andup':
+	*clr & cla
 	menu_off = 1
-	if npc_drunk['A60'] >= 4:
-		minut += 5
-		if npc_QW['A60'] < 30: npc_QW['A60'] += 1
-		gs 'stat'
-		'<center><img <<$set_imgh>> src="images/characters/village/mira/sex/miraqw11.jpg"></center>'
-		'"Well Mira," Mitka says while smiling. "Are you ready to work that pussy?" - The other guys voice their agreement.'
-		'Mira drunkenly giggles in response, after which she readily pulls down her pants infront of the group and turns her back to them and then pulls down her panties. She bends forward displaying her pussy and ass.'
-		act 'Watch':
-			*clr & cla
-			minut += 5
-			if mirapiss = 3:
-				'<center><img <<$set_imgh>> src="images/characters/village/mira/sex/miraqw11_1.jpg"></center>'
-				'Kolyamba is displeased with the show. He frowns and pulls Mira aside, where he orders her to work her cunt on his cock. He pulls off his pants and plops down, Mira jumps on top of him and starts to ride his cock until he cums in her cunt...'
-			elseif mirapiss = 4:
-				'<center><img <<$set_imgh>> src="images/characters/village/mira/sex/miraqw11_2.jpg"></center>'
-				'Mitka grunts approvingly and takes the drunk Mira aside, where and he pulls down his pants a little and shoves his cock into her exposed pussy. He fucks her for several moments until her dumps his load into her pussy.'
-			elseif mirapiss = 5:
-				'<center><img <<$set_imgh>> src="images/characters/village/mira/sex/miraqw11_3.jpg"></center>'
-				'Vasyan enjoys the show and asks Mira to follow him. She does so. Vasyan orders her to take off her clothes. Mira looks at him a second before complying with his order. Once completely naked Vasyan pulls off his pants and starts to fuck Mira. Vasyan, hoots and hollers as he roughly fucks Mira, acting like a cowboy. Eventally, he cums deep in her pussy.'
-			end
-			gs 'arousal', 'voyeur', 20, 'group'
-			mirasextimes += 1
-			gs 'arousal', 'end'
-			gs 'stat'
-
-			act 'Leave':MiraLoc = 0 & minut += 10 & gt'Gaddvor'
-		end
-	else
-		minut += 5
-		if npc_QW['A60'] < 20: npc_QW['A60'] += 1
-		gs 'stat'
+	minut += 5
+	if npc_QW['A60'] < 15: npc_QW['A60'] += 1
+	gs 'stat'
+	
+	mitkarand = rand(0,1)
+	mitkabuhrand = rand(1,3)
+	if mitkarand = 0:
 		'<center><img <<$set_imgh>> src="images/characters/village/mira/miraqw11_4.jpg"></center>'
+		*nl
 		'"Well Mira," Mirka says while smiling. "Are you ready to suck some cock?" - The other guys voice their agreement.'
 		'Mira blushes a bit but nods and obediently kneels down right where she was.'
-		act 'Watch':
-			*clr & cla
-			minut += 5
-			if mirapiss = 3:
+		
+		if mitkabuhrand = 1:
+			act 'Watch her':
+				*clr & cla
+				gs 'arousal', 'voyeur', 15, 'sub', 'group'
+				gs 'stat'
+				
 				'<center><img <<$set_imgh>> src="images/characters/village/mira/sex/miraqw11_5.jpg"></center>'
-				'The boys immediately forget about you, as they surround Mira and pull out their cocks and present them to her. Mira in turn starts to suck off all the guys with loud slurping lips...'
-			elseif mirapiss = 4:
-				'<center><img <<$set_imgh>> src="images/characters/village/mira/sex/miraqw11_6.jpg"></center>'
-				'The boys immediately forget about you, as they surround Mira and take turns roughly fucking her mouth. She grunts and gags a lot, but they don''t pay attention, they continuing to slam their cocks into her mouth and throat.'
-			elseif mirapiss = 5:
-				'<center><img <<$set_imgh>> src="images/characters/village/mira/sex/miraqw11_7.jpg"></center>'
-				'The boys immediately forget about you, as they surround Mira and she in turns starts carefully sucking off each guy while jerking off the others with her free hands.'
+				*nl
+				'The boys immediately forget about you, as they surround Mira and pull out their cocks and present them to her. Mira starts to suck off all the guys and the sound of moans and loud slurping sounds interrupt the silence of the night. It does not take long for Mira to make the guys cum all over her.'
+				if npc_QW['A60'] >= 16:
+					'After they''re done Mitka looks at Mira and says, "What are you waiting for? Oh right, money. You''ll do anything for a ruble. Here you go."'
+					'He takes a 5 ruble note out of his pocket and throws it at her, "Clean yourself up with that."'
+				end
+				
+				if sunWeather = 1:
+					act 'Go back to the trailer':gt 'mitkabuh','partywithMira'
+				else
+					act 'Go back in the trailer':gt 'mitkabuh','partywithMira'
+				end
 			end
-			gs 'arousal', 'voyeur', 20, 'group'
-			mirasextimes += 3
-			gs 'arousal', 'end'
-			gs 'stat'
-
-			act 'Leave':MiraLoc = 0 & gt'Gaddvor'
-		end
-	end
-end
-
-if $ARGS[0] = 'with_mira_piss_3':
-	menu_off = 1
-	if npc_drunk['A60'] >= 4:
-		minut += 5
-		if npc_QW['A60'] < 25: npc_QW['A60'] += 1
-		gs 'stat'
-		'<center><img <<$set_imgh>> src="images/locations/gadukino/village/drunkgirl.jpg"></center>'
-		'"I''m bored!" Mitka yells. "Mira get your ass down and give us a show to remember!" he snorts like a pig. "Show us how loose your holes are whore..."'
-		'Mira mumbles affirmatively, and undresses.'
-
-		act 'Watch':
-			*clr & cla
-			'<center><img <<$set_imgh>> src="images/characters/village/mira/sex/miraqw15.jpg"></center>'
-			'She gets down on all hours and sticks out her ass in the direction of the party. She begins to push her fingers into both holes. Mira grunts like an animal as she forces more fingers into her painfully stretched holes. She moans and continues to awkwardly thrust her fingers deep into both her pussy and ass. Mira eventually brings himself to the first of many orgasms she will have this night.'
-			gs 'arousal', 'voyeur', 5, 'group'
-			gs 'stat'
-
-			act 'Continue drinking':gt 'mitkabuh'
+		elseif mitkabuhrand = 2:
+			act 'Watch her':
+				*clr & cla
+				gs 'arousal', 'voyeur', 15, 'sub', 'goup'
+				gs 'stat'
+				
+				'<center><img <<$set_imgh>> src="images/characters/village/mira/sex/miraqw11_6.jpg"></center>'
+				*nl
+				'The boys immediately forget about you, as they surround Mira and take turns roughly fucking her mouth. She grunts and gags a lot, but they don''t pay attention, they continue to slam their cocks into her mouth and throat until they have all cum on her.'
+				if npc_QW['A60'] >= 16:
+					'After they''re done Mitka looks at Mira and says, "What are you waiting for? Oh right, money. You''ll do anything for a ruble. Here you go."'
+					'He takes a 5 ruble note out of his pocket and throws it at her, "Clean yourself up with that."'
+				end
+				
+				if sunWeather = 1:
+					act 'Go back to the trailer':gt 'mitkabuh','partywithMira'
+				else
+					act 'Go back in the trailer':gt 'mitkabuh','partywithMira'
+				end
+			end
+		else
+			act 'Watch her':
+				*clr & cla
+				gs 'arousal', 'voyeur', 15, 'sub', 'group'
+				gs 'stat'
+				
+				'<center><img <<$set_imgh>> src="images/characters/village/mira/sex/miraqw11_7.jpg"></center>'
+				*nl
+				'The boys immediately forget about you, as they surround Mira and take their cocks out. She starts sucking off each guy while jerking off the others with her free hands. Mira has gotten pretty good at this you think to yourself as the boys quickly climax and shoot their loads in her mouth.'
+				if npc_QW['A60'] >= 16:
+					'After they''re done Mitka looks at Mira and says, "What are you waiting for? Oh right, money. You''ll do anything for a ruble. Here you go."'
+					'He takes a 5 ruble note out of his pocket and throws it at her, "Clean yourself up with that."'
+				end
+				
+				if sunWeather = 1:
+					act 'Go back to the trailer':gt 'mitkabuh','partywithMira'
+				else
+					act 'Go back in the trailer':gt 'mitkabuh','partywithMira'
+				end
+			end
 		end
 	else
-		'<center><img <<$set_imgh>> src="images/locations/gadukino/village/drunkgirl.jpg"></center>'
-		'"I''m bored!" Mitka yells. "Mira get your ass down and give us a show to remember!" he snorts like a pig. "Show us how loose your holes are whore..."'
-		'Mira refuses. Mitka and the others immediately demand she follow their orders. She continues to refuse to do their bidding. Eventually Mira offers a compromise and they agree with it, she''ll just strip naked and be made to crawl around in front of them on all fours, portraying a dog...'
-		minut += 5
-		if npc_QW['A60'] < 25: npc_QW['A60'] += 1
-		gs 'stat'
-
-		act 'Watch':
-			*clr & cla
-			'<center><img <<$set_imgh>> src="images/characters/village/mira/miraqw15_1.jpg"></center>'
-			'Mira takes off all her clothes and for the next fifteen minutes crawls around on all fours on the grass, constantly rolling her head from side to side and barking a little. The guys laugh and drink as Mira debases herself for their entertainment.'
-			gs 'arousal', 'voyeur', 5, 'group'
-			gs 'stat'
-
-			act 'Continue drinking':gt 'mitkabuh'
+		'<center><img <<$set_imgh>> src="images/characters/village/mira/sex/miraqw11.jpg"></center>'
+		*nl
+		'"Well Mira," Mitka says while smiling. "Are you ready to work that pussy?" - The other guys voice their agreement.'
+		'Mira drunkenly giggles in response, after which she readily pulls down her pants in front of the group, turns her back to them and then pulls down her panties. She bends forward displaying her pussy and ass for everyone to see.'
+		
+		if mitkabuhrand = 1:
+			act 'Watch her':
+				*clr & cla
+				gs 'arousal', 'voyeur', 15, 'sub'
+				gs 'stat'
+				
+				'<center><img <<$set_imgh>> src="images/characters/village/mira/sex/miraqw11_1.jpg"></center>'
+				*nl
+				'Kolyamba is pleased with the show but wants more tonight. He pulls Mira aside, and orders her to work her cunt on his cock. He pulls off his pants and plops down waiting for her to obey. Mira jumps on top of him and starts to ride his cock until he cums inside of her.'
+				if npc_QW['A60'] >= 16:
+					'After he''s done Kolyamba looks at Mira and says, "What are you waiting for? Oh right, money. You''ll do anything for a ruble. Here you go."'
+					'He takes a 5 ruble note out of his pocket and throws it at her, "Clean yourself up with that."'
+				end
+				
+				if sunWeather = 1:
+					act 'Go back to the trailer':gt 'mitkabuh','partywithMira'
+				else
+					act 'Go back in the trailer':gt 'mitkabuh','partywithMira'
+				end
+			end
+		elseif mitkabuhrand = 2:
+			act 'Watch her':
+				*clr & cla
+				gs 'arousal', 'voyeur', 15, 'sub'
+				gs 'stat'
+				
+				'<center><img <<$set_imgh>> src="images/characters/village/mira/sex/miraqw11_2.jpg"></center>'
+				*nl
+				'Mitka grunts approvingly and takes the drunk Mira aside, where he pulls down his pants and shoves his cock into her exposed pussy. He fucks her for several a while until dumping his load into her pussy.'
+				if npc_QW['A60'] >= 16:
+					'After he''s done Mitka looks at Mira and says, "What are you waiting for? Oh right, money. You''ll do anything for a ruble. Here you go."'
+					'He takes a 5 ruble note out of his pocket and throws it at her, "Clean yourself up with that."'
+				end
+				
+				if sunWeather = 1:
+					act 'Go back to the trailer':gt 'mitkabuh','partywithMira'
+				else
+					act 'Go back in the trailer':gt 'mitkabuh','partywithMira'
+				end
+			end
+		else
+			act 'Watch her':
+				*clr & cla
+				gs 'arousal', 'voyeur', 15, 'sub'
+				gs 'stat'
+				
+				'<center><img <<$set_imgh>> src="images/characters/village/mira/sex/miraqw11_3.jpg"></center>'
+				*nl
+				'Vasyan enjoys the show and asks Mira to follow him and take off her clothes. Mira looks at him for a second before complying with his order. Once completely naked Vasyan pulls off his pants and starts to fuck Mira. Vasyan, hoots and hollers as he roughly fucks Mira, acting like a cowboy. Eventally, he cums deep in her pussy.'
+				if npc_QW['A60'] >= 16:
+					'After he''s done Vasyan looks at Mira and says, "What are you waiting for? Oh right, money. You''ll do anything for a ruble. Here you go."'
+					'He takes a 5 ruble note out of his pocket and throws it at her, "Clean yourself up with that."'
+				end
+				
+				if sunWeather = 1:
+					act 'Go back to the trailer':gt 'mitkabuh','partywithMira'
+				else
+					act 'Go back in the trailer':gt 'mitkabuh','partywithMira'
+				end
+			end
 		end
 	end
 end
