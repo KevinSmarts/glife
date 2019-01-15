@@ -1,0 +1,177 @@
+# nichChore
+
+
+
+!! $nichChoreID:
+!! 0: hallway
+!! 1: guest bathroom
+!! 2: servant bedroom
+!! 3: servant bathroom
+!! 4: laundry
+!! 5: tanya bedroom
+!! 6: master bathroom
+!! 7: master bedroom
+!! 8: living room
+!! 9: kitchen
+!!10: study
+
+!! nichChoreTimeF: Factor to multiply basetime with
+
+gs 'nichUtil', 'checkOutfit'
+
+if $ARGS[0] = 'inspect':
+	if $ARGS[1] = 'hallway':
+		$location_type = 'event'
+		menu_off = 1
+		
+		nichChoreID = 0
+		nichChoreTimeF = 1
+		$nichChoreType = 'floor'
+		$nichChoreLoc = 'hallway'
+		$nichChoreActCaption = 'Inspect Hallway'
+		
+		nichTimeBQuick		= 10
+		nichTimeBNormal		= 20
+		nichTimeBDiligent	= 30
+		
+		if nichChoreState[nichChoreID] = 0:
+			$nichChoreDesc = 'The hallway has been cleaned recently. There is no need to clean it again.'
+		elseif nichChoreState[nichChoreID] <= 5:
+			$nichChoreDesc = 'The floor is a little bit dirty.'
+		elseif nichChoreState[nichChoreID] <= 15:
+			nichChoreTimeF = 2
+			$nichChoreDesc = 'The floor is somewhat dirty. One has to be careful not to step into the dirt.'
+		else
+			nichChoreTimeF = 4
+			$nichChoreDesc = 'The floor is very dirty. Wearing shoes here would be wise because otherwise hosiery could be ruined.'
+		end
+		
+		
+		nichtTimeQuick 		= nichTimeBQuick    * nichChoreTimeF
+		nichTimeNormal 		= nichTimeBNormal   * nichChoreTimeF
+		nichTimeDiligent 	= nichTimeBDiligent * nichChoreTimeF
+		
+		
+	end
+	
+	
+	
+	act '<<$nichChoreActCaption>>':
+	
+		*clr & cla
+		'<<$nichChoreDesc>>'
+		
+		if nichOutfitState = 0:
+			'<b><font color = red>You have to change into an appropriate outfit before cleaning up.</font></b>'
+		elseif nichChoreState[nichChoreID] > 0:
+			act '(<<nichtTimeQuick>> minutes) Clean quickly':
+				gt 'nichChore', 'work', 1
+			end
+			act '(<<nichTimeNormal>> minutes) Clean normally':
+				gt 'nichChore', 'work', 2
+			end
+			act '(<<nichTimeDiligent>> minutes) Clean diligently':
+				gt 'nichChore', 'work', 3
+			end
+		end
+		
+		act 'Don''t clean':
+			gt $loc, 'return'
+		end
+		
+	end
+
+elseif $ARGS[0] = 'work':
+	!! ARG[1]:
+	!!	1: quick
+	!!	2: normal
+	!!	3: diligent
+	
+	nichRand = rand(1,100)
+	
+	killvar '$nichChoreResultCode'
+	killvar 'nichChoreResulChance'
+	
+	$nichTempPic = func('nichUtil','cleanPic',$nichChoreType,$nichChoreLoc)
+	
+	nichChoreResult = 0
+	
+	if nichChoreID = 0:
+		if ARGS[1] = 1:
+			$nichChoreDesc = 'You decide to clean the hallway as quickly as possible, not wasting your time with harder to reach spots or visiting a place twice.'
+			$nichChoreResultCode[ARRSIZE('$nichChoreResultCode')] = "*pl 'Once you are finished you realize that you didn''t improve the condition of the floor at all. It is still as dirty as before.' & nichChoreResult = nichChoreState[nichChoreID]"
+			nichChoreResulChance[ARRSIZE('nichChoreResulChance')] = 30
+			if nichChoreState[nichChoreID] > 10:
+				$nichChoreResultCode[ARRSIZE('$nichChoreResultCode')] = "*pl 'Once you are finished you realize that the floor is now cleaner, but not perfectly clean.' & nichChoreResult = nichChoreState[nichChoreID] - 10"
+				nichChoreResulChance[ARRSIZE('nichChoreResulChance')] = 30
+			end
+		elseif ARGS[1] = 2:
+			$nichChoreDesc = 'You carefully clean the hallway, making sure you also remove the dirt in hard to reach corners.'
+		else
+			$nichChoreDesc = 'You carefully clean the hallway, making sure you also remove the dirt in hard to reach corners. Afterwards you apply a special polish to protect the wooden floor from visible aging.'
+			$nichChoreResultCode[ARRSIZE('$nichChoreResultCode')] = "*pl 'Much to your delight the polish visibly enhances the appearance of the floor.' & nichChoreResult = -1"
+			nichChoreResulChance[ARRSIZE('nichChoreResulChance')] = pcs_cleaning
+			$nichChoreResultCode[ARRSIZE('$nichChoreResultCode')] = "*pl 'The polish has no visible effect. The floor looks very clean nevertheless.'"
+			nichChoreResulChance[ARRSIZE('nichChoreResulChance')] = 100
+		end
+	end
+	
+	!! Default to an empty event to prevent infinite loops
+	$nichChoreResultCode[ARRSIZE('$nichChoreResultCode')] = ''
+	nichChoreResulChance[ARRSIZE('nichChoreResulChance')] = 10000
+	
+	nichI = 0
+
+	:nichChoreResultLoop
+	if nichRand <= nichChoreResulChance[nichI]:
+		'<center><img <<$set_imgh>> src="<<$nichTempPic>>"></center>'
+		$nichChoreDesc
+		dynamic $nichChoreResultCode[nichI]
+	else
+		nichRand -= nichChoreResulChance[nichI]
+		nichI += 1
+		jump 'nichChoreResultLoop'
+	end
+	
+	if ARGS[1] = 1:
+		minut += nichtTimeQuick
+		cleaning_exp += rand (0,1)
+	elseif ARGS[1] = 2:
+		minut += nichTimeNormal
+		cleaning_exp += rand (1,3)
+	else
+		minut += nichTimeDiligent
+		cleaning_exp += rand (1,5)
+	end
+	
+	nichChoreState[nichChoreID] = nichChoreResult
+	
+	killvar 'nichChoreResult'
+	killvar '$nichChoreDesc'
+	killvar '$nichChoreResultCode'
+	killvar 'nichChoreResulChance'
+	
+	act 'Finish':
+		gt $loc, 'return'
+	end
+	
+end
+
+
+
+
+!!killvar 'nichChoreID'
+!!killvar 'nichChoreTimeF'
+!!killvar '$nichChoreType'
+!!killvar '$nichChoreLoc'
+!!killvar '$nichChoreDesc'
+
+!!killvar 'nichTimeBQuick'
+!!killvar 'nichTimeBNormal'
+!!killvar 'nichTimeBDiligent'
+
+!!killvar 'nichtTimeQuick'
+!!killvar 'nichTimeNormal'
+!!killvar 'nichTimeDiligently'
+
+--- nichChore ---------------------------------

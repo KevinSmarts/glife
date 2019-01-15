@@ -7,7 +7,7 @@ $loc = 'nichApartment'
 $menu_loc = 'nichApartment'
 $menu_arg = ''
 menu_off = 0
-
+$location_type = 'private'
 !! A list of used variables is included in nichUtil
 
 !! Has to happen before there is any output
@@ -188,101 +188,9 @@ if $ARGS[0] = '' or $ARGS[0] = 'start' or $ARGS[0] = 'return':
 	end
 
 	if nichWork = 2:
-		if nichWorkState = 0:
-			act 'Inspect hallway':
-				*clr & cla
-				nichChoreID = 0
-				nichChoreTimeF = 1
-				$nichChoreType = 'floor'
-				$nichChoreLoc = 'hallway'
-				if nichChoreState[nichChoreID] = 0:
-					'The hallway has been cleaned recently. There is no need to clean it again.'
-				elseif nichChoreState[nichChoreID] <= 5:
-					'The floor is a little bit dirty.'
-				elseif nichChoreState[nichChoreID] <= 15:
-					nichChoreTimeF = 2
-					'The floor is somewhat dirty. One has to be careful not to step into the dirt.'
-				else
-					nichChoreTimeF = 4
-					'The floor is very dirty. Wearing shoes here would be wise because otherwise hosiery could be ruined.'
-				end
-				
-				nichtTimeQuick = 10* nichChoreTimeF
-				nichTimeNormal = 20* nichChoreTimeF
-				nichTimeDiligently = min(30* nichChoreTimeF,60)
-					
-				if nichOutfitState = 0:
-					'<b><font color = red>You have to change into an appropriate outfit before cleaning up.</font></b>'
-				elseif nichChoreState[nichChoreID] > 0:
-					act '(<<nichtTimeQuick>> minutes) Clean quickly':
-						*clr & cla
-						'<center><img <<$set_imgh>> src="<<$nichTempPic>>"></center>'
-						'You decide to clean the hallway as quickly as possible, not wasting your time with harder to reach spots or visiting a place twice.'
-						if pcs_cleaning < 80:
-							nichRand = rand(1,10)
-							if nichRand <= 3:
-								'Once you are finished you realize that you didn''t improve the condition of the floor at all. It is still as dirty as before.'
-							elseif rand <= 6 and nichChoreState[nichChoreID] > 10:
-								'Once you are finished you realize that the floor is now cleaner, but not perfectly clean.'
-								nichChoreState[nichChoreID] -= 10
-							else
-								nichChoreState[nichChoreID] = 0
-							end
-						end
-						minut += nichtTimeQuick
-						
-						cleaning_exp += rand (0,1)
-						gs'stat'
-						act 'Finish':
-							gt $loc, 'return'
-						end
-					end
-					
-					act '(<<nichTimeNormal>> minutes) Clean normally':
-						*clr & cla
-						'<center><img <<$set_imgh>> src="<<$nichTempPic>>"></center>'
-						'You carefully clean the hallway, making sure you also remove the dirt in hard to reach corners.'
-						minut += nichTimeNormal
-						nichChoreState[nichChoreID] = 0
-						cleaning_exp += rand (1,3)
-						act 'Finish':
-							gt $loc, 'return'
-						end
-					end
-					
-					act '(<<nichTimeDiligently>> minutes) Clean diligently':
-						*clr & cla
-						'<center><img <<$set_imgh>> src="<<$nichTempPic>>"></center>'
-						'You carefully clean the hallway, making sure you also remove the dirt in hard to reach corners.'
-						'Afterwards you apply a special polish to protect the wooden floor from visible aging.'
-						if rand(1,100) < pcs_cleaning:
-							'Much to your delight the polish visibly enhances the appearance of the floor.'
-							nichChoreState[nichChoreID] = -1
-						else
-							'The polish has no visible effect. The floor looks very clean nevertheless.'
-							nichChoreState[nichChoreID] = 0
-						end
-						
-						minut += nichTimeDiligently
-						
-						cleaning_exp += rand (1,5)
-						act 'Finish':
-							gt $loc, 'return'
-						end
-					end
-				end
-				
-				act 'Don''t clean':
-					gt $loc, 'return'
-				end
-				
-			end
 	
-		else
-			act 'Clean the apartment':
-				
-			end
-		end
+		gs 'nichChore','inspect','hallway'
+	
 	end
 	
 	if nichDebug = 1:
@@ -290,9 +198,12 @@ if $ARGS[0] = '' or $ARGS[0] = 'start' or $ARGS[0] = 'return':
 			gt 'nichUtil', 'debug'
 		end
 	end
-	
+		
 elseif $ARGS[0] = 'jobInterview':
 	*clr & cla
+	$location_type = 'event'
+	menu_off = 1
+	
 	'The adress you have been given leads you to a very expensive looking apartment building. A porter stands at the door, inspecting you while you come closer.'
 	'"Hello, I am here to apply for the job as live-in maid."'
 	
@@ -325,9 +236,8 @@ elseif $ARGS[0] = 'jobInterview':
 	end
 elseif $ARGS[0] = 'hiring':
 	*clr & cla
-	$location_type = 'private'
-	killvar '$locclass'
-	menu_off = 0
+	$location_type = 'event'
+	menu_off = 1
 	
 	if nichHotelReferral = 2:
 		nichHireMode = 1
@@ -449,10 +359,11 @@ elseif $ARGS[0] = 'hiring':
 			'She leads you to your new room.'
 			'It has a small double bed, a wardrobe, a desk and enough free space for doing excercises. A door leads to your personal bathroom.'
 			if nichHireMode = 1:
-				cla
+				killvar 'nichHireMode'
 				'After showing you around your tiny new home she leaves you.'
 				act 'Continue': gt 'nichBedroomServant'
 			elseif nichHireMode = 2:
+				killvar 'nichHireMode'
 				'After showing you around your tiny new home she sits down on your bed.'
 				'"Do I really have to call you Miss Tanya now, Miss Tanya?"'
 				'She laughs out. "No, of course not. Only when Nicholas is around. Following the ''protocol'' is very important to him."'
@@ -488,6 +399,10 @@ elseif $ARGS[0] = 'hiring':
 	
 elseif $ARGS[0] = 'visitTanya':
 	!! Visiting Tanya is only possible if PC is not employed by Nicholas. If she is she can find Tanya by going to her room.
+	
+	$location_type = 'event'
+	menu_off = 1
+	
 	if nichWork = 1:
 		*clr & cla
 		!! PC agreed to meet the parents for the job interview. Tanya expects her to be unemployed and dressed as a maid.
