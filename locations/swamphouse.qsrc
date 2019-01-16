@@ -16,6 +16,8 @@ if $ARGS[0] = 'start' or $ARGS[0] = '':
 	temp_sh = rand(1,5)
 	clothesAtLocation = FUNC('lost_clothes_here','swamphouse')
 
+	gs 'hunter_ambient', 'schedule'
+
 	'<center><H4>Hut</H4></center>'
 	'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/swampizba.jpg"></center>'
 	*nl
@@ -43,15 +45,19 @@ if $ARGS[0] = 'start' or $ARGS[0] = '':
 	else
 		'The hunters aren''t here right now'
 	end
+
+	if hour >= 8 and hour < 20: 
+		gs 'swamp_yard', 'daytime_flavor_events'
+	else
+		gs 'swamp_yard', 'nighttime_flavor_events'
+	end
+
+
 	*nl
 	
 	act 'Go outside':
 		minut += 2 & gt 'swamp_yard'
 	end	
-
-	act 'Sit on the table':
-		gt 'swamphouse', 'meal_table'
-	end
 
 	!re-arrange it, there should be no logic error now by illume
 	if $clothingworntype ! 'nude':
@@ -82,7 +88,7 @@ if $ARGS[0] = 'start' or $ARGS[0] = '':
 	
 	if clothesAtLocation = 1 and swamp_clothes = 0:
 		!clothes are ready
-		if $clothingworntype = 'nude':
+		if $clothingworntype = 'nude' and forced_naked_day < daystart:
 			act 'Get dressed':
 				cla
 				*clr
@@ -94,7 +100,7 @@ if $ARGS[0] = 'start' or $ARGS[0] = '':
 				gs 'stat'
 				act 'Back': gt 'swamphouse', 'start'
 			end
-		else
+		elseif $clothingworntype ! 'nude':
 			act 'Pick up your clothes':
 				cla
 				*clr
@@ -103,7 +109,7 @@ if $ARGS[0] = 'start' or $ARGS[0] = '':
 				act 'Back': gt 'swamphouse', 'start'
 			end
 		end
-	elseif swamp_clothes = 1:
+	elseif swamp_clothes = 1 and forced_naked_day < daystart:
 		if $clothingworntype = 'nude':
 			act 'Wear hessian sack':
 				cla
@@ -120,7 +126,7 @@ if $ARGS[0] = 'start' or $ARGS[0] = '':
 	end
 
 	if pcs_horny >= 50 and hunters = 0 or pcs_horny >= 50 and hunters = 1 and hour >= 8 and hour < 20:
-		!TODO: Add content for hunters being aroundd or walking in
+		!TODO: Add content for hunters being around or walking in
 		act 'Masturbate':
 			gt 'selfplay', 'start'
 		end
@@ -439,156 +445,6 @@ if $ARGS[0] = 'washstand':
 	act 'Move away': gt 'swamphouse', 'start'
 end
 
-if $ARGS[0] = 'meal_table':
-	cla & *clr
-
-	act 'Get off the table':
-		gt 'swamphouse', 'start'
-	end
-
-	if hour >= 21 and hour < 23 :
-		huntersdrink = 1
-	else
-		huntersdrink = 0
-	end
-	!TODO: Do a hunter in hut behavior check rather than hard coding it into the time 
-	if (hour >= 20 and hour < 23) or (hour >= 7  and hour < 8):
-		'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/hanterstable.jpg"></center>'
-		'You join the hunters on the meal table.'
-		act 'Chat (1:00)':
-			*clr & cla
-			minut += 60
-			hunter_collective_opinion += 1
-			gs 'stat'
-
-			'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/hanterstable.jpg"></center>'
-			*nl
-			'You start chating with the guys about trivial stuff...'
-
-			act 'Move away from the table': gt 'swamphouse', 'start'
-		end
-	else
-		if $clothingworntype ! 'nude':
-			'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/table_lone.jpg"></center>'
-		else
-			'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/table_lone_nude.jpg"></center>'
-		end		
-		'You sit on the table by yourself'
-	end		
-
-	if huntersdrink = 1:
-		'Hunters are drinking and chatting loudly. You can join them for a drink or two if you would like'		
-		act 'Have a drink': 
-		 	gs 'hunter_interactions', 'drink_with_hunters'
-		end
-	end
-
-	act 'Eat a meal':	
-		cla & *clr
-		act 'Get up from the table': gt 'swamphouse', 'start'
-		act 'Eat jerky and trail mix':
-			!gs 'food', 'snack'
-		
-			'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/jerky_mix.jpg"></center>'
-		
-			'You munch on some dried meat and trail mix. Not a full hot meal by any means but it''s better than nothing'
-			pcs_hydra -= 15
-
-			if pcs_energy >= 85:
-					fat += 1
-					pcs_energy += 20
-			else
-				pcs_energy += 30
-			end
-
-			gs 'stat'
-		end
-		if meat_stew > 0:
-			act 'Eat meat stew':
-				gs 'food', 'm_meal'
-				*clr
-				meat_stew -= 1
-				'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/soup.jpg"></center>'
-				*nl
-
-				if pcs_energy >= 100:
-					fat += 5
-					'After having a healthy serving of meat stew, you feel stuffed.'
-				elseif pcs_energy >= 80:
-					fat += 3
-					pcs_energy += 40
-					'You force yourself to have another sip of the meat stew.'
-				else
-					fat += 1
-					pcs_energy += 30
-					'You''re enjoing some warm meat stew. Just what you needed.'
-				end
-				if pcs_hydra >= 100:
-					pcs_hydra += 10
-				else
-					pcs_hydra += 20
-				end
-				*nl
-				if meat_stew > 0:
-					'There''s <<meat_stew>> '+iif(meat_stew > 1, 'servings','serving')+' of stew left in the pot'
-				else
-					'You have finished the last of the stew, the pot is empty.'
-				end
-				gs 'stat'
-			end	
-		end	
-		if mushroom_soup > 0:
-			act 'Eat mushroom soup':
-				gs 'food', 'm_meal'
-				*clr
-				mushroom_soup -= 1
-				'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/soup.jpg"></center>'
-				*nl
-
-				if pcs_energy >= 100:
-					fat += 3
-					'After having a healthy serving of mushroom soup, you feel stuffed.'
-				elseif pcs_energy >= 80:
-					fat += 1
-					pcs_energy += 30
-					'You force yourself to have another sip of the mushroom soup.'
-				else
-					pcs_energy += 20
-					'You''re enjoing some warm mushroom soup. Just what you needed.'
-				end
-				if pcs_hydra >= 100:
-					pcs_hydra += 20
-				else
-					pcs_hydra += 40
-				end
-				*nl
-				if mushroom_soup > 0:
-					'There''s <<mushroom_soup>> '+iif(mushroom_soup > 1, 'servings','serving')+' of soup left in the pot'
-				else
-					'You have finished the last of the soup, the pot is empty.'
-				end
-				gs 'stat'
-			end
-		end
-		if bilberry > 0:
-			act 'Eat berries':
-				cla
-				*clr
-				minut += 20
-				pcs_energy += 10
-				pcs_hydra += 10
-				bilberry -= 1
-				pcs_willpwr += 5
-				pcs_health += 5
-				pcs_mood += 10
-				gs 'stat'
-				'<center><img src="images/locations/gadukino/forest/bilberry.jpg"></center>'
-				'You ate a few berries.'
-			end
-		end
-	end	
-end
-
 if $ARGS[0] = 'tub':
 	cla
 	*clr
@@ -741,6 +597,17 @@ if $ARGS[0] = 'huntersrelax':
 	act 'Speak with Igor': gt 'Igorhunter'
 	act 'Move away': gt 'swamphouse', 'start'
 
+end
+
+
+if $ARGS[0] = 'daytime_flavor_events': 
+	!TODO: Add stuff here
+end
+
+if $ARGS[0] = 'nighttime_flavor_events':
+	if rand(1,10) = 1:
+		gs 'hunter_interactions', 'indoors_naked_encounter'
+	end	
 end
 
 --- swamphouse ---------------------------------
