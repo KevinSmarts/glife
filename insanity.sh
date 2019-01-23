@@ -75,7 +75,7 @@ else
 fi
 
 _build_negative_match() {
-    _output=""
+    output=""
     for arg in "$@"
     do
         output+=" --and --not -e \"${arg}\""
