@@ -19,21 +19,43 @@ spellDiff['glamour'] = 30
 spellSuccess = 0
 
 if spellKnown[$ARGS[0]] = 1:
+	!Make a Skill Check to see if the Spell succeeds
+	spellRoll = pcs_splcstng - spellDiff[$ARGS[0]] - (pcs_horny/5) + rand(1,100)
+	if spellRoll > 50:
+		!Critical Success
+		spellSuccess = 2
+		splcstng_exp += rand(1,spellDiff[$ARGS[0]]) + rand(0,5)
+	elseif spellRoll > 10:
+		!Success
+		spellSuccess = 1
+		splcstng_exp += rand(1,spellDiff[$ARGS[0]])
+	elseif spellRoll > -20:
+		!Failure
+		spellSuccess = 0
+		splcstng_exp += rand(1,spellDiff[$ARGS[0]]) / 2
+	else:
+		!Critical Failure
+		spellSuccess = -1
+		splcstng_exp += rand(1,spellDiff[$ARGS[0]]) / 2
+	end
+	killvar 'spellRoll'
+
 	!Incur the costs of casting the spell
-	pcs_manna -= spellMana[$ARGS[0]]
+	if spellSuccess = 2:
+		manaCost = spellMana[$ARGS[0]] / 2
+	elseif spellSuccess = -1:
+		manaCost = spellMana[$ARGS[0]] * 2
+	else:
+		manaCost = spellMana[$ARGS[0]]
+	end
+	pcs_manna -= manaCost
 	!pcs_willpwr -= spellWill[$ARGS[0]]
-	arouseVal = spellMana[$ARGS[0]] / 50
+	arouseVal = manaCost / 50
 	gs 'arousal', 'voyeur', arouseVal
 	minut -= arouseVal
 	killvar 'arouseVal'
+	killvar 'manaCost'
 
-	!Make a Skill Check to see if the Spell succeeds
-	if pcs_splcstng - pcs_horny + rand(1,100) > spellDiff[$ARGS[0]]:
-		spellSuccess = 1
-		splcstng_exp += spellDiff[$ARGS[0]]
-	else:
-		splcstng_exp += spellDiff[$ARGS[0]] / 2
-	end
 end
 
 minut += spellTime[$ARGS[0]]
