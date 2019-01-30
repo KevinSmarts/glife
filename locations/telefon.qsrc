@@ -295,7 +295,7 @@ if $ARGS[0] = 'lover' and loverGender[ARGS[1]] = 0:
 		'"Pretty good, you?"'
 		'<<$loverdesc[lover_number]>>, "Great, but I kind of miss you, can we meet today?"'
 
-		if pregtime <= lover_days and knowpreg = 1 and pregtalk = 0:
+		if (pregchem / 24) <= lover_days and knowpreg = 1 and pregtalk = 0:
 			act 'Tell him he''s going to be a dad':
 				cla
 				pregtalk = 1
@@ -351,7 +351,7 @@ if $ARGS[0] = 'lover' and loverGender[ARGS[1]] = 0:
 					act 'Hang up':gt 'telefon', 'fin'
 				end
 			end
-		elseif pregtime > lover_days and knowpreg = 1 and pregtalk = 0:
+		elseif (pregchem / 24) > lover_days and knowpreg = 1 and pregtalk = 0:
 			act 'Honey, you will soon become a dad':
 				cla
 				loverrelation[lover_number] = 0
@@ -669,7 +669,6 @@ if $ARGS[0] = 'Phone_notebook':
 	rent4 = -1
 	if home_owned[1] > 0 and ArendHouseSL > 0:rent1 = ArendHouseSL
 	if home_owned[4] > 0 and ArendHouseSL4 > 0:rent4 = ArendHouseSL4
-	preg1 = pregtime
 	d1 = day
 	w1 = week
 	m1 = month
@@ -708,7 +707,7 @@ if $ARGS[0] = 'Phone_notebook':
 
 		if daynum >= lastmens+28 and daynum < lastmens+31:$calendarday += $list + '<font color=''red''><b>Menstruation!</b></font>'
 		if daynum >= lastmens+12 and daynum < lastmens+14:$calendarday += $list + '<font color=#336600><b>Ovulation!</b></font>'
-		if preg1 = 280:$calendarday += $list + '<font color=''red''><b>Birthing day!</b></font>'
+		if pregchem >= 6720:$calendarday += $list + '<font color=''red''><b>Birthing day!</b></font>'
 
 		if w1 < 5 and (workSec >= 1 or PersSecWork = 1):$calendarday += $list + 'Working as a secretary. <i>(9:00 - 17:00)</i>'
 		if w1 < 5 and workFabrika = 1:
@@ -744,7 +743,6 @@ if $ARGS[0] = 'Phone_notebook':
 			pl $calendarday
 		end
 	if i < 14:
-		preg1 += 1
 		rent1 -= 1
 		rent4 -= 1
 		i += 1
@@ -760,7 +758,6 @@ if $ARGS[0] = 'Phone_notebook':
 	killvar 'calendarday'
 	killvar 'rent1'
 	killvar 'rent4'
-	killvar 'preg1'
 	killvar 'd1'
 	killvar 'w1'
 	killvar 'm1'
@@ -776,6 +773,8 @@ if $ARGS[0] = 'Phone_selfie_totals':
 	bathroom_clotot = 20
 	bathroom_undtot = 20
 	bathroom_nudtot = 20
+	bathroom_bathtot = 24
+	bathroom_showertot = 25
 	bedroom_clotot = 27
 	bedroom_undtot = 20
 	bedroom_nudtot = 20
@@ -801,92 +800,13 @@ end
 
 !!for viewing photos on your phone
 if $ARGS[0] = 'Phone_pictures':
-	gs 'telefon', 'Phone_selfie_totals'
-	clr
-	pl '<center><b><<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>></b></center>'
-	pl '<center><TABLE cellspacing="0" width="80%"><TR><TD><img src="images/system/icon/icon_statusbar_left.png"></TD><TD></TD><TD align="right"><img src="images/system/icon/icon_statusbar_right.png"></TD></TR></TABLE></center>'
-	pl'<center><font size=6>Gallery</font></center>'
-	pl'<center><img src="<<FUNC(''$phone_theme'')>>icon_pictures.png" height="80" width="80"><br></center>'
-	!!default images that are used in any location not set
-	if phone_selfie[1] = 1:pl'<a href="exec:view''images/system/phone/selfie/phone_selfie1.jpg''"><b>Selfie number1</b></a>'
-	if phone_selfie[2] = 1:pl'<a href="exec:view''images/system/phone/selfie/phone_selfie2.jpg''"><b>Selfie number2</b></a>'
-
-	!!loop for locations where selfies can be taken starting with bathroom
-	$phone_loc = 'bathroom'
-	:phoneloc_loop
-		!!Loop for clothed selfies, dynamics set variables as mixing them in loop instructions is bad
-		temp_clocnt = 1
-		dynamic 'temp_loop = <<$phone_loc>>_cloloop'
-		dynamic 'temp_total = <<$phone_loc>>_clotot'
-		:temp_loop
-			!!setting value to unmixed variable so it can be checked in the if below
-			dyneval '$phone_locval = <<$phone_loc>>_closelfie[<<temp_clocnt>>]'
-			if $phone_locval = 1:pl '<a href="exec:view''images/pc/selfies/<<$phone_loc>>/clothed/<<temp_clocnt>>.jpg''"><b>Clothed <<$phone_loc>> selfie #<<temp_clocnt>></b></a>'
-			temp_clocnt += 1
-		if temp_clocnt <= temp_total: jump'temp_loop'
-
-		!!loop for underwwear selfies
-		temp_undcnt = 1
-		dynamic 'temp_loop1 = <<$phone_loc>>_undloop'
-		dynamic 'temp_total = <<$phone_loc>>_undtot'
-		:temp_loop1
-			dyneval '$phone_locval = <<$phone_loc>>_undselfie[<<temp_undcnt>>]'
-			if $phone_locval = 1:pl'<a href="exec:view''images/pc/selfies/<<$phone_loc>>/underwear/<<temp_undcnt>>.jpg''"><b>Underwear <<$phone_loc>> selfie #<<temp_undcnt>></b></a>'
-			temp_undcnt += 1
-		if temp_undcnt <= temp_total: jump'temp_loop1'
-
-		!!loop for nude selfies
-		temp_nudcnt = 1
-		dynamic 'temp_loop2 = <<$phone_loc>>_nudloop'
-		dynamic 'temp_total = <<$phone_loc>>_nudtot'
-		:temp_loop2
-			dyneval '$phone_locval = <<$phone_loc>>_nudselfie[<<temp_nudcnt>>]'
-			if $phone_locval = 1:pl'<a href="exec:view''images/pc/selfies/<<$phone_loc>>/nude/<<temp_nudcnt>>.jpg''"><b>Nude <<$phone_loc>> selfie #<<temp_nudcnt>></b></a>'
-			temp_nudcnt += 1
-		if temp_nudcnt <= temp_total: jump'temp_loop2'
-
-	!!Changes to location so all get processed 
-	if $phone_loc = 'bathroom':
-		$phone_loc = 'bedroom'
-		jump'phoneloc_loop'
-	elseif $phone_loc = 'bedroom':
-		$phone_loc = 'kitchen'
-		jump'phoneloc_loop'
-	elseif $phone_loc = 'kitchen':
-		$phone_loc = 'livingroom'
-		jump'phoneloc_loop'
-	elseif $phone_loc = 'livingroom':
-		$phone_loc = 'changingroom'
-		jump'phoneloc_loop'
-	elseif $phone_loc = 'changingroom':
-		$phone_loc = 'park'
-		jump'phoneloc_loop'
-	elseif $phone_loc = 'park':
-		$phone_loc = 'lockeroom'
-		jump'phoneloc_loop'
-	end
-
-	!!variant for beach selfies using swimwear and nude only
-	beach_swimcnt = 1
-	:beach_swimloop
-		if beach_swimselfie[beach_swimcnt] = 1:pl'<a href="exec:view''images/pc/selfies/bedroom/clothed/<<beach_swimcnt>>.jpg''"><b>Clothed bedroom selfie #<<beach_swimcnt>></b></a>'
-		beach_swimcnt += 1
-	if beach_swimcnt <= beach_swimtot: jump'beach_swimloop'
-
-	beach_nudcnt = 1
-	:beach_nudloop
-		if beach_nudselfie[beach_nudcnt] = 1:pl'<a href="exec:view''images/pc/selfies/beach/nude/<<beach_nudcnt>>.jpg''"><b>Nude beach selfie #<<beach_nudcnt>></b></a>'
-		beach_nudcnt += 1
-	if beach_nudcnt <= beach_nudtot: jump'beach_nudloop'
-
-	*nl
-	pl'<center><a href="exec:gs ''telefon'', ''Phone_menu'' "><img src="images/system/icon/back.png"></a></center>'
+	gt 'phone_selfies', 'selfies'
 end
 
 !!picking the selfie image when taking photos, this sets the location variable
 if $ARGS[0] = 'Phone_camera_selfie':
 	gs 'telefon', 'Phone_selfie_totals'
-	minut += RAND(5,7)
+	minut += rand(5,7)
 	if $location_type = 'bathroom':
 		$phone_loc = 'bathroom'
 		gs 'telefon', 'Phone_selfie_image'
@@ -898,6 +818,15 @@ if $ARGS[0] = 'Phone_camera_selfie':
 		gs 'telefon', 'Phone_selfie_image'
 	elseif $locclass = 'livingr':
 		$phone_loc = 'livingroom'
+		gs 'telefon', 'Phone_selfie_image'
+	elseif $locclass = 'changingroom':
+		$phone_loc = 'changingroom'
+		gs 'telefon', 'Phone_selfie_image'
+	elseif $locclass = 'park':
+		$phone_loc = 'park'
+		gs 'telefon', 'Phone_selfie_image'
+	elseif $locclass = 'lockeroom':
+		$phone_loc = 'lockeroom'
 		gs 'telefon', 'Phone_selfie_image'
 	else
 		phone_rand = RAND(1,2)
@@ -932,6 +861,27 @@ if $ARGS[0] = 'Phone_selfie_image':
 		dynamic '<<$phone_loc>>_nudselfie[<<phone_rand>>] = 1'
 		gs 'stat'
 		view 'images/pc/selfies/<<$phone_loc>>/nude/<<phone_rand>>.jpg'
+	end
+end
+
+!!taking selfies in the shower or bath
+if $ARGS[0] = 'Phone_selfie_image_bathing':
+	gs 'telefon', 'Phone_selfie_totals'
+	minut += rand(5,7)
+	if $ARGS[1] = 'shower':
+		!!changing to and unmixed variable so the rng will work
+		dynamic 'temp_showertot = bathroom_showertot'
+		phone_rand = rand(1,temp_showertot)
+		!!Setting the image owned flag to 1
+		dynamic '<<$phone_loc>>_showerselfie[<<phone_rand>>] = 1'
+		gs 'stat'
+		view 'images/pc/selfies/<<$phone_loc>>/shower/<<phone_rand>>.jpg'
+	elseif $ARGS[1] = 'bath':
+		dynamic 'temp_bathtot = bathroom_bathtot'
+		phone_rand = rand(1,temp_bathtot)
+		dynamic '<<$phone_loc>>_bathselfie[<<phone_rand>>] = 1'
+		gs 'stat'
+		view 'images/pc/selfies/<<$phone_loc>>/bath/<<phone_rand>>.jpg'
 	end
 end
 
