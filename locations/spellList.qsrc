@@ -272,6 +272,16 @@ $combatSpells[34] = 'greatflood'
 $nonComSpells[0] = 'heal'
 
 
+! Basic Spells
+$basicSpells[0] = 'fog'
+$basicSpells[1] = 'clone'
+$basicSpells[2] = 'stun'
+$basicSpells[3] = 'wind'
+$basicSpells[4] = 'multiclone'
+$basicSpells[5] = 'energo'
+$basicSpells[6] = 'haste'
+
+
 ! Elemental Spell Groups
 $fireSpells[0] = 'scaldingtouch'
 $fireSpells[1] = 'burninghands'
@@ -302,6 +312,58 @@ $waterSpells[1] = 'flood'
 $waterSpells[2] = 'blister'
 $waterSpells[3] = 'sharkrockets'
 $waterSpells[4] = 'greatflood'
+
+
+if $ARGS[0] = 'teacherActions':
+	! Make Actions for learning spells
+	!	$ARGS[1] = the name of the array of spells
+	!	$ARGS[2] = Exit Location
+	!	$ARGS[3] = Arg for exit location
+	! Example:
+	!	gs 'spellList', 'teacherActions', '$fireSpells', 'kakuzu', 'mansion1'
+
+	$ThisArrayName = $ARGS[1]
+	$ExitLocation = $ARGS[2]
+	$ExitLocation2 = $ARGS[3]
+
+	ThisArraySize = dyneval("result=arrsize('<<$ThisArrayName>>')")
+	i = 0
+	:LearnSpellLoop
+	$ThisSpellName = dyneval("$result = <<$ThisArrayName>>[<<i>>]")
+	spellDifficulty = $spellDiff[$ThisSpellName]
+	if spellDifficulty = 0: spellDifficulty = 1
+	if i < ThisArraySize:
+		if pcs_magik >= spellDifficulty and spellKnown[$ThisSpellName] = 0:
+			dynamic "act 'Learn <<$spellName[$ThisSpellName]>> (1:00)':
+				cla
+				pcs_manna -= 1000
+				minut += 60
+
+				spellLearn['<<$ThisSpellName>>'] += rand(1, 100/<<spellDifficulty>>)
+
+				if spellLearn['<<$ThisSpellName>>'] < 100:
+					'You diligently study the spell for an hour, but could not grasp it.'
+				else
+					spellKnown['<<$ThisSpellName>>'] = 1
+					'Finally you are able to grasp and learn the spell.'
+					*nl
+					'<<$spellName[$ThisSpellName]>>: <<$spellDesc[$ThisSpellName]>>'
+				end
+				act 'Move away':gt '<<$ExitLocation>>', '<<$ExitLocation2>>'
+			end"
+		end
+
+		i += 1
+		jump 'LearnSpellLoop'
+	end
+	killvar 'i'
+	killvar '$ThisSpellName'
+	killvar 'ThisArraySize'
+	killvar '$ThisArrayName'
+	killvar '$ExitLocation'
+	killvar '$ExitLocation2'
+	killvar 'spellDifficulty'
+end
 
 
 --- spellList ---------------------------------
