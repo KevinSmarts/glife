@@ -9,12 +9,15 @@
 !		-1 = Critical Failure	-> Spell backfires.  Something bad (not terrible) should happen
 !	$ARGS[n >= 2] = Any extra parameters needed by the spell
 
+SuccessValue = $ARGS[1]
+
+"Spell='<<$ARGS[0]>>' SuccessValue=<<SuccessValue>>"
+
 if $ARGS[0] = 'teleport':
 	! Do the stuff of a Teleport
 	!	ARGS[1] = Success/Failure level
 	!	ARGS[2] = the Target Location
 
-	didItWork = $ARGS[1]
 	$NewLocation = $ARGS[2]
 
 	:RandLocLoop
@@ -23,7 +26,7 @@ if $ARGS[0] = 'teleport':
 		jump 'RandLocLoop'
 	end
 
-	if didItWork > 0:
+	if SuccessValue > 0:
 		*nl
 		"The blur you see just outside the ring seems to shift."
 		wait 1000
@@ -32,7 +35,7 @@ if $ARGS[0] = 'teleport':
 		else
 			gt $treeCircLoc[$NewLocation], $treeCircArg[$NewLocation]
 		end
-	elseif didItWork < 0:
+	elseif SuccessValue < 0:
 		*nl
 		"The blur you see just outside the ring seems to shift.  Something did not go right!"
 		wait 1000
@@ -47,7 +50,6 @@ if $ARGS[0] = 'teleport':
 
 	killvar '$randomLoc'
 	killvar '$NewLocation'
-	killvar didItWork
 
 	result = ""
 
@@ -102,283 +104,532 @@ if $ARGS[0] = 'fog':
 	! tuman  = the amount of fog around you making you harder to hit
 	! tumanV = the amount of fog around your opponent making him harder to hit
 	if tumanV > 0:
-		'It is not possible to impose your fog on an existing fog opponent.'
+		'It is not possible to call your fog when an existing opponent is already fogged.'
 	else
-		tuman = tuman + 10
+		if SuccessValue > 0:
+			tuman += (10 * SuccessValue)
+			'<b><font color = green>A Fog materializes around, obscuring you from your enemies.</font></b>'
+		elseif SuccessValue < 0:
+			tumanV += 10
+			'<b><font color = red>The spell backfires! A Fog materializes around your enemy, obscuring him from your view.</font></b>'
+		else
+			'<b>The spell fizzles.  Nothing seems to happen.</b>'
+		end
 	end
 end
 
 if $ARGS[0] = 'clone':
 	! klon = the number of clones that the enemy must destroy before hitting you
-	klon = klon + 1
+	if SuccessValue > 0:
+		klon += SuccessValue
+		'<b><font color = green><<SuccessValue>> clone<<iif(SuccessValue>1,"s","")>> of you springs from you confusing the enemy.</font></b>'
+	elseif SuccessValue < 0 and klon > 0:
+		klon -= 1
+		'<b><font color = red>The spell backfires! One of your clones disappears.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
 end
 
 if $ARGS[0] = 'stun':
 	! stunner = 1 stuns the enemy for 3-6 rounds
-	stunner = 1
+	if SuccessValue > 0:
+		stunner = 1
+		'<b><font color = green>Your enemy is stunned.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
 	xgt'atak','player'
 end
 
 if $ARGS[0] = 'weapon':
-	magweapbonus = weapbonus*4
+	if SuccessValue > 0:
+		magweapbonus = weapbonus * 4 * SuccessValue
+		'<b><font color = green>Your Weapon now feels more powerful.</font></b>'
+	elseif SuccessValue < 0:
+		magweapbonus = weapbonus * -1
+		'<b><font color = red>The spell backfires! Your weapon seems weaker.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
 	xgt'atak','player'
 end
 
 if $ARGS[0] = 'wind':
 	! tuman  = the amount of fog around you making you harder to hit
 	! tumanV = the amount of fog around your opponent making him harder to hit
-	tumanV = 0
-	tuman = 0
-
-	'<b><font color = green>You sent against the wind on the battlefield and destroy the fog.</font></b>'
+	if SuccessValue = 2:
+		tumanV = 0
+		'<b><font color = green>A wind blows through the area eliminating your enemys fog from the battlefield.</font></b>'
+	elseif SuccessValue = 1:
+		tumanV = 0
+		tuman = 0
+		'<b><font color = green>A wind blows through the area eliminating all fog on the battlefield.</font></b>'
+	elseif SuccessValue = -1:
+		tuman = 0
+		'<b><font color = red>A wind blows through the area eliminating your fog from the battlefield.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
 end
 
 if $ARGS[0] = 'multiclone':
 	! klon = the number of clones that the enemy must destroy before hitting you
-	klon = klon + 3
+	if SuccessValue > 0:
+		klon += SuccessValue * 3
+		'<b><font color = green><<SuccessValue * 3>> clone<<iif(SuccessValue>1,"s","")>> of you springs from you confusing the enemy.</font></b>'
+	elseif SuccessValue < 0 and klon > 0:
+		if klon < 3:
+			klon = 0
+		else
+			klon -= 3
+		end
+		'<b><font color = red>The spell backfires! Some of your clones disappear.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
 end
 
 if $ARGS[0] = 'energo':
 	! defence = absorbs damage before health begins to be removed
-	defence = defence + 100
-
-	'<b><font color = green>You have imposed an energy shield. Now you have <<defence>> protection units.</font></b>'
+	if SuccessValue > 0:
+		defence += (100 * SuccessValue)
+		'<b><font color = green>An energy shield materializes around you, protecting you from your enemies.</font></b>'
+	elseif SuccessValue < 0:
+		defenceV += 100
+		'<b><font color = red>The spell backfires! An energy shield materializes around your enemy, protecting him from you.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
 end
 
 if $ARGS[0] = 'haste':
-	initBonus = 120
-
-	'<b><font color = green>Your mind and body seem to race though a sluggish world.</font></b>'
+	if SuccessValue > 0:
+		initBonus += (120 * SuccessValue)
+		'<b><font color = green>Your mind and body seem to race though a sluggish world.</font></b>'
+	elseif SuccessValue < 0:
+		initBonusV += 120
+		'<b><font color = red>The spell backfires! Your enemy seems to move faster.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
 end
 
 if $ARGS[0] = 'heal':
-	pcs_health += 400
-
-	'<b><font color = green>Your body surges with life. You feel much stronger.</font></b>'
+	if SuccessValue > 0:
+		pcs_health += (400 * SuccessValue)
+		'<b><font color = green>Your body surges with life. You feel much stronger.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
 end
 
 if $ARGS[0] = 'hand':
-	strenK = pcs_stren*20/100
-	magweapbonus = RAND(pcs_stren*10 - strenK,pcs_stren*10 + strenK)
-
-	'<b><font color = green>You put the manna in the hand to apply the devastating impact.</font></b>'
-
+	if SuccessValue > 0:
+		strenK = pcs_stren*20*SuccessValue/100
+		magweapbonus = RAND(pcs_stren*10 - strenK,pcs_stren*10 + strenK)
+		'<b><font color = green>Your hands now feel more powerful.</font></b>'
+	elseif SuccessValue < 0:
+		strenK = pcs_stren*20/100
+		magweapbonus = 0 - RAND(pcs_stren*10 - strenK,pcs_stren*10 + strenK)
+		'<b><font color = red>The spell backfires! Your hands seem weaker.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
 	xgt'atak','player'
 end
 
 if $ARGS[0] = 'scaldingtouch':
-	damTip = 250
-
-	'<b><font color = green>Flames spring from your hands.</font></b>'
-
+	if SuccessValue > 0:
+		damTip = 250 * SuccessValue
+		'<b><font color = green>Flames spring from your hands.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
 	xgt'atakA','atak'
 end
 
 if $ARGS[0] = 'burninghands':
-	damTip = 2500
-
-	'<b><font color = green>A torrent of flames jets from your hands.</font></b>'
-
+	if SuccessValue > 0:
+		damTip = 2500 * SuccessValue
+		'<b><font color = green>A torrent of flames jets from your hands.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
 	xgt'atakA','atak'
 end
 
 if $ARGS[0] = 'firebarrier':
-	defence = defence + 750
-
-	'<b><font color = green>A flaming barrier has sprung up between you and your opponent. You now have <<defence>> protection units.</font></b>'
+	if SuccessValue > 0:
+		defence += (750 * SuccessValue)
+		'<b><font color = green>A flaming barrier has sprung up between you and your opponent. You now have <<defence>> protection units.</font></b>'
+	elseif SuccessValue < 0:
+		defenceV += 750
+		'<b><font color = red>The spell backfires! A flaming barrier has sprung up between you and your opponent. Your enemy now has <<defence>> protection units.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
 end
 
 if $ARGS[0] = 'firestorm':
-	damTip = 6250
-	bonusSh = 100
-
-	'<b><font color = green>Uncountable glowing embers steak down upon your foes.</font></b>'
-
+	if SuccessValue > 0:
+		damTip = 4250 + (2000 * SuccessValue)
+		bonusSh = 100
+		'<b><font color = green>Uncountable glowing embers steak down upon your foes.</font></b>'
+	elseif SuccessValue < 0:
+		damTip = 2000
+		pcs_health -= 200
+		bonusSh = 100
+		'<b><font color = red>The spell backfires! Uncountable glowing embers steak down upon the battlefield burning everyone.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
 	xgt'atakA','atak'
 end
 
 if $ARGS[0] = 'flameshield':
-	defence = defence + 2500
-
-	'<b><font color = green>A Shield made of Flames interposes itself between you and your enemy. You now have <<defence>> protection units.</font></b>'
+	if SuccessValue > 0:
+		defence += (2500 * SuccessValue)
+		'<b><font color = green>A Shield made of Flames interposes itself between you and your enemy. You now have <<defence>> protection units.</font></b>'
+	elseif SuccessValue < 0:
+		defenceV += 2500
+		'<b><font color = red>The spell backfires! A Shield made of Flames interposes itself between you and your enemy. Your enemy now has <<defence>> protection units.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
 end
 
 if $ARGS[0] = 'shock':
-	damTip = 150
-	eleSh = 1
+	if SuccessValue > 0:
+		damTip = (150 * SuccessValue)
+		eleSh = 1
+		'<b><font color = green>You build a static electric charge in your hand and zap your opponent.</font></b>'
+	elseif SuccessValue < 0:
+		pcs_health -= 50
+		'<b><font color = red>The spell backfires! You manage to zap yourself with a static charge.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
 	xgt'atakA','atak'
 end
 
 if $ARGS[0] = 'lightning':
-	damTip = 1500
-	eleSh = 1
+	if SuccessValue > 0:
+		damTip = (1500 * SuccessValue)
+		eleSh = 1
+		'<b><font color = green>You shoot a lightning bolt from your hand zapping your opponent.</font></b>'
+	elseif SuccessValue < 0:
+		pcs_health -= 300
+		'<b><font color = red>The spell backfires! You manage to zap yourself with lightning.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
 	xgt'atakA','atak'
 end
 
 if $ARGS[0] = 'electricbarrier':
-	defence = defence + 1500
-
-	'<b><font color = green>A wall of dancing lightning springs up around yourself. You now have <<defence>> protection units.</font></b>'
+	if SuccessValue > 0:
+		defence += (1500 * SuccessValue)
+		'<b><font color = green>A wall of dancing lightning springs up around yourself. You now have <<defence>> protection units.</font></b>'
+	elseif SuccessValue < 0:
+		defenceV += 1500
+		'<b><font color = red>The spell backfires! A wall of dancing lightning springs up around your enemy. Your enemy now has <<defence>> protection units.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
 end
 
 if $ARGS[0] = '1000birds':
-		damTip = 3750
+	if SuccessValue > 0:
+		damTip = 2750 + (1000 * SuccessValue)
 		bonusSh = 30
 		eleSh = 1
+		'<b><font color = green>You shoot hundreds of small lightning bolts toward your enemy.</font></b>'
+	elseif SuccessValue < 0:
+		damTip = 2000
+		pcs_health -= 200
+		bonusSh = 30
+		eleSh = 1
+		'<b><font color = red>The spell backfires! Hundreds of small lightning bolts curl toward the battlefield shocking everyone.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
 end
 
 if $ARGS[0] = 'dancingsphere':
-	defence = defence + 5000
-
-	'<b><font color = green>A large field of lightning dances around you blocking attacks. Now you have <<defence>> protection units.</font></b>'
+	if SuccessValue > 0:
+		defence += (5000 * SuccessValue)
+		'<b><font color = green>A large field of lightning dances around you blocking attacks. You now have <<defence>> protection units.</font></b>'
+	elseif SuccessValue < 0:
+		defenceV += 5000
+		'<b><font color = red>The spell backfires! A large field of lightning dances around you blocking attacks. Your enemy now has <<defence>> protection units.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
 end
 
 if $ARGS[0] = 'quicksand':
-	damTip = 100
-	eleSh = 5
-
-	'<b><font color = green>You have trapped your opponent in quicksand.</font></b>'
-
+	if SuccessValue > 0:
+		damTip = 100 * SuccessValue
+		eleSh = 5
+		'<b><font color = green>You have trapped your opponent in quicksand.</font></b>'
+	elseif SuccessValue < 0:
+		damTip = 100
+		pcs_health -= 50
+		eleSh = 5
+		'<b><font color = red>The spell backfires! You are both trapped in quicksand.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
 	xgt'atakA','atak'
 end
 
 if $ARGS[0] = 'earthshield':
-	defence = defence + 2500
-	defenceM = defenceM + 2500
-	defenceActPar = 1000
-	defenceActParM = 1000
-	defenceAct = 10
-	defenceActM = 10
+	if SuccessValue > 0:
+		defence += 1500 + (1000 * SuccessValue)
+		defenceM += 2500
+		defenceActPar = 1000
+		defenceActParM = 1000
+		defenceAct = 10
+		defenceActM = 10
+		'<b><font color = green>Tendrils of Earth rise to defend you. You now have <<defence>> protection units.</font></b>'
+	elseif SuccessValue < 0:
+		defenceV += 2500
+		'<b><font color = red>The spell backfires! Tendrils of Earth rise to defend your enemy. Your enemy now has <<defence>> protection units.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
 end
 
 if $ARGS[0] = 'abyss':
-	damTip = 1500
-	eleSh = 5
+	if SuccessValue > 0:
+		damTip = 1500 * SuccessValue
+		eleSh = 5
+		'<b><font color = green>The Earth opens up beneath your opponents feet, slamming shut damaging him and depriving him of the ability to move.</font></b>'
+	elseif SuccessValue < 0:
+		damTip = 1500
+		pcs_health -= 200
+		eleSh = 5
+		'<b><font color = red>The spell backfires! The Earth opens up beneath your opponents feet, slamming shut damaging him and depriving him of the ability to move.  You are also caught.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
 	xgt'atakA','atak'
 end
 
 if $ARGS[0] = 'earthguardian':
-	defence = defence + 6250
-	defenceM = defenceM + 6250
-	defenceW = defenceW + 6250
-	defenceActPar = 1000
-	defenceActParM = 1000
-	defenceActParW = 1000
-	defenceAct = 15
-	defenceActM = 15
-	defenceActW = 15
-	defAtk = 15
+	if SuccessValue > 0:
+		defence += 5200 + (2000 * SuccessValue)
+		defenceM += 6250
+		defenceW += 6250
+		defenceActPar = 1000
+		defenceActParM = 1000
+		defenceActParW = 1000
+		defenceAct = 15
+		defenceActM = 15
+		defenceActW = 15
+		defAtk = 15
+		'<b><font color = green>The Earth itself comes alive defending you from attacks.  It draws from the power of the land to regenerate itself every round. You now have <<defence>> protection units.</font></b>'
+	elseif SuccessValue < 0:
+		defenceV += 2500
+		'<b><font color = red>The spell backfires! Tendrils of Earth rise to defend your enemy. Your enemy now has <<defence>> protection units.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
 end
 
 if $ARGS[0] = 'sando':
-	damTip = 5000
-	bonusSh = 50
-	eleSh = 5
+	if SuccessValue > 0:
+		damTip = 3000 + (2000 * SuccessValue)
+		bonusSh = 50
+		eleSh = 5
+		'<b><font color = green>Two huge plates of earth colapse together crushing the enemy and depriving him of the ability to move.</font></b>'
+	elseif SuccessValue < 0:
+		pcs_health -= 200
+		'<b><font color = red>The spell backfires! Two huge plates of earth colapse together with crushing force, but the enemy is missed and you are instead caught.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
 	xgt'atakA','atak'
 end
 
 if $ARGS[0] = 'windgust':
-	damTip = 100
-	bonusSh = 50
-
-	'<b><font color = green>You have created a gust of wind.</font></b>'
-	if klonV > 0:klonV = 0 & '<b><font color = green>Enemy clones are vaporized.</font></b>'
-	if tumanV > 0:tumanV = 0 & '<b><font color = green>Enemy Fog is torn to shreds by the wind.</font></b>'
-
+	if SuccessValue > 0:
+		damTip = 100 * SuccessValue
+		bonusSh = 50
+		'<b><font color = green>You have created a gust of wind.</font></b>'
+		if klonV > 0:klonV = 0 & '<b><font color = green>Enemy clones are vaporized.</font></b>'
+		if tumanV > 0:tumanV = 0 & '<b><font color = green>Enemy Fog is torn to shreds by the wind.</font></b>'
+	elseif SuccessValue < 0:
+		pcs_health -= 50
+		'<b><font color = red>The spell backfires! You have created a gust of wind, but the enemy is missed and you are instead caught.</font></b>'
+		if klon > 0:klon = 0 & '<b><font color = green>Your clones are vaporized.</font></b>'
+		if tuman > 0:tuman = 0 & '<b><font color = green>Your Fog is torn to shreds by the wind.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
 	xgt'atakA','atak'
 end
 
 if $ARGS[0] = 'pressure':
-	damTip = 1000
-	bonusSh = 100
-
-	'<b><font color = green>You dramatically raised the air pressure.</font></b>'
-	if klonV > 0:klonV = 0 & '<b><font color = green>Enemy clones are vaporized.</font></b>'
-	if tumanV > 0:tumanV = 0 & '<b><font color = green>Enemy Fog is torn to shreds by the wind.</font></b>'
-
+	if SuccessValue > 0:
+		damTip = 1000 * SuccessValue
+		bonusSh = 100
+		'<b><font color = green>You dramatically raised the air pressure.</font></b>'
+		if klonV > 0:klonV = 0 & '<b><font color = green>Enemy clones are vaporized.</font></b>'
+		if tumanV > 0:tumanV = 0 & '<b><font color = green>Enemy Fog is torn to shreds by the wind.</font></b>'
+	elseif SuccessValue < 0:
+		pcs_health -= 200
+		'<b><font color = red>The spell backfires! You dramatically raised the air pressure, but the enemy is missed and you are instead caught.</font></b>'
+		if klon > 0:klon = 0 & '<b><font color = green>Your clones are vaporized.</font></b>'
+		if tuman > 0:tuman = 0 & '<b><font color = green>Your Fog is torn to shreds by the wind.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
 	xgt'atakA','atak'
 end
 
 if $ARGS[0] = 'vacuum':
-	defence = defence + 1500
+	if SuccessValue > 0:
+		defence += (1500 * SuccessValue)
+		'<b><font color = green>A turbulent sphere of vacuum surrounds you blocking incoming attacks. You now have <<defence>> protection units.</font></b>'
+	elseif SuccessValue < 0:
+		defenceV += 1500
+		'<b><font color = red>The spell backfires! A turbulent sphere of vacuum surrounds your enemy blocking your attacks. Your enemy now has <<defence>> protection units.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
 end
 
 if $ARGS[0] = 'vacuumshells':
-	damTip = 2500
-	bonusSh = 100
-
-	'<b><font color = green>Turbulent spheres of vacuum bombard your enemy. The air is full of whistling sounds as the spheres fly by at high speeds over the battlefield.</font></b>'
-	if klonV > 0:klonV = 0 & '<b><font color = green>Enemy clones are vaporized.</font></b>'
-	if tumanV > 0:tumanV = 0 & '<b><font color = green>Enemy Fog is torn to shreds by the wind.</font></b>'
-
+	if SuccessValue > 0:
+		damTip = 2500 * SuccessValue
+		bonusSh = 100
+		'<b><font color = green>Turbulent spheres of vacuum bombard your enemy. The air is full of whistling sounds as the spheres fly by at high speeds over the battlefield.</font></b>'
+		if klonV > 0:klonV = 0 & '<b><font color = green>Enemy clones are vaporized.</font></b>'
+		if tumanV > 0:tumanV = 0 & '<b><font color = green>Enemy Fog is torn to shreds by the wind.</font></b>'
+	elseif SuccessValue < 0:
+		pcs_health -= 200
+		'<b><font color = red>The spell backfires! Turbulent spheres of vacuum bombard your enemy. The air is full of whistling sounds as the spheres fly by at high speeds over the battlefield, but the enemy is missed and you are instead caught.</font></b>'
+		if klon > 0:klon = 0 & '<b><font color = green>Your clones are vaporized.</font></b>'
+		if tuman > 0:tuman = 0 & '<b><font color = green>Your Fog is torn to shreds by the wind.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
 	xgt'atakA','atak'
 end
 
 if $ARGS[0] = 'devouringvacuum':
-	defenceV = 0
-	defenceMV = 0
-	defenceWV = 0
-	defenceActParV = 0
-	defenceActParMV = 0
-	defenceActV = 0
-	defenceActMV = 0
-	defAtkMV = 0
+	if SuccessValue > 0:
+		defenceV = 0
+		defenceMV = 0
+		defenceWV = 0
+		defenceActParV = 0
+		defenceActParMV = 0
+		defenceActV = 0
+		defenceActMV = 0
+		defAtkMV = 0
+		'<b><font color = green>A devouring vacuum sucks away your enemys defenses.</font></b>'
+	elseif SuccessValue < 0:
+		defence = 0
+		defenceM = 0
+		defenceW = 0
+		defenceActPar = 0
+		defenceActParM = 0
+		defenceAct = 0
+		defenceActM = 0
+		defAtkM = 0
+		'<b><font color = red>The spell backfires! A devouring vacuum sucks away your defenses.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
 end
 
 if $ARGS[0] = 'leechmana':
-	damTip = 100
-	damTipM = 1000
+	if SuccessValue > 0:
+		damTip = 100 * SuccessValue
+		damTipM = 1000
+		'<b><font color = green>You leech mana from your enemy.</font></b>'
+	elseif SuccessValue < 0:
+		pcs_health -= 50
+		'<b><font color = red>The spell backfires! Ouch!</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
 	xgt'atakA','atak'
 end
 
 if $ARGS[0] = 'flood':
-	damTip = 1000
-	damTipM = 500
+	if SuccessValue > 0:
+		damTip = 1000 * SuccessValue
+		damTipM = 500
+		'<b><font color = green>A surge of water rises towards your enemy.</font></b>'
+	elseif SuccessValue < 0:
+		pcs_health -= 100
+		'<b><font color = red>The spell backfires! A surge of water rises towards your enemy, but missed and hits you.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
 	xgt'atakA','atak'
 end
 
 if $ARGS[0] = 'blister':
-	defence = defence + 1500
-	defenceM = defenceM + 1500
-	defenceW = defenceW + 1500
-	defenceActPar = 500
-	defenceActParM = 500
-	defenceAct = 10
-	defenceActM = 10
+	if SuccessValue > 0:
+		defence += 1500
+		defenceM += 1500
+		defenceW += 1500
+		defenceActPar = 500
+		defenceActParM = 500
+		defenceAct = 10
+		defenceActM = 10
+		'<b><font color = green>A protective sphere of water surrounds you.</font></b>'
+	elseif SuccessValue < 0:
+		defenceV += 1500
+		'<b><font color = red>The spell backfires! A protective sphere of water surrounds your enemy.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
 end
 
 if $ARGS[0] = 'sharkrockets':
-	damTip = 1500
-	damTipM = 2500
-	bonusSh = 50
-
-	'<b><font color = green>You released a pack of sharks made of water to fly towards the enemy like a torpedos.</font></b>'
-	if klonV > 0:klonV = 0 & '<b><font color = green>Clones enemy disappeared.</font></b>'
-
+	if SuccessValue > 0:
+		damTip = 1500 * SuccessValue
+		damTipM = 2500
+		bonusSh = 50
+		'<b><font color = green>Blobs of Water shaped like sharks fly towards your enemy stiking them.</font></b>'
+		if klonV > 0:klonV = 0 & '<b><font color = green>Enemy clones are eliminated.</font></b>'
+	elseif SuccessValue < 0:
+		pcs_health -= 100
+		'<b><font color = red>The spell backfires! Blobs of Water shaped like sharks fly towards your enemy, but missed and hits you.</font></b>'
+		if klon > 0:klon = 0 & '<b><font color = green>Your clones are eliminated.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
 	xgt'atakA','atak'
 end
 
 if $ARGS[0] = 'greatflood':
-		defence = defence + 5000
-		defenceM = defenceM + 5000
-		defenceW = defenceW + 5000
+	if SuccessValue > 0:
+		defence += 5000
+		defenceM += 5000
+		defenceW += 5000
 		defenceActPar = 500
 		defenceActParM = 500
 		defenceAct = 10
 		defenceActM = 10
 		defAtkM = 10
-
-		'<b><font color = green>You have filled the whole neighborhood with water protecting you and devours enemy mana.</font></b>'
+		'<b><font color = green>You have filled the whole neighborhood with water protecting you and devouring enemy mana.</font></b>'
 		if klonV > 0:klonV = 0 & '<b><font color = green>Clones enemy disappeared.</font></b>'
-
-		xgt'fight','sta'
-	end
-	act 'Physical attacks':gt'boxing'
-
-	if pcs_magik > 0:
-		act 'Magic attacks':gt'magik'
+	elseif SuccessValue < 0:
+		defenceV += 1500
+		'<b><font color = red>The spell backfires! A huge flood of water surrounds your enemy protecting him.</font></b>'
+		if klon > 0:klon = 0 & '<b><font color = green>Clones enemy disappeared.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
 	end
 end
 
+
+killvar 'SuccessValue'
 --- spell ---------------------------------
 
