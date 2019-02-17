@@ -1,5 +1,60 @@
-
 # spell
+! This Location contains the meat of what each spell does to the PC, NPCs, and the environment. Mana costs are handled elsewhere.
+! This location should not be called directly.  Should only be called through the "castSpell" location.
+!	$ARGS[0] = the name of the spell being cast
+!	$ARGS[1] = Spell Success value
+!		2  = Critical Success	-> You can make something extra specail happen
+!		1  = Success			-> Normal spell effects
+!		0  = Failure			-> Spell doesn''t work, probably just fizzles out
+!		-1 = Critical Failure	-> Spell backfires.  Something bad (not terrible) should happen
+!	$ARGS[n >= 2] = Any extra parameters needed by the spell
+
+SuccessValue = $ARGS[1]
+
+"Spell='<<$ARGS[0]>>' SuccessValue=<<SuccessValue>>"
+
+if $ARGS[0] = 'teleport':
+	! Do the stuff of a Teleport
+	!	ARGS[1] = Success/Failure level
+	!	ARGS[2] = the Target Location
+
+	$NewLocation = $ARGS[2]
+
+	:RandLocLoop
+	$randomLoc = $tpLocations[rand(0,arrsize($tpLocations) - 1)]
+	if $randomLoc = $NewLocation or $randomLoc = $EntryPoint:
+		jump 'RandLocLoop'
+	end
+
+	if SuccessValue > 0:
+		*nl
+		"The blur you see just outside the ring seems to shift."
+		wait 1000
+		if $treeCircArg[$NewLocation] = "":
+			gt $treeCircLoc[$NewLocation]
+		else
+			gt $treeCircLoc[$NewLocation], $treeCircArg[$NewLocation]
+		end
+	elseif SuccessValue < 0:
+		*nl
+		"The blur you see just outside the ring seems to shift.  Something did not go right!"
+		wait 1000
+		if $treeCircArg[$randomLoc] = "":
+			gt $treeCircLoc[$randomLoc]
+		else
+			gt $treeCircLoc[$randomLoc], $treeCircArg[$randomLoc]
+		end
+	else
+		'You feel drained, but the energy fizzles out and nothing happens'
+	end
+
+	killvar '$randomLoc'
+	killvar '$NewLocation'
+
+	result = ""
+
+end
+
 if $ARGS[0] = 'reset':
 	cla
 	!Create mist
@@ -45,521 +100,328 @@ if $ARGS[0] = 'unmat':
 	end
 end
 
-if $ARGS[0] = 'tuman':
-	cla
-	!Create mist
+if $ARGS[0] = 'fog':
+	! tuman  = the amount of fog around you making you harder to hit
+	! tumanV = the amount of fog around your opponent making him harder to hit
 	if tumanV > 0:
-		'It is not possible to impose your fog on an existing fog opponent.'
-	elseif tumanV <= 0:
-		'Create a fog on the battlefield, closing review of the enemy. Cost 10 manna.'
-
-		act 'Create mist (10 manna)':
-			cla
-			*clr
-			pcs_manna -= 10
-			tuman = tuman + 10
-			gt'fight','sta'
+		'It is not possible to call your fog when an existing opponent is already fogged.'
+	else
+		if SuccessValue > 0:
+			tuman += (10 * SuccessValue)
+			'<b><font color = green>A Fog materializes around, obscuring you from your enemies.</font></b>'
+		elseif SuccessValue < 0:
+			tumanV += 10
+			'<b><font color = red>The spell backfires! A Fog materializes around your enemy, obscuring him from your view.</font></b>'
+		else
+			'<b>The spell fizzles.  Nothing seems to happen.</b>'
 		end
-	end
-
-	act 'Physical attacks':gt'boxing'
-
-	if pcs_magik > 0:
-		act 'Magic attacks':gt'magik'
 	end
 end
 
-if $ARGS[0] = 'klon':
-	cla
-	'You can create an exact clone of your copying, and themselves to slip out of sight of the enemy. Cost 15 manna 1 clone.'
-
-	act 'Create a clone':
-		cla
-		*clr
-		pcs_manna -= 15
-		klon = klon + 1
-		gt'fight','sta'
-	end
-	act 'Physical attacks':gt'boxing'
-
-	if pcs_magik > 0:
-		act 'Magic attacks':gt'magik'
+if $ARGS[0] = 'clone':
+	! klon = the number of clones that the enemy must destroy before hitting you
+	if SuccessValue > 0:
+		klon += SuccessValue
+		'<b><font color = green><<SuccessValue>> clone<<iif(SuccessValue>1,"s","")>> of you springs from you confusing the enemy.</font></b>'
+	elseif SuccessValue < 0 and klon > 0:
+		klon -= 1
+		'<b><font color = red>The spell backfires! One of your clones disappears.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
 	end
 end
 
 if $ARGS[0] = 'stun':
-	cla
-	'You need to touch the enemy, then he will be paralyzed. Cost 20 manna.'
-
-	act 'Paralytic stroke':
-		cla
-		*clr
-		pcs_manna -= 20
+	! stunner = 1 stuns the enemy for 3-6 rounds
+	if SuccessValue > 0:
 		stunner = 1
-		xgt'atak','player'
+		'<b><font color = green>Your enemy is stunned.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
 	end
-	act 'Physical attacks':gt'boxing'
-
-	if pcs_magik > 0:
-		act 'Magic attacks':gt'magik'
-	end
+	xgt'atak','player'
 end
 
-if $ARGS[0] = 'weap':
-	cla
-	'You can put the magical power of a weapon increasing its damage. Cost 20 manna.'
-
-	act 'Attach energy':
-		cla
-		*clr
-		pcs_manna -= 20
-		magweapbonus = weapbonus*4
-		xgt'atak','player'
+if $ARGS[0] = 'weapon':
+	if SuccessValue > 0:
+		magweapbonus = weapbonus * 4 * SuccessValue
+		'<b><font color = green>Your Weapon now feels more powerful.</font></b>'
+	elseif SuccessValue < 0:
+		magweapbonus = weapbonus * -1
+		'<b><font color = red>The spell backfires! Your weapon seems weaker.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
 	end
-	act 'Physical attacks':gt'boxing'
-
-	if pcs_magik > 0:
-		act 'Magic attacks':gt'magik'
-	end
+	xgt'atak','player'
 end
 
 if $ARGS[0] = 'wind':
-	cla
-	'Corrupts the wind, that would blow away the fog. Cost 40 manna.'
-
-	act 'Apply':
-		cla
-		*clr
-		pcs_manna -= 40
+	! tuman  = the amount of fog around you making you harder to hit
+	! tumanV = the amount of fog around your opponent making him harder to hit
+	if SuccessValue = 2:
+		tumanV = 0
+		'<b><font color = green>A wind blows through the area eliminating your enemys fog from the battlefield.</font></b>'
+	elseif SuccessValue = 1:
 		tumanV = 0
 		tuman = 0
-
-		'<b><font color = green>You sent against the wind on the battlefield and destroy the fog.</font></b>'
-
-		xgt'fight','sta'
-	end
-	act 'Physical attacks':gt'boxing'
-
-	if pcs_magik > 0:
-		act 'Magic attacks':gt'magik'
+		'<b><font color = green>A wind blows through the area eliminating all fog on the battlefield.</font></b>'
+	elseif SuccessValue = -1:
+		tuman = 0
+		'<b><font color = red>A wind blows through the area eliminating your fog from the battlefield.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
 	end
 end
 
-if $ARGS[0] = 'klon2':
-	cla
-	'You can create three clones have exactly copying, and themselves to slip out of sight of the enemy. Cost 45 manna 3 clone.'
-
-	act 'Create clones':
-		cla
-		*clr
-		pcs_manna -= 45
-		klon = klon + 3
-		gt'fight','sta'
-	end
-	act 'Physical attacks':gt'boxing'
-
-	if pcs_magik > 0:
-		act 'Magic attacks':gt'magik'
+if $ARGS[0] = 'multiclone':
+	! klon = the number of clones that the enemy must destroy before hitting you
+	if SuccessValue > 0:
+		klon += SuccessValue * 3
+		'<b><font color = green><<SuccessValue * 3>> clone<<iif(SuccessValue>1,"s","")>> of you springs from you confusing the enemy.</font></b>'
+	elseif SuccessValue < 0 and klon > 0:
+		if klon < 3:
+			klon = 0
+		else
+			klon -= 3
+		end
+		'<b><font color = red>The spell backfires! Some of your clones disappear.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
 	end
 end
 
 if $ARGS[0] = 'energo':
-	cla
-	'You can create an energy shield to protect against attacks on health. 100 protection units worth 50 manna.'
-
-	act 'Create energy shield':
-		cla
-		*clr
-		pcs_manna -= 50
-		defence = defence + 100
-
-		'<b><font color = green>You have imposed energy shield, now you <<defence>> protection units.</font></b>'
-
-		xgt'fight','sta'
-	end
-	act 'Physical attacks':gt'boxing'
-
-	if pcs_magik > 0:
-		act 'Magic attacks':gt'magik'
+	! defence = absorbs damage before health begins to be removed
+	if SuccessValue > 0:
+		defence += (100 * SuccessValue)
+		'<b><font color = green>An energy shield materializes around you, protecting you from your enemies.</font></b>'
+	elseif SuccessValue < 0:
+		defenceV += 100
+		'<b><font color = red>The spell backfires! An energy shield materializes around your enemy, protecting him from you.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
 	end
 end
 
-if $ARGS[0] = 'init':
-	cla
-	'You can create a slight delay of time, To get the advantage of speed of reaction and to seize the initiative. Costs 60 manna.'
-
-	act 'Create slowdown':
-		cla
-		*clr
-		pcs_manna -= 60
-		initBonus = 120
-
-		'<b><font color = green>You put the manna in the intensification of reaction.</font></b>'
-
-		xgt'fight','sta'
-	end
-	act 'Physical attacks':gt'boxing'
-
-	if pcs_magik > 0:
-		act 'Magic attacks':gt'magik'
+if $ARGS[0] = 'haste':
+	if SuccessValue > 0:
+		initBonus += (120 * SuccessValue)
+		'<b><font color = green>Your mind and body seem to race though a sluggish world.</font></b>'
+	elseif SuccessValue < 0:
+		initBonusV += 120
+		'<b><font color = red>The spell backfires! Your enemy seems to move faster.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
 	end
 end
 
-if $ARGS[0] = 'hel':
-	cla
-	!Create mist
-	'Cure or add yourself 400 health units. Cost 400 manna.'
-
-	act 'Dermatologic (400 manna)':
-		cla
-		*clr
-		pcs_manna -= 400
-		pcs_health += 400
-
-		'<b><font color = green>You put the manna in the acceleration of the recovery processes in the body.</font></b>'
-
-		gt'fight','sta'
-	end
-	act 'Physical attacks':gt'boxing'
-
-	if pcs_magik > 0:
-		act 'Magic attacks':gt'magik'
+if $ARGS[0] = 'heal':
+	if SuccessValue > 0:
+		pcs_health += (400 * SuccessValue)
+		'<b><font color = green>Your body surges with life. You feel much stronger.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
 	end
 end
 
 if $ARGS[0] = 'hand':
-	cla
-	!Create mist
-	'Striking hand increases damage 10 just one attack. Cost 100 manna.'
-
-	act 'Smashing palm (100 manna)':
-		cla
-		*clr
-		pcs_manna -= 100
-		strenK = pcs_stren*20/100
+	if SuccessValue > 0:
+		strenK = pcs_stren*20*SuccessValue/100
 		magweapbonus = RAND(pcs_stren*10 - strenK,pcs_stren*10 + strenK)
-
-		'<b><font color = green>You put the manna in the hand to apply the devastating impact.</font></b>'
-
-		xgt'atak','player'
+		'<b><font color = green>Your hands now feel more powerful.</font></b>'
+	elseif SuccessValue < 0:
+		strenK = pcs_stren*20/100
+		magweapbonus = 0 - RAND(pcs_stren*10 - strenK,pcs_stren*10 + strenK)
+		'<b><font color = red>The spell backfires! Your hands seem weaker.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
 	end
-	act 'Physical attacks':gt'boxing'
+	xgt'atak','player'
+end
 
-	if pcs_magik > 0:
-		act 'Magic attacks':gt'magik'
+if $ARGS[0] = 'scaldingtouch':
+	if SuccessValue > 0:
+		damTip = 250 * SuccessValue
+		'<b><font color = green>Flames spring from your hands.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
+	xgt'atakA','atak'
+end
+
+if $ARGS[0] = 'burninghands':
+	if SuccessValue > 0:
+		damTip = 2500 * SuccessValue
+		'<b><font color = green>A torrent of flames jets from your hands.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
+	xgt'atakA','atak'
+end
+
+if $ARGS[0] = 'firebarrier':
+	if SuccessValue > 0:
+		defence += (750 * SuccessValue)
+		'<b><font color = green>A flaming barrier has sprung up between you and your opponent. You now have <<defence>> protection units.</font></b>'
+	elseif SuccessValue < 0:
+		defenceV += 750
+		'<b><font color = red>The spell backfires! A flaming barrier has sprung up between you and your opponent. Your enemy now has <<defence>> protection units.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
 	end
 end
 
-if $ARGS[0] = 'fire1':
-	cla
-	!Create mist
-	'Flame. Cost 10 manna.'
-
-	act 'Flame (10 manna)':
-		cla
-		*clr
-		pcs_manna -= 10
-		damTip = 250
-
-		'<b><font color = green>You have created a torrent of flames escaping from your hand.</font></b>'
-
-		xgt'atakA','atak'
-	end
-	act 'Physical attacks':gt'boxing'
-
-	if pcs_magik > 0:
-		act 'Magic attacks':gt'magik'
-	end
-end
-
-if $ARGS[0] = 'fire2':
-	cla
-	!Create mist
-	'The release of fire. Cost 100 manna.'
-
-	act 'The release of fire (100 manna)':
-		cla
-		*clr
-		pcs_manna -= 100
-		damTip = 2500
-
-		'<b><font color = green>You have created a huge flow of flames escaping from your hand.</font></b>'
-
-		xgt'atakA','atak'
-	end
-	act 'Physical attacks':gt'boxing'
-
-	if pcs_magik > 0:
-		act 'Magic attacks':gt'magik'
-	end
-end
-
-if $ARGS[0] = 'fire3':
-	cla
-	!Create mist
-	'Fire Barrier, It creates a shield 750 units. Cost 150 manna.'
-
-	act 'Fire Barrier (150 manna)':
-		cla
-		*clr
-		pcs_manna -= 150
-		defence = defence + 750
-
-		'<b><font color = green>You have created around him fire barrier, now you <<defence>> protection units.</font></b>'
-
-		xgt'fight','sta'
-	end
-	act 'Physical attacks':gt'boxing'
-
-	if pcs_magik > 0:
-		act 'Magic attacks':gt'magik'
-	end
-end
-
-if $ARGS[0] = 'fire4':
-	cla
-	!Create mist
-	'Firestorm. Cost 250 manna.'
-
-	act 'Firestorm (250 manna)':
-		cla
-		*clr
-		pcs_manna -= 250
-		damTip = 6250
+if $ARGS[0] = 'firestorm':
+	if SuccessValue > 0:
+		damTip = 4250 + (2000 * SuccessValue)
 		bonusSh = 100
-
-		'<b><font color = green>The air around you overheat and catch fire, a sea of ​​fire struck the enemy.</font></b>'
-
-		xgt'atakA','atak'
+		'<b><font color = green>Uncountable glowing embers steak down upon your foes.</font></b>'
+	elseif SuccessValue < 0:
+		damTip = 2000
+		pcs_health -= 200
+		bonusSh = 100
+		'<b><font color = red>The spell backfires! Uncountable glowing embers steak down upon the battlefield burning everyone.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
 	end
-	act 'Physical attacks':gt'boxing'
+	xgt'atakA','atak'
+end
 
-	if pcs_magik > 0:
-		act 'Magic attacks':gt'magik'
+if $ARGS[0] = 'flameshield':
+	if SuccessValue > 0:
+		defence += (2500 * SuccessValue)
+		'<b><font color = green>A Shield made of Flames interposes itself between you and your enemy. You now have <<defence>> protection units.</font></b>'
+	elseif SuccessValue < 0:
+		defenceV += 2500
+		'<b><font color = red>The spell backfires! A Shield made of Flames interposes itself between you and your enemy. Your enemy now has <<defence>> protection units.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
 	end
 end
 
-if $ARGS[0] = 'fire5':
-	cla
-	!Create mist
-	'Flame Shield, It creates a shield 2500 units. Cost 500 manna.'
-
-	act 'Flame Shield (500 manna)':
-		cla
-		*clr
-		pcs_manna -= 500
-		defence = defence + 2500
-
-		'<b><font color = green>You''ve created a wall of fire around it absorbs damage, now you <<defence>> protection units.</font></b>'
-
-		xgt'fight','sta'
-	end
-	act 'Physical attacks':gt'boxing'
-
-	if pcs_magik > 0:
-		act 'Magic attacks':gt'magik'
-	end
-end
-
-if $ARGS[0] = 'ele1':
-	cla
-	!Create mist
-	'Electric Shock. Cost 10 manna.'
-
-	act 'Electric Shock (10 manna)':
-		cla
-		*clr
-		pcs_manna -= 10
-		damTip = 150
+if $ARGS[0] = 'shock':
+	if SuccessValue > 0:
+		damTip = (150 * SuccessValue)
 		eleSh = 1
-
-		'<b><font color = green>You have created an electric discharge escaping from your hand.</font></b>'
-
-		xgt'atakA','atak'
+		'<b><font color = green>You build a static electric charge in your hand and zap your opponent.</font></b>'
+	elseif SuccessValue < 0:
+		pcs_health -= 50
+		'<b><font color = red>The spell backfires! You manage to zap yourself with a static charge.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
 	end
-	act 'Physical attacks':gt'boxing'
-
-	if pcs_magik > 0:
-		act 'Magic attacks':gt'magik'
-	end
+	xgt'atakA','atak'
 end
 
-if $ARGS[0] = 'ele2':
-	cla
-	!Create mist
-	'Lightning. Cost 100 manna.'
-
-	act 'Lightning (100 manna)':
-		cla
-		*clr
-		pcs_manna -= 100
-		damTip = 1500
+if $ARGS[0] = 'lightning':
+	if SuccessValue > 0:
+		damTip = (1500 * SuccessValue)
 		eleSh = 1
-
-		'<b><font color = green>You have created a lightning shot rattled out of your hand.</font></b>'
-
-		xgt'atakA','atak'
+		'<b><font color = green>You shoot a lightning bolt from your hand zapping your opponent.</font></b>'
+	elseif SuccessValue < 0:
+		pcs_health -= 300
+		'<b><font color = red>The spell backfires! You manage to zap yourself with lightning.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
 	end
-	act 'Physical attacks':gt'boxing'
+	xgt'atakA','atak'
+end
 
-	if pcs_magik > 0:
-		act 'Magic attacks':gt'magik'
+if $ARGS[0] = 'electricbarrier':
+	if SuccessValue > 0:
+		defence += (1500 * SuccessValue)
+		'<b><font color = green>A wall of dancing lightning springs up around yourself. You now have <<defence>> protection units.</font></b>'
+	elseif SuccessValue < 0:
+		defenceV += 1500
+		'<b><font color = red>The spell backfires! A wall of dancing lightning springs up around your enemy. Your enemy now has <<defence>> protection units.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
 	end
 end
 
-if $ARGS[0] = 'ele3':
-	cla
-	!Create mist
-	'Electric barrier, It creates a shield 1500 units. Cost 150 manna.'
-
-	act 'Electric barrier (150 manna)':
-		cla
-		*clr
-		pcs_manna -= 150
-		defence = defence + 1500
-
-		'<b><font color = green>You''ve created a wall around yourself of dancing lightning, now you have <<defence>> protection units.</font></b>'
-
-		xgt'fight','sta'
-	end
-	act 'Physical attacks':gt'boxing'
-
-	if pcs_magik > 0:
-		act 'Magic attacks':gt'magik'
-	end
-end
-
-if $ARGS[0] = 'ele4':
-	cla
-	!Create mist
-	'Dance of a thousand birds. Cost 250 manna.'
-
-	act 'Dance of a thousand birds (250 manna)':
-		cla
-		*clr
-		pcs_manna -= 250
-		damTip = 3750
+if $ARGS[0] = '1000birds':
+	if SuccessValue > 0:
+		damTip = 2750 + (1000 * SuccessValue)
 		bonusSh = 30
 		eleSh = 1
-
-		'<b><font color = green>You have collected the manna in the hand and around your palm danced lightning leaping through the air with shrieks.</font></b>'
-
-		xgt'atakA','atak'
-	end
-	act 'Physical attacks':gt'boxing'
-
-	if pcs_magik > 0:
-		act 'Magic attacks':gt'magik'
-	end
-end
-
-if $ARGS[0] = 'ele5':
-	cla
-	!Create mist
-	'Dancing Sphere, It creates a shield 5000 units. Cost 500 manna.'
-
-	act 'Dancing Sphere (500 manna)':
-		cla
-		*clr
-		pcs_manna -= 500
-		defence = defence + 5000
-
-		'<b><font color = green>You have created around him a large field of lightning dancing, now you <<defence>> protection units.</font></b>'
-
-		xgt'fight','sta'
-	end
-	act 'Physical attacks':gt'boxing'
-
-	if pcs_magik > 0:
-		act 'Magic attacks':gt'magik'
+		'<b><font color = green>You shoot hundreds of small lightning bolts toward your enemy.</font></b>'
+	elseif SuccessValue < 0:
+		damTip = 2000
+		pcs_health -= 200
+		bonusSh = 30
+		eleSh = 1
+		'<b><font color = red>The spell backfires! Hundreds of small lightning bolts curl toward the battlefield shocking everyone.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
 	end
 end
 
-if $ARGS[0] = 'ert1':
-	cla
-	!Create mist
-	'Quicksand, catches the opponent in the quicksand trap and inflicts 100 units. Cost 10 manna.'
+if $ARGS[0] = 'dancingsphere':
+	if SuccessValue > 0:
+		defence += (5000 * SuccessValue)
+		'<b><font color = green>A large field of lightning dances around you blocking attacks. You now have <<defence>> protection units.</font></b>'
+	elseif SuccessValue < 0:
+		defenceV += 5000
+		'<b><font color = red>The spell backfires! A large field of lightning dances around you blocking attacks. Your enemy now has <<defence>> protection units.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
+end
 
-	act 'Quicksand (10 manna)':
-		cla
-		*clr
-		pcs_manna -= 10
-		damTip = 100
+if $ARGS[0] = 'quicksand':
+	if SuccessValue > 0:
+		damTip = 100 * SuccessValue
 		eleSh = 5
-
-		'<b><font color = green>You have created a tightening opponent quicksand.</font></b>'
-
-		xgt'atakA','atak'
+		'<b><font color = green>You have trapped your opponent in quicksand.</font></b>'
+	elseif SuccessValue < 0:
+		damTip = 100
+		pcs_health -= 50
+		eleSh = 5
+		'<b><font color = red>The spell backfires! You are both trapped in quicksand.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
 	end
-	act 'Physical attacks':gt'boxing'
-
-	if pcs_magik > 0:
-		act 'Magic attacks':gt'magik'
-	end
+	xgt'atakA','atak'
 end
 
-if $ARGS[0] = 'ert2':
-	cla
-	!Create mist
-	'Active protection, It creates a protective sphere of land, Cham 2500 Units of protection of health and mana, this protection restores itself within 10 absorbing strokes 20 Units in the course of manna. Cost 100 manna.'
-
-	act 'Active protection (100 manna)':
-		cla
-		*clr
-		pcs_manna -= 100
-		defence = defence + 2500
-		defenceM = defenceM + 2500
+if $ARGS[0] = 'earthshield':
+	if SuccessValue > 0:
+		defence += 1500 + (1000 * SuccessValue)
+		defenceM += 2500
 		defenceActPar = 1000
 		defenceActParM = 1000
 		defenceAct = 10
 		defenceActM = 10
-
-		'<b><font color = green>Earth is surrounded by you, giving you protection.</font></b>'
-
-		xgt'fight','sta'
-	end
-	act 'Physical attacks':gt'boxing'
-
-	if pcs_magik > 0:
-		act 'Magic attacks':gt'magik'
+		'<b><font color = green>Tendrils of Earth rise to defend you. You now have <<defence>> protection units.</font></b>'
+	elseif SuccessValue < 0:
+		defenceV += 2500
+		'<b><font color = red>The spell backfires! Tendrils of Earth rise to defend your enemy. Your enemy now has <<defence>> protection units.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
 	end
 end
 
-if $ARGS[0] = 'ert3':
-	cla
-	!Create mist
-	'Abyss, earth asunder under their feet the enemy inflicting damage 1500 units, and depriving him of the ability to move. Cost 150 manna.'
-
-	act 'Quicksand (150 manna)':
-		cla
-		*clr
-		pcs_manna -= 150
-		damTip = 1500
+if $ARGS[0] = 'abyss':
+	if SuccessValue > 0:
+		damTip = 1500 * SuccessValue
 		eleSh = 5
-
-		'<b><font color = green>You are the earth under the feet of the enemy.</font></b>'
-
-		xgt'atakA','atak'
+		'<b><font color = green>The Earth opens up beneath your opponents feet, slamming shut damaging him and depriving him of the ability to move.</font></b>'
+	elseif SuccessValue < 0:
+		damTip = 1500
+		pcs_health -= 200
+		eleSh = 5
+		'<b><font color = red>The spell backfires! The Earth opens up beneath your opponents feet, slamming shut damaging him and depriving him of the ability to move.  You are also caught.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
 	end
-	act 'Physical attacks':gt'boxing'
-
-	if pcs_magik > 0:
-		act 'Magic attacks':gt'magik'
-	end
+	xgt'atakA','atak'
 end
 
-if $ARGS[0] = 'ert4':
-	cla
-	!Create mist
-	'Absolute protection, It creates a huge protective sphere of land, which regenerates itself every turn attacks the enemy. Cost 250 manna.'
-
-	act 'Absolute protection (250 manna)':
-		cla
-		*clr
-		pcs_manna -= 250
-		defence = defence + 6250
-		defenceM = defenceM + 6250
-		defenceW = defenceW + 6250
+if $ARGS[0] = 'earthguardian':
+	if SuccessValue > 0:
+		defence += 5200 + (2000 * SuccessValue)
+		defenceM += 6250
+		defenceW += 6250
 		defenceActPar = 1000
 		defenceActParM = 1000
 		defenceActParW = 1000
@@ -567,301 +429,207 @@ if $ARGS[0] = 'ert4':
 		defenceActM = 15
 		defenceActW = 15
 		defAtk = 15
-
-		'<b><font color = green>Earth is surrounded by you, giving you protection.</font></b>'
-
-		xgt'fight','sta'
-	end
-	act 'Physical attacks':gt'boxing'
-
-	if pcs_magik > 0:
-		act 'Magic attacks':gt'magik'
+		'<b><font color = green>The Earth itself comes alive defending you from attacks.  It draws from the power of the land to regenerate itself every round. You now have <<defence>> protection units.</font></b>'
+	elseif SuccessValue < 0:
+		defenceV += 2500
+		'<b><font color = red>The spell backfires! Tendrils of Earth rise to defend your enemy. Your enemy now has <<defence>> protection units.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
 	end
 end
 
-if $ARGS[0] = 'ert5':
-	cla
-	!Create mist
-	'Sando, two huge plates come out of the collapse of the earth and crushing the enemy inflicting damage 5000 units, and depriving him of the ability to move. Cost 500 manna.'
-
-	act 'Sando (500 manna)':
-		cla
-		*clr
-		pcs_manna -= 500
-		damTip = 5000
+if $ARGS[0] = 'sando':
+	if SuccessValue > 0:
+		damTip = 3000 + (2000 * SuccessValue)
 		bonusSh = 50
 		eleSh = 5
-
-		'<b><font color = green>Two huge plate with a roar came from the earth and imploded.</font></b>'
-
-		xgt'atakA','atak'
+		'<b><font color = green>Two huge plates of earth colapse together crushing the enemy and depriving him of the ability to move.</font></b>'
+	elseif SuccessValue < 0:
+		pcs_health -= 200
+		'<b><font color = red>The spell backfires! Two huge plates of earth colapse together with crushing force, but the enemy is missed and you are instead caught.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
 	end
-	act 'Physical attacks':gt'boxing'
-
-	if pcs_magik > 0:
-		act 'Magic attacks':gt'magik'
-	end
+	xgt'atakA','atak'
 end
 
-if $ARGS[0] = 'wind1':
-	cla
-	!Create mist
-	'Wind gust, inflicts 100 Units kills clones and fog, very difficult to dodge. Cost 10 manna.'
-
-	act 'Wind gust (10 manna)':
-		cla
-		*clr
-		pcs_manna -= 10
-		damTip = 100
+if $ARGS[0] = 'windgust':
+	if SuccessValue > 0:
+		damTip = 100 * SuccessValue
 		bonusSh = 50
-
 		'<b><font color = green>You have created a gust of wind.</font></b>'
-		if klonV > 0:klonV = 0 & '<b><font color = green>Clone the enemy turned into steam.</font></b>'
-		if tumanV > 0:tumanV = 0 & '<b><font color = green>Fog enemy torn to shreds by the wind.</font></b>'
-
-		xgt'atakA','atak'
+		if klonV > 0:klonV = 0 & '<b><font color = green>Enemy clones are vaporized.</font></b>'
+		if tumanV > 0:tumanV = 0 & '<b><font color = green>Enemy Fog is torn to shreds by the wind.</font></b>'
+	elseif SuccessValue < 0:
+		pcs_health -= 50
+		'<b><font color = red>The spell backfires! You have created a gust of wind, but the enemy is missed and you are instead caught.</font></b>'
+		if klon > 0:klon = 0 & '<b><font color = green>Your clones are vaporized.</font></b>'
+		if tuman > 0:tuman = 0 & '<b><font color = green>Your Fog is torn to shreds by the wind.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
 	end
-	act 'Physical attacks':gt'boxing'
-
-	if pcs_magik > 0:
-		act 'Magic attacks':gt'magik'
-	end
+	xgt'atakA','atak'
 end
 
-if $ARGS[0] = 'wind2':
-	cla
-	!Create mist
-	'The horrific pressure, inflicts 1000 Units kills clones and fog, very difficult to dodge. Cost 100 manna.'
-
-	act 'The horrific pressure (100 manna)':
-		cla
-		*clr
-		pcs_manna -= 100
-		damTip = 1000
+if $ARGS[0] = 'pressure':
+	if SuccessValue > 0:
+		damTip = 1000 * SuccessValue
 		bonusSh = 100
-
 		'<b><font color = green>You dramatically raised the air pressure.</font></b>'
-		if klonV > 0:klonV = 0 & '<b><font color = green>Clone the enemy broke and turned into steam.</font></b>'
-		if tumanV > 0:tumanV = 0 & '<b><font color = green>Fog enemy torn to shreds pressure.</font></b>'
-
-		xgt'atakA','atak'
+		if klonV > 0:klonV = 0 & '<b><font color = green>Enemy clones are vaporized.</font></b>'
+		if tumanV > 0:tumanV = 0 & '<b><font color = green>Enemy Fog is torn to shreds by the wind.</font></b>'
+	elseif SuccessValue < 0:
+		pcs_health -= 200
+		'<b><font color = red>The spell backfires! You dramatically raised the air pressure, but the enemy is missed and you are instead caught.</font></b>'
+		if klon > 0:klon = 0 & '<b><font color = green>Your clones are vaporized.</font></b>'
+		if tuman > 0:tuman = 0 & '<b><font color = green>Your Fog is torn to shreds by the wind.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
 	end
-	act 'Physical attacks':gt'boxing'
+	xgt'atakA','atak'
+end
 
-	if pcs_magik > 0:
-		act 'Magic attacks':gt'magik'
+if $ARGS[0] = 'vacuum':
+	if SuccessValue > 0:
+		defence += (1500 * SuccessValue)
+		'<b><font color = green>A turbulent sphere of vacuum surrounds you blocking incoming attacks. You now have <<defence>> protection units.</font></b>'
+	elseif SuccessValue < 0:
+		defenceV += 1500
+		'<b><font color = red>The spell backfires! A turbulent sphere of vacuum surrounds your enemy blocking your attacks. Your enemy now has <<defence>> protection units.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
 	end
 end
 
-if $ARGS[0] = 'wind3':
-	cla
-	!Create mist
-	'Vacuum Sphere, It creates a shield 1500 units. Cost 150 manna.'
-
-	act 'Vacuum Sphere (150 manna)':
-		cla
-		*clr
-		pcs_manna -= 150
-		defence = defence + 1500
-
-		'<b><font color = green>You have created around themselves the vacuum, now you <<defence>> protection units.</font></b>'
-
-		xgt'fight','sta'
-	end
-	act 'Physical attacks':gt'boxing'
-
-	if pcs_magik > 0:
-		act 'Magic attacks':gt'magik'
-	end
-end
-
-if $ARGS[0] = 'wind4':
-	cla
-	!Create mist
-	'Vacuum shells, cause damage 2500 Units kills clones and fog, very difficult to dodge. Cost 250 manna.'
-
-	act 'Vacuum shells (250 manna)':
-		cla
-		*clr
-		pcs_manna -= 250
-		damTip = 2500
+if $ARGS[0] = 'vacuumshells':
+	if SuccessValue > 0:
+		damTip = 2500 * SuccessValue
 		bonusSh = 100
-
-		'<b><font color = green>You have created around him a lot of areas, and they vacuum at high speed with a whistle flew over the battlefield.</font></b>'
-		if klonV > 0:klonV = 0 & '<b><font color = green>Clone the enemy broke and turned into steam.</font></b>'
-		if tumanV > 0:tumanV = 0 & '<b><font color = green>Fog enemy torn to shreds pressure.</font></b>'
-
-		xgt'atakA','atak'
+		'<b><font color = green>Turbulent spheres of vacuum bombard your enemy. The air is full of whistling sounds as the spheres fly by at high speeds over the battlefield.</font></b>'
+		if klonV > 0:klonV = 0 & '<b><font color = green>Enemy clones are vaporized.</font></b>'
+		if tumanV > 0:tumanV = 0 & '<b><font color = green>Enemy Fog is torn to shreds by the wind.</font></b>'
+	elseif SuccessValue < 0:
+		pcs_health -= 200
+		'<b><font color = red>The spell backfires! Turbulent spheres of vacuum bombard your enemy. The air is full of whistling sounds as the spheres fly by at high speeds over the battlefield, but the enemy is missed and you are instead caught.</font></b>'
+		if klon > 0:klon = 0 & '<b><font color = green>Your clones are vaporized.</font></b>'
+		if tuman > 0:tuman = 0 & '<b><font color = green>Your Fog is torn to shreds by the wind.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
 	end
-	act 'Physical attacks':gt'boxing'
+	xgt'atakA','atak'
+end
 
-	if pcs_magik > 0:
-		act 'Magic attacks':gt'magik'
+if $ARGS[0] = 'devouringvacuum':
+	if SuccessValue > 0:
+		defenceV = 0
+		defenceMV = 0
+		defenceWV = 0
+		defenceActParV = 0
+		defenceActParMV = 0
+		defenceActV = 0
+		defenceActMV = 0
+		defAtkMV = 0
+		'<b><font color = green>A devouring vacuum sucks away your enemys defenses.</font></b>'
+	elseif SuccessValue < 0:
+		defence = 0
+		defenceM = 0
+		defenceW = 0
+		defenceActPar = 0
+		defenceActParM = 0
+		defenceAct = 0
+		defenceActM = 0
+		defAtkM = 0
+		'<b><font color = red>The spell backfires! A devouring vacuum sucks away your defenses.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
 	end
 end
 
-if $ARGS[0] = 'wind5':
-	cla
-	!Create mist
-	'Devouring vacuum, sucks shield enemy destroying it whatever strength he was not. Cost 500 manna.'
-
-	if defenceV > 0:
-		act 'Devouring vacuum (500 manna)':
-			cla
-			*clr
-			pcs_manna -= 500
-			defenceV = 0
-			defenceMV = 0
-			defenceWV = 0
-			defenceActParV = 0
-			defenceActParMV = 0
-			defenceActV = 0
-			defenceActMV = 0
-			defAtkMV = 0
-
-			'<b><font color = green>You have created around themselves the vacuum that sucked in the defense of the enemy to destroy it.</font></b>'
-
-			xgt'fight','sta'
-		end
-	elseif defenceV <= 0:
-		'The enemy is not a shield that can break this spell.'
-	end
-
-	act 'Physical attacks':gt'boxing'
-
-	if pcs_magik > 0:
-		act 'Magic attacks':gt'magik'
-	end
-end
-
-if $ARGS[0] = 'water1':
-	cla
-	!Create mist
-	'Leech manna, inflicts 100 units Absorbs 1000 units of manna. Cost 10 manna.'
-
-	act 'Leech manna (10 manna)':
-		cla
-		*clr
-		pcs_manna -= 10
-		damTip = 100
+if $ARGS[0] = 'leechmana':
+	if SuccessValue > 0:
+		damTip = 100 * SuccessValue
 		damTipM = 1000
-
-		'<b><font color = green>You have created in your hand a small stream of water that shoots into the enemy.</font></b>'
-
-		xgt'atakA','atak'
+		'<b><font color = green>You leech mana from your enemy.</font></b>'
+	elseif SuccessValue < 0:
+		pcs_health -= 50
+		'<b><font color = red>The spell backfires! Ouch!</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
 	end
-	act 'Physical attacks':gt'boxing'
-
-	if pcs_magik > 0:
-		act 'Magic attacks':gt'magik'
-	end
+	xgt'atakA','atak'
 end
 
-if $ARGS[0] = 'water2':
-	cla
-	!Create mist
-	'Flooding, inflicts 1000 units Absorbs 500 units of manna. Cost 100 manna.'
-
-	act 'Flooding (100 manna)':
-		cla
-		*clr
-		pcs_manna -= 100
-		damTip = 1000
+if $ARGS[0] = 'flood':
+	if SuccessValue > 0:
+		damTip = 1000 * SuccessValue
 		damTipM = 500
-
-		'<b><font color = green>From your mouth a flood of water flooded district.</font></b>'
-
-		xgt'atakA','atak'
+		'<b><font color = green>A surge of water rises towards your enemy.</font></b>'
+	elseif SuccessValue < 0:
+		pcs_health -= 100
+		'<b><font color = red>The spell backfires! A surge of water rises towards your enemy, but missed and hits you.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
 	end
-	act 'Physical attacks':gt'boxing'
-
-	if pcs_magik > 0:
-		act 'Magic attacks':gt'magik'
-	end
+	xgt'atakA','atak'
 end
 
-if $ARGS[0] = 'water3':
-	cla
-	!Create mist
-	'Blister, It creates a protective sphere of water 1500 Units of protection against all impacts, this protection restores itself within 10 absorbing strokes 20 Units in the course of manna. Cost 150 manna.'
-
-	act 'Blister (150 manna)':
-		cla
-		*clr
-		pcs_manna -= 150
-		defence = defence + 1500
-		defenceM = defenceM + 1500
-		defenceW = defenceW + 1500
+if $ARGS[0] = 'blister':
+	if SuccessValue > 0:
+		defence += 1500
+		defenceM += 1500
+		defenceW += 1500
 		defenceActPar = 500
 		defenceActParM = 500
 		defenceAct = 10
 		defenceActM = 10
-
-		'<b><font color = green>Water creates the scope of protection around you.</font></b>'
-
-		xgt'fight','sta'
-	end
-	act 'Physical attacks':gt'boxing'
-
-	if pcs_magik > 0:
-		act 'Magic attacks':gt'magik'
+		'<b><font color = green>A protective sphere of water surrounds you.</font></b>'
+	elseif SuccessValue < 0:
+		defenceV += 1500
+		'<b><font color = red>The spell backfires! A protective sphere of water surrounds your enemy.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
 	end
 end
 
-if $ARGS[0] = 'water4':
-	cla
-	!Create mist
-	'Water shark rocket, inflicts 1500 units Absorbs 2500 units of manna. Cost 250 manna.'
-
-	act 'Water shark rocket (250 manna)':
-		cla
-		*clr
-		pcs_manna -= 250
-		damTip = 1500
+if $ARGS[0] = 'sharkrockets':
+	if SuccessValue > 0:
+		damTip = 1500 * SuccessValue
 		damTipM = 2500
 		bonusSh = 50
-
-		'<b><font color = green>You released a pack of sharks consisting of water flying towards the enemy like a torpedo.</font></b>'
-		if klonV > 0:klonV = 0 & '<b><font color = green>Clones enemy disappeared.</font></b>'
-
-		xgt'atakA','atak'
+		'<b><font color = green>Blobs of Water shaped like sharks fly towards your enemy stiking them.</font></b>'
+		if klonV > 0:klonV = 0 & '<b><font color = green>Enemy clones are eliminated.</font></b>'
+	elseif SuccessValue < 0:
+		pcs_health -= 100
+		'<b><font color = red>The spell backfires! Blobs of Water shaped like sharks fly towards your enemy, but missed and hits you.</font></b>'
+		if klon > 0:klon = 0 & '<b><font color = green>Your clones are eliminated.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
 	end
-	act 'Physical attacks':gt'boxing'
-
-	if pcs_magik > 0:
-		act 'Magic attacks':gt'magik'
-	end
+	xgt'atakA','atak'
 end
 
-if $ARGS[0] = 'water5':
-	cla
-	!Create mist
-	'The Great Flood, It creates a huge sphere that absorbs water and pumping opponent manna from it and passing it to strengthen protection. Cost 500 manna.'
-
-	act 'The Great Flood (500 manna)':
-		cla
-		*clr
-		pcs_manna -= 500
-		defence = defence + 5000
-		defenceM = defenceM + 5000
-		defenceW = defenceW + 5000
+if $ARGS[0] = 'greatflood':
+	if SuccessValue > 0:
+		defence += 5000
+		defenceM += 5000
+		defenceW += 5000
 		defenceActPar = 500
 		defenceActParM = 500
 		defenceAct = 10
 		defenceActM = 10
 		defAtkM = 10
-
-		'<b><font color = green>You have filled the whole neighborhood with water protecting you and devours enemy mana.</font></b>'
+		'<b><font color = green>You have filled the whole neighborhood with water protecting you and devouring enemy mana.</font></b>'
 		if klonV > 0:klonV = 0 & '<b><font color = green>Clones enemy disappeared.</font></b>'
-
-		xgt'fight','sta'
-	end
-	act 'Physical attacks':gt'boxing'
-
-	if pcs_magik > 0:
-		act 'Magic attacks':gt'magik'
+	elseif SuccessValue < 0:
+		defenceV += 1500
+		'<b><font color = red>The spell backfires! A huge flood of water surrounds your enemy protecting him.</font></b>'
+		if klon > 0:klon = 0 & '<b><font color = green>Clones enemy disappeared.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
 	end
 end
 
+
+killvar 'SuccessValue'
 --- spell ---------------------------------
 
