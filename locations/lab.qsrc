@@ -187,6 +187,104 @@ if $ARGS[0] = 'Gustav':
 	end
 end
 
+if $ARGS[0] = 'ListBuilder':
+	! Builds a list of Attributes to be able to change
+	!  $ARGS[1] = Name of the attribute
+	!  $ARGS[2] = Mana cost of the change
+	!  $ARGS[3] = Time the change will take
+	!  $ARGS[4] = Array name of change value display string
+	!  $ARGS[5] = Array name of value to change attribute to, 'i' means, just use array position
+	!  $ARGS[6] = variable name of attribute to change
+	$bodyModType = $ARGS[1]
+	bodyModMana = $ARGS[2]
+	bodyModTime = $ARGS[3]
+	$bodyModDesc = $ARGS[4]
+	$bodyModIndx = $ARGS[5]
+	$bodyModStat = $ARGS[6]
+
+	$hairColors[0]='black'
+	$hairColors[1]='brown'
+	$hairColors[2]='red'
+	$hairColors[3]='blonde'
+
+	hairTypes[0]=5 & $hairTypes[0]='extremely short'
+	hairTypes[1]=31 & $hairTypes[1]='pixie-cut'
+	hairTypes[2]=81 & $hairTypes[2]='medium'
+	hairTypes[3]=161 & $hairTypes[3]='shoulder-length'
+	hairTypes[4]=261 & $hairTypes[4]='long'
+	hairTypes[5]=401 & $hairTypes[5]='very long'
+	hairTypes[6]=601 & $hairTypes[6]='extremely long'
+
+	$lipSize[0]='thin'
+	$lipSize[1]='normal'
+	$lipSize[2]='plump'
+	$lipSize[3]='pouty'
+	$lipSize[4]='pillowy'
+
+	$eyeColors[0]='brown'
+	$eyeColors[1]='grey'
+	$eyeColors[2]='green'
+	$eyeColors[3]='blue'
+
+	$eyeLashes[0]='short'
+	$eyeLashes[1]='average'
+	$eyeLashes[2]='long'
+	$eyeLashes[3]='lavish'
+	$eyeLashes[4]='show-stealing'
+	$eyeLashes[5]='long, jewel-dusted'
+
+	breastSize[0]=5 & $breastSize[0]='AA'
+	breastSize[1]=10 & $breastSize[1]='A'
+	breastSize[2]=15 & $breastSize[2]='B'
+	breastSize[3]=20 & $breastSize[3]='C'
+	breastSize[4]=25 & $breastSize[4]='D'
+	breastSize[5]=30 & $breastSize[5]='E'
+	breastSize[6]=35 & $breastSize[6]='F'
+	breastSize[7]=40 & $breastSize[7]='G'
+	breastSize[8]=45 & $breastSize[8]='H'
+	breastSize[9]=50 & $breastSize[9]='I'
+	breastSize[10]=55 & $breastSize[10]='J'
+	breastSize[11]=60 & $breastSize[11]='K'
+
+
+	$ListStr = "<B><<$bodyModType>></B>"
+	i = 0
+	:BodyModLoop
+	if i < arrsize('<<$bodyModDesc>>'):
+		if $bodyModIndx = 'i':
+			bodymodValue = i
+		else
+			bodymodValue = dyneval("result = <<$bodyModIndx>>[<<i>>]")
+		end
+		$bodyModDescX = dyneval('$result = <<$bodyModDesc>>[<<i>>]')
+		$ListStr = $ListStr + "<br><a href=""EXEC:<<$bodyModStat>> = <<bodymodValue>> & pcs_manna -= <<bodyModMana>> & gs 'arousal', 'voyeur', <<bodyModTime>> & gs 'stat' & gt 'lab', 'BodyModded', '<<$bodyModType>>', '<<$bodyModDescX>>'""><<$bodyModDescX>></a>"
+		i += 1
+		jump 'BodyModLoop'
+	end
+
+	killvar 'i'
+	killvar '$bodyModDescX'
+	killvar 'bodymodValue'
+	$result = $ListStr
+end
+
+if $ARGS[0] = 'BodyModded':
+	! Landing page for having Body Mod done.
+  	!  $ARGS[1] = Name of the attribute
+  	!  $ARGS[2] = new value of attribute
+	$bodyModType = $ARGS[1]
+	$bodyModVal =  $ARGS[2]
+
+	cls & cla
+	act 'Thank you':gt 'lab', 'Tatiana'
+
+	"You feel a bit drained and tingly all over.  You look in the mirror."
+	"Your <<$bodyModType>> is now <<$bodyModVal>>."
+	"""Thanks Tatiana!"""
+
+end
+
+
 if $ARGS[0] = 'Tatiana':
 	cls
 	$loc = 'lab'
@@ -234,25 +332,78 @@ if $ARGS[0] = 'Tatiana':
 	act 'Ask for help with your appearance':
 		cla
 		'"Tatiana, I''m having problems with my body image, I''m not happy and was hoping that you might be able to help me."'
-		'"It''s possible but I will have to draw on your magical energy, it will cost 40 manna to perform a reset spell.'
-		'This will reduce excess fat, growth of body parts and reduce high levels of silicone, moving you closer to your original body shape.'
-		'Do you wish to try this spell?'
+		'"It''s possible but I will have to draw on your magical energy, it will cost some of your manna to perform a spell."'
+
+		$HairColorTab =  func('lab', 'ListBuilder', 'Hair Color', '40', '30', '$hairColors','i',         'pcs_haircol')
+		$HairLengthTab = func('lab', 'ListBuilder', 'Hair Length','40', '30', '$hairTypes', 'hairTypes', 'pcs_hairlng')
+		$EyeColorTab =   func('lab', 'ListBuilder', 'Eye Color',  '40', '30', '$eyeColors', 'i',         'pcs_eyecol')
+		$EyeLashTab =    func('lab', 'ListBuilder', 'Eye Lashes', '40', '30', '$eyeLashes', 'i',         'pcs_lashes')
+		$LipTab =        func('lab', 'ListBuilder', 'Lip Size',   '40', '30', '$lipSize',   'i',         'pcs_lip')
+		$BreastTab =     func('lab', 'ListBuilder', 'Breast Size','40', '30', '$breastSize','breastSize','nbsize')
+
+		$SkinTab = "<a href=""EXEC:pcs_skin = 100 & pcs_manna -= 40 & gs 'arousal', 'voyeur', 30 & gs 'stat' & gt 'lab', 'BodyModded', 'Skin', 'clear'"">Clear Skin</a>"
+		$VirginTab = "<a href=""EXEC:pcs_vag = 0 & pcs_manna -= 40 & gs 'arousal', 'voyeur', 30 & gs 'stat' & gt 'lab', 'BodyModded', 'Virginity', 'renewed'"">Renew Virginity</a>"
+		$SiliconeTab = "<a href=""EXEC:brSurTemp = 0 & stringimplant = 0 & fillimplant = 0 & pcs_manna -= 40 & gs 'arousal', 'voyeur', 30 & gs 'stat' & gt 'lab', 'BodyModded', 'Boobs', 'natural again'"">Remove Silicone</a>"
+
+		$SpellListStr = "<CENTER>
+	<TABLE CELLPADDING = '5'>
+		<TR>
+			<TD><<$SkinTab>></TD>
+			<TD><<$VirginTab>></TD>
+			<TD><<$SiliconeTab>></TD>
+		</TR>
+		<TR>
+			<TD VALIGN='top'><<$HairColorTab>></TD>
+			<TD VALIGN='top'><<$EyeColorTab>></TD>
+			<TD VALIGN='top'><<$BreastTab>></TD>
+		</TR>
+		<TR>
+			<TD VALIGN='top'><<$HairLengthTab>></TD>
+			<TD VALIGN='top'><<$EyeLashTab>></TD>
+			<TD VALIGN='top'><<$LipTab>></TD>
+		</TR>
+	</TABLE>
+</CENTER>"
+
+		*pl func('cleanHTML',$SpellListStr)
+
+		killvar '$HairColorTab'
+		killvar '$HairLengthTab'
+		killvar '$EyeColorTab'
+		killvar '$EyeLashTab'
+		killvar '$LipTab'
+		killvar '$BreastTab'
+		killvar '$SkinTab'
+		killvar '$VirginTab'
+		killvar '$SiliconeTab'
+		killvar '$SpellListStr'
 
 		act 'No, no, I''ve changed my mind. Thank you':gt 'lab', 'Tatiana'
 
-		if pcs_manna >= 40:
-			act 'That sounds great, let''s do it!':
-				*clr
-				cla
-				minut += 30
-				dounspell = 1
-				gs 'body_shape', 'hardreset'
-				gs 'stat'
-				'<center><img <<$set_imgh>> src="images/characters/city/tatiana/magiclook.jpg"></center>'
-				'Tatiana lowers her glasses and stares deeply into your eyes. It feels like time just stops being a thing and you are floating.'
-				'It seems very soon afterwards when you snap back to reality but the big clock on the lab wall tells you its been 30 minutes.'
-				'Your body has changed much as Tatiana said it would and she is already busy checking nothing went wrong.'
-				act 'Continue': gt 'lab', 'Tatiana'
+
+		act "Restore you body to it's original shape":
+			cla
+			'"Tatiana, I''m having problems with my body image, I''m not happy and was hoping that you might be able to help me."'
+			'"It''s possible but I will have to draw on your magical energy, it will cost 40 manna to perform a reset spell.'
+			'This will reduce excess fat, growth of body parts and reduce high levels of silicone, moving you closer to your original body shape.'
+			'Do you wish to try this spell?'
+
+			act 'No, no, I''ve changed my mind. Thank you':gt 'lab', 'Tatiana'
+
+			if pcs_manna >= 40:
+				act 'That sounds great, let''s do it!':
+					*clr
+					cla
+					minut += 30
+					dounspell = 1
+					gs 'body_shape', 'hardreset'
+					gs 'stat'
+					'<center><img <<$set_imgh>> src="images/characters/city/tatiana/magiclook.jpg"></center>'
+					'Tatiana lowers her glasses and stares deeply into your eyes. It feels like time just stops being a thing and you are floating.'
+					'It seems very soon afterwards when you snap back to reality but the big clock on the lab wall tells you its been 30 minutes.'
+					'Your body has changed much as Tatiana said it would and she is already busy checking nothing went wrong.'
+					act 'Continue': gt 'lab', 'Tatiana'
+				end
 			end
 		end
 	end
@@ -315,101 +466,15 @@ if $ARGS[0] = 'Tatiana':
 		end
 	end
 
-	if spelltuman = 0 and pcs_magik >= 1:
-		act 'Learn technique fog (1:00)':
-			cla
-			minut += 60
-			spelltuman = 1
-			'You learnt the technique of calling fog in battle.'
-
-			act 'Leave':gt 'lab', 'Tatiana'
-		end
-	end
-
-	if spellklon = 0 and pcs_magik >= 1:
-		act 'Learn technique protection cloning (1:00)':
-			cla
-			minut += 60
-			spellklon = 1
-			'You learnt the technique of cloning yourself to create decoys in battle.'
-
-			act 'Leave':gt 'lab', 'Tatiana'
-		end
-	end
-
-	if spellstun = 0 and pcs_magik >= 2:
-		act 'Learn technique paralysis (1:00)':
-			cla
-			minut += 60
-			spellstun = 1
-			'You learnt the technique of paralyzing the enemy.'
-
-			act 'Leave':gt 'lab', 'Tatiana'
-		end
-	end
-
-	if spellwind = 0 and pcs_magik >= 2:
-		act 'Learn mist blowing (1:00)':
-			cla
-			minut += 60
-			spellwind = 1
-			'You learnt the technique of blowing mist.'
-
-			act 'Leave':gt 'lab', 'Tatiana'
-		end
-	end
-
-	if spellklon2 = 0 and pcs_magik >= 2:
-		act 'Learn triple cloning (1:00)':
-			cla
-			minut += 60
-			spellklon2 = 1
-			'You learnt the technique triple cloning.'
-
-			act 'Leave':gt 'lab', 'Tatiana'
-		end
-	end
-
-	if spellenergo = 0 and pcs_magik >= 3:
-		act 'Learn energoschit (1:00)':
-			cla
-			minut += 60
-			spellenergo = 1
-			'You learnt the technique energoschita.'
-
-			act 'Leave':gt 'lab', 'Tatiana'
-		end
-	end
-
-	if spellinit = 0 and pcs_magik >= 3:
-		act 'Learn technique deceleration time (1:00)':
-			cla
-			minut += 60
-			spellinit = 1
-			'You learnt the technique of time dilation.'
-
-			act 'Leave':gt 'lab', 'Tatiana'
-		end
-	end
-
-	if pcs_magik >= 4 and spellhel = 0:
-		!!'With this level of magic I can not teach you anymore.'
-			act 'Learn the technique of treatment (1:00)':
-			cla
-			minut += 60
-			spellhel = 1
-			'You learnt the technique of treatment.'
-
-			act 'Leave':gt 'lab', 'Tatiana'
-		end
-	end
+	! Show Actions for Learning Spells
+	gs 'spellList', 'teacherActions', '$basicSpells', 'lab', 'Tatiana'
 
 	if pcs_magik >= 5 and spellavtoklon = 0:
 		act 'Learn technique preparation (1:00)':
 			cla
 			minut += 60
 			spellavtoklon = 1
-			'You learnt the technique preparation. This technique allows you to enter into battle with the already created three clones.'
+			'You learned the technique preparation. This technique allows you to enter into battle with the already created three clones.'
 
 			act 'Leave':gt 'lab', 'Tatiana'
 		end
