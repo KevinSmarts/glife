@@ -266,6 +266,24 @@ if $ARGS[0] = 'breastrecalc':
 	lactation['breastfat'] = lactation['breastuseabletissue'] - lactation['breastglandtissue']
 end
 
+if $ARGS[0] = 'breastgrowthcalc':
+	!!	calculating the ccm all mammarygland tissue will use up in the breast, based on alveolicount and alveoliexpandlvl. With every level, cmm will rise by 20 per alveoli.
+	lactation['breastglandtissue']= (lactation['alveolicount'] * (218 + (lactation['alveoliexpandlvl'] * 20)))/100000
+	!!	Crazy Math going on here. When I was coding this, only god and I knew what I was doing. Now only god knows.
+	!!	Well actually, this one recalculates all the CCM stuff to normal nbsize, magicf2b and silicone. It works, no idea why, but it works.
+	lactation['breastccm'] = (lactation['breastglandtissue'] + lactation['breastfat'] + lactation['breastsiliconeccm'])
+	lactation['siliconepercent'] = ((lactation['breastsiliconeccm']*100)/lactation['breastccm'])
+	lactation['magicf2bccm'] = ((lactation['breastccm'] - ((lactation['breastccm']*lactation['siliconepercent'])/100))*lactation['magicf2bpercent_wos'])/100
+	lactation['nbsizebccm'] = lactation['breastccm'] - lactation['breastsiliconeccm'] - lactation['magicf2bccm']
+	lactation['nbsizepercent'] = ((lactation['nbsizebccm']*100)/lactation['breastccm'])
+	lactation['magicf2bpercent'] = ((lactation['magicf2bccm']*100)/lactation['nbsizebccm'])
+	nbsize = (func('lact_lib','bccmtosize',lactation['breastccm'])*lactation['nbsizepercent'])/100
+	magicf2b = (func('lact_lib','bccmtosize',lactation['breastccm'])*lactation['magicf2bpercent'])/100
+	lactation['nbsizechange'] = nbsize
+	lactation['magicf2bchange'] = magicf2b
+	lactation['siliconechange'] = silicone
+end
+
 !!	This function is used for breastgrowth. When nbsize, magicf2b, silicone, alveolicount or the alveoliexpandlvl are changed the breastccm changes. Everything will be written back to the specific variable
 if $ARGS[0] = 'BreastGrowth':
 	!!	usage func('lact_lib','BreastGrowth')
@@ -281,25 +299,13 @@ if $ARGS[0] = 'BreastGrowth':
 		!!	first - check for alveoligrowth: yes, do the crazy stuff
 		!!	second - check for nbsize, magicf2b and silicone change
 		!!	there is no else on purpose, because nothing should happen to svetas breasts if nothing else changes
-		if lactation['alveolicount_change'] <> lactation['alveolicount'] or lactation['alveoliexpandlvl_change'] <> lactation['alveoliexpandlvl']:
-			!!	calculating the ccm all mammarygland tissue will use up in the breast, based on alveolicount and alveoliexpandlvl. With every level, cmm will rise by 20 per alveoli.
-			lactation['breastglandtissue']= (lactation['alveolicount'] * (218 + (lactation['alveoliexpandlvl'] * 20)))/100000
-			!!	Crazy Math going on here. When I was coding this, only god and I knew what I was doing. Now only god knows.
-			!!	Well actually, this one recalculates all the CCM stuff to normal nbsize, magicf2b and silicone. It works, no idea why, but it works.
-			lactation['breastccm'] = (lactation['breastglandtissue'] + lactation['breastfat'] + lactation['breastsiliconeccm'])
-			lactation['siliconepercent'] = (lactation['breastsiliconeccm']/lactation['breastccm'])*100
-			lactation['magicf2bccm'] = ((lactation['breastccm'] - ((lactation['breastccm']*lactation['siliconepercent'])/100))*lactation['magicf2bpercent_wos'])/100
-			lactation['nbsizebccm'] = lactation['breastccm'] - lactation['breastsiliconeccm'] - lactation['magicf2bccm']
-			lactation['nbsizepercent'] = (lactation['nbsizebccm']/lactation['breastccm'])*100
-			lactation['magicf2bpercent'] = (lactation['magicf2bccm']/lactation['nbsizebccm'])*100
-			nbsize = (func('lact_lib','bccmtosize',lactation['breastccm'])*lactation['nbsizepercent'])/100
-			magicf2b = (func('lact_lib','bccmtosize',lactation['breastccm'])*lactation['magicf2bpercent'])/100
-			lactation['nbsizechange'] = nbsize
-			lactation['magicf2bchange'] = magicf2b
-			lactation['siliconechange'] = silicone
-		elseif (lactation['nbsizechange'] + lactation['siliconechange'] + lactation['magicf2bchange']) <> (nbsize + magicf2b + silicone):
-		!!	 and (lactation['alveolicount_change'] = lactation['alveolicount'] or lactation['alveoliexpandlvl_change'] = lactation['alveoliexpandlvl'])
-			func('lact_lib','breastrecalc')
+		if  (lactation['nbsizechange'] + lactation['siliconechange'] + lactation['magicf2bchange']) <> (nbsize + magicf2b + silicone):
+			func('lact_lib','breastrecalc')	
+			if lactation['alveolicount_change'] <> lactation['alveolicount'] or lactation['alveoliexpandlvl_change'] <> lactation['alveoliexpandlvl']
+				func('lact_lib','breastgrowthcalc')
+			end
+		elseif lactation['alveolicount_change'] <> lactation['alveolicount'] or lactation['alveoliexpandlvl_change'] <> lactation['alveoliexpandlvl']:
+			func('lact_lib','breastgrowthcalc')
 		end
 	end
 end
@@ -575,9 +581,9 @@ if $ARGS[0] = 'breastcycle':
 		if lactation['milkgrowday'] < daystart:
 			if (lactation['dailyoverdemand']/200) <= 0 and lactation['dailyoverdemand'] > 0:
 				lactation['prolactinlvl'] += 1
-			elseif (lactation['dailyoverdemand']/200) >= 10 and pregtimes <= 0:
+			elseif (lactation['dailyoverdemand']/200) >= 10 and lactation['maturebreast'] <= 0:
 				lactation['prolactinlvl'] += 10
-			elseif (lactation['dailyoverdemand']/200) >= 50 and pregtimes > 1:
+			elseif (lactation['dailyoverdemand']/200) >= 50 and lactation['maturebreast'] > 0:
 				lactation['prolactinlvl'] += 50
 			else
 				if lactation['prolactinlvl'] > 0 and pregchem < 2191:
