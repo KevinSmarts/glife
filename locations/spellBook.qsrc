@@ -1,0 +1,75 @@
+#spellBook
+! Make a table of Spells to Cast from a given list.  the list is in the form of the lists as done in thespellList file.
+!
+! 	$ARGS[0] = the name of the array to use for the spell list.
+!	$ARGS[1] = (optional) return Action Code - a dynamic piece of code to run instead of generic return.
+!	$ARGS[2] = (optional) Additional code to put in spell link (all spells)
+!
+
+$spellBookVar['Array'] = $ARGS[0]
+$spellBookVar['ActionCode'] = $ARGS[1]
+$spellBookVar['CodeAfterSpell'] = $ARGS[2]
+
+! Make sure opptional variables have defaults
+if $spellBookVar['ActionCode'] = '':
+	$spellBookVar['ActionCode'] = "gt '<<$loc>>', '<<$metka>>'"
+end
+if $spellBookVar['CodeAfterSpell'] = '':
+	$spellBookVar['CodeAfterSpell'] = "gt '<<$loc>>', '<<$metka>>'"
+end
+
+! lets the user back out if they don''t want ot cast.
+act 'Never mind':dynamic spellBookVar['ActionCode']
+
+! This just makes sure the current spellLists are loaded
+if spellMana['fog'] = 0:
+	gs 'spellList'
+end
+
+! Build the table
+$SpellListStr = "
+<center>
+	<h1>Choose a Spell to cast.</h1>
+	<br>
+	<table CELLPADDING = '5'>
+		<tr>
+			<th align='left'>Spell</th>
+			<th align='left'>Mana</th>
+			<th align='left'>Description</th>
+		</tr>"
+i = 0
+spellBookVar['ArraySize'] = dyneval("result = arrsize('<<$spellBookVar['Array']>>')")
+numSpellsKnown = 0
+:SpellListLoop
+$ThisSpellName = dyneval("$result = <<$spellBookVar['Array']>>[<<i>>]")
+if i < spellBookVar['ArraySize']:
+	if spellKnown[$ThisSpellName] = 1:
+		$SpellListStr = $SpellListStr + " 
+		<tr>
+			<td align='left'><a href=""EXEC: gs 'castSpell', '<<$ThisSpellName>>'& <<$spellBookVar['CodeAfterSpell']>>""><<$spellName[$ThisSpellName]>></a></td>
+			<td align='right'><<spellMana[$ThisSpellName]>></td>
+			<td align='left'><<$spellDesc[$ThisSpellName]>></td>
+		</tr>"
+		numSpellsKnown += 1
+	end
+	i += 1
+	jump 'SpellListLoop'
+end
+
+$SpellListStr = $SpellListStr + " 
+	</table>
+</center>"
+
+if numSpellsKnown = 0:
+	"You don't know any spells of this type."
+else
+	*pl func('cleanHTML',$SpellListStr)
+end
+
+killvar 'i'
+killvar 'numSpellsKnown'
+killvar '$ThisSpellName'
+killvar '$SpellListStr'
+killvar '$spellBookVar'
+killvar 'spellBookVar'
+--- spellBook ---------------------------------
