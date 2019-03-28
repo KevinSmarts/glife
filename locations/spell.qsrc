@@ -59,16 +59,33 @@ if $ARGS[0] = 'regenerate':
 		regenVal = 5 * SuccessValue
 		! Immediate health gain
 		pcs_health += regenVal
-		! Time when spell ends (totminut is right now, in minutes)
-		spellComplete = totminut + 120
-		! Code that is executed when spell completes
-		$spellCompExec = 'pcs_health += (5 * <<regenVal>>)'
-		! Code that is executed each minute the spell is running
-		$spellTickExec = 'pcs_health += <<regenVal>>'
-		! Name of spell for reportinig purposes
-		$spellTimeName = 'regenerate'
+		! If Regenerate is already running, we only extend.
+		regenArrIdx = arrpos('$spellTimeName','regenerate')
+		if regenArrIdx > -1:
+			! if it''s found, then update only
+			spellComplete[regenArrIdx] = totminut + 120
+			$spellCompExec[regenArrIdx] = 'pcs_health += (5 * <<regenVal>>)'
+			$spellTickExec[regenArrIdx] = 'pcs_health += <<regenVal>>'
+		else
+			! Add Timer:
+			!	spellName = 'regenerate'
+			!	duration  = 120
+			!	CompCode = 'pcs_health += (5 * <<regenVal>>)'
+			!	TickCode = 'pcs_health += <<regenVal>>'
+			gs 'spellTimer', 'add', 'regenerate', 120, 'pcs_health += (5 * <<regenVal>>)', 'pcs_health += <<regenVal>>'
+		end
+
 		'<b><font color = green>Your body surges with life. You feel better already.</font></b>'
 		killvar 'regenVal'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
+end
+
+if $ARGS[0] = 'painblock':
+	if SuccessValue > 0:
+		pain['killer'] += 1
+		'<b><font color = green>Your pain recedes into a dull throb.</font></b>'
 	else
 		'<b>The spell fizzles.  Nothing seems to happen.</b>'
 	end
