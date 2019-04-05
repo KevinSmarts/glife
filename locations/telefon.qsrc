@@ -1,4 +1,70 @@
 # telefon
+! Draw screens for mobile phone.
+!
+! ContactList arrays:
+! $contact[]     = NPC code for contact. ('A129', 'A29', 'B13', 'C14')
+! $contactIcon[] = Icon for the contact to use. If path is left off, standard phone icon folder is used. if file extension is left off, '.png' is used
+! $contactOCode[] = Code to execute if call is placed to this contact
+! $contactOSche[] = If statement code to determine schedule for outbound calls
+! $contactICode[] = Code to execute for Incoming call
+! $contactISche[] = if statement code for schedule of incoming calls
+!
+! Add a contact with AddContact, example, to Add Mother:
+!	gs 'telefon', 'AddContact', 'A29', 'icon_npc1', "gs 'telefon', 'Phone_call'", "hour >= 8 and hour <= 20", "gs 'telefon', 'lover'", "hour >= 8 and hour <= 20"
+
+
+! Header for Phone Screen.  Keeps consistent and in one place
+$telefon['header'] = '<center>
+	<b><<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>></b><br>
+	<TABLE cellspacing="0" width="80%">
+		<TR>
+			<TD><img src="images/system/icon/icon_statusbar_left.png"></TD>
+			<TD></TD>
+			<TD align="right"><img src="images/system/icon/icon_statusbar_right.png"></TD>
+		</TR>
+	</TABLE><br>'
+! Footer for phone screen.  Body should be between these two
+$telefon['footer'] = '
+	<a href="exec:gs''telefon'', ''Phone_menu''"><img src="images/system/icon/back.png"></a><br><br>
+	<a href="exec:gs''stat''">Put Phone Away.</a><br>
+</center>'
+
+! This is how we print the screnn on to the Additional Dscription window
+$telefon['print'] = {
+	clr
+	pl func('cleanHTML',$telefon['header'] + $telefon['body'] + $telefon['footer'])
+}
+
+! This is the formatting function for a row in the Contact List. SHould be run as a DYNEVAL()
+$telefon['contact'] = {
+	! Contact Row in phone contact list
+	! $ARGS[0] = NPC icon
+	! $ARGS[1] = NPC Nickname
+	! $ARGS[2] = Code to execute for making a Call
+	! $ARGS[3] = if statement for determining if NPC is avaiable
+	$telefon['ContactIcon'] = $ARGS[0]
+	$telefon['ContactNickName'] = $ARGS[1]
+	$telefon['ContactCallCode'] = $ARGS[2]
+	$telefon['ContactCallSchedule'] = $ARGS[3]
+	!If file extension is not given, .png is assumed
+	if instr($telefon['ContactIcon'],'.') = 0:
+		$telefon['ContactIcon'] += '.png'
+	end
+	!If path is not given, default phone icon path is assumed
+	if instr($telefon['ContactIcon'],'/') = 0:
+		$telefon['ContactIcon'] = 'images/system/phone/icons/' + $telefon['ContactIcon']
+	end
+	!If Contact is not in available timeframe, we disable contact calling
+	if dyneval('result = iif(<<$telefon["ContactCallSchedule"]>>,1,0)') = 0:
+		$telefon['ContactCallCode'] = "gs 'telefon', 'phone_call_reject'"
+	end
+	$result = '<TABLE cellspacing="0" width="80%"><TR>
+		<TD><img src="<<$telefon[''ContactIcon'']>>"></TD>
+		<TD><<$telefon[''ContactNickName'']>></TD>
+		<TD align="right"><a href="exec:$callerid = ''<<$telefon[''ContactIcon'']>>'' & <<$telefon[''ContactCallCode'']>>"><b>Call</b></a></TD>
+	</TR></TABLE><br>'
+}
+
 
 if $ARGS[0] = 'start':
 	gs 'stat'
@@ -15,7 +81,7 @@ if $ARGS[0] = 'start':
 	elseif npc_QW['A192'] = 6 and nastjaday ! daystart:
 		gt 'nastja', 'pos31'
 	else
-		$callerid = 'icon_nastja'
+		$callerid = 'images/system/phone/icons/icon_nastja.png'
 		gs 'telefon','phone_call_reject'
 	end
 end
@@ -491,34 +557,30 @@ end
 
 
 if $ARGS[0] = 'phone_ring':
-	clr
-	pl '<center><b><<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>></b></center>'
-	pl '<center><TABLE cellspacing="0" width="80%"><TR><TD><img src="images/system/icon/icon_statusbar_left.png"></TD><TD></TD><TD align="right"><img src="images/system/icon/icon_statusbar_right.png"></TD></TR></TABLE></center>'
-	pl'<center><font size=6><<$caller>> calling</font></center>'
-	pl'<center><img src="<<$callerid>>"><br></center>'
-	pl''
-	pl''
-	pl''
-	pl''
-!	pl'<center><a href="exec:gt ''telefon'', ''start''"><img src="images/system/phone/call_accept.png"></a>                               <a href="exec:gs ''stat''"><img src="images/system/phone/decline.png"></a></center>'
+	$telefon['body'] = '
+	<font size=6><<$caller>> calling</font><br>
+	<img src="<<$callerid>>"><br>
+	<br>
+	<br>
+	<br>
+	<br>'
+	dynamic $telefon['print']
 end &! --- phone_ring ---
 
 if $ARGS[0] = 'phone_call_receive':
-	clr
-	pl '<center><b><<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>></b></center>'
-	pl '<center><TABLE cellspacing="0" width="80%"><TR><TD><img src="images/system/icon/icon_statusbar_left.png"></TD><TD></TD><TD align="right"><img src="images/system/icon/icon_statusbar_right.png"></TD></TR></TABLE></center>'
-	pl'<center><font size=6>Talking to <<$caller>></font></center>'
-	pl'<center><img src="<<$callerid>>"><br></center>'
+	$telefon['body'] = '
+	<font size=6>Talking to <<$caller>></font><br>
+	<img src="<<$callerid>>"><br>'
+	dynamic $telefon['print']
 end &! --- phone_call_receive ---
 
 if $ARGS[0] = 'phone_balance':
 	if balans < 4:
-		clr
-		pl '<center><b><<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>></b></center>'
-		pl '<center><TABLE cellspacing="0" width="80%"><TR><TD><img src="images/system/icon/icon_statusbar_left.png"></TD><TD></TD><TD align="right"><img src="images/system/icon/icon_statusbar_right.png"></TD></TR></TABLE></center>'
-		pl'<center><font size=6>Not enough credit on your account</font></center>'
-		pl'<center><img src="<<$callerid>>"><br></center>'
-		pl'<center><a href="exec:gs ''telefon'', ''Phone_menu'' "><img src="images/system/phone/decline.png"></a></center>'
+		$telefon['body'] = '
+		<font size=6>Not enough credit on your account</font><br>
+		<img src="<<$callerid>>"><br><br>
+		<a href="exec:gs ''telefon'', ''Phone_menu'' "><img src="images/system/phone/decline.png"></a><br>'
+		dynamic $telefon['print']
 		wait 3500
 		cla
 		gt $loc, $metka
@@ -528,66 +590,138 @@ if $ARGS[0] = 'phone_balance':
 end &! --- phone_balance ---
 
 if $ARGS[0] = 'Phone_call':
-	clr
-	pl '<center><b><<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>></b></center>'
-	pl '<center><TABLE cellspacing="0" width="80%"><TR><TD><img src="images/system/icon/icon_statusbar_left.png"></TD><TD></TD><TD align="right"><img src="images/system/icon/icon_statusbar_right.png"></TD></TR></TABLE></center>'
-	pl'<center><font size=6>Calling <<$npc_nickname[''A29'']>></font></center>'
-	pl'<center><img src="images/system/phone/icons/icon_npc1.png"><br></center>'
-	pl'<center><a href="exec:gs ''telefon'', ''Phone_contactlist'' "><img src="images/system/phone/decline.png"></a></center>'
+	$telefon['body'] = '
+	<font size=6>Calling <<$npc_nickname[''A29'']>></font><br>
+	<img src="images/system/phone/icons/icon_npc1.png"><br><br>
+	<a href="exec:gs ''telefon'', ''Phone_contactlist'' "><img src="images/system/phone/decline.png"></a><br>'
+	dynamic $telefon['print']
 	wait 1500
 	minut += 1
 	$callerid = 'images/system/phone/icons/icon_npc1.png'
 	gs 'telefon', 'phone_balance'
-	$callerid = 'icon_npc1'
+	$callerid = 'images/system/phone/icons/icon_npc1.png'
 	gs 'telefon', 'phone_call_reject'
 end &! --- Phone_call ---
 
 if $ARGS[0] = 'phone_call_reject':
-	clr
-	pl '<center><b><<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>></b></center>'
-	pl '<center><TABLE cellspacing="0" width="80%"><TR><TD><img src="images/system/icon/icon_statusbar_left.png"></TD><TD></TD><TD align="right"><img src="images/system/icon/icon_statusbar_right.png"></TD></TR></TABLE></center>'
-	pl'<center><font size=6>Calling....</font></center>'
-	pl'<center><img src="images/system/phone/icons/<<$callerid>>.png"><br></center>'
-	pl'<center><a href="exec:gs ''telefon'', ''Phone_contactlist'' "><img src="images/system/phone/decline.png"></a></center>'
+	$telefon['body'] = '
+	<font size=6>Calling....</font><br>
+	<img src="<<$callerid>>"><br><br>
+	<a href="exec:gs ''telefon'', ''Phone_contactlist'' "><img src="images/system/phone/decline.png"></a><br>'
+	dynamic $telefon['print']
 end &! --- phone_call_reject ---
 
 if $ARGS[0] = 'Phone_megafon':
-	clr
-	pl '<center><b><<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>></b></center>'
-	pl '<center><TABLE cellspacing="0" width="80%"><TR><TD><img src="images/system/icon/icon_statusbar_left.png"></TD><TD></TD><TD align="right"><img src="images/system/icon/icon_statusbar_right.png"></TD></TR></TABLE></center>'
-	pl'<center><font size=6>MegaFon</font></center>'
-	pl'<center><img src="<<FUNC(''$phone_theme'')>>icon_megafon.png" height="80" width="80"><br></center>'
-	pl'<center><b>The balance in the account:</b>'
-	pl'<center><font size=5><<balans>> ₽.</font></center>'
-	pl'<center><a href="exec:gs ''telefon'', ''Phone_menu'' "><img src="images/system/icon/back.png"></a></center>'
+	$telefon['body'] = '
+	<font size=6>MegaFon</font><br>
+	<img src="<<FUNC(''$phone_theme'')>>icon_megafon.png" height="80" width="80"><br><br>
+	<b>The balance in the account:</b>
+	<font size=5><<balans>> ₽.</font><br>'
+	dynamic $telefon['print']
 end &! --- Phone_megafon ---
 
 
+if $ARGS[0] = 'AddContact':
+	! $ARGS[1] = NPC Array identifier
+	! $ARGS[2] = Icon
+	! $ARGS[3] = Code to execute for Call out
+	! $ARGS[4] = If statement code to determine schedule for outbound calls
+	! $ARGS[5] = Code to execute for Incoming call
+	! $ARGS[6] = if statement code for schedule of incoming calls
+	$telefonCon['NPC'] = $ARGS[1]
+	$telefonCon['Icon'] = $ARGS[2]
+	$telefonCon['OutCode'] = $ARGS[3]
+	$telefonCon['OutSched'] = $ARGS[4]
+	$telefonCon['InCode'] = $ARGS[5]
+	$telefonCon['InSched'] = $ARGS[6]
+	telefonCon['ContactListID'] = arrpos('$contact',$telefonCon['NPC'])
+	if telefonCon['ContactListID'] = -1:
+		telefonCon['ContactListID'] = len($contact)
+		$contact[telefonCon['ContactListID']] = $telefonCon['NPC']
+	end
+	$contactIcon[telefonCon['ContactListID']] = $telefonCon['Icon']
+	$contactOCode[telefonCon['ContactListID']] = $telefonCon['OutCode']
+	$contactOSche[telefonCon['ContactListID']] = $telefonCon['OutSched']
+	$contactICode[telefonCon['ContactListID']] = $telefonCon['InCode']
+	$contactISche[telefonCon['ContactListID']] = $telefonCon['InSched']
+
+	killvar 'telefonCon'
+	killvar '$telefonCon'
+end &! --- AddContact ---
+
+if $ARGS[0] = 'DeleteContact':
+	! $ARGS[1] = NPC Array identifier
+	$telefonCon['NPC'] = $ARGS[1]
+	telefonCon['ContactListID'] = arrpos('$contact',$telefonCon['NPC'])
+	if telefonCon['ContactListID'] > -1:
+		killvar '$contact', telefonCon['ContactListID']
+		killvar '$contactIcon', telefonCon['ContactListID']
+		killvar '$contactCode', telefonCon['ContactListID']
+	end
+
+	killvar 'telefonCon'
+	killvar '$telefonCon'
+end &! --- AddContact ---
+
+if $ARGS[0] = 'ContactList':
+	$telefon['body'] = '
+	<font size=6>Contacts</font><br>
+	<img src="<<FUNC(''$phone_theme'')>>icon_call.png" height="80" width="80"><br><br>'
+
+	!!iterating all Contacts
+	i=0
+	:contactloop2
+	if i < arrsize('$contact'):
+		$telefon['body'] += dyneval($telefon['contact'],$contactIcon[i],$npc_nickname[$contact[i]],$contactOCode[i],$contactOSche[i])
+		i += 1
+		jump 'contactloop2'
+	end
+
+	! Oddball Contacts
+	if telalla > 0:
+		$telefon['body'] += dyneval($telefon['contact'],'icon_ira1','Alla',"$telsob = 'Alla' & gt 'telefon', 'mobilaraz'","hour >= 8 and hour <= 20")
+	end
+	if telmasha > 0:
+		$telefon['body'] += dyneval($telefon['contact'],'icon_masha','Masha',"$telsob = 'Masha' & gt 'telefon', 'mobilaraz'","hour >= 8 and hour <= 20")
+	end
+
+	!! iterating all lovers
+	lover_number = 0
+	:loverloop2
+	if pcs_lovers[lover_number] = 1 and svidanie[lover_number] = 0:
+		$telefon['body'] += dyneval($telefon['contact'],'icon_bf'+lover_picture[lover_number],$loverdesc[lover_number],"lover_number = <<lover_number>> & gt 'telefon', 'callingTheLover', <<lover_number>>","hour >= 8 and hour <= 20")
+	end
+	lover_number += 1
+	if lover_number < arrsize('pcs_lovers'): jump 'loverloop2'
+
+	dynamic $telefon['print']
+	killvar 'i'
+	killvar 'lover_number'
+end &! --- ContactList ---
+
 if $ARGS[0] = 'Phone_contactlist':
-	clr
-	pl '<center><b><<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>></b></center>'
-	pl '<center><TABLE cellspacing="0" width="80%"><TR><TD><img src="images/system/icon/icon_statusbar_left.png"></TD><TD></TD><TD align="right"><img src="images/system/icon/icon_statusbar_right.png"></TD></TR></TABLE></center>'
-	pl '<center><font size=6>Contacts</font></center>'
-	pl '<center><img src="<<FUNC(''$phone_theme'')>>icon_call.png" height="80" width="80"><br></center>'
-	if StoryLine = 1:pl'<center><TABLE cellspacing="0" width="80%"><TR><TD><img src="images/system/phone/icons/icon_npc1.png"></TD><TD><<$npc_nickname[''A29'']>></TD><TD align="right"><a href="exec:gs ''telefon'', ''Phone_call'' "><b>Call</b></a></TD></TR></TABLE></center>'
+	$telefon['body'] = '
+	<font size=6>Contacts</font><br>
+	<img src="<<FUNC(''$phone_theme'')>>icon_call.png" height="80" width="80"><br><br>'
+	if StoryLine = 1:$telefon['body'] += dyneval($telefon['contact'],'icon_npc1',$npc_nickname['A29'],"gs 'telefon', 'Phone_call'")
 	if hour >= 8 and hour <= 19:
 		if telalla > 0:
-			pl'<center><TABLE cellspacing="0" width="80%"><TR><TD><img src="images/system/phone/icons/icon_ira1.png"></TD><TD></TD><TD align="right"><a href="exec:$callerid = ''images/system/phone/icons/icon_ira1.png'' & $telsob = ''Alla'' & gt ''telefon'', ''mobilaraz''"><b>Call</b></a></TD></TR></TABLE></center>'
+			$telefon['body'] += dyneval($telefon['contact'],'icon_ira1','Alla',"$telsob = 'Alla' & gt 'telefon', 'mobilaraz'")
 		end
 
 		if telmasha > 0:
-			pl'<center><TABLE cellspacing="0" width="80%"><TR><TD><img src="images/system/phone/icons/icon_masha.png"></TD><TD></TD><TD align="right"><a href="exec:$callerid = ''images/system/phone/icons/icon_masha.png'' & $telsob = ''Masha'' & gt ''telefon'', ''mobilaraz''"><b>Call</b></a></TD></TR></TABLE></center>'
+			$telefon['body'] += dyneval($telefon['contact'],'icon_masha','Masha',"$telsob = 'Masha' & gt 'telefon', 'mobilaraz'")
 		end
 
 		if telkat > 0:
-			pl'<center><TABLE cellspacing="0" width="80%"><TR><TD><img src="images/system/phone/icons/icon_kat.png"></TD><TD></TD><TD align="right"><a href="exec:$callerid = ''images/system/phone/icons/icon_kat.png'' & $telsob = ''Kate'' & gt ''telefon'', ''mobilaraz''"><b>Call</b></a></TD></TR></TABLE></center>'
+			$telefon['body'] += dyneval($telefon['contact'],'icon_kat','Kate',"$telsob = 'Kate' & gt 'telefon', 'mobilaraz'")
 		end
 
 		!! iterating all lovers
 		lover_number = 0
 		:loverloop
 		if pcs_lovers[lover_number] = 1 and svidanie[lover_number] = 0:
-			pl'<center><TABLE cellspacing="0" width="80%"><TR><TD><img src="images/system/phone/icons/icon_bf'+lover_picture[lover_number]+'.png"></TD><TD></TD><TD align="right"><a href="exec:lover_number = <<lover_number>> & gt ''telefon'', ''callingTheLover'', <<lover_number>>"><b>Call</b></a></TD></TR></TABLE></center>'
+			$telefon['body'] += dyneval($telefon['contact'],'icon_bf'+lover_picture[lover_number],$loverdesc[lover_number],"lover_number = <<lover_number>> & gt 'telefon', 'callingTheLover', <<lover_number>>")
 		end
 		lover_number += 1
 		if lover_number < arrsize('pcs_lovers'): jump 'loverloop'
@@ -596,22 +730,22 @@ if $ARGS[0] = 'Phone_contactlist':
 
 	else
 		if telalla > 0:
-			pl'<center><TABLE cellspacing="0" width="80%"><TR><TD><img src="images/system/phone/icons/icon_ira1.png"></TD><TD></TD><TD align="right"><a href="exec:$callerid = ''icon_ira1'' & gs ''telefon'', ''phone_call_reject'' "><b>Call</b></a></TD></TR></TABLE></center>'
+			$telefon['body'] += dyneval($telefon['contact'],'icon_ira1','Alla',"gs 'telefon', 'phone_call_reject'")
 		end
 
 		if telmasha > 0:
-			pl'<center><TABLE cellspacing="0" width="80%"><TR><TD><img src="images/system/phone/icons/icon_masha.png"></TD><TD></TD><TD align="right"><a href="exec:$callerid = ''icon_masha'' & gs ''telefon'', ''phone_call_reject'' "><b>Call</b></a></TD></TR></TABLE></center>'
+			$telefon['body'] += dyneval($telefon['contact'],'icon_masha','Masha',"gs 'telefon', 'phone_call_reject'")
 		end
 
 		if telkat > 0:
-			pl'<center><TABLE cellspacing="0" width="80%"><TR><TD><img src="images/system/phone/icons/icon_kat.png"></TD><TD></TD><TD align="right"><a href="exec:$callerid = ''icon_kat'' & gs ''telefon'', ''phone_call_reject'' "><b>Call</b></a></TD></TR></TABLE></center>'
+			$telefon['body'] += dyneval($telefon['contact'],'icon_kat','Kate',"gs 'telefon', 'phone_call_reject'")
 		end
 
 		!! iterating all lovers
 		lover_number = 0
 		:loverunavailableloop
 		if pcs_lovers[lover_number] = 1 and svidanie[lover_number] = 0:
-			pl'<center><TABLE cellspacing="0" width="80%"><TR><TD><img src="images/system/phone/icons/icon_bf'+lover_picture[lover_number]+'.png"></TD><TD></TD><TD align="right"><a href="exec:$callerid = ''icon_bf''+lover_picture[lover_number] & gs ''telefon'', ''phone_call_reject'' "><b>Call</b></a></TD></TR></TABLE></center>'
+			$telefon['body'] += dyneval($telefon['contact'],'icon_bf'+lover_picture[lover_number],$loverdesc[lover_number],"lover_number = <<lover_number>> & gt 'telefon', 'phone_call_reject'")
 		end
 		lover_number += 1
 		if lover_number < arrsize('pcs_lovers'): jump 'loverunavailableloop'
@@ -619,7 +753,7 @@ if $ARGS[0] = 'Phone_contactlist':
 		killvar 'lover_number'
 	end
 	if npc_QW['A192'] > 0:
-		pl'<center><TABLE cellspacing="0" width="80%"><TR><TD><img src="images/system/phone/icons/icon_nastja.png"></TD><TD align="right"><a href="exec:gs ''telefon'', ''start''"><b>Call</b></a></TD></TR></TABLE></center>'
+		$telefon['body'] += dyneval($telefon['contact'],'icon_nastja',$npc_nickname['A192'],"gs 'telefon', 'start'")
 	end
 	dummyas = arrsize('$contact')
 :din_bad_as
@@ -630,9 +764,9 @@ if $ARGS[0] = 'Phone_contactlist':
 	end
 	killvar 'dummyas'
 
-	if arrsize('$contact')>0:pl'<center><a href="exec:gs ''telefon'', ''Edit_Custom_list'' "><b>Edit Contacts</b></a></center>'
+	if arrsize('$contact')>0:$telefon['body'] += '<a href="exec:gs ''telefon'', ''Edit_Custom_list'' "><b>Edit Contacts</b></a><br>'
 
-	pl'<center><a href="exec:gs ''telefon'', ''Phone_menu'' "><img src="images/system/icon/back.png"></a></center>'
+	dynamic $telefon['print']
 end &! --- Phone_contactlist ---
 
 if $ARGS[0] = 'Edit_Custom_list':
@@ -653,18 +787,17 @@ if $ARGS[0] = 'Edit_Custom_list':
 	killvar 'dummyedit2'
 
 	pl'<center><a href="exec:gs ''telefon'', ''Phone_menu'' "><img src="images/system/icon/back.png"></a></center>'
+	!dynamic $telefon['print']
 end &! --- Edit_Custom_list ---
 
 
 
 if $ARGS[0] = 'Phone_notebook':
-	clr
 	gs 'housing', 'rent'
-	pl '<center><b><<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>></b></center>'
-	pl '<center><TABLE cellspacing="0" width="80%"><TR><TD><img src="images/system/icon/icon_statusbar_left.png"></TD><TD></TD><TD align="right"><img src="images/system/icon/icon_statusbar_right.png"></TD></TR></TABLE></center>'
-	pl'<center><font size=6>Planner</font></center>'
-	pl'<center><img src="<<FUNC(''$phone_theme'')>>icon_notebook.png" height="80" width="80"></center>'
-	pl'<center><<year>>-<<$month>>-<<day>>, <<$week[week]>><br></center>'
+	$telefon['body'] = '
+	<font size=6>Planner</font><br>
+	<img src="<<FUNC(''$phone_theme'')>>icon_notebook.png" height="80" width="80"><br>
+	<<year>>-<<$month>>-<<day>>, <<$week[week]>><br><br>'
 	rent1 = -1
 	rent4 = -1
 	if home_owned[1] > 0 and ArendHouseSL > 0:rent1 = ArendHouseSL
@@ -739,8 +872,8 @@ if $ARGS[0] = 'Phone_notebook':
 		end
 
 		if $calendarday ! '':
-			p '<b><<$monthName[m1]>> <<d1>>, <<$week[w1]>>:</b>'
-			pl $calendarday
+			$telefon['body'] += '<b><<$monthName[m1]>> <<d1>>, <<$week[w1]>>:</b>'
+			$telefon['body'] += $calendarday +'<br>'
 		end
 	if i < 14:
 		rent1 -= 1
@@ -763,7 +896,7 @@ if $ARGS[0] = 'Phone_notebook':
 	killvar 'm1'
 	killvar 'y1'
 	killvar 'daynum'
-	pl'<center><a href="exec:gs ''telefon'', ''Phone_menu'' "><img src="images/system/icon/back.png"></a></center>'
+	dynamic $telefon['print']
 end &! --- Phone_notebook ---
 
 !!----------------------------------------Camera-------------------------------------------------
@@ -946,7 +1079,6 @@ end
 
 !!for taking photos - only selfies for now
 if $ARGS[0] = 'Phone_camera':
-	clr
 	if $location_type = 'bathroom':
 		$phone_loc = 'bathroom'
 	elseif $locclass = 'bedr':
@@ -966,31 +1098,30 @@ if $ARGS[0] = 'Phone_camera':
 	else
 		$phone_loc = ''
 	end
-	pl '<center><b><<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>></b></center>'
-	pl '<center><TABLE cellspacing="0" width="80%"><TR><TD><img src="images/system/icon/icon_statusbar_left.png"></TD><TD></TD><TD align="right"><img src="images/system/icon/icon_statusbar_right.png"></TD></TR></TABLE></center>'
-	pl'<center><font size=6>Camera</font></center>'
-	pl'<center><img src="<<FUNC(''$phone_theme'')>>icon_camera.png" height="80" width="80"><br></center>'
+	$telefon['body'] = '<font size=6>Camera</font><br>
+	<img src="<<FUNC(''$phone_theme'')>>icon_camera.png" height="80" width="80"><br><br>'
 	!! Take a selfie depending on which clothes you are wearing
-	pl'<a href="exec:photoskl_exp += 1 & gs ''telefon'', ''Phone_camera_selfie'' "><b>Take a selfie</b></a>'
+	$telefon['body'] += '<a href="exec:photoskl_exp += 1 & gs ''telefon'', ''Phone_camera_selfie'' "><b>Take a selfie</b></a><br>'
 	!! Flashing selfie
 	if $clothingworntype ! 'nude' and ($phone_loc = 'bathroom' or $phone_loc = 'bedroom' or $phone_loc = 'kitchen' or $phone_loc = 'livingroom' or $phone_loc = 'changingroom' or $phone_loc = 'park' or $phone_loc = 'lockeroom' or $phone_loc = 'beach'):
 		if $phone_loc = 'bedroom' or $phone_loc = 'bathroom':
-			pl'<a href="exec:photoskl_exp += 1 & gs ''telefon'', ''titflash'' "><b>Flash your tits for a selfie</b></a>'
-			pl'<a href="exec:photoskl_exp += 1 & gs ''telefon'', ''assflash'' "><b>Flash your ass for a selfie</b></a>'
-			pl'<a href="exec:photoskl_exp += 1 & gs ''telefon'', ''pussyflash'' "><b>Flash your pussy for a selfie</b></a>'
+			$telefon['body'] += '
+			<a href="exec:photoskl_exp += 1 & gs ''telefon'', ''titflash'' "><b>Flash your tits for a selfie</b></a><br>
+			<a href="exec:photoskl_exp += 1 & gs ''telefon'', ''assflash'' "><b>Flash your ass for a selfie</b></a><br>
+			<a href="exec:photoskl_exp += 1 & gs ''telefon'', ''pussyflash'' "><b>Flash your pussy for a selfie</b></a><br>'
 		else
 			if pcs_inhib >= 35 or exhibitionist_lvl > 0:
-				pl'<a href="exec:photoskl_exp += 1 & gs ''telefon'', ''titflash'' "><b>Flash your tits for a selfie</b></a>'
+				$telefon['body'] += '<a href="exec:photoskl_exp += 1 & gs ''telefon'', ''titflash'' "><b>Flash your tits for a selfie</b></a><br>'
 			end
 			if exhibitionist_lvl > 0:
-				pl'<a href="exec:photoskl_exp += 1 & gs ''telefon'', ''assflash'' "><b>Flash your ass for a selfie</b></a>'
+				$telefon['body'] += '<a href="exec:photoskl_exp += 1 & gs ''telefon'', ''assflash'' "><b>Flash your ass for a selfie</b></a><br>'
 			end
 			if exhibitionist_lvl > 1:
-				pl'<a href="exec:photoskl_exp += 1 & gs ''telefon'', ''pussyflash'' "><b>Flash your pussy for a selfie</b></a>'
+				$telefon['body'] += '<a href="exec:photoskl_exp += 1 & gs ''telefon'', ''pussyflash'' "><b>Flash your pussy for a selfie</b></a><br>'
 			end
 		end
 	end
-	pl'<center><a href="exec:gs ''telefon'', ''Phone_menu'' "><img src="images/system/icon/back.png"></a></center>'
+	dynamic $telefon['print']
 end
 
 if $ARGS[0] = 'titflash':
@@ -1011,62 +1142,65 @@ end
 !!-----------------------------------end of Camera------------------------------------------
 
 if $ARGS[0] = 'Phone_wheather':
-	clr
-	pl '<center><b><<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>></b></center>'
-	pl '<center><TABLE cellspacing="0" width="80%"><TR><TD><img src="images/system/icon/icon_statusbar_left.png"></TD><TD></TD><TD align="right"><img src="images/system/icon/icon_statusbar_right.png"></TD></TR></TABLE></center>'
-	pl'<center><font size=6>Weather</font></center>'
-	pl'<center><img src="<<FUNC(''$phone_theme'')>>icon_weather.png" height="80" width="80"><br></center>'
-	pl'<center><b>Temperature:</b></center>'
-	pl'<center><<$temperature>>. <<$osadki>></center>'
-	pl'<center>P.O.P. today is <<weatherFall>>%</center>'
-	pl'<center><a href="exec:gs ''telefon'', ''Phone_menu'' "><img src="images/system/icon/back.png"></a></center>'
+	$telefon['body'] = '
+	<font size=6>Weather</font><br>
+	<img src="<<FUNC(''$phone_theme'')>>icon_weather.png" height="80" width="80"><br><br>
+	<b>Temperature:</b><br>
+	<<$temperature>>. <<$osadki>><br>
+	P.O.P. today is <<weatherFall>>%<br>'
+	dynamic $telefon['print']
 end &! --- Phone_wheather ---
 
 if $ARGS[0] = 'Phone_calendar':
-	clr
-	pl '<center><b><<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>></b></center>'
-	pl '<center><TABLE cellspacing="0" width="80%"><TR><TD><img src="images/system/icon/icon_statusbar_left.png"></TD><TD></TD><TD align="right"><img src="images/system/icon/icon_statusbar_right.png"></TD></TR></TABLE></center>'
-	pl'<center><font size=6>Calendar</font></center>'
-	pl'<center><img src="<<FUNC(''$phone_theme'')>>icon_calendar.png" height="80" width="80"><br></center>'
-	pl'<center><B>Today:</B></center>'
-	pl'<center><<$week[week]>>, <<day>> <<$month>> <<year>></center>'
-	pl'<center><a href="exec:gs ''telefon'', ''Phone_menu'' "><img src="images/system/icon/back.png"></a></center>'
+	$telefon['body'] = '
+	<font size=6>Calendar</font><br>
+	<img src="<<FUNC(''$phone_theme'')>>icon_calendar.png" height="80" width="80"><br><br>
+	<B>Today:</B><br>
+	<<$week[week]>>, <<day>> <<$month>> <<year>><br>'
+	dynamic $telefon['print']
 end &! --- Phone_calendar ---
 
 if $ARGS[0] = 'Phone_media':
-	clr
-	pl '<center><b><<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>></b></center>'
-	pl '<center><TABLE cellspacing="0" width="80%"><TR><TD><img src="images/system/icon/icon_statusbar_left.png"></TD><TD></TD><TD align="right"><img src="images/system/icon/icon_statusbar_right.png"></TD></TR></TABLE></center>'
-	pl'<center><font size=6>Media</font></center>'
-	pl'<center><img src="<<FUNC(''$phone_theme'')>>icon_music.png" height="80" width="80"></center>'
-	pl'<center><b>This option is not active</b></center>'
-	pl'<center><a href="exec:gs ''telefon'', ''Phone_menu'' "><img src="images/system/icon/back.png"></a></center>'
+	$telefon['body'] = '
+	<font size=6>Media</font><br>
+	<img src="<<FUNC(''$phone_theme'')>>icon_music.png" height="80" width="80"><br>
+	<b>This option is not active</b><br>'
+	dynamic $telefon['print']
 end &! --- Phone_media ---
 
 if $ARGS[0] = 'Phone_sms':
-	clr
-	pl '<center><b><<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>></b></center>'
-	pl '<center><TABLE cellspacing="0" width="80%"><TR><TD><img src="images/system/icon/icon_statusbar_left.png"></TD><TD></TD><TD align="right"><img src="images/system/icon/icon_statusbar_right.png"></TD></TR></TABLE></center>'
-	pl'<center><font size=6>SMS</font></center>'
-	pl'<center><img src="<<FUNC(''$phone_theme'')>>icon_sms.png" height="80" width="80"></center>'
-	pl'<center><b>This option is not active</b></center>'
-	pl'<center><a href="exec:gs ''telefon'', ''Phone_menu'' "><img src="images/system/icon/back.png"></a></center>'
+	$telefon['body'] = '
+	<font size=6>SMS</font><br>
+	<img src="<<FUNC(''$phone_theme'')>>icon_sms.png" height="80" width="80"><br>
+	<b>This option is not active</b><br>'
+	dynamic $telefon['print']
 end &! --- Phone_sms ---
 
 if $ARGS[0] = 'Phone_menu':
-	clr
-	pl'<center><b><<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>></b></center>'
-	pl'<center><TABLE cellspacing="0" width="80%"><TR><TD><img src="images/system/icon/icon_statusbar_left.png"></TD><TD></TD><TD align="right"><img src="images/system/icon/icon_statusbar_right.png"></TD></TR></TABLE></center>'
-	pl'<center><a href="exec:gs ''telefon'', ''Phone_camera'' "><img src="<<FUNC(''$phone_theme'')>>icon_camera.png" height="80" width="80"></a><a href="exec:gs ''telefon'', ''Phone_calendar'' "><img src="<<FUNC(''$phone_theme'')>>icon_calendar.png" height="80" width="80"></a><a href="exec:gs ''telefon'', ''Phone_pictures'' "><img src="<<FUNC(''$phone_theme'')>>icon_pictures.png" height="80" width="80"></a></center>'
-	pl'<center><a href="exec:gs ''telefon'', ''Phone_media'' "><img src="<<FUNC(''$phone_theme'')>>icon_music.png" height="80" width="80"></a><a href="exec:gs ''telefon'', ''Phone_notebook'' "><img src="<<FUNC(''$phone_theme'')>>icon_notebook.png" height="80" width="80"></a><a href="exec:gs ''telefon'', ''Phone_wheather'' "><img src="<<FUNC(''$phone_theme'')>>icon_weather.png" height="80" width="80"></a></center>'
-	pl'<center><a href="exec:gs ''telefon'', ''Phone_contactlist'' "><img src="<<FUNC(''$phone_theme'')>>icon_call.png" height="80" width="80"></a><a href="exec:gs ''telefon'', ''Phone_sms'' "><img src="<<FUNC(''$phone_theme'')>>icon_sms.png" height="80" width="80"></a><a href="exec:gs ''telefon'', ''Phone_megafon'' "><img src="<<FUNC(''$phone_theme'')>>icon_megafon.png" height="80" width="80"></a></center>'
-	pl''+iif(menu_off = 1, '<center><a href="exec:gs ''obj_din'', ''menu_disabled''"><img src="<<FUNC(''$phone_theme'')>>icon_settings.png" height="80" width="80"></a></center>', '<center><a href="exec:killvar ''menu_page'' & gs ''Cheatmenu_din'' & dynamic $cheatmenu[''setting'']"><img src="<<FUNC(''$phone_theme'')>>icon_settings.png" height="80" width="80"></a></center>')+''
-	pl'<center><a href="exec:clr & gs''stat''"><img src="images/system/icon/back.png"></a></center>'
+	$telefon['body'] = '
+	<a href="exec:gs ''telefon'', ''Phone_camera'' "><img src="<<FUNC(''$phone_theme'')>>icon_camera.png" height="80" width="80"></a>
+	<a href="exec:gs ''telefon'', ''Phone_calendar'' "><img src="<<FUNC(''$phone_theme'')>>icon_calendar.png" height="80" width="80"></a>
+	<a href="exec:gs ''telefon'', ''Phone_pictures'' "><img src="<<FUNC(''$phone_theme'')>>icon_pictures.png" height="80" width="80"></a>
+	<br>
+	<a href="exec:gs ''telefon'', ''Phone_media'' "><img src="<<FUNC(''$phone_theme'')>>icon_music.png" height="80" width="80"></a>
+	<a href="exec:gs ''telefon'', ''Phone_notebook'' "><img src="<<FUNC(''$phone_theme'')>>icon_notebook.png" height="80" width="80"></a>
+	<a href="exec:gs ''telefon'', ''Phone_wheather'' "><img src="<<FUNC(''$phone_theme'')>>icon_weather.png" height="80" width="80"></a>
+	<br>
+	<a href="exec:gs ''telefon'', ''ContactList'' "><img src="<<FUNC(''$phone_theme'')>>icon_call.png" height="80" width="80"></a>
+	<a href="exec:gs ''telefon'', ''Phone_sms'' "><img src="<<FUNC(''$phone_theme'')>>icon_sms.png" height="80" width="80"></a>
+	<a href="exec:gs ''telefon'', ''Phone_megafon'' "><img src="<<FUNC(''$phone_theme'')>>icon_megafon.png" height="80" width="80"></a>
+	<br>'
+	if menu_off = 1:
+		$telefon['body'] += '<a href="exec:gs ''obj_din'', ''menu_disabled''"><img src="<<FUNC(''$phone_theme'')>>icon_settings.png" height="80" width="80"></a><br>'
+	else
+		$telefon['body'] += '<a href="exec:killvar ''menu_page'' & gs ''Cheatmenu_din'' & dynamic $cheatmenu[''setting'']"><img src="<<FUNC(''$phone_theme'')>>icon_settings.png" height="80" width="80"></a><br>'
+	end
+	dynamic $telefon['print']
 end &! --- Phone_menu ---
 
 if $ARGS[0] = 'Add_contact':
 	$dummy = INPUT('Enter a note:')
-	$contact[arrsize('$contact')] = '<center><TABLE cellspacing="0" width="80%"><TR><TD><img src="<<$ARGS[1]>>"></TD><TD><<$dummy>></TD><TD align="right"><a href="exec:<<$ARGS[2]>>"><b>Call</b></a></TD></TR></TABLE>'
+	$contact[arrsize('$contact')] = dyneval($telefon['contact'],$ARGS[1],$dummy,$ARGS[2])
 	killvar '$dummy'
 end &! --- Add_contact ---
 
@@ -1106,6 +1240,8 @@ if $ARGS[0] = 'setup':
 
 	phonetheme[0] = 1
 end
+
+killvar '$telefon'
 
 --- telefon ---------------------------------
 
