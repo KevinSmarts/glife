@@ -8,6 +8,9 @@
 ! $contactOSche[] = If statement code to determine schedule for outbound calls
 ! $contactICode[] = Code to execute for Incoming call
 ! $contactISche[] = if statement code for schedule of incoming calls
+! contactToday[] = Calls from this contact today
+! contactWeek[] = Calls from this contact this week
+! contactLastCall[] = last time this Contact called
 !
 ! Add a contact with AddContact, example, to Add Mother:
 !	gs 'telefon', 'AddContact', 'A29', 'icon_npc1', "gs 'telefon', 'Phone_call'", "hour >= 8 and hour <= 20", "gs 'telefon', 'lover'", "hour >= 8 and hour <= 20"
@@ -86,6 +89,46 @@ if $ARGS[0] = 'start':
 	end
 end
 
+! Reset Contact Call Stats Daily and Weekly
+!
+! ARGS[1] = New Week if 1, 0 if same week
+if $ARGS[0] = 'DailyStatRefresh':
+	i=0
+	:DailyStatRefLoop
+	if i < arrsize('$contact'):
+		contactToday[i] = 0
+		if ARGS[1] = 1:
+			contactWeek[i] = 0
+		end
+		i += 1
+		jump 'DailyStatRefLoop'
+	end
+	killvar 'i'
+end
+
+
+! Determine if any Incoming calls should happen
+!
+!	ARGS[1] = Previous totminut
+!	ARGS[2] = Current totminut
+if $ARGS[0] = 'IncomingCheck':
+	telefIncCheck['PrevTotalMinutes'] = ARGS[1]
+	telefIncCheck['NewTotalMinutes'] = ARGS[2]
+
+	if telefIncCheck['PrevTotalMinutes'] > telefIncCheck['NewTotalMinutes']:
+		! Time Cheat has been used, so we should do some cleanup
+		telefon['LastIncCallCheck'] = telefIncCheck['NewTotalMinutes']
+	end
+
+	! Limit the number of calls per day
+	! right now allow every 15 minutes
+	if telefIncCheck['NewTotalMinutes'] - telefon['LastIncCallCheck'] - 15 > 0:
+		gs 'telefon','IncomingCallChooser'
+	end
+
+	killvar 'telefIncCheck'
+end
+
 if $ARGS[0] = 'IncomingCallChooser':
 	! When an Incoming call happens, choose who it comes from
 
@@ -99,6 +142,7 @@ if $ARGS[0] = 'IncomingCallChooser':
 				$telefIncCall[j] = $contactICode[i]
 				$telefIncIcon[j] = $contactIcon[i]
 				$telefIncName[j] = $npc_nickname[$contact[i]]
+				$telefIncNPC[j] = $contact[i]
 			end
 		end
 		i += 1
@@ -108,7 +152,7 @@ if $ARGS[0] = 'IncomingCallChooser':
 	! Add Lovers
 	i=0
 	:telefonIncLoop2
-	if i < 3:
+	if i < 3 and hour > 6 and hour < 20:
 		if pcs_lovers[i] = 1 and svidanie[i] = 0:
 			j = arrsize('$telefIncCall')
 			$telefIncCall[j] = "gs 'telefon', 'lover', <<i>>"
@@ -121,6 +165,12 @@ if $ARGS[0] = 'IncomingCallChooser':
 
 	if arrsize('$telefIncCall') > 0:
 		j = rand(0,arrsize('$telefIncCall')-1)
+		if $telefIncNPC[j] ! "":
+			i = arrpos('$contact',$telefIncNPC[j])
+			contactLastCall[i] = totminut
+			contactToday[i] += 1
+			contactWeek[i] += 1
+		end
 		gs 'telefon', 'IncomingCall', $telefIncIcon[j], $telefIncName[j], $telefIncCall[j]
 	end
 
@@ -129,6 +179,7 @@ if $ARGS[0] = 'IncomingCallChooser':
 	killvar '$telefIncIcon'
 	killvar '$telefIncName'
 	killvar '$telefIncCall'
+	killvar '$telefIncNPC'
 end
 
 if $ARGS[0] = 'IncomingCall':
@@ -1310,8 +1361,6 @@ if $ARGS[0] = 'setup':
 
 	phonetheme[0] = 1
 end
-
-killvar '$telefon'
 
 --- telefon ---------------------------------
 
