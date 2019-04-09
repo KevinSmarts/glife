@@ -299,12 +299,49 @@ if $ARGS[0] = 'BreastGrowth':
 		!!	first - check for alveoligrowth: yes, do the crazy stuff
 		!!	second - check for nbsize, magicf2b and silicone change
 		!!	there is no else on purpose, because nothing should happen to svetas breasts if nothing else changes
-		if lactation['alveolicount_change'] <> lactation['alveolicount'] or lactation['alveoliexpandlvl_change'] <> lactation['alveoliexpandlvl']:
-			func('lact_lib','breastgrowthcalc')
-		elseif (lactation['nbsizechange'] + lactation['siliconechange'] + lactation['magicf2bchange']) <> (nbsize + magicf2b + silicone):
-			func('lact_lib','breastrecalc')
-		else
-		end
+		!!	checking for internal changes or growth
+	!!	if lactation['alveolicount_change'] <> lactation['alveolicount'] or lactation['alveoliexpandlvl_change'] <> lactation['alveoliexpandlvl']: lactation['internal_growth'] = 1
+		!!	checking for external changes or growth
+		!!	if (lactation['nbsizechange'] + lactation['siliconechange'] + lactation['magicf2bchange']) <> (nbsize + magicf2b + silicone): lactation['external_growth'] = 1
+		!!	changing the breasts
+	!!	if lactation['external_growth'] > 0 and lactation['internal_growth'] > 0:
+			!!	changes in nbsize, magicf2b or silicone?
+			if nbsize <> lactation['nbsizechange'] or magicf2b <> lactation['magicf2bchange'] or silicone <> lactation['siliconechange']:
+				!!	getting the new percentages
+				lactation['nbsizepercent'] = (nbsize*100/(nbsize + magicf2b + silicone)*100)/100
+				lactation['magicf2bpercent'] = (magicf2b*100/(nbsize + magicf2b + silicone)*100)/100
+				lactation['siliconepercent'] = (silicone*100/(nbsize + magicf2b + silicone)*100)/100
+				lactation['magicf2bpercent_wos'] = (magicf2b*100/(nbsize + magicf2b)*100)/100
+				!!	calculating new breastccm
+				lactation['breastccm'] = func('lact_lib','bsizetoccm',(nbsize + magicf2b + silicone))				
+			end
+			!!	calculating all the breast tissue - breastglandtissue, breastfat and silicone.
+			lactation['breastfat'] = (lactation['breastccm'] - lactation['breastglandtissue'] - ((lactation['siliconepercent']*lactation['breastccm'])/100))
+			lactation['breastsiliconeccm'] = (lactation['siliconepercent']*lactation['breastccm'])/100
+			if lactation['breastfat'] < 0: lactation['breastfat'] = 0
+			if lactation['breastsiliconeccm'] < 0: lactation['breastsiliconeccm'] = 0
+			!!	getting new breastglandtissue
+			lactation['breastglandtissue']= (lactation['alveolicount'] * (218 + (lactation['alveoliexpandlvl'] * 20)))/100000
+			!!	Crazy Math going on here. When I was coding this, only god and I knew what I was doing. Now only god knows.
+			!!	Well actually, this one recalculates all the CCM stuff to normal nbsize, magicf2b and silicone. It works, no idea why, but it works.
+			lactation['breastccm'] = (lactation['breastglandtissue'] + lactation['breastfat'] + lactation['breastsiliconeccm'])
+			lactation['siliconepercent'] = ((lactation['breastsiliconeccm']*100)/lactation['breastccm'])
+			lactation['magicf2bccm'] = ((lactation['breastccm'] - ((lactation['breastccm']*lactation['siliconepercent'])/100))*lactation['magicf2bpercent_wos'])/100
+			lactation['nbsizebccm'] = lactation['breastccm'] - lactation['breastsiliconeccm'] - lactation['magicf2bccm']
+			lactation['nbsizepercent'] = ((lactation['nbsizebccm']*100)/lactation['breastccm'])
+			lactation['magicf2bpercent'] = ((lactation['magicf2bccm']*100)/lactation['nbsizebccm'])
+			!!	writing back nbsize and magicf2b. Silicone does not change
+			nbsize = (func('lact_lib','bccmtosize',lactation['breastccm'])*lactation['nbsizepercent'])/100
+			magicf2b = (func('lact_lib','bccmtosize',lactation['breastccm'])*lactation['magicf2bpercent'])/100
+			lactation['nbsizechange'] = nbsize
+			lactation['magicf2bchange'] = magicf2b
+			lactation['siliconechange'] = silicone			
+	!!	elseif lactation['external_growth'] <= 0 and lactation['internal_growth'] > 0:
+		!!	func('lact_lib','breastgrowthcalc')
+	!!	elseif lactation['external_growth'] > 0 and lactation['internal_growth'] <= 0:
+		!!	func('lact_lib','breastrecalc')
+	!!	else
+	!!	end
 	end
 end
 
