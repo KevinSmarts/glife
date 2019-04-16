@@ -74,12 +74,12 @@ if $ARGS[0] = 'init_breasttissue' and lactation['breasttissueinitiated'] <= 0:
 	!!	full breastccm would be nbsize + magicf2b + silicone.
 	!!	Getting percentage tissue from breastccm.
 	lactation['breastccm'] = func('lact_lib','bsizetoccm',(nbsize + magicf2b + silicone))
-	if lactation['breastccm'] <= 0: lactation['breastccm'] = 1
-	lactation['nbsizepercent'] = (nbsize*100/(nbsize + magicf2b + silicone)*100)/100
-	lactation['magicf2bpercent'] = (magicf2b*100/(nbsize + magicf2b + silicone)*100)/100
-	lactation['siliconepercent'] = (silicone*100/(nbsize + magicf2b + silicone)*100)/100
-	lactation['nbsizepercent_wos'] = (nbsize*100/(nbsize + magicf2b)*100)/100
-	lactation['magicf2bpercent_wos'] = (magicf2b*100/(nbsize + magicf2b)*100)/100
+	if lactation['breastccm'] <= 0: lactation['breastccm'] = 1	
+	lactation['nbsizepercent'] = ((nbsize*100/(nbsize + magicf2b + silicone)*100)/100)
+	lactation['magicf2bpercent'] = ((magicf2b*100/(nbsize + magicf2b + silicone)*100)/100)
+	lactation['siliconepercent'] = ((silicone*100/(nbsize + magicf2b + silicone)*100)/100)
+	lactation['nbsizepercent_wos'] = ((nbsize*100/(nbsize + magicf2b)*100)/100)
+	lactation['magicf2bpercent_wos'] = ((magicf2b*100/(nbsize + magicf2b)*100)/100)
 	lactation['nbsizechange'] = nbsize
 	lactation['magicf2bchange'] = magicf2b
 	lactation['siliconechange'] = silicone
@@ -213,84 +213,13 @@ if $ARGS[0] = 'bccmtosize':
 	end
 end
 
-!!	function to recalculate breastccm size. Basically an update function to the init_breasttissue, but without the initialization. Used in breastgrowth function and can be used for debugging or ... whatever comes up in the future.
-if $ARGS[0] = 'breastrecalc':
-	!!	use func('lact_lib','breastrecalc')
-	lactation['breastccm'] = func('lact_lib','bsizetoccm',(nbsize + magicf2b + silicone))
-	if lactation['breastccm'] <= 0: lactation['breastccm'] = 1
-	lactation['nbsizepercent'] = (nbsize*100/(nbsize + magicf2b + silicone)*100)/100
-	lactation['magicf2bpercent'] = (magicf2b*100/(nbsize + magicf2b + silicone)*100)/100
-	lactation['siliconepercent'] = (silicone*100/(nbsize + magicf2b + silicone)*100)/100
-	lactation['magicf2bpercent_wos'] = (magicf2b*100/(nbsize + magicf2b)*100)/100
-	lactation['breastuseabletissue'] = ((lactation['nbsizepercent'] + lactation['magicf2bpercent'])*lactation['breastccm'])/100
-	lactation['breastsiliconeccm'] = (lactation['siliconepercent']*lactation['breastccm'])/100
-	if lactation['alveolicount'] > 0:
-		lactation['breastglandtissue']= (lactation['alveolicount'] * (218 + (lactation['alveoliexpandlvl'] * 20)))/100000
-	else
-		if lactation['breastdensitytype'] = 1:
-			lactation['breastglandtissue'] = (lactation['breastuseabletissue']*17)/100
-			lactation['breastdensitypercent'] = 17
-		elseif lactation['breastdensitytype'] = 2:
-			lactation['breastglandtissue'] = (lactation['breastuseabletissue']*36)/100
-			lactation['breastdensitypercent'] = 36
-		elseif lactation['breastdensitytype'] = 3:
-			lactation['breastglandtissue'] = (lactation['breastuseabletissue']*55)/100
-			lactation['breastdensitypercent'] = 55
-		elseif lactation['breastdensitytype'] = 4:
-			lactation['breastglandtissue'] = (lactation['breastuseabletissue']*74)/100
-			lactation['breastdensitypercent'] = 74
-		elseif lactation['breastdensitytype'] = 5:
-			lactation['breastglandtissue'] = (lactation['breastuseabletissue']*93)/100
-			lactation['breastdensitypercent'] = 93
-		end
-		if lactation['active'] <= 0:
-			lactation['alveolicount'] = ((lactation['breastglandtissue']*100000)/218)
-			lactation['alveoliexpandlvl'] = 0
-			lactation['breastmm'] = 0
-			lactation['breastmv'] = 0
-			lactation['lactaterate'] = 0			
-			if pcs_nips > lactation['nipgrowth']: pcs_nips -= lactation['nipgrowth']
-			lactation['nipgrowth'] = 0
-		else
-			lactation['alveolicount'] = ((lactation['breastglandtissue']*100000)/418)
-			lactation['alveoliexpandlvl'] = 10
-			lactation['nipgrowth'] = 2
-			func('lact_lib','set_breastmm')
-			if lactation['prolactinlvl'] < 200: lactation['prolactinlvl'] = 200
-			lactation['lactaterate'] = 1000*(lactation['prolactinlvl']/200)
-			lactation['breastmv'] = 0
-			lactation['nipgrowth'] = 2
-			pcs_nips += lactation['nipgrowth']
-		end
-	end
-	lactation['breastfat'] = lactation['breastuseabletissue'] - lactation['breastglandtissue']
-end
-
-if $ARGS[0] = 'breastgrowthcalc':
-	!!	calculating the ccm all mammarygland tissue will use up in the breast, based on alveolicount and alveoliexpandlvl. With every level, cmm will rise by 20 per alveoli.
-	lactation['breastglandtissue']= (lactation['alveolicount'] * (218 + (lactation['alveoliexpandlvl'] * 20)))/100000
-	!!	Crazy Math going on here. When I was coding this, only god and I knew what I was doing. Now only god knows.
-	!!	Well actually, this one recalculates all the CCM stuff to normal nbsize, magicf2b and silicone. It works, no idea why, but it works.
-	lactation['breastccm'] = (lactation['breastglandtissue'] + lactation['breastfat'] + lactation['breastsiliconeccm'])
-	lactation['siliconepercent'] = ((lactation['breastsiliconeccm']*100)/lactation['breastccm'])
-	lactation['magicf2bccm'] = ((lactation['breastccm'] - ((lactation['breastccm']*lactation['siliconepercent'])/100))*lactation['magicf2bpercent_wos'])/100
-	lactation['nbsizebccm'] = lactation['breastccm'] - lactation['breastsiliconeccm'] - lactation['magicf2bccm']
-	lactation['nbsizepercent'] = ((lactation['nbsizebccm']*100)/lactation['breastccm'])
-	lactation['magicf2bpercent'] = ((lactation['magicf2bccm']*100)/lactation['nbsizebccm'])
-	nbsize = (func('lact_lib','bccmtosize',lactation['breastccm'])*lactation['nbsizepercent'])/100
-	magicf2b = (func('lact_lib','bccmtosize',lactation['breastccm'])*lactation['magicf2bpercent'])/100
-	lactation['nbsizechange'] = nbsize
-	lactation['magicf2bchange'] = magicf2b
-	lactation['siliconechange'] = silicone
-end
-
 !!	This function is used for breastgrowth. When nbsize, magicf2b, silicone, alveolicount or the alveoliexpandlvl are changed the breastccm changes. Everything will be written back to the specific variable
 if $ARGS[0] = 'BreastGrowth':
 	!!	usage func('lact_lib','BreastGrowth')
 	!!	Checking for variable errors, and re-initializing breastccm or alveolicount
 	if lactation['breastccm'] <= 0 or lactation['alveolicount'] <= 0:
 		lactation['breasttissueinitiated'] = 0
-		func('lact_lib','init_breasttissue')
+		lactation['result'] = func('lact_lib','init_breasttissue')
 	end
 	!!	things will start if breastccm is different from bust/cup size (mostly due to other events or cheating) or if the mammaryglands change due to breastpumping or pregnancy.
 	if lactation['breastccm'] <> func('lact_lib','bsizetoccm',(nbsize + magicf2b + silicone)) or lactation['alveolicount_change'] <> lactation['alveolicount'] or lactation['alveoliexpandlvl_change'] <> lactation['alveoliexpandlvl']:
@@ -299,49 +228,45 @@ if $ARGS[0] = 'BreastGrowth':
 		!!	first - check for alveoligrowth: yes, do the crazy stuff
 		!!	second - check for nbsize, magicf2b and silicone change
 		!!	there is no else on purpose, because nothing should happen to svetas breasts if nothing else changes
-		!!	checking for internal changes or growth
-	!!	if lactation['alveolicount_change'] <> lactation['alveolicount'] or lactation['alveoliexpandlvl_change'] <> lactation['alveoliexpandlvl']: lactation['internal_growth'] = 1
-		!!	checking for external changes or growth
-		!!	if (lactation['nbsizechange'] + lactation['siliconechange'] + lactation['magicf2bchange']) <> (nbsize + magicf2b + silicone): lactation['external_growth'] = 1
-		!!	changing the breasts
-	!!	if lactation['external_growth'] > 0 and lactation['internal_growth'] > 0:
-			!!	changes in nbsize, magicf2b or silicone?
-			if nbsize <> lactation['nbsizechange'] or magicf2b <> lactation['magicf2bchange'] or silicone <> lactation['siliconechange']:
-				!!	getting the new percentages
-				lactation['nbsizepercent'] = (nbsize*100/(nbsize + magicf2b + silicone)*100)/100
-				lactation['magicf2bpercent'] = (magicf2b*100/(nbsize + magicf2b + silicone)*100)/100
-				lactation['siliconepercent'] = (silicone*100/(nbsize + magicf2b + silicone)*100)/100
-				lactation['magicf2bpercent_wos'] = (magicf2b*100/(nbsize + magicf2b)*100)/100
-				!!	calculating new breastccm
-				lactation['breastccm'] = func('lact_lib','bsizetoccm',(nbsize + magicf2b + silicone))				
-			end
-			!!	calculating all the breast tissue - breastglandtissue, breastfat and silicone.
-			lactation['breastfat'] = (lactation['breastccm'] - lactation['breastglandtissue'] - ((lactation['siliconepercent']*lactation['breastccm'])/100))
-			lactation['breastsiliconeccm'] = (lactation['siliconepercent']*lactation['breastccm'])/100
-			if lactation['breastfat'] < 0: lactation['breastfat'] = 0
-			if lactation['breastsiliconeccm'] < 0: lactation['breastsiliconeccm'] = 0
-			!!	getting new breastglandtissue
-			lactation['breastglandtissue']= (lactation['alveolicount'] * (218 + (lactation['alveoliexpandlvl'] * 20)))/100000
-			!!	Crazy Math going on here. When I was coding this, only god and I knew what I was doing. Now only god knows.
-			!!	Well actually, this one recalculates all the CCM stuff to normal nbsize, magicf2b and silicone. It works, no idea why, but it works.
-			lactation['breastccm'] = (lactation['breastglandtissue'] + lactation['breastfat'] + lactation['breastsiliconeccm'])
-			lactation['siliconepercent'] = ((lactation['breastsiliconeccm']*100)/lactation['breastccm'])
-			lactation['magicf2bccm'] = ((lactation['breastccm'] - ((lactation['breastccm']*lactation['siliconepercent'])/100))*lactation['magicf2bpercent_wos'])/100
-			lactation['nbsizebccm'] = lactation['breastccm'] - lactation['breastsiliconeccm'] - lactation['magicf2bccm']
-			lactation['nbsizepercent'] = ((lactation['nbsizebccm']*100)/lactation['breastccm'])
-			lactation['magicf2bpercent'] = ((lactation['magicf2bccm']*100)/lactation['nbsizebccm'])
-			!!	writing back nbsize and magicf2b. Silicone does not change
-			nbsize = (func('lact_lib','bccmtosize',lactation['breastccm'])*lactation['nbsizepercent'])/100
-			magicf2b = (func('lact_lib','bccmtosize',lactation['breastccm'])*lactation['magicf2bpercent'])/100
-			lactation['nbsizechange'] = nbsize
-			lactation['magicf2bchange'] = magicf2b
-			lactation['siliconechange'] = silicone			
-	!!	elseif lactation['external_growth'] <= 0 and lactation['internal_growth'] > 0:
-		!!	func('lact_lib','breastgrowthcalc')
-	!!	elseif lactation['external_growth'] > 0 and lactation['internal_growth'] <= 0:
-		!!	func('lact_lib','breastrecalc')
-	!!	else
-	!!	end
+		!!	changes in nbsize, magicf2b or silicone?
+		if nbsize <> lactation['nbsizechange'] or magicf2b <> lactation['magicf2bchange'] or silicone <> lactation['siliconechange']:
+			!!	getting the new percentages
+			lactation['nbsizepercent'] = (nbsize*100/(nbsize + magicf2b + silicone)*100)/100
+			lactation['magicf2bpercent'] = (magicf2b*100/(nbsize + magicf2b + silicone)*100)/100
+			lactation['siliconepercent'] = (silicone*100/(nbsize + magicf2b + silicone)*100)/100
+			lactation['magicf2bpercent_wos'] = (magicf2b*100/(nbsize + magicf2b)*100)/100
+			!!	calculating new breastccm
+			lactation['breastccm'] = func('lact_lib','bsizetoccm',(nbsize + magicf2b + silicone))
+		end
+		!!	calculating all the breast tissue - breastglandtissue, breastfat and silicone.
+		lactation['breastfat'] = (lactation['breastccm'] - lactation['breastglandtissue'] - ((lactation['siliconepercent']*lactation['breastccm'])/100))
+		lactation['breastsiliconeccm'] = (lactation['siliconepercent']*lactation['breastccm'])/100
+		if lactation['breastfat'] < 0: lactation['breastfat'] = 0
+		if lactation['breastsiliconeccm'] < 0: lactation['breastsiliconeccm'] = 0
+		!!	getting new breastglandtissue
+		lactation['breastglandtissue']= (lactation['alveolicount'] * (218 + (lactation['alveoliexpandlvl'] * 20)))/100000
+		!!	Crazy Math going on here. When I was coding this, only god and I knew what I was doing. Now only god knows.
+		!!	Well actually, this one recalculates all the CCM stuff to normal nbsize, magicf2b and silicone. It works, no idea why, but it works.
+		lactation['breastccm'] = (lactation['breastglandtissue'] + lactation['breastfat'] + lactation['breastsiliconeccm'])
+		lactation['siliconepercent'] = ((lactation['breastsiliconeccm']*100)/lactation['breastccm'])
+		lactation['magicf2bccm'] = ((lactation['breastccm'] - ((lactation['breastccm']*lactation['siliconepercent'])/100))*lactation['magicf2bpercent_wos'])/100
+		lactation['nbsizebccm'] = lactation['breastccm'] - lactation['breastsiliconeccm'] - lactation['magicf2bccm']
+		lactation['nbsizepercent'] = ((lactation['nbsizebccm']*100)/lactation['breastccm'])
+		lactation['magicf2bpercent'] = ((lactation['magicf2bccm']*100)/lactation['breastccm'])
+		!!	fixing QSP rounding issue
+		if (lactation['magicf2bpercent'] + lactation['nbsizepercent'] + lactation['siliconepercent']) < 100:
+			lactation['nbsizepercent'] += (100 - (lactation['magicf2bpercent'] + lactation['nbsizepercent'] + lactation['siliconepercent']))
+		elseif (lactation['magicf2bpercent'] + lactation['nbsizepercent'] + lactation['siliconepercent']) > 100:
+			lactation['nbsizepercent'] -= (100 - (lactation['magicf2bpercent'] + lactation['nbsizepercent'] + lactation['siliconepercent']))
+		end
+		!!	writing back nbsize and magicf2b. Silicone does not change
+		nbsize = (func('lact_lib','bccmtosize',lactation['breastccm'])*lactation['nbsizepercent'])/100
+		magicf2b = (func('lact_lib','bccmtosize',lactation['breastccm'])*lactation['magicf2bpercent'])/100
+		lactation['nbsizechange'] = nbsize
+		lactation['magicf2bchange'] = magicf2b
+		lactation['siliconechange'] = silicone
+		!!	if sveta is lactating, we need to reset the breastmm too
+		if lactation['active'] > 0:	lactation['result'] = func('lact_lib','set_breastmm')
 	end
 end
 
@@ -551,7 +476,7 @@ if $ARGS[0] = 'lact_switch':
 		!!	setting lactation to active
 		lactation['active'] = 1
 		!!	setting breast maximum milk volume via function
-		func('lact_lib','set_breastmm')
+		lactation['result'] = func('lact_lib','set_breastmm')
 		!!	resetting prolactinlvl so that the initial production rate is not too high
 		if lactation['prolactinlvl'] < 200: lactation['prolactinlvl'] = 200
 		!!	setting the lactation rate. Warning! lactation rate is in ml*1000 now for higher accuracy.
@@ -577,12 +502,12 @@ if $ARGS[0] = 'lact_switch':
 		lactation['nipgrowth'] = 0
 	end
 	!!	Always trigger the breastcycle after breast change, or the changes to svetas breasts will not happen.
-	func('lact_lib','breastcycle')
+	lactation['result'] = func('lact_lib','breastcycle')
 end
 
 !!	new breast cycle function, replaced the monster lactation function in femcyc
 if $ARGS[0] = 'breastcycle':
-	if lactation['breasttissueinitiated'] <= 0: func('lact_lib','init_breasttissue')
+	if lactation['breasttissueinitiated'] <= 0: lactation['result'] = func('lact_lib','init_breasttissue')
 	!!	usage func('lact_lib','breastcycle')
 	!!	if lactating or not, breasts will grow during pregnancy. This will only happen during first full pregnancy
 	if pregchem => 2191 and lactation['maturebreast'] <= 0:
@@ -648,7 +573,7 @@ if $ARGS[0] = 'breastcycle':
 		end
 		!!	If sveta meets alveoliexpandlvl 10 and her prolactinlvl is between random 200 and 250, her lactation will set in. This is happening during induction or during pregnancy
 		if rand(1,50) + lactation['prolactinlvl']  >= rand(200,250) and lactation['alveoliexpandlvl'] >= 10:
-			func('lact_lib','lact_switch')
+			lactation['result'] = func('lact_lib','lact_switch')
 		end
 	else
 	!!	things that happen when Sveta is lactating lactation['active'] > 1
@@ -688,7 +613,7 @@ if $ARGS[0] = 'breastcycle':
 					lactation['lactaterate'] = 10
 				elseif lactation['lactaterate'] <= 0:
 					!!	switching off lactation production and making sure prolactin is dropping. Nipples shrink too. There are some changes that are permanent, especially during pregnancy.
-					func('lact_lib','lact_switch')
+					lactation['result'] = func('lact_lib','lact_switch')
 				end
 			end
 		end
@@ -701,10 +626,10 @@ if $ARGS[0] = 'breastcycle':
 		end
 		!!	Reset used_lactaterate, so milk can be produced again.
 		lactation['used_lactaterate'] = 0
-		func('lact_lib','breast_engorment')
+		lactation['result'] = func('lact_lib','breast_engorment')
 	end
 	if lactation['milkgrowday'] < daystart:
-		func('lact_lib','BreastGrowth')
+		lactation['result'] = func('lact_lib','BreastGrowth')
 		lactation['dailyoverdemand'] = 0
 		lactation['alveolicount_change'] = lactation['alveolicount']
 		lactation['milkgrowday'] = daystart
@@ -716,7 +641,7 @@ if $ARGS[0] = 'lactate_optout':
 	!! usage 1: func('lact_lib','lactate_optout')
 	!! usage 2: gs 'lact_lib','lactate_optout'
 	if lactation['active'] > 0:
-		func('lact_lib','lact_switch')
+		lactation['result'] = func('lact_lib','lact_switch')
 	end
 	lactation['active'] = 0
 	lactation['prolactinlvl'] = 0
