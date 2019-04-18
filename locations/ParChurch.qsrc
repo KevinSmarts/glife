@@ -1,7 +1,5 @@
 # ParChurch
 
-$location_type = 'public_indoors'
-
 if $ARGS[0] = 'start':
 	CLOSE ALL
 	if sound = 0:
@@ -20,37 +18,40 @@ if $ARGS[0] = 'start':
 	$metka = 'start'
 	$menu_loc = 'ParChurch'
 	$menu_arg = 'start'
+	$location_type = 'public_indoors'
 	menu_off = 0
+	gs 'themes', 'outdoors'
 	gs 'stat'
 	'<center><b><font color="maroon">Church of Saint Nikolas</font></b></center>'
 	'<center><img <<$set_imgh>> src="images/locations/pavlovsk/church/st-nikolas.jpg"></center>'
-	'Pavlovsk''s only church. The church of Saint Nikolas is the tallest building in town. It''s old, but well maintained by the worshippers of the parish.'
+	'Pavlovsk''s only church. The church of Saint Nikolas is the tallest building in town. It''s old, but well maintained by the worshipers of the parish.'
 	''
-	'You can confess every weekday between 7h and 9h or 16h and 18h. On the weekend between 16h and 18h.'
+	'You can take confession every weekday between 7h and 9h or 16h and 18h. On the weekend between 16h and 18h.'
 	'Vigil is held Saturdays at 19h.'
 	'The Divine Liturgy is on Sundays between 9h and 12h.'
 
-	if Churchbad = 3 and Churchbadtime > daystart:
-		cla
-		'The priest would probably still be mad at you. You decide to avoid him and leave.'
-		act 'Go to the residential area':minut += 5 & gt 'pavResidential'
-		act 'Go to the commercial area':minut += 10 & gt 'pavCommercial'
-	exit
-
-	elseif Churchbad = 3 and Churchbadtime <= daystart:
-		Churchbad = 2
-		"You figure that the priest has probably calmed down enough by now that you could talk to him."
-	end
+	act 'Go to the residential area':minut += 5 & gt 'pavResidential'
+	act 'Go to the commercial area':minut += 10 & gt 'pavCommercial'
+	
 	if week = 6 and hour >=19 and hour <= 22 and churchday ! daystart:
 		act 'Attend vigil': gt 'ParChurch', 'vigil'
 	elseif week = 7 and hour >= 9 and hour < 12 and churchday ! daystart:
 		act 'Attend Divine Liturgy': gt 'ParChurch' , 'liturgy'
 	else
-		act 'Enter the church': gt 'ParChurch' , 'Narthex'
+		if Churchbad = 3 and Churchbadtime > daystart:
+			cla & nl
+			'The priest is probably still mad at you. You decide to avoid him for now.'
+			act 'Go to the residential area':minut += 5 & gt 'pavResidential'
+			act 'Go to the commercial area':minut += 10 & gt 'pavCommercial'
+		elseif Churchbad = 3 and Churchbadtime <= daystart:
+			Churchbad = 2
+			*nl
+			'"You figure that the priest has probably calmed down enough by now that you could talk to him."'
+			act 'Enter the church': gt 'ParChurch' , 'Narthex'
+		else
+			act 'Enter the church': gt 'ParChurch' , 'Narthex'
+		end
 	end
-	
-	act 'Go to the residential area':minut += 5 & gt 'pavResidential'
-	act 'Go to the commercial area':minut += 10 & gt 'pavCommercial'
 end
 
 if $ARGS[0] = 'vigil':
@@ -66,15 +67,17 @@ if $ARGS[0] = 'vigil':
 		pcs_horny -= temprand
 	end
 	moral += 1
+	Churchbad -= 1
 	minut += 30
+	gs 'themes', 'indoors'
 	PLAY 'sound/church/Blessing.mp3',30
 	'<center><img <<$set_imgh>> src="images/locations/pavlovsk/church/church'+ rand(1,5) +'.jpg"></center>'
 	'You attend the vigil and reflect on the recent events in your life. The harmonies as the hymns and psalms are sung sweep aside some of the worries in your heart, although you know they will return once you leave this holy place, you still enjoy the rest. The sweet scent of incense tickles your nose and reminds you of the scent of' + iif(rex_love = 1, 'Rex', 'your step-father') + '''s cologne.'  
-	if pav_slut >= 100:
+	if pav_slut >= 125:
 		'Most of the parishioners seem upset that you are here. You notice that parents are making sure their children don''t go near you. Even a couple of the acolytes glare at you angrily.'
-	elseif pav_slut >= 50:
+	elseif pav_slut >= 100:
 		'A number of poeple give you dirty looks and intentionally turn away from you whenever you make eye contact.'
-	elseif pav_slut >= 25:
+	elseif pav_slut >= 75:
 		'You notice some of the old women looking at you with disapproval and one or two of the old men looking at you with interest.'
 	end
 	gs 'stat'
@@ -85,27 +88,15 @@ if $ARGS[0] = 'vigil':
 		pcs_mood += 10
 		pcs_horny -= 20
 		moral += 1
+		Churchbad -= 1
 		minut += 10
 		gs 'stat'
-		temprand = rand(1,100)
-		if temprand <= 80:
-			if pav_sex > 10: 
-				pav_sex -= 2
-			else
-				pav_sex = 0
-			end
-			if pav_prostitute > 10:
-				pav_prostitute -= 2
-			else
-				pav_prostitute = 0
-			end
-		end
-		
+		gs 'ParChurch', 'reducepavrep', 10, -2
+
 		'<center><img <<$set_imgh>> src="images/locations/pavlovsk/church/church'+ rand(9,10) +'.jpg"></center>'
 		'You decide to stay for the rite of mutual forgiveness and feel much better afterwards.'
 		act 'Return to Narthex': gt 'ParChurch', 'Narthex'
 	end
-
 end
 
 if $ARGS[0] = 'liturgy':
@@ -114,37 +105,31 @@ if $ARGS[0] = 'liturgy':
 	churchday = daystart
 	menu_off = 1
 	minut += 60
+	Churchbad -= 1
+	gs 'themes', 'indoors'
 	PLAY 'sound/church/t' + rand(1,19) + '.mp3',30
 	'<center><img <<$set_imgh>> src="images/locations/pavlovsk/church/church'+ rand(1,8) +'.jpg"></center>'
-	if pav_slut < 50 and Conf_Kirill <= 1: 
+	if pav_slut < 75 and Conf_Kirill <= 1: 
 		pcs_mood += 20
 		moral += 2
 		pcs_sleep += 5
 		'You join the congregation for the Divine Liturgy. You see mostly older people, but there are some youngsters. You participate in the singing but that is about all. Your presence seems to go largely unnoticed, but you have the chance to rest a bit. You feel a lot better.'
-	elseif pav_slut < 50 and Conf_Kirill >= 2:
+	elseif pav_slut < 75 and Conf_Kirill >= 2:
 		Kirill += 1
 		pcs_mood += 20
 		moral += 2
 		pcs_sleep += 5
 		'You participate fully in the Divine Liturgy. You listen to the preaching and sing along. When going to communion and receiving the ceremonial bread, you lock eyes with Father Kirill. He seems happy to see you participating in the service.'
-	elseif pav_slut >= 50:
-		if rand(1,100) > 20:
-			if pav_sex > 25:
-				pav_sex -= 5
-			else
-				pav_sex = 0
-			end
-			if pav_prostitute > 25:
-				pav_prostitute -= 5
-			else
-				pav_prostitute = 0
-			end
-		end
+	else
+		gs 'ParChurch', 'reducepavrep', 25, -2
+
 		Kirill += 1
 		pcs_mood +=20
 		moral += 2
-		'Your presence at the Divine Liturgy does not go unnoticed. People start mumbling and point fingers at you. Many wonder why you’re present at such an important and holy occasion. Father Kirill, who leads the service, seems to be confused about where the fuss comes from but then notices you. You see that even he heard about your little adventures in town, but at the same time his face doesn’t seem to condemn you. It looks a bit like pity.'
+		'Your presence at the Divine Liturgy does not go unnoticed. People start mumbling and point fingers at you. Many wonder why you''re present at such an important and holy occasion. Father Kirill, who leads the service, seems to be confused about where the fuss comes from but then notices you. You see that even he heard about your little adventures in town, but at the same time his face doesn’t seem to condemn you. It looks a bit like pity.'
+		*nl
 		'"The church is place for everyone, my beloved children. Even if we sometimes forget, we must try to condemn no one. Think about John 8:10: Jesus once met a woman who had slept with a man who betrayed her trust. She was dragged away by his friends and thrown naked before Jesus. The people had ripped her clothes and humiliated her. He spoke to her: ''Woman'', he says. Not ''slut'', or ''whore'', but woman. He threw His coat over her near-naked body and gave her the sense of dignity she had been promised by the man who betrayed her trust. Jesus did not condemn her, so let us try to not condemn others."'
+		*nl
 		'The people in the congregation seem a bit uncomfortable while hearing these words. Some look towards you and seem to have trouble looking you in the eyes. Those that do meet your eyes look away guiltily. You feel better and it seems the townsfolk might see you in a slightly better light.'	
 	end
     vokal_exp += rand(0,3) 
@@ -152,31 +137,50 @@ if $ARGS[0] = 'liturgy':
 	
 	act 'Return to Narthex': gt 'ParChurch', 'Narthex'
 end
-	
+
+if $ARGS[0] = 'reducepavrep':
+	pavsextreshold = ARGS[1]
+	pavsexreduction = ARGS[2]
+	if pav_sex > pavsextreshold: 
+		gs 'fame', 'pav', 'sex', pavsexreduction
+	else
+		pav_sex = 0
+	end
+	if pav_prostitute > pavsextreshold:
+		gs 'fame', 'pav', 'prostitute', pavsexreduction
+	else
+		pav_prostitute = 0
+	end
+end
+
 if $ARGS[0] = 'Narthex':
 	CLOSE ALL
 	$menu_loc = 'ParChurch'
 	$menu_arg = 'Narthex'
 	menu_off = 0
 	*clr & cla
+	gs 'themes', 'indoors'
 	gs 'stat'
 	PLAY 'sound/church/76139__dkustic__090227-01-people-church-concert.wav',30
 	'<center><img <<$set_imgh>> src="images/locations/pavlovsk/church/enterchurch.jpg"></center>'
-	'You enter the church and the scent of insense and beeswax fills your lungs. Your eyes are drawn past the Narthex into the Nave with its walls covered in lovingly painted icons while a thousand points of light dance in joy throughout God''s house from the magnificent chandelier that hangs from the ceiling.'
-	'To your left as you enter, there is a counter where a deacon sells candles, icons, and prayer books. He smiles and nods at you absently. acknowledging your presence without really seeing you.'
+	'You enter the church and the scent of incense and beeswax fills your lungs. Your eyes are drawn past the Narthex into the Nave with its walls covered in lovingly painted icons while a thousand points of light dance in joy throughout God''s house from the magnificent chandelier that hangs from the ceiling.'
+	'To your left as you enter, there is a counter where a deacon sells candles, icons, and prayer books. He smiles and nods at you absently, acknowledging your presence without really seeing you.'
 	
 	act 'Leave the Church': gt 'ParChurch' , 'start'
-	if ((week <= 5 and hour >= 7 and hour < 9) or (hour >= 16 and hour < 18)) and confessday ! daystart: act 'Go to confession': confessday = daystart & gt 'Parchurch2', 'confession'
+	if ((week <= 5 and hour >= 7 and hour < 9) or (hour >= 16 and hour < 18)) and confessday ! daystart: act 'Go to confession': confessday = daystart & gt 'ParChurch2', 'confession'
 	act 'Light a candle': gt 'ParChurch' , 'candle'
 	act 'Pray': gt 'ParChurch' , 'pray'
-	
+	act 'Talk to the Priest': gt 'ParChurch' , 'talk_priest'
 end
 
 if $ARGS[0] = 'candle':
 	*clr & cla
 	minut += 10
 	menu_off = 1
+	Churchbad -= 1
+	gs 'themes', 'indoors'
 	gs 'stat'
+	gs 'ParChurch', 'reducepavrep', 25, -1
 	'<center><img <<$set_imgh>> src="images/locations/pavlovsk/church/ch_candle.jpg"></center>'
 	if money >= 10 and owechurch = 0: 
 		money -= 10
@@ -196,11 +200,11 @@ if $ARGS[0] = 'candle':
 	if hour > 6 and hour < 20: 
 		pcs_mood += 10
 		moral += 1
-		'You approach the iconostasion and light your candle. It gives you a nice feeling and you say a little prayer while looking at the image of Christ the Savior.'
-	elseif hour >= 20 or hour <= 6: 
+		'You approach the iconostasis and light your candle. It gives you a nice feeling and you say a little prayer while looking at the image of Christ the Savior.'
+	else
 		pcs_horny += 10
 		pcs_mood += 10
-		'You approach the iconostasion and light your candle in the dark church.  It gives you a nice feeling and decide to say a little prayer. The darkness, combined with the pleasant sight of fire makes you feel warm inside.'
+		'You approach the iconostasis and light your candle in the dark church. It gives you a nice feeling and decide to say a little prayer. The darkness, combined with the pleasant sight of fire makes you feel warm inside.'
 	end
 
 	act 'Return to Narthex': gt 'ParChurch', 'Narthex'
@@ -209,197 +213,332 @@ end
 if $ARGS[0] = 'pray':
 	*clr & cla
 	menu_off = 1
-	minut += 10
-	if pav_sex > 10: pav_sex -= 1
-	if pav_prostitute > 10: pav_prostitute -= rand(0,1)
+	minut += 1
+	gs 'themes', 'indoors'
+	gs 'stat'
 	'<center><img <<$set_imgh>> src="images/locations/pavlovsk/church/ch_praying.jpg"></center>'
-	if hour >6 and hour < 20 and moral < 30:
-		pcs_horny -= 10
-		pcs_mood += 20
-		moral += 1
-		'You decide to pray for a while. You’re not overly religious but the moment of peace and quiet gives you the time to think through what you’re doing with your life.'
-	elseif hour >6 and hour < 20 and moral >= 30 and moral < 60:
-		pcs_horny -= 20
-		pcs_mood += 30
-		moral += 1
-		minut += 15
-		'You decide to pray for a while. While you don''t consider yourself to be deeply religious, you do feel a strong connection to God when you look at the icons around you. You allow yourself to look deeply into your soul as you comptemplate the direction your life is going.'
-	elseif hour >6 and hour < 20 and moral >= 60:
-		pcs_horny -= 30
-		pcs_mood += 40
-		moral += 1
-		minut += rand(30,60)
-		'You decide to pray. The beauty and glory of being in the body of God overwhelms you and you lose yourself in prayer. You are unsure of how much time has past when you finally become aware of your surroundings again, but it doesn''t matter as you are at peace with God and the world.'
-	elseif (hour >= 20 or hour <= 6) and moral < 30:
-		pcs_horny -= 40
-		pcs_mood += 50
-		moral += 1 
-		minut += (60 - randtime)
-		'The Nave is lit only with candles and small presence lights and the darkness gives you some weird vibes. You get the urge to pray very intensely. Before you knew it, an hour went by and you feel a bit reborn.'
-		'"That felt refreshing," you mumble to yourself.'
-	elseif (hour >= 20 or hour <= 6) and moral >= 30 and moral < 60:
-		pcs_horny = 0
-		pcs_mood += 50
-		moral += 1 
-		if randtime > 60: randtime = 60
-		minut += (60 - randtime)
-		if nark > 1: nark = nark/2
-		'The Nave is lit only with candles and small presence lights and the darkness feels very comforting. You get the urge to pray very intensely. Before you knew it, an hour went by and you feel a bit reborn and cleansed.'
-		'"That felt refreshing," you mumble to yourself.'
-	elseif (hour >= 20 or hour <= 6) and moral >= 60 and rand(1,100) > 90:
-		pcs_horny = 50
-		orgasm += 1
-		pcs_mood = 100
-		moral += 1
-		Godslut = 1
-		'The Nave is lit only with candles and small presence lights and the darkness feels very comforting, like being in the womb of God. You get the urge to pray very intensely. You lose yourself in the presence of God and are overcome by religious ectasy. You fight back a sob as your body trembles with an uncontrollable orgasm. You wipe the tears from your eyes and gaze with adoration at the face of Christ, your newest lover.'
-	else
-		pcs_horny = 0
-		pcs_mood = 100
-		moral += 1 
-		minut += 60
-		if nark > 1: nark = ((nark/4)*3)
-		'The Nave is lit only with candles and small presence lights and the darkness feels very comforting, like being in the womb. You get the urge to pray very intensely. Before you know it, more than an hour went by and you feel a bit reborn and cleansed.'
-		'"That felt refreshing," you mumble to yourself.'	
+	'You approach the prayer bench and kneel down to pray.'
+	act 'Pray':
+		*clr & cla
+		menu_off = 1
+		minut += 10
+		Churchbad -= 1
+		if pav_sex > 10: gs 'fame', 'pav', 'sex', -1
+		if pav_prostitute > 10: gs 'fame', 'pav', 'prostitute', -1
+		'<center><img <<$set_imgh>> src="images/locations/pavlovsk/church/ch_praying.jpg"></center>'
+		if hour > 6 and hour < 20 and moral < 30:
+			pcs_horny -= 10
+			pcs_mood += 20
+			moral += 1
+			'You decide to pray for a while. You''re not overly religious but the moment of peace and quiet gives you the time to think through what you''re doing with your life.'
+		elseif hour > 6 and hour < 20 and moral >= 30 and moral < 60:
+			pcs_horny -= 20
+			pcs_mood += 30
+			moral += 1
+			minut += 15
+			'You decide to pray for a while. While you don''t consider yourself to be deeply religious, you do feel a strong connection to God when you look at the icons around you. You allow yourself to look deeply into your soul as you contemplate the direction your life is going.'
+		elseif hour >6 and hour < 20 and moral >= 60:
+			pcs_horny -= 30
+			pcs_mood += 40
+			moral += 1
+			minut += rand(30,60)
+			'You decide to pray. The beauty and glory of being in the body of God overwhelms you and you lose yourself in prayer. You are unsure of how much time has past when you finally become aware of your surroundings again, but it doesn''t matter as you are at peace with God and the world.'
+		elseif (hour >= 20 or hour <= 6) and moral < 30:
+			pcs_horny -= 40
+			pcs_mood += 50
+			moral += 1 
+			minut += (60 - randtime)
+			'The Nave is lit only with small candles, leaving your surroundings in darkness. You start to get a weird vibe, one you can''t quite shake. Suddenly you get the urge to pray very intensely. Before you know it, an hour went by and you feel a bit reborn.'
+			'"That felt refreshing," you mumble to yourself.'
+		elseif (hour >= 20 or hour <= 6) and moral >= 30 and moral < 60:
+			pcs_horny = 0
+			pcs_mood += 50
+			moral += 1 
+			if randtime > 60: randtime = 60
+			minut += (60 - randtime)
+			if nark > 1: nark = nark/2
+			'The Nave is lit only with small candles, leaving your surroundings in darkness, but you find it comforting. You get the urge to pray very intensely. Before you know it, an hour went by and you feel a bit reborn and cleansed.'
+			'"That felt refreshing," you mumble to yourself.'
+		elseif (hour >= 20 or hour <= 6) and moral >= 60 and rand(1,100) > 90:
+			pcs_horny = 50
+			orgasm += 1
+			pcs_mood = 100
+			moral += 1
+			Godslut = 1
+			'The Nave is lit only with small candles, leaving your surroundings in darkness, but it''s comforting, like being in the womb of God. You get the urge to pray very intensely. You lose yourself in the presence of God and are overcome by religious ecstasy. You fight back a sob as your body trembles with an uncontrollable orgasm. You wipe the tears from your eyes and gaze with adoration at the face of Christ, your newest lover.'
+		else
+			pcs_horny = 0
+			pcs_mood = 100
+			moral += 1 
+			minut += 60
+			if nark > 1: nark = ((nark/4)*3)
+			'The Nave is lit only with candles and small presence lights and the darkness feels very comforting, like being in the womb. You get the urge to pray very intensely. Before you know it, more than an hour went by and you feel a bit reborn and cleansed.'
+			'"That felt refreshing," you mumble to yourself.'	
+		end
+		gs 'stat'
+		act 'Return to Narthex': gt 'ParChurch', 'Narthex'
 	end
-	gs 'stat'	
 
-	act 'Return to Narthex': gt 'ParChurch', 'Narthex'
+	if exhibitionist_lvl > 0:
+		act 'Be naughty':
+			*clr & cla
+			menu_off = 1
+			Churchbad += 2
+			gs 'fame', 'pav', 'sex', 2
+			gs 'exhibitionism', 2
+			gs 'stat'
+			'<center><img <<$set_imgh>> src="images/locations/pavlovsk/church/ch_prayingflash.jpg"></center>'
+			'While you''re praying, you get a devious idea. With a sly smile, you expose your butt, giving anyone that looks your way the perfect view of your ass. Finally, you lower your head and pray in silence. Occasionally you can hear some whispers behind you but it only makes you smile.'
+			act 'Return to Narthex': gt 'ParChurch', 'Narthex'
+		end
+	end
 end
 
-if $ARGS[0] = 'amends':
+if $ARGS[0] = 'talk_priest':
 	*clr & cla
 	menu_off = 1
 	minut += 15
+	gs 'themes', 'indoors'
 	gs 'stat'
-	'As you approach the priest, you recall your previous behaviour and that the priest said that he wanted to discuss it with you further.'
-	act 'Approach him':
-		*clr & cla
-		gs 'stat'
-		moral += 1
-		Kirill += 1
-		'<center><img <<$set_imgh>> src="images/locations/pavlovsk/church/ch_talk.jpg"></center>'
-		'Going up to the priest, you bow down, touching the floor with your right hand then place your right hand over the left with your palms upward and say, "Bless, father"'
-		'"May the Lord bless you." the priest answered and blessed you with the Sign of the Cross then placed his right hand in your hands.' 
-		'You kiss his hand and then straighten taking a deep breath.'
-		'"father, I want to tell you how sorry I am for the way I acted the last time I was here." you apologize, hoping he can hear the sincerity in your voice, "It was inexcusable."'
-		'"Your behaviour was indeed unbefitting a young lady." the priest replies gravely, "However, it is given to us to forgive each other even as God forgives us. If you truly wish to make amends, there is something you could do."'
-		'"Of course, father," you reply, eager for forgiveness, "What do you need me to do?"'
-		if Churchbad = 1:
+	'<center><img <<$set_imgh>> src="images/locations/pavlovsk/church/ch_talk.jpg"></center>'
+	'As you approach the priest, you recall your previous behavior, your sins, your transgressions, and the daily temptations you face.'
+	'Going up to the priest, you bow down, touching the floor with your right hand then place your right hand over the left with your palms upward and say, "Bless me father."'
+	'"May the Lord bless you," the priest answers and blesses you with the Sign of the Cross then places his right hand in your hands.' 
+	'You kiss his hand and then straighten taking a deep breath.'
+	if Churchbad > 0 and amends_day ! daystart:
+		act 'Make Amends':
 			*clr & cla
-			!'<center><img <<$set_imgh>> src="images/qwest/alter/church/broom_closet.jpg"></center>' Missing Image.
-			'<center><img src="images/system/image_needed.png"></center>'
-			'The priest leads you back to the Narthex and opens a door on the side opposite the counter where you buy candles. Inside you see cleaning supplies.'
-			'Taking out a broom, the priest smiles at you, "The Narthex and the Sanctuary could use a good sweeping and mopping." he says.'
-			act 'Take the broom':
+			gs 'stat'
+			moral += 1
+			Kirill += 1
+			Churchbad -= 1
+			amends_day = daystart
+			'<center><img <<$set_imgh>> src="images/locations/pavlovsk/church/ch_talk.jpg"></center>'
+			'"Father, I want to tell you how sorry I am for the way I acted the last time I was here," you apologize, hoping he can hear the sincerity in your voice. "It was inexcusable."'
+			'"Your behavior was indeed... ill-fitting of a young lady," the priest replies gravely. "However, God asks us to forgive... If you truly wish to make amends, there is something you could do."'
+			'"Of course, father," you reply, eager for forgiveness.'
+			act 'What do you need me to do':
 				*clr & cla
-				minut += 60
-				Churchbad = 0
-				moral += 1
 				gs 'stat'
-				'<center><img <<$set_imgh>> src="images/locations/pavlovsk/church/churchclean.jpg"></center>'
-				'You take the broom and began your task, thankful that the church isn''t a very large one. You diligently sweep the floor, making sure to get into all the corners. Once the sweeping is done, you mop the floor then put everything away. You feel a sense of wellbeing at a job well done.'
-				'As you close the closet door, you turn around to find the priest looking at you with a pleased expression.'
-				'"Thank you, <<$pcs_nickname>>. You did a fine job." he says. Surprisingly, you feel a flush of pleasure at the praise. You finished putting things away and leave.'
-				act 'Leave the church': gt 'ParChurch' , 'start'
-			end
-			act 'Tell him what he can do with the broom':
-				*clr & cla
-				minut += 5
-				Churchbad = 2
-				Kirill -= 5 
-				moral -= 2
-				gs 'stat'
-				'<center><img <<$set_imgh>> src="images/pc/bukli_angry.jpg"></center>'
-				'"As if." you state flatly, looking at the priest coldly, "You''re the one that took an oath to work for God, not me. I''m out of here."'
-				'The priest looks as if he was going to say something then changed his mind. He shakes his head sadly as you walk away.'
-				act 'Leave the church': gt 'ParChurch' , 'start'
-			end
-		elseif Churchbad = 2:
-			cla
-			'The priest leads you to a bench in the Narthex and has you sit down with him.'
-			'"I feel that you have lost your way, <<$pcs_nickname>>." he begins softly, "Such behaviour can only lead to a life of misery and sin."'
-			'"I know father." you reply with a sigh, "But I just can''t seem to help it sometimes."'
-			if pav_slut >= 75 and pcs_horny > 50:
-				act 'Try to tease him':
+				if Churchbad <= 2:
 					*clr & cla
-					Kirill_Crpt += 1
-					moral -= 1
-					'<center><img <<$set_imgh>> src="images/shared/sex/exhibitionism/fatherim30.jpg"></center>'
-					'Feeling naughty, you decide to try and tease the priest. While he isn''t looking, you undo most of the buttons on your blouse, hoping he would notice.'
-					if Kirill_Crpt >= 30:
-						Kirill += 1
-						Kirill_Crpt += 1
-						Churchbad = 0
-						pcs_horny += 5
-						'You look the priest right in the eyes then when his attention is on you, you slowly lean forward, allowing your breasts to be exposed. To your delight, you see his eyes dart to your tits and stay there.'
-						if kirillsex ! 0:
-							'"Very nice, <<$pcs_nickname>>." Father Kirill whispers as he reaches out and caresses your firm breasts then pulls your top back into place, covering your flesh, "Follow me."'
-							Act 'Follow him': gt 'ParChurch', 'Sex'
-						else
-							'"Very nice, <<Sname>>." Father Kirill whispers with a smile as he reaches out and softly caresses your breasts then pulls your top back into place concealing your flesh.' 
-							'"No temptation has overtaken you except what is common to mankind. And God is faithful; he will not let you be tempted beyond what you can bear. But when you are tempted, he will also provide a way out so that you can endure it." he murmurs as he fastens your buttons then sighs.'
-							'"Thus it is written, and thus it behoved Christ to suffer, and to rise from the dead the third day." you reply looking at the telltale lump in Father Kirill''s crotch, "It seems that Jesus is not the only one to rise from the dead." you added with a saucy giggle.'
-							'Father Kirill looked at you and opened his mouth to speak but no words came out.'
-							'With a laugh, you jumped up and skipped out of the church with a final glance back at the dumbfounded cleric.'
-							Act 'Leave the church': gt 'ParChurch' , 'start' 
-						end
-					else 
-						Kirill -= 10 
-						Churchbad = 3
-						badrand = rand(7,21)
-						Churchbadtime = daystart + badrand
-						'You look the priest right in the eyes then when his attention is on you, you slowly lean forward, allowing your breasts to be exposed. To your delight, you see his eyes dart to your tits then snap back up to your face. His face flushes red.'
-						if Kirill <= 0: 
-							'"You whore!" The priest roars in fury, "I''ll teach you what happens to those who desecrate the House of God!"'
-							'Stunned by his unexpected fury, you were unable to react before the furious priest grabs you by the arm and drags you to his office.'
-							act 'Continue': gt 'ParChurch', 'spank'
-						elseif Kirill > 0 and Kirill <= 20:
-							'"<<$pcs_nickname>> <<$lastname>>!" the priest hisses, his face twisted in rage, "How dare you behave like this in the House of God! Get out now!"'
-							'Stunned by his unexpected fury, you hastily cover yourself up and flee from the church.'
-							act 'Leave the church': gt 'ParChurch' , 'start'
-						else
-							'"<<$pcs_nickname>> <<$lastname>>!" the priest hisses, his face flushed with embarrassment, "How could you behave like this in the House of God! Cover yourself up."'
-							'Although it isn''t the reaction you were expecting, it is a reaction. Looking up at the priest, you can tell that his embarrassment is changing to anger. You decide that it might be best if you left.'
-							act 'Leave the church': gt 'ParChurch' , 'start'
-						end
+					'<center><img <<$set_imgh>> src="images/locations/pavlovsk/church/supplycloset.jpg"></center>'
+					'The priest leads you back to the Narthex and opens a door on the side opposite the counter where you buy candles. Inside you see cleaning supplies.'
+					'Taking out a broom, the priest smiles at you, "The Narthex and the Sanctuary could use a good sweeping and mopping," he says.'
+					act 'Start cleaning':
+						*clr & cla
+						minut += 60
+						Churchbad -= 1
+						moral += 1
+						gs 'stat'
+						'<center><img <<$set_imgh>> src="images/locations/pavlovsk/church/churchclean.jpg"></center>'
+						'You take the broom and begin your task, thankful that the church isn''t a very large one. You diligently sweep the floor, making sure to get into all the corners. Once the sweeping is done, you mop the floor then put everything away. You feel a sense of wellbeing at a job well done.'
+						'As you close the closet door, you turn around to find the priest looking at you with a pleased expression.'
+						'"Thank you, <<$pcs_nickname>>. You did a fine job." he says. Surprisingly, you feel a flush of pleasure at the praise. You finished putting things away and leave.'
+						act 'Leave the church': gt 'ParChurch' , 'start'
 					end
-				end
-			else
-				*clr & cla
-				moral += rand(0,3)
-				Churchbad = 1
-				Kirill += rand(0,2)
-				minut += 45
-				'<center><img <<$set_imgh>> src="images/locations/pavlovsk/church/ch_talk.jpg"></center>'
-				'You sit and talk with the priest about morality and how Russian society has changed since the fall of the Soviet Union. You get the impression that although the priest was happy to see the church gain wider acceptance and freedom from the government, he doesn''t seem to approve of how today''s youth behave.'
-				'You see an old woman you know vaguely from the apartment block next to yours. She seems anxious to talk to the priest.'
-				if Kirill > 60:
-					'"It looks like Mrs. Seldipi needs to regal me with the latest of her neighbours'' multitude of sins." the priest confides with a wry smile, "We can continue our discussion another day."'
-					act 'Leave the church': gt 'ParChurch' , 'start'
+					act 'Tell him you''re not a maid':
+						*clr & cla
+						minut += 5
+						Churchbad += 2
+						Kirill -= 5 
+						moral -= 2
+						gs 'stat'
+						'<center><img <<$set_imgh>> src="images/pc/bukli_angry.jpg"></center>'
+						'"As if," you state flatly, looking at the priest coldly, "You''re the one that took an oath to work for God, not me. I''m out of here."'
+						'The priest looks as if he was going to say something then changed his mind. He shakes his head sadly as you walk away.'
+						act 'Leave the church': gt 'ParChurch' , 'start'
+					end
 				else
-					'"I am sorry, <<$pcs_nickname>>. It seems that I am needed by Mrs. Seldipi." he says with obvious regret, "I''ve enjoyed our chat. Please think on what we''ve discussed and we will talk another time."'
-					act 'Leave the church': gt 'ParChurch' , 'start'
+					cla
+					'The priest leads you to a bench in the Narthex and has you sit down with him.'
+					'"I feel that you have lost your way, <<$pcs_nickname>>," he begins softly. "Such behavior can only lead to a life of misery and sin."'
+					'"I know father," you reply with a sigh. "But I just can''t seem to help it sometimes."'
+					act 'Tease him': gt 'ParChurch', 'tease'
 				end
 			end
 		end
+	elseif Churchbad > 0 and amends_day = daystart:
+		'<br>You already made amends today.'
+	end
+	act 'Talk to the priest':
+		*clr & cla
+		moral += rand(0,3)
+		Kirill += rand(0,2)
+		minut += 15
+		'<center><img <<$set_imgh>> src="images/locations/pavlovsk/church/ch_talk.jpg"></center>'
+		'You sit and talk with the priest about morality and how Russian society has changed since the fall of the Soviet Union. You get the impression that although the priest was happy to see the church gain wider acceptance and freedom from the government, he doesn''t seem to approve of how today''s youth behave.'
+		act 'Leave the church': gt 'ParChurch' , 'start'
+		act 'Stay in the Narthex': gt 'ParChurch', 'Narthex'
+		act 'Keep talking':
+			*clr & cla
+			moral += rand(0,2)
+			Kirill += rand(0,2)
+			minut += 30
+			'<center><img <<$set_imgh>> src="images/locations/pavlovsk/church/ch_talk.jpg"></center>'
+			'You are enjoying your discussion with him and turn to talking about Pavlovsk and about how so many people seem obsessed with sex, especially the boys. He agrees with you that people seem overly lustful around this area. Soon you are discussing about how society has brought on these loser morals in people.'
+			'You see an old woman you know vaguely from the apartment block next to yours. She seems anxious to talk to the priest.'
+			if Kirill > 60:
+				'"It looks like Mrs. Seldipi needs to regal me with the latest of her neighbors'' multitude of sins," the priest confides with a wry smile, "We can continue our discussion another day."'
+				act 'Leave the church': gt 'ParChurch' , 'start'
+			else
+				'"I am sorry, <<$pcs_nickname>>. It seems that I am needed by Mrs. Seldipi," he says with obvious regret. "I''ve enjoyed our chat. Please think on what we''ve discussed and we will talk another time."'
+				act 'Leave the church': gt 'ParChurch' , 'start'
+			end
+		end
+		act 'Tease him': gt 'ParChurch', 'tease'
 	end
 	act 'Chicken out': 
+		*clr & cla
+		'<center><img <<$set_imgh>> src="images/locations/pavlovsk/church/enterchurch.jpg"></center>'
 		'You could not bring yourself to talk to the priest yet. You were torn between stalling or simply leaving.'
 		act 'Leave the church': gt 'ParChurch' , 'start'
 		act 'Stay in the Narthex': gt 'ParChurch', 'Narthex'
 	end
 end
 
-if $ARGS[0] = 'spank':
-	'"Placeholder for spank"'
-	act 'Leave the church': gt 'ParChurch' , 'start'
+if $ARGS[0] = 'tease':
+	*clr & cla
+	Kirill_Crpt += 1
+	moral -= 1
+	Churchbad += 1
+	'<center><img <<$set_imgh>> src="images/shared/sex/exhibitionism/fatherim30.jpg"></center>'
+	'Feeling naughty, you decide to try and tease the priest. While he isn''t looking, you undo most of the buttons on your blouse, hoping he will notice.'
+	if Kirill_Crpt >= 30:
+		Kirill += 1
+		Kirill_Crpt += 1
+		pcs_horny += 5
+		'You look the priest right in the eyes then when his attention is on you, you slowly lean forward, allowing your breasts to be exposed. To your delight, you see his eyes dart to your tits and stay there.'
+		if kirillsex ! 0:
+			'"Very nice, <<$pcs_nickname>>." Father Kirill whispers as he reaches out and caresses your firm breasts before pulling your top back into place, covering you once again. "Follow me."'
+			act 'Follow him': gt 'ParChurch2', 'sex'
+			gs 'willpower', 'sex'
+			if will_cost <= pcs_willpwr:
+				act 'Leave the church (<<will_cost>> Willpower)':
+					gs 'willpower', 'resist'
+					gs 'stat'
+					gt 'ParChurch' , 'start'
+				end
+			else
+				'<br>You don''t have enough willpower to refuse.'
+			end
+		else
+			'"Very nice, <<$pcs_nickname>>." Father Kirill whispers with a smile as he reaches out and softly caresses your breasts before pulling your top back into place, covering you up once again.' 
+			'"No temptation has overtaken you except what is common to mankind. And God is faithful; he will not let you be tempted beyond what you can bear. But when you are tempted, he will also provide a way out so that you can endure it," he murmurs as he fastens your buttons then sighs.'
+			'"Thus it is written, and thus it behooved Christ to suffer, and to rise from the dead the third day," you reply looking at the telltale lump in Father Kirill''s crotch, "It seems that Jesus is not the only one to rise from the dead," you added with a playful giggle.'
+			'Father Kirill looks at you and opens his mouth to speak but no words come out.'
+			'With a laugh, you jump up and skip out of the church with a final glance back at the dumbfounded cleric.'
+			act 'Leave the church': gt 'ParChurch' , 'start' 
+		end
+	else 
+		Kirill -= 2
+		'You look the priest right in the eyes then when his attention is on you, you slowly lean forward, allowing your breasts to be exposed. To your delight, you see his eyes dart to your tits then snap back up to your face. His face flushes red.'
+		if Churchbad >= 5: 
+			'"You whore!" The priest roars in fury, "I''ll teach you what happens to those who desecrate the House of God!"'
+			'Stunned by his unexpected fury, you are unable to react before the furious priest grabs you by the arm and drags you to his office.'
+			act 'Continue': gt 'ParChurch', 'spank'
+		elseif Churchbad <= 4 and Kirill <= 20:
+			'"<<$pcs_firstname>> <<$lastname>>!" the priest hisses, his face twisted in rage, "How dare you behave like this in the House of God! Get out now!"'
+			'Stunned by his unexpected fury, you hastily cover yourself up and flee from the church.'
+			act 'Leave the church': gt 'ParChurch' , 'start'
+		else
+			'"<<$pcs_firstname>> <<$lastname>>!" the priest hisses, his face flushed with embarrassment, "How could you behave like this in the House of God! Cover yourself up."'
+			'Although it isn''t the reaction you were expecting, it is a reaction. Looking up at the priest, you can tell that his embarrassment is changing to anger. You decide that it might be best if you left.'
+			act 'Leave the church': gt 'ParChurch' , 'start'
+		end
+	end
 end
 
-if $ARGS[0] = 'sex':
-	'"Placeholder for sex"'
-	act 'Leave the church': gt 'ParChurch' , 'start'
+if $ARGS[0] = 'spank':
+	*clr & cla
+	Kirill_Crpt += 1
+	Churchbad -= 1
+	'<center><img <<$set_imgh>> src="images/locations/pavlovsk/church/event/spank1.jpg"></center>'
+	'Once in his office, he drags you over to in front of his desk before he lets go. "Bend over and expose your behind, you obviously need to be disciplined more to be such a sinful girl." You look at him, you know he would never force you, so why should you obey? He seems to read your thoughts as he adds. "Or I can call your mother and explain to her why her daughter is excommunicated from the church."'
+	'You pale slightly at that, you don''t know what your mother would do but it would be a lot worse than getting spanked by a priest. So you do as he says and expose your but as  you bend over his desk. While you do this he grabs a shoe from behind his desk, apparently he keeps a spare set of shoes in his office.'
+	gs 'arousal', 'foreplay', 3, 'exhibitionism'
+	gs 'stat'
+	act 'bear it':
+		*clr & cla
+		'<center><img <<$set_imgh>> src="images/locations/pavlovsk/church/event/spank2.jpg"></center>'
+		'He uses the sole of his hard shoe to spank you across your ass cheeks. You can tell he isn''t putting much strength into it, it stings a little but you have had far worse. After a few minutes of this he stops and leans forward and asks. "Have you learned your lesson?"'
+		gs 'pain', 1, 'asscheeks', 'spank'
+		gs 'arousal', 'foreplay', 5, 'unknown'
+		gs 'stat'
+		act 'Yes':
+			*clr & cla
+			Churchbad -= 1
+			'<center><img <<$set_imgh>> src="images/locations/pavlovsk/church/event/spank5.jpg"></center>'
+			'You nod your head. "Yes, I''m sorry father. I don''t know what came over me. Please forgive me."'
+			'He relaxes a bit and sighs. "I forgive you, I am sorry I had to do that. But sometimes stern measures are needed."'
+			'You cover yourself back up and walk out.'
+			gs 'arousal', 'foreplay', 1, 'unknown'
+			gs 'arousal', 'end'
+			gs 'stat'
+			act 'Leave the church': gt 'ParChurch' , 'start'
+		end
+		act 'Not yet':
+			*clr & cla
+			'<center><img <<$set_imgh>> src="images/locations/pavlovsk/church/event/spank3.jpg"></center>'
+			'You shake your head no. "No, I don''t think I have, not when you hit like a girl." You tell him.'
+			'You see his eyes flare in anger and he starts spanking you again. This time he puts a lot of force into the blows and the hard shoe sole is really starting to make your ass sting. After a few minutes of this he stops and leans forward and asks. "Now have you learned your lesson?"'
+			gs 'pain', 2, 'asscheeks', 'spank'
+			gs 'arousal', 'foreplay', 5, 'maso'
+			gs 'stat'
+			act 'Yes':
+				*clr & cla
+				Churchbad -= 1
+				'<center><img <<$set_imgh>> src="images/locations/pavlovsk/church/event/spank5.jpg"></center>'
+				'You nod your head. "Yes, I''m sorry father. I have seen the errors of my way. Please forgive me."'
+				'He relaxes a bit and sighs. "I forgive you. I am sorry I had to do that and I am sorry it took you so long to learn your lesson. But sometimes stern measures are needed."'
+				'You cover yourself back up and walk out a bit gingerly with your ass stinging.'
+				gs 'arousal', 'foreplay', 1, 'unknown'
+				gs 'arousal', 'end'
+				gs 'stat'
+				act 'Leave the church': gt 'ParChurch' , 'start'
+			end
+			act 'More, Father, more!':
+				*clr & cla
+				Kirill_Crpt += 1
+				Churchbad += 1
+				'<center><img <<$set_imgh>> src="images/locations/pavlovsk/church/event/spank3.jpg"></center>'
+				'You cry out. "Yes father more, spank me harder please!" While sticking your butt out a bit more.'
+				'You see his eyes widen slightly and his cheeks blush a bit. Again he puts puts a lot of force into the blows, the hard shoe sole is starting to make your ass feel like it is on fire. You can''t help it as a few tears roll down your cheeks. After a few minutes of this he stops and leans forward and asks. "Now have you learned your lesson?"'
+				gs 'pain', 2, 'asscheeks', 'spank'
+				gs 'arousal', 'foreplay', 5, 'maso'
+				gs 'stat'
+				act 'Yes':
+					*clr & cla
+					'<center><img <<$set_imgh>> src="images/locations/pavlovsk/church/event/spank5.jpg"></center>'
+					'You nod your head and sniffle a bit. "Yes, I''m sorry father. The pain has purified me of my wickedness. Please forgive me."'
+					'He relaxes a bit and sighs. "I forgive you. I am sorry I had to do that and but I don''t believe you are over your wicked ways. I would like you to start coming to church on a regular bases and I would like you to take confession."'
+					'You cover yourself back up. "I will father, I promise." With your ass stinging like it is on fire you walk out rather stiffly.'
+					gs 'arousal', 'foreplay', 1, 'unknown'
+					gs 'arousal', 'end'
+					gs 'stat'
+					act 'Leave the church': gt 'ParChurch' , 'start'
+				end
+				act 'No!':
+					*clr & cla
+					Churchbad += 1
+					'<center><img <<$set_imgh>> src="images/locations/pavlovsk/church/event/spank5.jpg"></center>'
+					'You shake your head and try not to sniffle. "No Father, you will need to do more than that to beat the wickedness out of me!"'
+					'He sighs and drops the shoe on the desk. "I believe you. I will pray for you and pray for guidance on how to help you. For now you may go but I would like you to start coming to church on a regular bases and I would like you to take confession."'
+					'You cover yourself back up and smirk at him. "We''ll see." With your ass stinging like it is on fire you walk out rather stiffly, but maybe you will come back, it might be fun...'
+					gs 'arousal', 'foreplay', 1, 'unknown'
+					gs 'arousal', 'end'
+					gs 'stat'
+					act 'Leave the church': gt 'ParChurch' , 'start'
+				end
+			end
+		end
+	end
 end
+
+!!if $ARGS[0] = 'cemetery':
+!!	'"Placeholder for cemetery"'
+!!	act 'Leave the church': gt 'ParChurch' , 'start'
+!!end
 
 if $ARGS[0] = 'fillers':
 	randtext = rand(0,9)
@@ -429,7 +568,7 @@ if $ARGS[0] = 'fillers':
 		$safesub = 'trying to earn money'
 	elseif randtext = 7:
 		Kirill += 1
-		$safesub = 'the Russian Othodox Church'
+		$safesub = 'the Russian Orthodox Church'
 	elseif randtext = 8 and soniaPS ! 0:
 		Kirill_Crpt += 1
 		$safesub = 'what Sonia has been doing'
@@ -440,85 +579,6 @@ if $ARGS[0] = 'fillers':
 	elseif randtext = 0:
 		moral += 1
 		$safesub = 'God and Jesus'
-	end
-end
-
-if $ARGS[0] = 'confessional':
-	*clr & cla
-	menu_off = 1
-	minut += 5
-	gs 'stat'
-	'<center><img <<$set_imgh>> src="images/locations/pavlovsk/church/ch_talk.jpg"></center>'
-	'As you got ready to kneel, Father Kirill stopped you.'
-	'"One moment, my dear." he says softly, "I was wondering if you wouldn''t mind indulging an old man."'
-	'"Of course father." you answer wirhout hesitation, "Although I don''t think you''re old at all."'
-	act 'Continue':
-		*clr & cla 
-		gs 'stat'
-		'<center><img <<$set_imgh>> src="images/locations/pavlovsk/church/ch_stairs.jpg"></center>'
-		'Father Kirill leads you to the Narthex and through a door opposite the candle counter. He opens another door and you see stairs leading to the basement.'
-		'The light at the bottom of the stairs flickers erratically before steadying when Father Kirill turns it on and you feel a little nevous about going down the stairs.'
-		'"What is it you want me to do?" you ask nervously.'
-		'"I want to show you something that an old friend of mine gave me years ago," Father Kirill replied, "It has been down in the cellar for years but I''ve always wanted to try it."'
-		act 'Refuse to go down the stairs':
-			*clr & cla
-			Kirill -= 1
-			gs 'stat'
-			'<center><img <<$set_imgh>> src="images/locations/pavlovsk/church/ch_stairs.jpg"></center>'
-			'For reasons you could not explain, you feel that going down those stairs would be a bad idea.'
-			'"I - I''m sorry, father." you stammer, "I just remembered I''m supposed to help my mother and I''m running late. I''ll speak with you later."'
-			'Before the priest has a chance to respond, you hastily scurry for the exit.'
-			act 'Leave the church': gt 'ParChurch' , 'start'
-		end	
-		act 'Go with Father Kirill':
-			*clr & cla
-			Kirill += 1
-			con_box = 1
-			gs 'stat'
-			'<center><img <<$set_imgh>> src="images/locations/pavlovsk/church/confessionalt.jpg"></center>'
-			'Father Kirill leads you to the far side of the cellar and opens another door. In the next room, you see old furniture covered in sheets. A large object hides in the back of the room, perhaps a large wardrobe or some other kind of cabinet. It is partially shouded in sheets, but you can see that the middle section is taller and has a strange looking crucifix topping it. Unlike a proper cross, this on only has a single bar and lacks the slanted bar at the bottom.'
-			'As Father Kirill pulls the sheets of it, you can see that there are three sections, each having a curtain covering the entrance. The middle secion is taller and larger than the ones on either end. Even your youthful eye can tell that it is well made and the wood hand carved and fitted by a mastercraftsman. You have no idea what it could be.'
-			'"What is it, father?" you ask, admiring the rich polished wood, "Is it a wardrobe?"'
-			'"No, <<$pcs_nickname>>." he replies as he folds the sheets, "It is a confessional. An old friend of mine at Saint Nonna''s Cathedral gave it to me. He is a Catholic priest."'
-			'"How does it work?" you ask as you peer into the various compartments, "There are no icons and no blessing cross."'
-			'"The catholics don''t use those." he chuckled, "Instead, the priest sits in the middle compartment and the penitents sit in the smaller ones. The priest listens to each in turn then assigns them a penance, usually a certain number of prayers or psalms to recite. As each penitent leaves, another enters and the priest just opens and closes the panels inside his section listening to then one after another."'
-			'"That''s a dumb way to do it." you reply, examining the panels and screens, "It''s like they turned it into an assembly line. The priest can''t even see who he is talking to."'
-			'"It is different, this is true, but different doesn''t mean it is dumb." Father Kirill chastises you, "We are all God''s children and we must be open to new ways and new thoughts for a closed mind cannot hear His voice."'
-			'"I''m sorry, father. You''re right, I shouldn''t reject something just because it isn''t what I am used to." you reply, thinking of some of your recent new experiences, "Maybe we should try it out, see what it is like."'
-			'"That is exactly what I had in mind." he says smiling at you, "You go in that section, and I''ll go in the middle section."'
-			'You sit down in the indicated section and wait as Father Kirill gets into his section. With the heavy curtain closed, it would be fairly dim inside, with the dim lighting in the cellar, it is almost completely dark. You are startled by the sudden sound of the wodden panel next to your head sliding open. You try to look through the carved wooden screen, but you can only make out the vague outline of Father Kirill''s head in the darkness.'
-			'"Shall we begin, <<$pcs_nickname>>?" Father Kirill asks you, "You are supposed to say ''Forgive me, father, for I have sinned.'' when you hear the panel open."'
-			'"Oh, I''m sorry." you reply feeling your cheeks blush, suddenly glad it is too dark for him to see, "Did you want to start over?"'
-			'"I am teasing you, child," the priest says warmly, "We can just carry on, if you like."'
-			'You smile in the darkness and tell Father Kirill about some of the things you''ve done and feelings you''ve had, but the novelty of using the confessional keeps you from going into ant real details. Father Kirill seems to feel the same as he doesn''t ask you as many questions as usual. When you are done, you step outside the confessional and you kneel together as you recite the prayer of absolution.'
-			'"That was fun." you say after as you leave the cellar, "But it didn''t feel, I don''t know, natural, I guess."'
-			'"That is to be expected, it is a new experience." he replies in agreement, "Why don''t we thry using the confessional for a while, maybe a few month, and see how we like it. Maybe once we are used to it, it will feel more natural."'
-			'You agree to use the confessional from now on and say goodbye to the priest.'
-			act 'Return to Narthex': gt 'ParChurch', 'Narthex'
-		end
-	end
-end	
-
-if $ARGS[0] = 'Questions':
-	menu_off = 1
-	gs 'stat'
-	if Kirillsex = 0:
-		pcs_horny += 2
-		'"Father, are you alright?" you ask concerned, "You sound out of breath."'
-		'"Hmm, what?" Father Kirill stammers and you hear him moving around in the dark confessional, "No, I''m fine. I guess it must the dust and damp down here. I appreciate your conern though."'
-		'"Okay, then," you reply with a little smile as you imagine him covering himself up.'
-	else
-		pcs_horny += 3
-		'"father, are you alright?" you ask knowingly, "You sound a little out of breath. Do you need any help?"'
-		if Kirill_Crpt <= 40:
-			'"N-no, I''m quite alright." Father Kirill relies hastily, "It''s just the dust in here. No need to come in."'
-			'"Okay then," you reply with a grin, "If you''re sure."'
-			'"Yes, yes, I''m quite sure," Father Kirill assures you, "Please continue."'
-		else
-			'"Umm, Father Kirill hetitaes before answering, "Yes, perhaps I do need some help. Could you join me in here?"'
-			'"I thought you would never ask." you grin as you step out of your side of the confessional.'
-			act 'Join Kirill': gt 'Parchurch', 'sex', 1
-		end
 	end
 end
 
