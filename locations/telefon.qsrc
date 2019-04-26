@@ -1,6 +1,11 @@
 # telefon
 ! Draw screens for mobile phone.
 !
+! The base storage for Contacts is controlled by the Array "$contact". This array is a list of NPC identifiers
+! telling us which ones are in your contact list. There are several other ancillary arrays that support the functions
+! of a contact. Each of these has matching indexes to the $contact array. These are mostly used internally, but a
+! writer can make use of them if they need to.
+!
 ! ContactList arrays:
 ! $contact[]     = NPC code for contact. ('A129', 'A29', 'B13', 'C14')
 ! $contactIcon[] = Icon for the contact to use. If path is left off, standard phone icon folder is used. if file extension is left off, '.png' is used
@@ -12,9 +17,15 @@
 ! contactWeek[] = Calls from this contact this week
 ! contactLastCall[] = last time this Contact called
 !
-! Add a contact with AddContact, example, to Add Mother:
+! Add a contact with AddContact
+!	gs 'telefon', 'AddContact', <NPC Code>, <Icon for NPC>, <Code for Incoming Call>, <Limiter for Incoming Call>, <Code for Outgoing Call>, <Limiter for Outgoign Call>
+!  Example, to Add Mother:
 !	gs 'telefon', 'AddContact', 'A29', 'icon_npc1', "gs 'telefon', 'Phone_call'", "hour >= 8 and hour <= 20", "gs 'telefon', 'lover'", "hour >= 8 and hour <= 20"
-
+!
+! Remove a contact with DeleteContact
+!	gs 'telefon', 'DeleteContact', <NPC Code>
+!  Example, to delete Mom:
+!	gs 'telefon', 'DeleteContact', 'A29'
 
 ! Header for Phone Screen.  Keeps consistent and in one place
 $telefon['header'] = '<center>
@@ -122,7 +133,7 @@ if $ARGS[0] = 'IncomingCheck':
 
 	! Limit the number of calls per day
 	! right now allow every 60 minutes
-	if telefIncCheck['NewTotalMinutes'] - telefon['LastIncCallCheck'] > 60:
+	if telefIncCheck['NewTotalMinutes'] - telefon['LastIncCallCheck'] > 60 and menu_off = 0:
 		telefon['LastIncCallCheck'] = telefIncCheck['NewTotalMinutes']
 		gs 'telefon','IncomingCallChooser'
 	end
@@ -456,6 +467,248 @@ if $ARGS[0] = 'callingTheLover' and loverGender[ARGS[1]] = 0:
 	end
 
 	act 'Hangup':gt 'telefon', 'fin'
+end
+
+!! NPC Date
+!!	ARGS[1] = contactlist index
+!!	$ARGS[2] = Date Location
+if $ARGS[0] = 'NPCDate':
+
+	Call4Date["ContactIndex"] = ARGS[1]
+	$Call4Date["Location"] = $ARGS[2]
+
+	$Call4Date["NPC"] = $contact[Call4Date['ContactIndex']]
+	$Call4Date["CallerName"] = $npc_nickname[$Call4Date["NPC"]]
+
+	!! These variables are setup for certain downstream functions
+	$caller = $Call4Date["CallerName"]
+	$callerid = $contactIcon[Call4Date["ContactIndex"]]
+	$boydesc = $Call4Date["CallerName"]
+
+	pcs_mood += 10
+	npc_rel[$Call4Date["NPC"]] += 3
+
+	if $Call4Date["Location"] = 'park':
+		if npc_gender[$Call4Date["NPC"]] = 0:
+			gt 'dateM','datepark'
+		else
+			gt 'dateF','datepark'
+		end
+	elseif $Call4Date["Location"] = 'movie':
+		if npc_gender[$Call4Date["NPC"]] = 0:
+			gt 'dateM','datecinema'
+		else
+			!Not implemented yet
+			!gt 'dateF','datecinema'
+		end
+	elseif $Call4Date["Location"] = 'bar':
+		if npc_gender[$Call4Date["NPC"]] = 0:
+			gt 'dateM','datebar'
+		else
+			gt 'dateF','datebar'
+		end
+	elseif $Call4Date["Location"] = 'cafe':
+		if npc_gender[$Call4Date["NPC"]] = 0:
+			gt 'dateM','datecafe'
+		else
+			!Not implemented yet
+			!gt 'dateF','datecafe'
+		end
+	end
+
+	killvar 'Call4Date'
+	killvar '$Call4Date'
+end
+
+!! Sveta Calls the NPC
+!!	ARGS[1] = contactlist index
+if $ARGS[0] = 'SvetaCallsNPC':
+	cls
+	cla
+	Call4Date["ContactIndex"] = ARGS[1]
+	$Call4Date["NPC"] = $contact[Call4Date['ContactIndex']]
+	$Call4Date["CallerName"] = $npc_nickname[$Call4Date["NPC"]]
+	if npc_gender[$Call4Date["NPC"]] = 0:
+		$Call4Date["NPC-he"] = 'he'
+		$Call4Date["NPC-He"] = 'He'
+		$Call4Date["NPC-his"] = 'his'
+		$Call4Date["NPC-His"] = 'His'
+	else
+		$Call4Date["NPC-he"] = 'her'
+		$Call4Date["NPC-He"] = 'Her'
+		$Call4Date["NPC-his"] = 'hers'
+		$Call4Date["NPC-His"] = 'Hers'
+	end
+
+	!! These variables are setup for certain downstream functions
+	$caller = $Call4Date["CallerName"]
+	$callerid = $contactIcon[Call4Date["ContactIndex"]]
+
+	gs 'telefon','phone_balance'
+	gs 'telefon','phone_call_receive'
+
+	Call4Date["willAgree"] = (rand(0, 10) > 3)
+
+	'"Yes, I''m listening," says a voice from the speaker.'
+
+	if month > 5 and temper > 20 and sunWeather = 1:
+		act 'Invite to the park':
+			cla
+			'"Let''s go for a walk in the park."'
+
+			if Call4Date["willAgree"]:
+				'<<$Call4Date["CallerName"]>>, "See you in the park in an hour."'
+
+				act 'Go':gt 'telefon', 'NPCDate', Call4Date["ContactIndex"], 'park'
+			else
+				gs 'telefon','telotkaz',$Call4Date["CallerName"]
+			end
+		end
+	end
+
+	act 'Invite to a movie':
+		cla
+		'"Want to go see a movie?"'
+
+		if Call4Date["willAgree"]:
+			'<<$Call4Date["CallerName"]>>, "See you at the movie theater in an hour."'
+
+			act 'Go':gt gt 'telefon', 'NPCDate', Call4Date["ContactIndex"], 'movie'
+		else
+			gs 'telefon','telotkaz',$Call4Date["CallerName"]
+		end
+	end
+
+	if  $home_town = 'city':
+		act 'Invite to the bar':
+			cla
+			'"Let''s go to the bar."'
+
+			if Call4Date["willAgree"]:
+				'<<$Call4Date["CallerName"]>>, "See you at the bar in an hour."'
+
+				act 'Go':gt 'telefon', 'NPCDate', Call4Date["ContactIndex"], 'bar'
+			else
+				gs 'telefon','telotkaz',$Call4Date["CallerName"]
+			end
+		end
+	end
+
+	act 'Invite to the cafe':
+		cla
+		'"Let''s go to the cafe."'
+
+		if Call4Date["willAgree"]:
+			'<<$Call4Date["CallerName"]>>, "See you at the cafe in an hour."'
+
+			act 'Go':gt gt 'telefon', 'NPCDate', Call4Date["ContactIndex"], 'cafe'
+		else
+			gs 'telefon','telotkaz',$Call4Date["CallerName"]
+		end
+	end
+
+	act 'I think we should break up...':
+		cla
+		'<<$Call4Date["NPC-He"]>> sounds hurt, but you insist it is for the best. You both say goodbye and part ways.'
+		gs 'telefon', 'DeleteContact', $Call4Date["NPC"]
+
+		act 'Hangup':gt 'telefon', 'fin'
+	end
+
+	act 'Hangup':gt 'telefon', 'fin'
+
+	killvar 'Call4Date'
+	killvar '$Call4Date'
+	killvar '$DateNickName'
+end
+
+! NPC Calls Sveta for a Date
+!	ARGS[1] = $contact index number
+if $ARGS[0] = 'NPCCallsForDate':
+	cla
+	clr
+	Call4Date["ContactIndex"] = ARGS[1]
+	$Call4Date["NPC"] = $contact[Call4Date['ContactIndex']]
+
+	!!Pick a nickname that caller will use for Sveta
+	$DateNickName[0] = 'cutie'
+	$DateNickName[1] = 'honey'
+	$DateNickName[2] = 'sweetie'
+	$DateNickName[3] = 'baby'
+	$DateNickName[4] = 'hot stuff'
+	$DateNickName[5] = '<<$pcs_nickname>>'
+	$Call4Date['SvetaName'] = $DateNickName[rand(0, arrsize('$DateNickName'))]
+
+	$Call4Date['CallerName'] = $npc_nickname[$Call4Date["NPC"]]
+
+	!! These variables are setup for certain downstream functions
+	$caller = $Call4Date["CallerName"]
+	$callerid = $contactIcon[Call4Date["ContactIndex"]]
+
+	'Hey <<$Call4Date["SvetaName"]>>, it''s me, <<$Call4Date["CallerName"]>>. How''s it going?'
+
+	act 'Answer':
+		cla
+		'"Pretty good, you?"'
+		'<<$Call4Date["CallerName"]>>, "Great, but I kind of miss you, can we meet today?"'
+		if week > 1 and week < 5 and workKafe = 1:
+			act 'Sorry, I''m working today':
+				cla
+				'"Sorry, I''m working today."'
+				'<<$Call4Date["CallerName"]>>, "Okay, I''ll call tomorrow."'
+
+				act 'Hang up':gt 'telefon', 'fin'
+			end
+		end
+
+		act 'Tonight':
+			cla
+			npc_rel[$Call4Date["NPC"]] += 1
+			contMeetDay[Call4Date["ContactIndex"]] = daystart
+			'"How about this evening?"'
+			'<<$Call4Date["CallerName"]>>, "Sounds great! When can I come to pick you up?"'
+
+			act 'Pick a time':
+				cla
+				contMeetHour[Call4Date["ContactIndex"]] = input ("When do you want to be picked up. It is now <<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>>. [Enter the hour only 0 - 20]")
+				if contMeetHour[Call4Date["ContactIndex"]] <= hour or contMeetHour[Call4Date["ContactIndex"]] > 23:contMeetHour[Call4Date["ContactIndex"]] = 20
+
+				'"How about <<contMeetHour[Call4Date["ContactIndex"]]>>:00?."'
+				'<<$Call4Date["CallerName"]>>, "Okay <<$Call4Date["SvetaName"]>>, see you at <<contMeetHour[Call4Date["ContactIndex"]]>>:00."'
+
+				act 'Hang up':gt 'telefon', 'fin'
+			end
+		end
+
+		act 'Maybe tomorrow':
+			cla
+			npc_rel[$Call4Date["NPC"]] -= 1
+			'"I''m busy today. Call tomorrow."'
+
+			if npc_rel[$Call4Date["NPC"]] <= 0:'<<$Call4Date["CallerName"]>>, Are you fucking me, you know what. Suck my dick.' & gs 'telefon', 'DeleteContact', $Call4Date["NPC"]
+			if npc_rel[$Call4Date["NPC"]] > 0:'(<<$Call4Date["CallerName"]>>) -  Okay, I''ll call tomorrow.'
+
+			act 'Hang up': gt 'telefon', 'fin'
+		end
+
+		act 'I think we should break up...':
+			cla
+			'He sounds hurt, but you insist it is for the best. You both say goodbye and part ways.'
+			gs 'telefon', 'DeleteContact', $Call4Date["NPC"]
+
+			act 'Hang up': gt 'telefon', 'fin'
+		end
+	end
+
+	act 'Hang up (end relationship)':
+		cla
+		gs 'telefon', 'DeleteContact', $Call4Date["NPC"]
+		gt 'telefon', 'fin'
+	end
+
+	killvar 'Call4Date'
+	killvar '$Call4Date'
+	killvar '$DateNickName'
 end
 
 if $ARGS[0] = 'lover' and loverGender[ARGS[1]] = 0:
