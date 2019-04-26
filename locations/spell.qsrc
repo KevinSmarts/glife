@@ -77,6 +77,7 @@ if $ARGS[0] = 'regenerate':
 
 		'<b><font color = green>Your body surges with life. You feel better already.</font></b>'
 		killvar 'regenVal'
+		killvar 'regenArrIdx'
 	else
 		'<b>The spell fizzles.  Nothing seems to happen.</b>'
 	end
@@ -84,11 +85,63 @@ end
 
 if $ARGS[0] = 'painblock':
 	if SuccessValue > 0:
-		pain['killer'] += 1
+		pain['killer'] = 1
 		'<b><font color = green>Your pain recedes into a dull throb.</font></b>'
 	else
 		'<b>The spell fizzles.  Nothing seems to happen.</b>'
 	end
+end
+
+if $ARGS[0] = 'berserk':
+	if SuccessValue > 0:
+		spellArrIdx = arrpos('$spellTimeName','berserk')
+		pain['killer'] = 1
+		if spellArrIdx > -1:
+			! if it''s found, then update only
+			spellComplete[spellArrIdx] = totminut + 120
+		else
+			! Save current Health percentage, since changing these stats will change healthmax
+			healthPercent = pcs_health * 100 / healthmax
+			staminPercent = pcs_stam * 100 / stammax
+			! Boost Stats
+			stren_lvl += 200
+			stren_lvlst += 200
+			stren_muta += 4
+			agil_lvl += 200
+			agil_lvlst += 200
+			agil_muta += 4
+			vital_lvl += 200
+			vital_lvlst += 200
+			vital_muta += 4
+			!gs 'stat_sklattrib'
+			! Run stats to recalculate max health
+			gs 'stat'
+			! Update health to be appropiate percentage of new healthmax
+			pcs_health = (healthPercent * healthmax / 100) + 1
+			pcs_stam = (staminPercent * stammax) + 1
+			! Add Timer to remove this effect after tiem period
+			$berserkCode={
+				! Return Stats to normal
+				stren_lvl -= 200
+				stren_lvlst -= 200
+				stren_muta -= 4
+				agil_lvl -= 200
+				agil_lvlst -= 200
+				agil_muta -= 4
+				vital_lvl -= 200
+				vital_lvlst -= 200
+				vital_muta -= 4
+			}
+			gs 'spellTimer', 'add', 'berserk', 120, $berserkCode, ''
+		end
+		'<b><font color = green>You feel a huge adrenalin surge. You begin looking for someone to battle.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
+	killvar 'spellArrIdx'
+	killvar 'berserkCode'
+	killvar 'healthPercent'
+	killvar 'staminPercent'
 end
 
 if $ARGS[0] = 'reset':
