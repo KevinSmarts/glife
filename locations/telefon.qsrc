@@ -13,14 +13,15 @@
 ! $contactOSche[] = If statement code to determine schedule for outbound calls
 ! $contactICode[] = Code to execute for Incoming call
 ! $contactISche[] = if statement code for schedule of incoming calls
+! contactAnon[] = 0 if contact number is known to Sveta, 1 for Anonymous
 ! contactToday[] = Calls from this contact today
 ! contactWeek[] = Calls from this contact this week
 ! contactLastCall[] = last time this Contact called
 !
 ! Add a contact with AddContact
-!	gs 'telefon', 'AddContact', <NPC Code>, <Icon for NPC>, <Code for Incoming Call>, <Limiter for Incoming Call>, <Code for Outgoing Call>, <Limiter for Outgoign Call>
+!	gs 'telefon', 'AddContact', <NPC Code>, <Icon for NPC>, <Code for Incoming Call>, <Limiter for Incoming Call>, <Code for Outgoing Call>, <Limiter for Outgoign Call>, <Anonymous=1>
 !  Example, to Add Mother:
-!	gs 'telefon', 'AddContact', 'A29', 'icon_npc1', "gs 'telefon', 'Phone_call'", "hour >= 8 and hour <= 20", "gs 'telefon', 'lover'", "hour >= 8 and hour <= 20"
+!	gs 'telefon', 'AddContact', 'A29', 'icon_npc1', "gs 'telefon', 'Phone_call'", "hour >= 8 and hour <= 20", "gs 'telefon', 'lover'", "hour >= 8 and hour <= 20", 0
 !
 ! Remove a contact with DeleteContact
 !	gs 'telefon', 'DeleteContact', <NPC Code>
@@ -151,9 +152,14 @@ if $ARGS[0] = 'IncomingCallChooser':
 		if $contactICode[i] ! "":
 			if dyneval('result = iif(<<$contactISche[i]>>,1,0)') = 1:
 				j = arrsize('$telefIncCall')
+				if contactAnon[i] = 1:
+					$telefIncIcon[j] = "images/system/phone/decline.png"
+					$telefIncName[j] = "Unknown Caller"
+				else
+					$telefIncIcon[j] = $contactIcon[i]
+					$telefIncName[j] = $npc_nickname[$contact[i]]
+				end
 				$telefIncCall[j] = $contactICode[i]
-				$telefIncIcon[j] = $contactIcon[i]
-				$telefIncName[j] = $npc_nickname[$contact[i]]
 				$telefIncNPC[j] = $contact[i]
 			end
 		end
@@ -1002,12 +1008,14 @@ if $ARGS[0] = 'AddContact':
 	! $ARGS[4] = If statement code to determine schedule for outbound calls
 	! $ARGS[5] = Code to execute for Incoming call
 	! $ARGS[6] = if statement code for schedule of incoming calls
+	!  ARGS[7] = Anonymous? 0 if not, 1 if yes
 	$telefonCon['NPC'] = $ARGS[1]
 	$telefonCon['Icon'] = $ARGS[2]
 	$telefonCon['OutCode'] = $ARGS[3]
 	$telefonCon['OutSched'] = $ARGS[4]
 	$telefonCon['InCode'] = $ARGS[5]
 	$telefonCon['InSched'] = $ARGS[6]
+	telefonCon['Anonymous'] = ARGS[7]
 	telefonCon['ContactListID'] = arrpos('$contact',$telefonCon['NPC'])
 	if telefonCon['ContactListID'] = -1:
 		telefonCon['ContactListID'] = arrsize('$contact')
@@ -1018,6 +1026,7 @@ if $ARGS[0] = 'AddContact':
 	$contactOSche[telefonCon['ContactListID']] = $telefonCon['OutSched']
 	$contactICode[telefonCon['ContactListID']] = $telefonCon['InCode']
 	$contactISche[telefonCon['ContactListID']] = $telefonCon['InSched']
+	contactAnon[telefonCon['ContactListID']] = telefonCon['Anonymous']
 
 	killvar 'telefonCon'
 	killvar '$telefonCon'
@@ -1046,7 +1055,9 @@ if $ARGS[0] = 'ContactList':
 	i=0
 	:contactloop2
 	if i < arrsize('$contact'):
-		$telefon['body'] += dyneval($telefon['contact'],$contactIcon[i],$npc_nickname[$contact[i]],$contactOCode[i],$contactOSche[i])
+		if contactAnon[i] = 0:
+			$telefon['body'] += dyneval($telefon['contact'],$contactIcon[i],$npc_nickname[$contact[i]],$contactOCode[i],$contactOSche[i])
+		end
 		i += 1
 		jump 'contactloop2'
 	end
