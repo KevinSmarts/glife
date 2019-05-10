@@ -1,7 +1,8 @@
 #spellBook
-! Make a table of Spells to Cast from a given list.  the list is in the form of the lists as done in thespellList file.
+! Make a table of Spells to Cast from a given list.  the list is in the form of the lists as done in the spellList file.
 !
-! 	$ARGS[0] = Type of List: cast, learn
+! 	$ARGS[0] = Type of List: cast, learn, list
+!				This determines the info to be displayed as wel las the HTML formatting
 ! 	$ARGS[1] = the name of the array to use for the spell list.
 !	$ARGS[2] = (optional) return Action Code - a dynamic piece of code to run instead of generic return.
 !	$ARGS[3] = (optional) Additional code to put in spell link (all spells)
@@ -14,21 +15,24 @@ $spellBookVar['CodeAfterSpell'] = $ARGS[3]
 
 ! Make sure opptional variables have defaults
 if $spellBookVar['ActionCode'] = '':
-	$spellBookVar['ActionCode'] = "gt '<<$loc>>', '<<$metka>>'"
+	$spellBookVar['ActionCode'] = 'gt $loc, $metka'
 end
 if $spellBookVar['CodeAfterSpell'] = '':
-	$spellBookVar['CodeAfterSpell'] = "gt '<<$loc>>', '<<$metka>>'"
+	$spellBookVar['CodeAfterSpell'] = 'gt $loc, $metka'
 end
 
 ! lets the user back out if they don''t want ot cast.
 act 'Never mind':dynamic spellBookVar['ActionCode']
 
 ! This just makes sure the current spellLists are loaded
-if spellMana['fog'] = 0:
-	gs 'spellList'
-end
+gs 'spellList'
 
-! Build the table - Choose Header for Type
+!-----------------------------------------------------------------------------------------------
+! Choose the type of spell list to determine what info will be displayed and the HTML formatting
+!	1) 'TableText' = The header for the table.  The header row
+!	2) 'RowCode' = The code used inside the loop to build the HTML text for that Row.
+
+!! 'learn' type is for displaying which seplls the user is currently learning.
 if $spellBookVar['Type'] = 'learn':
 	$spellBookVar['TableText'] = "
 	<center>
@@ -49,8 +53,8 @@ if $spellBookVar['Type'] = 'learn':
 			$result = ''
 		end
 	}
-else
-	! Default is list of castable spells.
+!! 'list' type is list of castable spells.  This makes a table of spells for the user to cast.
+elseif $spellBookVar['Type'] = 'cast':
 	$spellBookVar['TableText'] = "
 	<center>
 		<table CELLPADDING = '5'>
@@ -62,6 +66,7 @@ else
 	$spellBookVar['RowCode'] = {
 		if spellKnown[$ThisSpellName] = 1:
 			if $spellOptDesc[$ThisSpellName] = '':
+			! If the spell has no Options, we jsut list it out for casting
 				$tmpHTMLCode = " 
 				<tr>
 					<td align='left'><a href=""EXEC: gs 'castSpell', '<<$ThisSpellName>>'& <<$spellBookVar['CodeAfterSpell']>>""><<$spellName[$ThisSpellName]>></a></td>
@@ -69,6 +74,61 @@ else
 					<td align='left'><<$spellDesc[$ThisSpellName]>></td>
 				</tr>"
 			else
+			! If the spell does have options, we make a row for spell info, and loop through additional rows
+			!	with options for the user to pick
+				$tmpHTMLCode = " 
+				<tr>
+					<td align='left'><<$spellName[$ThisSpellName]>></td>
+					<td align='right'><<spellMana[$ThisSpellName]>></td>
+					<td align='left'><<$spellDesc[$ThisSpellName]>></td>
+				</tr>"
+				n=0
+				:RowCodeLoop98
+				if n < arrsize('<<$spellOptDesc[$ThisSpellName]>>'):
+					$spellBookVar['tmpVal'] = dyneval('$result = <<$spellOptVal[$ThisSpellName]>>[<<n>>]')
+					$spellBookVar['tmpName']= dyneval('$result = <<$spellOptDesc[$ThisSpellName]>>[<<n>>]')
+					$tmpHTMLCode += " 
+					<tr>
+						<td align='left'></td>
+						<td align='left'><a href=""EXEC: gs 'castSpell', '<<$ThisSpellName>>', '<<$spellBookVar['tmpVal']>>' & <<$spellBookVar['CodeAfterSpell']>>""><<$spellBookVar['tmpName']>></a></td>
+						<td align='left'></td>
+					</tr>"
+					n += 1
+					jump 'RowCodeLoop98'
+				end
+
+			end
+			$result = $tmpHTMLCode
+			spellBookVar['Counter'] += 1
+			killvar '$tmpHTMLCode'
+			killvar 'n'
+		else
+			$result = ''
+		end
+	}
+!! Default is a list of spells with descriptio nand mana cost listed.
+else
+	$spellBookVar['TableText'] = "
+	<center>
+		<table CELLPADDING = '5'>
+			<tr>
+				<th align='left'>Spell</th>
+				<th align='left'>Mana</th>
+				<th align='left'>Description</th>
+			</tr>"
+	$spellBookVar['RowCode'] = {
+		if spellKnown[$ThisSpellName] = 1:
+			if $spellOptDesc[$ThisSpellName] = '':
+			! If the spell has no Options, we jsut list it out for casting
+				$tmpHTMLCode = " 
+				<tr>
+					<td align='left'><<$spellName[$ThisSpellName]>></td>
+					<td align='right'><<spellMana[$ThisSpellName]>></td>
+					<td align='left'><<$spellDesc[$ThisSpellName]>></td>
+				</tr>"
+			else
+			! If the spell does have options, we make a row for spell info, and loop through additional rows
+			!	with options for the user to pick
 				$tmpHTMLCode = " 
 				<tr>
 					<td align='left'><<$spellName[$ThisSpellName]>></td>
@@ -83,7 +143,7 @@ else
 					$tmpHTMLCode += " 
 					<tr>
 						<td align='left'></td>
-						<td align='left'><a href=""EXEC: gs 'castSpell', '<<$ThisSpellName>>', '<<$spellBookVar['tmpVal']>>' & <<$spellBookVar['CodeAfterSpell']>>""><<$spellBookVar['tmpName']>></a></td>
+						<td align='left'><<$spellBookVar['tmpName']>></td>
 						<td align='left'></td>
 					</tr>"
 					n += 1
