@@ -1,17 +1,204 @@
 # fight
+
+!! Variables to be set before fight - in brackets so you can copy/paste
+!!{
+$opp_name = <<name of opponent>>
+$opp_image = opponent image ie. '<img <<$set_imgh>> src="images/characters/city/tobi/tobi.jpg">'
+opp_def = opponent defence
+opp_run = Opponent running skill used for player escape
+opp_wrstlng = Wrestling skill
+opp_kick = Kicking
+opp_punch = Power punch
+opp_jab = Ligth punch
+opp_stren = Strengh
+opp_agil = Agility
+opp_vital = Opponent health
+opp_react = Reactions
+opp_shoot = opponent marksmanship (only required if they are armed)
+opp_magik = only if they have magic
+opp_mana = only if they have magic
+}
+
 if $ARGS[0] = 'start':
 	menu_off = 1
+	inFight = 1
+	gs 'themes', 'indoors'
 	cla
 	
+	'<center><b><font color="maroon">Fight!</font></b></center>'
+	*nl
+	'<left><img <<$set_imgh>> src="<<FUNC(''$face_image'')>>"></left><right><<$opp_image>></right>'
+	*nl
+	'<left><<$pcs_firstname>></left><center>vs.</center><right><<$opp_name>></right>'
+	
+	pcs_timer = 100 - pcs_reactions
+	opp_timer = 100 - opp_reactions
+	
+	act 'Engage': gt 'fight', 'main'
+end
+
+if $ARGS[0] = 'main':
+	gs 'fight', 'result_check'
+	if pcs_timer > opp_timer:
+		pcs_timer = pcs_timer - opp_reactions
+		opp_timer = 0
+		gt 'fight', 'opponent'
+	else
+		opp_reactions = opp_reactions - pcs_timer
+		pcs_timer = 0
+		gt 'fight', 'player'
+	end
+end
+
+if $ARGS[0] = 'result_check':
+!!cheat to auto-win fights check
 	if fight_cheat = 1:
 		xgt 'ender', 'win'
 		exit
 	end
 	
-	inFight = 1
-	gs 'themes', 'indoors'
-	gs'defence'
-	gs'statBat'
+!!	gs'defence'
+!!	gs'statBat'
+
+!!win/lose conditions
+	if pcs_health <= 0:
+		'<b><font color = red> You lost!</font></b>'
+
+		xgt'ender','loss'
+		exit
+	elseif opp_vital <= 0:
+		'<b><font color = green><<$boydesc>> You won!</font></b>'
+
+		xgt'ender','win'
+		exit
+	elseif pcs_willpwr <= 0:
+		'<b><font color = red> You cannot summon the will to fight!</font></b>'
+
+		xgt'ender','loss'
+		exit
+	end
+	gt 'fight', 'main'
+end
+
+if $ARGS[0] = 'opponent':
+	if opp_magik > 0: gs 'fight', 'opp_spellcast'
+	if rand(0,opp_kick) > 40:
+		'Your opponent attempts a kick!'
+		*nl
+		if opp_kick + rand(0,30) > pcs_reactions / 4 + 3 * pcs_agility / 4:
+			opp_strike = opp_stren * rand(3,4) / 15
+			pcs_health -= opp_strike
+			if opp_strike > 10:
+				'They hit you and you reel in pain.'
+			else
+				'Its a glancing blow, but still hurts.'
+			end
+		else
+			'You avoid the blow.'
+		end
+		opp_timer += 40
+		act 'Next': gt 'fight', 'main'
+	elseif rand(0,opp_punch) > 40:
+		'Your opponent attempts a strong punch!'
+		*nl
+		if opp_punch + rand(0,30) > pcs_reactions / 4 + 3 * pcs_agility / 4:
+			opp_strike = opp_stren * rand(2,3) / 15
+			pcs_health -= opp_strike
+			if opp_strike > 6:
+				'They punch you with real power.'
+			else
+				'Its a glancing blow, but still hurts.'
+			end
+		else
+			'You avoid the blow.'
+		end
+		opp_timer += 30
+		act 'Next': gt 'fight', 'main'
+	else
+		'Your opponent attempts a light!'
+		*nl
+		if opp_jab + rand(0,30) > pcs_reactions / 4 + 3 * pcs_agility / 4:
+			opp_strike = opp_stren * rand(1,2) / 15
+			pcs_health -= opp_strike
+			if opp_strike > 4:
+				'The jab hits home and stings.'
+			else
+				'They barely hit you.'
+			end
+		else
+			'You avoid the blow.'
+		end
+		opp_timer += 15
+		act 'Next': gt 'fight', 'main'
+	end
+end	
+
+if $ARGS[0] = 'player':
+	if pcs_magik > 0: gs 'fight', 'spellcast'
+
+	act 'Kick them':
+		'You attempts a kick!'
+		*nl
+		if pcs_kick + rand(0,30) > opp_reactions / 4 + 3 * opp_agility / 4:
+			pcs_strike = pcs_stren * rand(3,4) / 15
+			opp_health -= pcs_strike
+			if pcs_strike > 10:
+				'You hit them and they reel in pain.'
+			else
+				'Its a glancing blow, but still hurts them.'
+			end
+		else
+			'They avoid the blow.'
+		end
+		pcs_timer += 40
+		act 'Next': gt 'fight', 'main'
+	end
+
+	act 'Hard punch':
+		'Your opponent attempts a strong punch!'
+		*nl
+		if pcs_punch + rand(0,30) > opp_reactions / 4 + 3 * opp_agility / 4:
+			pcs_strike = pcs_stren * rand(2,3) / 15
+			opp_health -= pcs_strike
+			if pcs_strike > 6:
+				'You punch them with real power.'
+			else
+				'Its a glancing blow, but still hurts them.'
+			end
+		else
+			'They avoid the blow.'
+		end
+		pcs_timer += 30
+		act 'Next': gt 'fight', 'main'
+	end
+
+	act 'Jab them':
+		'Your opponent attempts a light!'
+		*nl
+		if pcs_jab + rand(0,30) > opp_reactions / 4 + 3 * opp_agility / 4:
+			pcs_strike = pcs_stren * rand(1,2)/15
+			opp_health -= pcs_strike
+			if pcs_strike > 4:
+				'Your jab hits home and stings them.'
+			else
+				'You barely hit them.'
+			end
+		else
+			'They avoid the blow.'
+		end
+		pcs_timer += 15
+		act 'Next': gt 'fight', 'main'
+	end
+end	
+
+
+if $ARGS[0] = 'opp_spellcast':
+end
+
+if $ARGS[0] = 'pcs_spellcast':
+end
+
+!!{
 
 	if SasoriBody > 2 and healthV <= 0 or SasoriBody > 2 and manaV <= 0 or SasoriBody > 2 and willpowerV <= 0:
 		SasoriBody = SasoriBody - 1
@@ -309,6 +496,7 @@ if $ARGS[0] = 'start':
 		end
 	end
 end
+}
 
 if $ARGS[0] = 'sta':
 	menu_off = 1
