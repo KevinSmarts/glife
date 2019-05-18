@@ -80,56 +80,84 @@ if $ARGS[0] = 'result_check':
 	gt 'fight', 'main'
 end
 
-if $ARGS[0] = 'opponent':
-	if opp_magik > 0: gs 'fight', 'opp_spellcast'
-	if rand(0,opp_kick[0]) > 40:
-		'Your opponent attempts a kick!'
-		*nl
-		if opp_kick[0] + rand(0,30) > pcs_react / 4 + 3 * pcs_agil / 4:
-			opp_strike = opp_stren[0] * rand(3,4) / 15
-			pcs_health -= opp_strike
-			if opp_strike > 10:
-				'They hit you and you reel in pain.'
-			else
-				'Its a glancing blow, but still hurts.'
-			end
-		else
-			'You avoid the blow.'
-		end
-		opp_timer += 40
-		act 'Next': gt 'fight', 'main'
-	elseif rand(0,opp_punch[0]) > 40:
-		'Your opponent attempts a strong punch!'
-		*nl
-		if opp_punch[0] + rand(0,30) > pcs_react / 4 + 3 * pcs_agil / 4:
-			opp_strike = opp_stren[0] * rand(2,3) / 15
-			pcs_health -= opp_strike
-			if opp_strike > 6:
-				'They punch you with real power.'
-			else
-				'Its a glancing blow, but still hurts.'
-			end
-		else
-			'You avoid the blow.'
-		end
-		opp_timer += 30
-		act 'Next': gt 'fight', 'main'
+!! Kick
+$AttackType[0] = 'Kick'
+$AttackSkill[0] = 'kick'
+AttackMin[0] = 3
+AttackMax[0] = 4
+AttackTime[0] = 40
+!! Hard Punch
+$AttackType[1] = 'Hard Punch'
+$AttackSkill[1] = 'punch'
+AttackMin[1] = 2
+AttackMax[1] = 3
+AttackTime[1] = 30
+!! Jab
+$AttackType[2] = 'Jab'
+$AttackSkill[2] = 'jab'
+AttackMin[2] = 1
+AttackMax[2] = 2
+AttackTime[2] = 15
+
+!!{Attack a target
+	$ARGS[0] = Attack Type
+	$ARGS[1] = Target Type
+	 ARGS[2] = Which target
+	 ARGS[3] = Which Attacker
+}
+$fight['Attack'] = {
+	$fightAtk['Type'] = $ARGS[0]
+	$fightAtk['TargetType'] = $ARGS[1]
+	fightAtk['TargetNumber'] = ARGS[2]
+	fightAtk['AttackerNumber'] = ARGS[3]
+
+	if $fightAtk['TargetType'] = 'opp':
+		$fightAtk['AttackerType'] = 'pcs'
+		$fightAtk['AttackerPronoun'] = 'You'
+		$fightAtk['TargetPronoun'] = 'They'
 	else
-		'Your opponent attempts a light!'
-		*nl
-		if opp_jab[0] + rand(0,30) > pcs_react / 4 + 3 * pcs_agil / 4:
-			opp_strike = opp_stren[0] * rand(1,2) / 15
-			pcs_health -= opp_strike
-			if opp_strike > 4:
-				'The jab hits home and stings.'
-			else
-				'They barely hit you.'
-			end
+		$fightAtk['AttackerType'] = 'opp'
+		$fightAtk['AttackerPronoun'] = 'They'
+		$fightAtk['TargetPronoun'] = 'You'
+	end
+
+	fightAtk['Type'] = arrpos('$AttackType',$fightAtk['Type'])
+	fightAtk['AttackerSkillValue'] = dyneval("result = <<$fightAtk['TargetType']>>_<<$AttackSkill[fightAtk['Type']]>>[<<fightAtk['TargetNumber']>>]")
+	fightAtk['TargetReactValue'] = dyneval("result = <<$fightAtk['TargetType']>>_react[<<fightAtk['AttackerNumber']>>]")
+	fightAtk['TargetAgilValue'] = dyneval("result = <<$fightAtk['TargetType']>>_agil[<<fightAtk['TargetNumber']>>]")
+	fightAtk['MinDamage'] = AttackMin[fightAtk['Type']]
+	fightAtk['MaxDamage'] = AttackMax[fightAtk['Type']]
+
+	'<<$fightAtk["AttackerPronoun"]>> attempts a <<$fightAtk["Type"]>>!'
+	*nl
+	if fightAtk['AttackerSkillValue'] + rand(0,30) > fightAtk['TargetReactValue'] / 4 + 3 * fightAtk['TargetAgilValue'] / 4:
+		!!Calculate Damage
+		dynamic "fightAtk['Damage'] = <<$fightAtk['AttackerType']>>_stren[<<fightAtk['AttackerNumber']>>] * rand(<<fightAtk['MinDamage']>>,<<fightAtk['MaxDamage']>>) / 15"
+		!!Apply Damage
+		dynamic "<<$fightAtk['TargetType']>>_health -= fightAtk['Damage']"
+		if fightAtk['Damage'] > 10:
+			'The hit is hard and <<$fightAtk["TargetPronoun"]>> reel in pain.'
 		else
-			'You avoid the blow.'
+			'Its a glancing blow, but still hurts.'
 		end
-		opp_timer += 15
-		act 'Next': gt 'fight', 'main'
+	else
+		'<<$fightAtk["TargetPronoun"]>> avoid the blow.'
+	end
+	dynamic "<<$fightAtk['AttackerType']>>_timer += AttackTime[fightAtk['Type']]"
+	act 'Next': gt 'fight', 'main'
+
+	killvar 'fightAtk'
+	killvar '$fightAtk'
+}
+
+if $ARGS[0] = 'opponent':
+	if opp_magik[0] > 0: gs 'fight', 'opp_spellcast'
+	if rand(0,opp_kick[0]) > 40:
+		dynamic $fight['Attack'], 'Kick', 'pcs', 0, 0
+	elseif rand(0,opp_punch[0]) > 40:
+		dynamic $fight['Attack'], 'Hard Punch', 'pcs', 0, 0
+	else
+		dynamic $fight['Attack'], 'Jab', 'pcs', 0, 0
 	end
 end	
 
@@ -137,57 +165,15 @@ if $ARGS[0] = 'player':
 	if pcs_magik > 0: gs 'fight', 'spellcast'
 
 	act 'Kick them':
-		'You attempts a kick!'
-		*nl
-		if pcs_kick + rand(0,30) > opp_react[0] / 4 + 3 * opp_agil[0] / 4:
-			pcs_strike = pcs_stren * rand(3,4) / 15
-			opp_health -= pcs_strike
-			if pcs_strike > 10:
-				'You hit them and they reel in pain.'
-			else
-				'Its a glancing blow, but still hurts them.'
-			end
-		else
-			'They avoid the blow.'
-		end
-		pcs_timer += 40
-		act 'Next': gt 'fight', 'main'
+		dynamic $fight['Attack'], 'Kick', 'opp', 0, 0
 	end
 
 	act 'Hard punch':
-		'Your opponent attempts a strong punch!'
-		*nl
-		if pcs_punch + rand(0,30) > opp_react[0] / 4 + 3 * opp_agil[0] / 4:
-			pcs_strike = pcs_stren * rand(2,3) / 15
-			opp_health -= pcs_strike
-			if pcs_strike > 6:
-				'You punch them with real power.'
-			else
-				'Its a glancing blow, but still hurts them.'
-			end
-		else
-			'They avoid the blow.'
-		end
-		pcs_timer += 30
-		act 'Next': gt 'fight', 'main'
+		dynamic $fight['Attack'], 'Hard Punch', 'opp', 0, 0
 	end
 
 	act 'Jab them':
-		'Your opponent attempts a light!'
-		*nl
-		if pcs_jab + rand(0,30) > opp_react[0] / 4 + 3 * opp_agil[0] / 4:
-			pcs_strike = pcs_stren * rand(1,2)/15
-			opp_health -= pcs_strike
-			if pcs_strike > 4:
-				'Your jab hits home and stings them.'
-			else
-				'You barely hit them.'
-			end
-		else
-			'They avoid the blow.'
-		end
-		pcs_timer += 15
-		act 'Next': gt 'fight', 'main'
+		dynamic $fight['Attack'], 'Jab', 'opp', 0, 0
 	end
 end	
 
