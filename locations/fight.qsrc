@@ -126,6 +126,31 @@ if $ARGS[0] = 'randomOpp':
 	killvar 'i'
 end
 
+if $ARGS[0] = 'applyDamage':
+!{ Apply Damage to a participant taking into account clones and shields
+	$ARGS[1] = Target Type ('opp','pcs')
+	 ARGS[2] = Target number
+	 ARGS[3] = damage to be applied
+}
+	$fightAppDam['TargetType'] = $ARGS[1]
+	fightAppDam['TargetNumber'] = ARGS[2]
+	fightAppDam['Damage'] = ARGS[3]
+	dynamic "
+	!!If the target has clones, destroy one
+	if <<$fightAppDam['TargetType']>>_clone[<<fightAppDam['TargetNumber']>>] > 0:
+		<<$fightAppDam['TargetType']>>_clone[<<fightAppDam['TargetNumber']>>] -= 1
+		'Clone Destroyed!'
+	!!if the target has enough shields to mitigate, remove some shields
+	elseif <<$fightAppDam['TargetType']>>_shield[<<fightAppDam['TargetNumber']>>] >= fightAppDam['Damage']:
+		<<$fightAppDam['TargetType']>>_shield[<<fightAppDam['TargetNumber']>>] -= fightAppDam['Damage']
+	!!otherwise remove shields to 0 and the remainder comes from health
+	else
+		<<$fightAppDam['TargetType']>>_health -= (fightAppDam['Damage'] - <<$fightAppDam['TargetType']>>_shield[<<fightAppDam['TargetNumber']>>])
+		<<$fightAppDam['TargetType']>>_shield[<<fightAppDam['TargetNumber']>>] = 0
+	end"
+	killvar '$fightAppDam'
+	killvar 'fightAppDam'
+end
 
 if $ARGS[0] = 'start':
 	menu_off = 1
@@ -333,7 +358,7 @@ $fight['Attack'] = {
 		!!Calculate Damage
 		dynamic "fightAtk['Damage'] = <<$fightAtk['AttackerType']>>_stren[<<fightAtk['AttackerNumber']>>] * rand(<<fightAtk['MinDamage']>>,<<fightAtk['MaxDamage']>>) / 15"
 		!!Apply Damage
-		dynamic "<<$fightAtk['TargetType']>>_health[<<fightAtk['TargetNumber']>>] -= fightAtk['Damage']"
+		gs 'fight', 'applyDamage', $fightAtk['TargetType'], fightAtk['TargetNumber'], fightAtk['Damage']
 		if fightAtk['Damage'] > 10:
 			'The hit is hard and <<$fightAtk["TargetPronoun"]>> reel in pain.'
 		else
