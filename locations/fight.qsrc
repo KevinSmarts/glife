@@ -55,6 +55,7 @@ if $ARGS[0] = 'initFight':
 	killvar 'opp_dambonus'
 	killvar 'opp_init'
 	killvar 'opp_stun'
+	killvar 'opp_timer'
 
 	!! Clear any allies from previous battle
 	i = arrsize('pcs_health')
@@ -100,6 +101,7 @@ if $ARGS[0] = 'clearPCSArray':
 	killvar 'pcs_dambonus', i
 	killvar 'pcs_init', i
 	killvar 'pcs_stun', i
+	killvar 'pcs_timer', i
 
 	killvar 'i'
 end
@@ -169,23 +171,23 @@ if $ARGS[0] = 'start':
 
 	$HTMLText = '<table>
 		<tr>
-			<th align="right">Allies</td>
-			<th align="center" valign="center" rowspan=<<tableSize*2+1>> >vs.</td>
-			<th align="left">Opponents</td>
+			<th align="left">Allies</left></td>
+			<th align="center" valign="center" rowspan=<<tableSize*2+1>> >vs.</center></td>
+			<th align="right">Opponents</right></td>
 		</tr>'
 	i = 0
 	:FightPoster
 	if i < tableSize:
 		$HTMLText += '
 		<tr>
-			<td align="right"><img HEIGHT=400 src="<<$pcs_image[i]>>"></td>
+			<td align="left"><img HEIGHT=400 src="<<$pcs_image[i]>>"></left></td>
 
-			<td align="left"><img HEIGHT=400 src="<<$opp_image[i]>>"></td>
+			<td align="right"><img HEIGHT=400 src="<<$opp_image[i]>>"></right></td>
 		</tr>
 		<tr>
-			<td align="right"><<$pcs_name[i]>></td>
+			<td align="left"><<$pcs_name[i]>></left></td>
 
-			<td align="left"><<$opp_name[i]>></td>
+			<td align="right"><<$opp_name[i]>></right></td>
 		</tr>'
 		i += 1
 		jump 'FightPoster'
@@ -194,27 +196,20 @@ if $ARGS[0] = 'start':
 
 	*pl func('cleanHTML',$HTMLText)
 
-	pcs_timer[0] = 100 - pcs_react
-	if pcs_health[1] > 0:
-		pcs_timer[1] = 100 - pcs_react[1]
-	else
-		pcs_timer[1] = 100
+	i=0
+	:PCSTimerInit
+	if i < arrsize('pcs_health'):
+		pcs_timer[i] = 100 - pcs_react[i]
+		i +=1
+		jump 'PCSTimerInit'
 	end
-	if pcs_health[2] > 0:
-		pcs_timer[2] = 100 - pcs_react[2]
-	else
-		pcs_timer[2] = 100
-	end
-	opp_timer[0] = 100 - opp_react[0]
-	if opp_health[1] > 0:
-		opp_timer[1] = 100 - opp_react[1]
-	else
-		opp_timer[1] = 100
-	end
-	if opp_health[2] > 0:
-		opp_timer[2] = 100 - opp_react[2]
-	else
-		opp_timer[2] = 100
+
+	i=0
+	:OppTimerInit
+	if i < arrsize('opp_health'):
+		opp_timer[i] = 100 - opp_react[i]
+		i +=1
+		jump 'OppTimerInit'
 	end
 
 	act 'Engage': gt 'fight', 'main'
@@ -224,57 +219,51 @@ if $ARGS[0] = 'start':
 	killvar 'i'
 end
 
-if $ARGS[0] = 'main':
-	gs 'fight', 'result_check'
-	if pcs_timer[0] < opp_timer[0] and pcs_timer[0] < opp_timer[1] and pcs_timer[0] < opp_timer[2] and pcs_timer[0] < pcs_timer[1] and pcs_timer[0] < pcs_timer[2]:
-		if opp_health[0] > 0: opp_timer[0] -= pcs_timer[0]
-		if opp_health[1] > 0: opp_timer[1] -= pcs_timer[0]
-		if opp_health[2] > 0: opp_timer[2] -= pcs_timer[0]
-		if pcs_health[1] > 0: pcs_timer[1] -= pcs_timer[0]
-		if pcs_health[2] > 0: pcs_timer[2] -= pcs_timer[0]
-		pcs_timer[0] = 0
-		gt 'fight', 'player', 0
-	elseif pcs_timer[1] < opp_timer[0] and pcs_timer[1] < opp_timer[1] and pcs_timer[1] < opp_timer[2] and pcs_timer[1] < pcs_timer[0] and pcs_timer[1] < pcs_timer[2]:
-		if opp_health[0] > 0: opp_timer[0] -= pcs_timer[1]
-		if opp_health[1] > 0: opp_timer[1] -= pcs_timer[1]
-		if opp_health[2] > 0: opp_timer[2] -= pcs_timer[1]
-		if pcs_health[0] > 0: pcs_timer[0] -= pcs_timer[1]
-		if pcs_health[2] > 0: pcs_timer[2] -= pcs_timer[1]
-		pcs_timer[1] = 0
-		gt 'fight', 'player', 1
-	elseif pcs_timer[2] < opp_timer[0] and pcs_timer[2] < opp_timer[1] and pcs_timer[2] < opp_timer[2] and pcs_timer[2] < pcs_timer[1] and pcs_timer[2] < pcs_timer[0]:
-		if opp_health[0] > 0: opp_timer[0] -= pcs_timer[2]
-		if opp_health[1] > 0: opp_timer[1] -= pcs_timer[2]
-		if opp_health[2] > 0: opp_timer[2] -= pcs_timer[2]
-		if pcs_health[0] > 0: pcs_timer[0] -= pcs_timer[2]
-		if pcs_health[1] > 0: pcs_timer[1] -= pcs_timer[2]
-		pcs_timer[2] = 0
-		gt 'fight', 'player', 2
-	elseif opp_timer[0] < opp_timer[1] and opp_timer[0] < opp_timer[2] and opp_timer[0] < pcs_timer[0] and opp_timer[0] < pcs_timer[1] and opp_timer[0] < pcs_timer[2]:
-		if opp_health[1] > 0: opp_timer[1] -= opp_timer[0]
-		if opp_health[2] > 0: opp_timer[2] -= opp_timer[0]
-		if pcs_health[0] > 0: pcs_timer[0] -= opp_timer[0]
-		if pcs_health[1] > 0: pcs_timer[1] -= opp_timer[0]
-		if pcs_health[2] > 0: pcs_timer[2] -= opp_timer[0]
-		opp_timer[0] = 0
-		gt 'fight', 'opponent', 0
-	elseif opp_timer[1] < opp_timer[0] and opp_timer[1] < opp_timer[2] and opp_timer[1] < pcs_timer[0] and opp_timer[1] < pcs_timer[1] and opp_timer[1] < pcs_timer[2]:
-		if opp_health[0] > 0: opp_timer[0] -= opp_timer[1]
-		if opp_health[2] > 0: opp_timer[2] -= opp_timer[1]
-		if pcs_health[0] > 0: pcs_timer[0] -= opp_timer[1]
-		if pcs_health[1] > 0: pcs_timer[1] -= opp_timer[1]
-		if pcs_health[2] > 0: pcs_timer[2] -= opp_timer[1]
-		opp_timer[1] = 0
-		gt 'fight', 'opponent', 1
-	elseif opp_timer[2] < opp_timer[0] and opp_timer[2] < opp_timer[1] and opp_timer[2] < pcs_timer[0] and opp_timer[2] < pcs_timer[1] and opp_timer[2] < pcs_timer[2]:
-		if opp_health[0] > 0: opp_timer[0] -= opp_timer[2]
-		if opp_health[1] > 0: opp_timer[1] -= opp_timer[2]
-		if pcs_health[0] > 0: pcs_timer[0] -= opp_timer[2]
-		if pcs_health[1] > 0: pcs_timer[1] -= opp_timer[2]
-		if pcs_health[2] > 0: pcs_timer[2] -= opp_timer[2]
-		opp_timer[2] = 0
-		gt 'fight', 'opponent', 2
+if $ARGS[0] = 'findActiveTimer':
+!! Find the participant with the lowest Timer
+!	These values are passed back via two global variables.
+!
+!	$fightTimType = 'player' or 'opponent' depending on which group has the lowest member
+!	fightTimNum = the array number of the lowest participant
+
+	$fightTimType = 'player'
+	fightTimNum = 0
+	!! set this to high so that everyone will be lower.
+	fightTimLow = 99999
+
+	!! Find lowest of pcs participants
+	i = 0
+	:LowTimerLoop1
+	if i < arrsize('pcs_timer'):
+		if pcs_timer[i] < fightTimLow:
+			fightTimLow = pcs_timer[i]
+			fightTimNum = i
+		end
+		i += 1
+		jump 'LowTimerLoop1'
 	end
+
+	!!Find if any Opponents have lower than best PCS
+	i = 0
+	:LowTimerLoop2
+	if i < arrsize('opp_timer'):
+		if opp_timer[i] < fightTimLow:
+			fightTimLow = opp_timer[i]
+			fightTimNum = i
+			$fightTimType = 'opponent'
+		end
+		i += 1
+		jump 'LowTimerLoop2'
+	end
+
+	killvar 'i'
+end
+
+if $ARGS[0] = 'main':
+
+	gs 'fight', 'result_check'
+	gs 'fight', 'findActiveTimer'
+	gt 'fight', $fightTimType, fightTimNum
 end
 
 if $ARGS[0] = 'printStats':
@@ -337,7 +326,7 @@ end
 if $ARGS[0] = 'result_check':
 !!cheat to auto-win fights check
 	if fight_cheat = 1:
-		!xgt 'ender', 'win'
+		xgt 'ender', 'win'
 		gt $loc, $metka
 		exit
 	end
@@ -347,19 +336,19 @@ if $ARGS[0] = 'result_check':
 	if pcs_health <= 0:
 		'<b><font color = red> You lost!</font></b>'
 
-		!xgt'ender','loss'
+		xgt'ender','loss'
 		gt $loc, $metka
 		exit
 	elseif opp_health[0] <= 0:
 		'<b><font color = green><<$boydesc>> You won!</font></b>'
 
-		!xgt'ender','win'
+		xgt'ender','win'
 		gt $loc, $metka
 		exit
 	elseif pcs_willpwr <= 0:
 		'<b><font color = red> You cannot summon the will to fight!</font></b>'
 
-		!xgt'ender','loss'
+		xgt'ender','loss'
 		gt $loc, $metka
 		exit
 	end
@@ -370,20 +359,20 @@ end
 !! Kick
 $AttackType[0] = 'Kick'
 $AttackSkill[0] = 'kick'
-AttackMin[0] = 3
-AttackMax[0] = 4
+AttackMin[0] = 5
+AttackMax[0] = 8
 AttackTime[0] = 40
 !! Hard Punch
 $AttackType[1] = 'Hard Punch'
 $AttackSkill[1] = 'punch'
-AttackMin[1] = 2
-AttackMax[1] = 3
+AttackMin[1] = 4
+AttackMax[1] = 6
 AttackTime[1] = 30
 !! Jab
 $AttackType[2] = 'Jab'
 $AttackSkill[2] = 'jab'
-AttackMin[2] = 1
-AttackMax[2] = 2
+AttackMin[2] = 2
+AttackMax[2] = 3
 AttackTime[2] = 15
 
 !!{Attack a target
@@ -400,64 +389,56 @@ if $ARGS[0] = 'Attack':
 	fightAtk_AttackerNumber = ARGS[4]
 
 	if $fightAtk_TargetType = 'opp' and fightAtk_AttackerNumber = 0:
-		$fightAtk['AttackerType'] = 'pcs'
+		$fightAtk_AttackerType = 'pcs'
+		$fightAtk['DefenderName'] = $opp_name[fightAtk_TargetNumber]
 		$fightAtk['AttackerName'] = 'You'
 	elseif $fightAtk_TargetType = 'opp':
-		$fightAtk['AttackerType'] = 'pcs'
-		$fightAtk['AttackerName'] = $pcs_name['<<ARGS[3]>>']
-		$fightAtk['DefenderName'] = $opp_name['<<ARGS[2]>>']
-		$fightAtk['TargetPronoun'] = 'They'
+		$fightAtk['AttackerName'] = $pcs_name[fightAtk_AttackerNumber]
+		$fightAtk['DefenderName'] = $opp_name[fightAtk_TargetNumber]
+		$fightAtk_AttackerType = 'pcs'
 	else
-		$fightAtk['AttackerType'] = 'opp'
-		$fightAtk['AttackerName'] = $opp_name['<<ARGS[3]>>']
-		$fightAtk['DefenderName'] = $pcs_name['<<ARGS[2]>>']
-		$fightAtk['TargetPronoun'] = 'You'
+		$fightAtk_AttackerType = 'opp'
+		$fightAtk['AttackerName'] = $opp_name[fightAtk_AttackerNumber]
+		$fightAtk['DefenderName'] = $pcs_name[fightAtk_TargetNumber]
 	end
 
 	fightAtk_Type = arrpos('$AttackType',$fightAtk_Type)
-	fightAtk['AttackerSkillValue'] = dyneval('result = <<$fightAtk_TargetType>>_<<$AttackSkill[fightAtk_Type]>>[<<fightAtk_TargetNumber>>]')
-	fightAtk['TargetReactValue'] = dyneval('result = <<$fightAtk_TargetType>>_react[<<fightAtk_AttackerNumber>>]')
+	fightAtk['AttackerSkillValue'] = dyneval('result = <<$fightAtk_AttackerType>>_<<$AttackSkill[fightAtk_Type]>>[<<fightAtk_AttackerNumber>>]')
+	fightAtk['TargetReactValue'] = dyneval('result = <<$fightAtk_TargetType>>_react[<<fightAtk_TargetNumber>>]')
 	fightAtk['TargetAgilValue'] = dyneval('result = <<$fightAtk_TargetType>>_agil[<<fightAtk_TargetNumber>>]')
 	fightAtk['MinDamage'] = AttackMin[fightAtk_Type]
 	fightAtk['MaxDamage'] = AttackMax[fightAtk_Type]
 
 	if $fightAtk_TargetType = 'opp' and fightAtk_AttackerNumber = 0:
-		'You attempt to <<$fightAtk["Type"]>> <<$fightAtk["DefenderName"]>>!'
+		'You attempt to <<$fightAtk_Type>> <<$fightAtk["DefenderName"]>>!'
 	else
-		'<<$fightAtk["AttackerName"]>> attempts to <<$fightAtk["Type"]>> <<$fightAtk["DefenderName"]>>!'
+		'<<$fightAtk["AttackerName"]>> attempts to <<$fightAtk_Type>> <<$fightAtk["DefenderName"]>>!'
 	end
 	*nl
 	if fightAtk['AttackerSkillValue'] + rand(0,30) > fightAtk['TargetReactValue'] / 4 + 3 * fightAtk['TargetAgilValue'] / 4:
 		!!Calculate Damage
-		dynamic "fightAtk['Damage'] = <<$fightAtk['AttackerType']>>_stren[<<fightAtk_AttackerNumber>>] * rand(<<fightAtk['MinDamage']>>,<<fightAtk['MaxDamage']>>) / 15"
+		dynamic "fightAtk['Damage'] = <<$fightAtk_AttackerType>>_stren[<<fightAtk_AttackerNumber>>] * rand(<<fightAtk['MinDamage']>>,<<fightAtk['MaxDamage']>>) / 15"
 		!!Apply Damage
 		gs 'fight', 'applyDamage', $fightAtk_TargetType, fightAtk_TargetNumber, fightAtk['Damage']
 		if fightAtk['Damage'] > 10:
 			if $fightAtk_TargetType = 'opp' and fightAtk_AttackerNumber = 0:
-				'The hit is hard and you reel in pain.'
+				'The hit is hard and <<$fightAtk["DefenderName"]>> reels in pain.'
 			else
-				'The hit is hard and <<$fightAtk["AttackerName"]>> reels in pain.'
+				'The hit is hard and you reel in pain.'
 			end
 		else
 			'Its a glancing blow, but still hurts.'
 		end
 	else
-		if $fightAtk_TargetType = 'opp' and fightAtk_AttackerNumber = 0:
+		if $fightAtk_TargetType = 'pcs' and fightAtk_AttackerNumber = 0:
 			'You avoid the blow.'
 		else
-			'<<$fightAtk["AttackerName"]>> avoids the blow.'
+			'<<$fightAtk["DefenderName"]>> avoids the blow.'
 		end
 	end
-	dynamic "<<$fightAtk['AttackerType']>>_timer += AttackTime[fightAtk_Type]"
+	dynamic "<<$fightAtk_AttackerType>>_timer += AttackTime[fightAtk_Type]"
 	cla
 	act 'Next': gt 'fight', 'main'
-
-	killvar 'fightAtk'
-	killvar '$fightAtk'
-	killvar '$fightAtk_Type'
-	killvar '$fightAtk_TargetType'
-	killvar 'fightAtk_TargetNumber'
-	killvar 'fightAtk_AttackerNumber'
 end
 
 if $ARGS[0] = 'opponent':
@@ -483,11 +464,11 @@ if $ARGS[0] = 'opponent':
 	end		
 !!	if opp_magik[0] > 0: gs 'fight', 'opp_spellcast'
 	if rand(0,opp_kick[0]) > 40:
-		gs 'fight', 'Attack', 'Kick', 'pcs', TargetNumber, ARGS[2]
+		gs 'fight', 'Attack', 'Kick', 'pcs', ARGS[2], TargetNumber
 	elseif rand(0,opp_punch[0]) > 40:
-		gs 'fight', 'Attack', 'Hard Punch', 'pcs', TargetNumber, ARGS[2]
+		gs 'fight', 'Attack', 'Hard Punch', 'pcs', ARGS[2], TargetNumber
 	else
-		gs 'fight', 'Attack', 'Jab', 'pcs', TargetNumber, ARGS[2]
+		gs 'fight', 'Attack', 'Jab', 'pcs', ARGS[2], TargetNumber
 	end
 end
 
@@ -517,41 +498,41 @@ if $ARGS[0] = 'player':
 	end
 	if opp_health[0] > 0:
 		act 'Kick <<$opp_name[0]>>':
-			gs 'fight', 'Attack', 'Kick', 'opp', 0, ARGS[2]
+			gs 'fight', 'Attack', 'Kick', 'opp', 0, 0
 		end
 
 		act 'Punch <<$opp_name[0]>> hard':
-			gs 'fight', 'Attack', 'Hard Punch', 'opp', 0, ARGS[2]
+			gs 'fight', 'Attack', 'Hard Punch', 'opp', 0, 0
 		end
 
 		act 'Jab <<$opp_name[0]>>':
-			gs 'fight', 'Attack', 'Jab', 'opp', 0, ARGS[2]
+			gs 'fight', 'Attack', 'Jab', 'opp', 0, 0
 		end
 	end
 	if opp_health[1] > 0:
 		act 'Kick <<$opp_name[1]>>':
-			gs 'fight', 'Attack', 'Kick', 'opp', 1, ARGS[2]
+			gs 'fight', 'Attack', 'Kick', 'opp', 0, 1
 		end
 
 		act 'Punch <<$opp_name[1]>> hard':
-			gs 'fight', 'Attack', 'Hard Punch', 'opp', 1, ARGS[2]
+			gs 'fight', 'Attack', 'Hard Punch', 'opp', 0, 1
 		end
 
 		act 'Jab <<$opp_name[1]>>':
-			gs 'fight', 'Attack', 'Jab', 'opp', 1, ARGS[2]
+			gs 'fight', 'Attack', 'Jab', 'opp', 0, 1
 		end
 	end
 	if opp_health[2] > 0:
 		act 'Kick <<$opp_name[2]>>':
-			gs 'fight', 'Attack', 'Kick', 'opp', 2, ARGS[2]
+			gs 'fight', 'Attack', 'Kick', 'opp', 0, 2
 		end
 
 		act 'Punch <<$opp_name[2]>> hard':
-			gs 'fight', 'Attack', 'Hard Punch', 'opp', 2, ARGS[2]
+			gs 'fight', 'Attack', 'Hard Punch', 'opp', 0, 2
 		end
 
 		act 'Jab <<$opp_name[2]>>':
-			gs 'fight', 'Attack', 'Jab', 'opp', 2, ARGS[2]
+			gs 'fight', 'Attack', 'Jab', 'opp', 0, 2
 		end
 	end	
 end
