@@ -159,7 +159,6 @@ if $ARGS[0] = 'start':
 				'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
 				'You take the initiative and when <<$tXe>> opens <<$tXyr>> mouth you thrust your tongue into <<$tXyr>> mouth.'
 				gs 'arousal', 'kiss', 5
-				pcs_dom += 1
 				pcs_mood += 10
 				gs 'stat'
 				if venera > 4:
@@ -438,7 +437,6 @@ if $ARGS[0] = 'actions':
 
 	act 'What do you want to do today?':
 		*clr & cla
-		if rand(0,1) = 0: sub += 1
 		'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
 		'You tell <<$tXem>> you would rather <<$tXem>> decide what we do today.'
 
@@ -453,6 +451,39 @@ if $ARGS[0] = 'actions':
 			'You can tell <<$tXe>> is happy you gave <<$tXem>> the ability to choose what to do today.'
 		end
 		!!This is the choice maker!
+
+		!!Willpower checks for resistance
+		if loverscompliance[lover_number] <=2:
+			$loverResist = 'easy'
+		elseif loverscompliance[lover_number] <=4:
+			$loverResist = 'medium'
+		else
+			$loverResist = 'hard'
+		end
+		gs 'willpower', 'misc', 'self', $loverResist
+
+		$lover_meet['ChangeActions'] = {
+			!$ARGS[0] = name of thing being changed
+			!$ARGS[1] = Parameter for lover_change procedure
+			$lover_meet['ChangeName'] = $ARGS[0]
+			$lover_meet['ChangeParamName'] = $ARGS[1]
+
+			if will_cost <= pcs_willpwr:
+				act 'I like my <<$lover_meet["ChangeName"]>> just the way it is (<<will_cost>> Willpower)':
+					*clr & cla
+					gs 'willpower', 'pay', 'self'
+					gs 'stat'
+
+					loverrelation[lover_number] -=3
+					'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
+					'<<$loverdesc[lover_number]>> realizes you will not give in this situation, and walks away mumbling to <<$tXemself>>.'
+					dynamic $go_home
+				end
+			else
+				act 'I like my <<$lover_meet["ChangeName"]>> just the way it is (<font color="red"><<will_cost>> Willpower</font>)':'<br><font color="red">You don''t have enough willpower to use this action.</font>'
+			end
+			act 'Agree with <<$tXem>> to change your <<$lover_meet["ChangeName"]>>': gt 'lover_change', '<<$lover_meet["ChangeParamName"]>>'
+		}
 
 		if loverfinance[lover_number] = 0:
 			!! 0 - change player, 1 - beer in stairwell, 2 - walk in park,
@@ -523,112 +554,15 @@ if $ARGS[0] = 'actions':
 					*clr & cla
 					'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
 					'<<$loverdesc[lover_number]>> looks at your hair and says, "can we get your hair dyed?"'
-					!!act 'I''d rather not...':
-					if sub < 20 and loverrelation[lover_number] < 60 and loverscompliance[lover_number] < 6:
-						act 'I like my hair just the way it is':
-							*clr & cla
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> tries to push you to change it, but you are not that submissive to be pressured by <<$tXem>>, nor do your emotions make you make a choice you may regret.'
-							dynamic $go_home
-						end
-						act 'Go with <<$tXem>>': gt 'lover_change', 'Hair'
-						exit
-					elseif loverrelation[lover_number] <= 60 and loverscompliance[lover_number] < 6:
-						act 'You think to yourself, its not like I like <<$tXem>> THAT much...':
-							*clr & cla
-							pcs_dom += 1
-							loverrelation[lover_number] -=3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> <<$tXe>> realizes you adoration for <<$tXem>> isn''t enough to pressure you to do that. <<$tXec>> tells you <<$tXe>> has something to do and heads off'
-							dynamic $go_home
-						end
-						exit
-					elseif sub <= 20 and loverscompliance[lover_number] < 6:
-						act 'Your personality is not something that can be dominated that easily, and you brush <<$tXem>> off, telling <<$tXem>> you are who you are':
-							*clr & cla
-							pcs_dom += 1
-							loverrelation[lover_number] -=3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> realizes you will not give in this situation, and walks away mumbling to <<$tXemself>>.'
-							dynamic $go_home
-						end
-						act 'Go with <<$tXem>>': gt 'lover_change', 'Hair'
-						exit
-					elseif sub > 20 or loverscompliance[lover_number] >= 6:
-						act 'You mumble "I would rather not..."':
-							*clr & cla
-							loverrelation[lover_number] -= 2
-							wantRand = rand(0, 100)
-							wantRand -= 4*loverscompliance[lover_number]
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							if wantRand > sub:
-								'<<$loverdesc[lover_number]>> tries to push you to change it, but you successfully inform <<$tXem>> that you do not want to. This makes <<$tXem>> rather upset.'
-								*nl
-								dynamic $go_home
-							elseif wantRand <= sub:
-								'<<$loverdesc[lover_number]>> keeps up the pressure, and because of your demeanor, and you give in. <<$tXec>> smiles happily and takes you to the salon.'
-								sub += 2
-								loverrelation[lover_number] += 5
-								act 'Go to Salon': gt 'lover_change', 'Hair'
-							end
-						end
-						act 'Go with <<$tXem>>': gt 'lover_change', 'Hair'
-					end
+
+					dynamic $lover_meet['ChangeActions'], 'hair', 'Hair'
+
 				elseif makeupSetting ! makePrefTmp and makePrefTmp ! 0:
 					'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
 					'<<$loverdesc[lover_number]>> thinks about it and says "Can you wear <<$makePrefTmp>> from now on?"'
-					if sub < 20 and loverrelation[lover_number] < 60 and loverscompliance[lover_number] < 6:
-						act 'I like my makeup just the way it is':
-							*clr & cla
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> tries to push you to change it, but you are not that submissive to be pressured by <<$tXem>>, nor do your emotions make you make a choice you may regret.'
-							dynamic $go_home
-						end
-						act 'Agree to change the makeup you usually wear': gt 'lover_change', 'Make'
-						exit
-					elseif loverrelation[lover_number] <= 60 and loverscompliance[lover_number] < 6:
-						act 'You think to yourself, its not like I like <<$tXem>> THAT much...':
-							*clr & cla
-							pcs_dom += 1
-							loverrelation[lover_number] -=3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> <<$tXe>> realizes you adoration for <<$tXem>> isn''t enough to pressure you to do that. You can tell that <<$tXe>> is bummed when <<$tXe>> tells you <<$tXe>> has something to do and heads off.'
-							dynamic $go_home
-						end
-						exit
-					elseif sub <= 20 and loverscompliance[lover_number] < 6:
-						act 'Your personality is not something that can be dominated that easily, and you brush <<$tXem>> off, telling <<$tXem>> you like the makeup you usually wear':
-							*clr & cla
-							pcs_dom += 1
-							loverrelation[lover_number] -=3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> realizes you will not give in this situation, and walks away mumbling to <<$tXemself>>.'
-							dynamic $go_home
-						end
-						act 'Agree to change the makeup you usually wear': gt 'lover_change', 'Make'
-						exit
-					elseif sub > 20 or loverscompliance[lover_number] >= 6:
-						act 'You mumble "What''s wrong with my makeup...?"':
-							*clr & cla
-							loverrelation[lover_number] -= 2
-							wantRand = rand(0, 100)
-							wantRand -= 4*loverscompliance[lover_number]
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							if wantRand > sub:
-								'<<$loverdesc[lover_number]>> tries to push you to change it, but you successfully inform <<$tXem>> that you do not want to. This makes <<$tXem>> rather upset.'
-								*nl
-								dynamic $go_home
-							elseif wantRand <= sub:
-								'<<$loverdesc[lover_number]>> keeps up the pressure, and because of your demeanor, and you give in. You tell <<$tXem>> from now on you will wear <<$makePrefTmp>>.'
-								sub += 2
-								loverrelation[lover_number] += 5
-								act 'Continue': gt 'lover_change', 'Make'
-							end
-						end
-						act 'Agree to change the makeup you usually wear': gt 'lover_change', 'Make'
-					end
+
+					dynamic $lover_meet['ChangeActions'], 'makeup', 'Make'
+
 				elseif pierWearCount < pierPrefTmpMin or pierWearCount > pierPrefTmpMax and pierPrefTmp ! 0 and pierDay <= loverdays[lover_number]:
 					'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
 					'<<$loverdesc[lover_number]>> talks about how you just don''t have the right amount of piercings.'
@@ -637,57 +571,9 @@ if $ARGS[0] = 'actions':
 					else
 						'<<$tXec>> tells you that you should have less piercings.'
 					end
-					if sub < 20 and loverrelation[lover_number] < 60 and loverscompliance[lover_number] < 6:
-						act 'I am not going to change my piercings!':
-							*clr & cla
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> tries to push you to change it, but you are not that submissive to be pressured by <<$tXem>>, nor do your emotions make you make a choice you may regret.'
-							dynamic $go_home
-						end
-						act 'Agree to change the amount of piercings you have':	gt 'lover_change', 'Pier'
-						exit
-					elseif loverrelation[lover_number] <= 60 and loverscompliance[lover_number] < 6:
-						act 'You think to yourself, its not like I like <<$tXem>> THAT much...':
-							*clr & cla
-							pcs_dom += 1
-							loverrelation[lover_number] -=3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> <<$tXe>> realizes you adoration for <<$tXem>> isn''t enough to pressure you to do that. <<$tXec>> tells you <<$tXe>> has something to do and heads off'
-							dynamic $go_home
-						end
-						exit
-					elseif sub <= 20 and loverscompliance[lover_number] < 6:
-						act 'Your personality is not something that can be dominated that easily, and you brush <<$tXem>> off, telling <<$tXem>> you are who you are':
-							*clr & cla
-							pcs_dom += 1
-							loverrelation[lover_number] -=3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> realizes you will not give in this situation, and walks away mumbling to <<$tXemself>>.'
-							dynamic $go_home
-						end
-						act 'Agree to change the amount of piercings you have':	gt 'lover_change', 'Pier'
-						exit
-					elseif sub > 20 or loverscompliance[lover_number] >= 6:
-						act 'You mumble "I would rather not..."':
-							*clr & cla
-							loverrelation[lover_number] -= 2
-							wantRand = rand(0, 100)
-							wantRand -= 4*loverscompliance[lover_number]
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							if wantRand > sub:
-								'<<$loverdesc[lover_number]>> tries to push you to change the amount of piercings you have, but you successfully inform <<$tXem>> that you do not want to. This makes <<$tXem>> rather upset.'
-								*nl
-								dynamic $go_home
-							elseif wantRand <= sub:
-								'<<$loverdesc[lover_number]>> keeps up the pressure, and because of your demeanor, and you give in. <<$tXec>> smiles happily and then gets down to how to get the right amount of piercings.'
-								sub += 2
-								loverrelation[lover_number] += 5
-								act 'Continue':	gt 'lover_change', 'Pier'
-							end
-						end
-						act 'Agree to change the amount of piercings you have':	gt 'lover_change', 'Pier'
-					end
+
+					dynamic $lover_meet['ChangeActions'], 'piercings', 'Pier'
+
 				elseif tattCount < tattPrefTmpMin or tattCount > tattPrefTmpMax and tattPrefTmp ! 0 and tattDay <= loverdays[lover_number]:
 					'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
 					'<<$loverdesc[lover_number]>> talks about how you just don''t have the right amount of tattoos.'
@@ -696,57 +582,9 @@ if $ARGS[0] = 'actions':
 					else
 						'<<$tXec>> tells you that you should have less tattoos.'
 					end
-					if sub < 20 and loverrelation[lover_number] < 60 and loverscompliance[lover_number] < 6:
-						act 'I am not going to change my tattoos!':
-							*clr & cla
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> tries to push you to change it, but you are not that submissive to be pressured by <<$tXem>>, nor do your emotions make you make a choice you may regret.'
-							dynamic $go_home
-						end
-						act 'Agree to change the amount of tattoos you have': gt 'lover_change', 'Tatt'
-						exit
-					elseif loverrelation[lover_number] <= 60 and loverscompliance[lover_number] < 6:
-						act 'You think to yourself, its not like I like <<$tXem>> THAT much...':
-							*clr & cla
-							pcs_dom += 1
-							loverrelation[lover_number] -=3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> <<$tXe>> realizes you adoration for <<$tXem>> isn''t enough to pressure you to do that. <<$tXec>> tells you <<$tXe>> has something to do and heads off'
-							dynamic $go_home
-						end
-						exit
-					elseif sub <= 20 and loverscompliance[lover_number] < 6:
-						act 'Your personality is not something that can be dominated that easily, and you brush <<$tXem>> off, telling <<$tXem>> you are who you are':
-							*clr & cla
-							pcs_dom += 1
-							loverrelation[lover_number] -=3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> realizes you will not give in this situation, and walks away mumbling to <<$tXemself>>.'
-							dynamic $go_home
-						end
-						act 'Agree to change the amount of tattoos you have': gt 'lover_change', 'Tatt'
-						exit
-					elseif sub > 20 or loverscompliance[lover_number] >= 6:
-						act 'You mumble "I would rather not..."':
-							*clr & cla
-							loverrelation[lover_number] -= 2
-							wantRand = rand(0, 100)
-							wantRand -= 4*loverscompliance[lover_number]
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							if wantRand > sub:
-								'<<$loverdesc[lover_number]>> tries to push you to change the amount of tattoos you have, but you successfully inform <<$tXem>> that you do not want to. This makes <<$tXem>> rather upset.'
-								*nl
-								dynamic $go_home
-							elseif wantRand <= sub:
-								'<<$loverdesc[lover_number]>> keeps up the pressure, and because of your demeanor, and you give in. <<$tXec>> smiles happily then starts to take you to the tattoo parlor to get the right amount of tattoos.'
-								sub += 2
-								loverrelation[lover_number] += 5
-								act 'Go to tattoo parlor': gt 'lover_change', 'Tatt'
-							end
-						end
-						act 'Agree to change the amount of tattoos you have': gt 'lover_change', 'Tatt'
-					end
+
+					dynamic $lover_meet['ChangeActions'], 'tattoos', 'Tatt'
+
 				else
 					*clr & cla
 					'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
@@ -851,114 +689,16 @@ if $ARGS[0] = 'actions':
 
 				if pcs_haircol ! hairPref:
 					'<<$loverdesc[lover_number]>> looks at your hair and says, "can we get your hair dyed?"'
-					!!act 'I''d rather not...':
-					if sub < 20 and loverrelation[lover_number] < 60 and compliance < 6:
-						act 'I like my hair just the way it is':
-							*clr & cla
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> tries to push you to change it, but you are not that submissive to be pressured by <<$tXem>>, nor do your emotions make you make a choice you may regret.'
-							dynamic $go_home
-						end
-						act 'Go with <<$tXem>>': gt 'lover_change', 'Hair'
-						exit
-					elseif loverrelation[lover_number] <= 60 and loverscompliance[lover_number] < 6:
-						act 'You think to yourself, its not like I like <<$tXem>> THAT much...':
-							*clr & cla
-							pcs_dom += 1
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> <<$tXe>> realizes you adoration for <<$tXem>> isn''t enough to pressure you to do that. <<$tXec>> tells you <<$tXe>> has something to do and heads off'
-							dynamic $go_home
-						end
-						exit
-					elseif sub <= 20 and loverscompliance[lover_number] < 6:
-						act 'Your personality is not something that can be dominated that easily, and you brush <<$tXem>> off, telling <<$tXem>> you are who you are':
-							*clr & cla
-							pcs_dom += 1
-							loverrelation[lover_number] -=3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> realizes you will not give in this situation, and walks away mumbling to <<$tXemself>>.'
-							dynamic $go_home
-						end
-						act 'Go with <<$tXem>>': gt 'lover_change', 'Hair'
-						exit
-					elseif sub > 20 or loverscompliance[lover_number] >= 6:
-						act 'You mumble "I would rather not..."':
-							*clr & cla
-							loverrelation[lover_number] -= 2
-							wantRand = rand(0, 100)
-							wantRand -= 4*loverscompliance[lover_number]
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							if wantRand > sub:
-								'<<$loverdesc[lover_number]>> tries to push you to change it, but you successfully inform <<$tXem>> that you do not want to. This makes <<$tXem>> rather upset.'
-								*nl
-								dynamic $go_home
-							elseif wantRand <= sub:
-								'<<$loverdesc[lover_number]>> keeps up the pressure, and because of your demeanor, and you give in. <<$tXec>> smiles happily and takes you to the salon.'
-								sub += 2
-								loverrelation[lover_number] += 5
-								act 'Go to Salon':	gt 'lover_change', 'Hair'
-							end
-						end
-						act 'Go with <<$tXem>>': gt 'lover_change', 'Hair'
-					end
+
+					dynamic $lover_meet['ChangeActions'], 'hair', 'Hair'
+
 				elseif makeupSetting ! makePrefTmp and makePrefTmp ! 0:
 					*clr & cla
 					'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
 					'<<$loverdesc[lover_number]>> thinks about it and says "Can you wear <<$makePrefTmp>> from now on?"'
-					!!act 'I''d rather not...':
-					if sub < 20 and loverrelation[lover_number] < 60 and loverscompliance[lover_number] < 6:
-						act 'I like my makeup just the way it is':
-							*clr & cla
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> tries to push you to change it, but you are not that submissive to be pressured by <<$tXem>>, nor do your emotions make you make a choice you may regret.'
-							dynamic $go_home
-						end
-						act 'Agree to change the makeup you usually wear': gt 'lover_change', 'Make'
-						exit
-					elseif loverrelation[lover_number] <= 60 and loverscompliance[lover_number] < 6:
-						act 'You think to yourself, its not like I like <<$tXem>> THAT much...':
-							*clr & cla
-							pcs_dom += 1
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> <<$tXe>> realizes you adoration for <<$tXem>> isn''t enough to pressure you to do that. You can tell that <<$tXe>> is bummed when <<$tXe>> tells you <<$tXe>> has something to do and heads off.'
-							dynamic $go_home
-						end
-						exit
-					elseif sub <= 20 and loverscompliance[lover_number] < 6:
-						act 'Your personality is not something that can be dominated that easily, and you brush <<$tXem>> off, telling <<$tXem>> you like the makeup you usually wear':
-							*clr & cla
-							pcs_dom += 1
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> realizes you will not give in this situation, and walks away mumbling to <<$tXemself>>.'
-							dynamic $go_home
-						end
-						act 'Agree to change the makeup you usually wear': gt 'lover_change', 'Make'
-						exit
-					elseif sub > 20 or loverscompliance[lover_number] >= 6:
-						act 'You mumble "What''s wrong with my makeup...?"':
-							*clr & cla
-							loverrelation[lover_number] -= 2
-							wantRand = rand(0, 100)
-							wantRand -= 4*loverscompliance[lover_number]
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							if wantRand > sub:
-								'<<$loverdesc[lover_number]>> tries to push you to change it, but you successfully inform <<$tXem>> that you do not want to. This makes <<$tXem>> rather upset.'
-								*nl
-								dynamic $go_home
-							elseif wantRand <= sub:
-								'<<$loverdesc[lover_number]>> keeps up the pressure, and because of your demeanor, and you give in. You tell <<$tXem>> from now on you will wear <<$makePrefTmp>>.'
-								sub += 2
-								loverrelation[lover_number] += 5
-								act 'Continue': gt 'lover_change', 'Make'
-							end
-						end
-						act 'Agree to change the makeup you usually wear': gt 'lover_change', 'Make'
-					end
+
+					dynamic $lover_meet['ChangeActions'], 'makeup', 'Make'
+
 				elseif pierWearCount < pierPrefTmpMin or pierWearCount > pierPrefTmpMax and pierPrefTmp ! 0 and pierDay <= loverdays[lover_number]:
 					*clr & cla
 					'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
@@ -968,117 +708,16 @@ if $ARGS[0] = 'actions':
 					else
 						'<<$tXec>> tells you that you should have less piercings.'
 					end
-					if sub < 20 and loverrelation[lover_number] < 60 and loverscompliance[lover_number] < 6:
-						act 'I am not going to change my piercings!':
-							*clr & cla
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> tries to push you to change it, but you are not that submissive to be pressured by <<$tXem>>, nor do your emotions make you make a choice you may regret.'
-							dynamic $go_home
-						end
-						act 'Agree to change the amount of piercings you have': gt 'lover_change', 'Pier'
-						exit
-					elseif loverrelation[lover_number] <= 60 and loverscompliance[lover_number] < 6:
-						act 'You think to yourself, its not like I like <<$tXem>> THAT much...':
-							*clr & cla
-							pcs_dom += 1
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> <<$tXe>> realizes you adoration for <<$tXem>> isn''t enough to pressure you to do that. <<$tXec>> tells you <<$tXe>> has something to do and heads off'
-							dynamic $go_home
-						end
-						exit
-					elseif sub <= 20 and loverscompliance[lover_number] < 6:
-						act 'Your personality is not something that can be dominated that easily, and you brush <<$tXem>> off, telling <<$tXem>> you are who you are':
-							*clr & cla
-							pcs_dom += 1
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> realizes you will not give in this situation, and walks away mumbling to <<$tXemself>>.'
-							dynamic $go_home
-						end
-						act 'Agree to change the amount of piercings you have': gt 'lover_change', 'Pier'
-						exit
-					elseif sub > 20 or loverscompliance[lover_number] >= 6:
-						act 'You mumble "I would rather not..."':
-							*clr & cla
-							loverrelation[lover_number] -= 2
-							wantRand = rand(0, 100)
-							wantRand -= 4*loverscompliance[lover_number]
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							if wantRand > sub:
-								'<<$loverdesc[lover_number]>> tries to push you to change the amount of piercings you have, but you successfully inform <<$tXem>> that you do not want to. This makes <<$tXem>> rather upset.'
-								*nl
-								dynamic $go_home
-							elseif wantRand <= sub:
-								'<<$loverdesc[lover_number]>> keeps up the pressure, and because of your demeanor, and you give in. <<$tXec>> smiles happily and then gets down to how to get the right amount of piercings.'
-								sub += 2
-								loverrelation[lover_number] += 5
-								act 'Continue':	gt 'lover_change', 'Pier'
-							end
-						end
-						act 'Agree to change the amount of piercings you have': gt 'lover_change', 'Pier'
-					end
+
+					dynamic $lover_meet['ChangeActions'], 'piercings', 'Pier'
+
 				elseif tattCount < tattPrefTmpMin or tattCount > tattPrefTmpMax and tattPrefTmp ! 0 and tattDay <= loverdays[lover_number]:
 					*clr & cla
 					'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
 					'<<$loverdesc[lover_number]>> talks about how you just don''t have the right amount of tattoos.'
-					if tattCount < tattPrefTmpMin:
-						'<<$tXec>> tells you that you should have more tattoos.'
-					else
-						'<<$tXec>> tells you that you should have less tattoos.'
-					end
-					if sub < 20 and loverrelation[lover_number] < 60 and loverscompliance[lover_number] < 6:
-						act 'I am not going to change my tattoos!':
-							*clr & cla
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> tries to push you to change it, but you are not that submissive to be pressured by <<$tXem>>, nor do your emotions make you make a choice you may regret.'
-							dynamic $go_home
-						end
-						act 'Agree to change the amount of tattoos you have': gt 'lover_change', 'Tatt'
-						exit
-					elseif loverrelation[lover_number] <= 60 and loverscompliance[lover_number] < 6:
-						act 'You think to yourself, its not like I like <<$tXem>> THAT much...':
-							*clr & cla
-							pcs_dom += 1
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> <<$tXe>> realizes you adoration for <<$tXem>> isn''t enough to pressure you to do that. <<$tXec>> tells you <<$tXe>> has something to do and heads off'
-							dynamic $go_home
-						end
-						exit
-					elseif sub <= 20 and loverscompliance[lover_number] < 6:
-						act 'Your personality is not something that can be dominated that easily, and you brush <<$tXem>> off, telling <<$tXem>> you are who you are':
-							*clr & cla
-							pcs_dom += 1
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> realizes you will not give in this situation, and walks away mumbling to <<$tXemself>>.'
-							dynamic $go_home
-						end
-						act 'Agree to change the amount of tattoos you have': gt 'lover_change', 'Tatt'
-						exit
-					elseif sub > 20 or loverscompliance[lover_number] >= 6:
-						act 'You mumble "I would rather not..."':
-							*clr & cla
-							loverrelation[lover_number] -= 2
-							wantRand = rand(0, 100)
-							wantRand -= 4*loverscompliance[lover_number]
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							if wantRand > sub:
-								'<<$loverdesc[lover_number]>> tries to push you to change the amount of tattoos you have, but you successfully inform <<$tXem>> that you do not want to. This makes <<$tXem>> rather upset.'
-								*nl
-								dynamic $go_home
-							elseif wantRand <= sub:
-								'<<$loverdesc[lover_number]>> keeps up the pressure, and because of your demeanor, and you give in. <<$tXec>> smiles happily then starts to take you to the tattoo parlor to get the right amount of tattoos.'
-								sub += 2
-								loverrelation[lover_number] += 5
-								act 'Go to tattoo parlor': gt 'lover_change', 'Tatt'
-							end
-						end
-						act 'Agree to change the amount of tattoos you have': gt 'lover_change', 'Tatt'
-					end
+
+					dynamic $lover_meet['ChangeActions'], 'tattoos', 'Tatt'
+
 				elseif pcs_lip < lipsPrefTmpMin or pcs_lip > lipsPrefTmpMax and lipsDay <= loverdays[lover_number]:
 					*clr & cla
 					'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
@@ -1088,57 +727,9 @@ if $ARGS[0] = 'actions':
 					else
 						'<<$tXec>> tells you that you should have lip reduction.'
 					end
-					if sub < 20 and loverrelation[lover_number] < 60 and loverscompliance[lover_number] < 6:
-						act '"My lips are fine the way they are!", you say slightly offended':
-							*clr & cla
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> tries to push you to change your lip size, but you are not that submissive to be pressured by <<$tXem>>, nor do your emotions make you make a choice you may regret.'
-							dynamic $go_home
-						end
-						act 'Go with <<$tXem>>': gt 'lover_change', 'Lips'
-						exit
-					elseif loverrelation[lover_number] <= 60 and loverscompliance[lover_number] < 6:
-						act 'You think to yourself, its not like I like <<$tXem>> THAT much to get work done on my lips':
-							*clr & cla
-							pcs_dom += 1
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> <<$tXe>> realizes you adoration for <<$tXem>> isn''t enough to pressure you to get work done on your lips. <<$tXec>> tells you <<$tXe>> has something to do and heads off.'
-							dynamic $go_home
-						end
-						exit
-					elseif sub <= 20 and loverscompliance[lover_number] < 6:
-						act 'Your personality is not something that can be dominated that easily, and you brush <<$tXem>> off, telling <<$tXem>> that you decide what size lips you look good with':
-							*clr & cla
-							pcs_dom += 1
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> realizes you will not give in this situation, and walks away mumbling to <<$tXemself>>.'
-							dynamic $go_home
-						end
-						act 'Go with <<$tXem>>': gt 'lover_change', 'Lips'
-						exit
-					elseif sub > 20 or loverscompliance[lover_number] >= 6:
-						act 'You squeek, "But I like the size of my lips..."':
-							*clr & cla
-							loverrelation[lover_number] -= 2
-							wantRand = rand(0, 100)
-							wantRand -= 4*loverscompliance[lover_number]
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							if wantRand > sub:
-								'<<$loverdesc[lover_number]>> tries to push you to change the size, but you successfully tell <<$tXem>> that you do not want to. This makes <<$tXem>> rather upset.'
-								*nl
-								dynamic $go_home
-							elseif wantRand <= sub:
-								'<<$loverdesc[lover_number]>> keeps up the pressure, and because of your demeanor, and you give in. <<$tXec>> grins widely and takes you to the clinic.'
-								sub += 4
-								loverrelation[lover_number] += 5
-								act 'Go to the clinic':	gt 'lover_change', 'Lips'
-							end
-						end
-						act 'Go with <<$tXem>>': gt 'lover_change', 'Lips'
-					end
+
+					dynamic $lover_meet['ChangeActions'], 'lips', 'Lips'
+
 				elseif tits < titMin or tits > titMax and titsDay <= loverdays[lover_number]:
 					*clr & cla
 					'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
@@ -1148,57 +739,9 @@ if $ARGS[0] = 'actions':
 					else
 						'<<$tXec>> tells you that you should have a breast reduction.'
 					end
-					if sub < 20 and loverrelation[lover_number] < 60 and loverscompliance[lover_number] < 6:
-						act '"My breasts are fine the way they are!", you say slightly offended':
-							*clr & cla
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> tries to push you to change your breast size, but you are not that submissive to be pressured by <<$tXem>>, nor do your emotions make you make a choice you may regret.'
-							dynamic $go_home
-						end
-						act 'Go with <<$tXem>>': gt 'lover_change', 'Tits'
-						exit
-					elseif loverrelation[lover_number] <= 60 and loverscompliance[lover_number] < 6:
-						act 'You think to yourself, its not like I like <<$tXem>> THAT much to get work done on my breasts':
-							*clr & cla
-							pcs_dom += 1
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> <<$tXe>> realizes you adoration for <<$tXem>> isn''t enough to pressure you to get work done on your breasts. <<$tXec>> tells you <<$tXe>> has something to do and heads off.'
-							dynamic $go_home
-						end
-						exit
-					elseif sub <= 20 and loverscompliance[lover_number] < 6:
-						act 'Your personality is not something that can be dominated that easily, and you brush <<$tXem>> off, telling <<$tXem>> that you decide what size breasts you look good with':
-							*clr & cla
-							pcs_dom += 1
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> realizes you will not give in this situation, and walks away mumbling to <<$tXemself>>.'
-							dynamic $go_home
-						end
-						act 'Go with <<$tXem>>': gt 'lover_change', 'Tits'
-						exit
-					elseif sub > 20 or loverscompliance[lover_number] >= 6:
-						act 'You squeek, "But I like the size of my breasts..."':
-							*clr & cla
-							loverrelation[lover_number] -= 2
-							wantRand = rand(0, 100)
-							wantRand -= 4*loverscompliance[lover_number]
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							if wantRand > sub:
-								'<<$loverdesc[lover_number]>> tries to push you to change the size, but you successfully tell <<$tXem>> that you do not want to. This makes <<$tXem>> rather upset.'
-								*nl
-								dynamic $go_home
-							elseif wantRand <= sub:
-								'<<$loverdesc[lover_number]>> keeps up the pressure, and because of your demeanor, and you give in. <<$tXec>> grins widely and takes you to the clinic.'
-								sub += 4
-								loverrelation[lover_number] += 5
-								act 'Go to the clinic':	gt 'lover_change', 'Tits'
-							end
-						end
-						act 'Go with <<$tXem>>': gt 'lover_change', 'Tits'
-					end
+
+					dynamic $lover_meet['ChangeActions'], 'breasts', 'Tits'
+
 				else
 					*clr & cla
 					'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
@@ -1332,112 +875,14 @@ if $ARGS[0] = 'actions':
 
 				if pcs_haircol ! hairPref:
 					'<<$loverdesc[lover_number]>> looks at your hair and says, "can we get your hair dyed?"'
-					!!act 'I''d rather not...':
-					if sub < 20 and loverrelation[lover_number] < 60 and loverscompliance[lover_number] < 6:
-						act 'I like my hair just the way it is':
-							*clr & cla
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> tries to push you to change it, but you are not that submissive to be pressured by <<$tXem>>, nor do your emotions make you make a choice you may regret.'
-							dynamic $go_home
-						end
-						act 'Go with <<$tXem>>': gt 'lover_change', 'Hair'
-						exit
-					elseif loverrelation[lover_number] <= 60 and loverscompliance[lover_number] < 6:
-						act 'You think to yourself, its not like I like <<$tXem>> THAT much...':
-							*clr & cla
-							pcs_dom += 1
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> <<$tXe>> realizes you adoration for <<$tXem>> isn''t enough to pressure you to do that. <<$tXec>> tells you <<$tXe>> has something to do and heads off'
-							dynamic $go_home
-						end
-						exit
-					elseif sub <= 20 and loverscompliance[lover_number] < 6:
-						act 'Your personality is not something that can be dominated that easily, and you brush <<$tXem>> off, telling <<$tXem>> you are who you are':
-							*clr & cla
-							pcs_dom += 1
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> realizes you will not give in this situation, and walks away mumbling to <<$tXemself>>.'
-							dynamic $go_home
-						end
-						act 'Go with <<$tXem>>': gt 'lover_change', 'Hair'
-						exit
-					elseif sub > 20 or loverscompliance[lover_number] >= 6:
-						act 'You mumble "I would rather not..."':
-							*clr & cla
-							loverrelation[lover_number] -= 2
-							wantRand = rand(0, 100)
-							wantRand -= 4*loverscompliance[lover_number]
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							if wantRand > sub:
-								'<<$loverdesc[lover_number]>> tries to push you to change it, but you successfully inform <<$tXem>> that you do not want to. This makes <<$tXem>> rather upset.'
-								*nl
-								dynamic $go_home
-							elseif wantRand <= sub:
-								'<<$loverdesc[lover_number]>> keeps up the pressure, and because of your demeanor, and you give in. <<$tXec>> smiles happily and takes you to the salon.'
-								sub += 2
-								loverrelation[lover_number] += 5
-								act 'Go to Salon': gt 'lover_change', 'Hair'
-							end
-						end
-						act 'Go with <<$tXem>>': gt 'lover_change', 'Hair'
-					end
+
+					dynamic $lover_meet['ChangeActions'], 'hair', 'Hair'
+
 				elseif makeupSetting ! makePrefTmp and makePrefTmp ! 0:
 					'<<$loverdesc[lover_number]>> thinks about it and says "Can you wear <<$makePrefTmp>> from now on?"'
-					!!act 'I''d rather not...':
-					if sub < 20 and loverrelation[lover_number] < 60 and loverscompliance[lover_number] < 6:
-						act 'I like my makeup just the way it is':
-							*clr & cla
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> tries to push you to change it, but you are not that submissive to be pressured by <<$tXem>>, nor do your emotions make you make a choice you may regret.'
-							dynamic $go_home
-						end
-						act 'Agree to change the makeup you usually wear': gt 'lover_change', 'Make'
-						exit
-					elseif loverrelation[lover_number] <= 60 and loverscompliance[lover_number] < 6:
-						act 'You think to yourself, its not like I like <<$tXem>> THAT much...':
-							*clr & cla
-							pcs_dom += 1
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> <<$tXe>> realizes you adoration for <<$tXem>> isn''t enough to pressure you to do that. You can tell that <<$tXe>> is bummed when <<$tXe>> tells you <<$tXe>> has something to do and heads off.'
-							dynamic $go_home
-						end
-						exit
-					elseif sub <= 20 and loverscompliance[lover_number] < 6:
-						act 'Your personality is not something that can be dominated that easily, and you brush <<$tXem>> off, telling <<$tXem>> you like the makeup you usually wear':
-							*clr & cla
-							pcs_dom += 1
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> realizes you will not give in this situation, and walks away mumbling to <<$tXemself>>.'
-							dynamic $go_home
-						end
-						act 'Agree to change the makeup you usually wear': gt 'lover_change', 'Make'
-						exit
-					elseif sub > 20 or loverscompliance[lover_number] >= 6:
-						act 'You mumble "What''s wrong with my makeup...?"':
-							*clr & cla
-							loverrelation[lover_number] -= 2
-							wantRand = rand(0, 100)
-							wantRand -= 4*loverscompliance[lover_number]
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							if wantRand > sub:
-								'<<$loverdesc[lover_number]>> tries to push you to change it, but you successfully inform <<$tXem>> that you do not want to. This makes <<$tXem>> rather upset.'
-								*nl
-								dynamic $go_home
-							elseif wantRand <= sub:
-								'<<$loverdesc[lover_number]>> keeps up the pressure, and because of your demeanor, and you give in. You tell <<$tXem>> from now on you will wear <<$makePrefTmp>>.'
-								sub += 2
-								loverrelation[lover_number] += 5
-								act 'Continue':	gt 'lover_change', 'Make'
-							end
-						end
-						act 'Agree to change the makeup you usually wear': gt 'lover_change', 'Make'
-					end
+
+					dynamic $lover_meet['ChangeActions'], 'makeup', 'Make'
+
 				elseif pierWearCount < pierPrefTmpMin or pierWearCount > pierPrefTmpMax and pierPrefTmp ! 0 and pierDay <= loverdays[lover_number]:
 					*clr & cla
 					'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
@@ -1449,57 +894,8 @@ if $ARGS[0] = 'actions':
 						'<<$tXec>> tells you that you should have less piercings.'
 					end
 
-					if sub < 20 and loverrelation[lover_number] < 60 and loverscompliance[lover_number] < 6:
-						act 'I am not going to change my piercings!':
-							*clr & cla
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> tries to push you to change it, but you are not that submissive to be pressured by <<$tXem>>, nor do your emotions make you make a choice you may regret.'
-							dynamic $go_home
-						end
-						act 'Agree to change the amount of piercings you have': gt 'lover_change', 'Pier'
-						exit
-					elseif loverrelation[lover_number] <= 60 and loverscompliance[lover_number] < 6:
-						act 'You think to yourself, its not like I like <<$tXem>> THAT much...':
-							*clr & cla
-							pcs_dom += 1
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> <<$tXe>> realizes you adoration for <<$tXem>> isn''t enough to pressure you to do that. <<$tXec>> tells you <<$tXe>> has something to do and heads off'
-							dynamic $go_home
-						end
-						exit
-					elseif sub <= 20 and loverscompliance[lover_number] < 6:
-						act 'Your personality is not something that can be dominated that easily, and you brush <<$tXem>> off, telling <<$tXem>> you are who you are':
-							*clr & cla
-							pcs_dom += 1
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> realizes you will not give in this situation, and walks away mumbling to <<$tXemself>>.'
-							dynamic $go_home
-						end
-						act 'Agree to change the amount of piercings you have': gt 'lover_change', 'Pier'
-						exit
-					elseif sub > 20 or loverscompliance[lover_number] >= 6:
-						act 'You mumble "I would rather not..."':
-							*clr & cla
-							loverrelation[lover_number] -= 2
-							wantRand = rand(0, 100)
-							wantRand -= 4*loverscompliance[lover_number]
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							if wantRand > sub:
-								'<<$loverdesc[lover_number]>> tries to push you to change the amount of piercings you have, but you successfully inform <<$tXem>> that you do not want to. This makes <<$tXem>> rather upset.'
-								*nl
-								dynamic $go_home
-							elseif wantRand <= sub:
-								'<<$loverdesc[lover_number]>> keeps up the pressure, and because of your demeanor, and you give in. <<$tXec>> smiles happily and then gets down to how to get the right amount of piercings.'
-								sub += 2
-								loverrelation[lover_number] += 5
-								act 'Continue': gt 'lover_change', 'Pier'
-							end
-						end
-						act 'Agree to change the amount of piercings you have': gt 'lover_change', 'Pier'
-					end
+					dynamic $lover_meet['ChangeActions'], 'piercings', 'Pier'
+
 				elseif tattCount < tattPrefTmpMin or tattCount > tattPrefTmpMax and tattPrefTmp ! 0 and tattDay <= loverdays[lover_number]:
 					*clr & cla
 					'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
@@ -1509,57 +905,9 @@ if $ARGS[0] = 'actions':
 					else
 						'<<$tXec>> tells you that you should have less tattoos.'
 					end
-					if sub < 20 and loverrelation[lover_number] < 60 and loverscompliance[lover_number] < 6:
-						act 'I am not going to change my tattoos!':
-							*clr & cla
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> tries to push you to change it, but you are not that submissive to be pressured by <<$tXem>>, nor do your emotions make you make a choice you may regret.'
-							dynamic $go_home
-						end
-						act 'Agree to change the amount of tattoos you have': gt 'lover_change', 'Tatt'
-						exit
-					elseif loverrelation[lover_number] <= 60 and loverscompliance[lover_number] < 6:
-						act 'You think to yourself, its not like I like <<$tXem>> THAT much...':
-							*clr & cla
-							pcs_dom += 1
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> <<$tXe>> realizes you adoration for <<$tXem>> isn''t enough to pressure you to do that. <<$tXec>> tells you <<$tXe>> has something to do and heads off'
-							dynamic $go_home
-						end
-						exit
-					elseif sub <= 20 and loverscompliance[lover_number] < 6:
-						act 'Your personality is not something that can be dominated that easily, and you brush <<$tXem>> off, telling <<$tXem>> you are who you are':
-							*clr & cla
-							pcs_dom += 1
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> realizes you will not give in this situation, and walks away mumbling to <<$tXemself>>.'
-							dynamic $go_home
-						end
-						act 'Agree to change the amount of tattoos you have': gt 'lover_change', 'Tatt'
-						exit
-					elseif sub > 20 or loverscompliance[lover_number] >= 6:
-						act 'You mumble "I would rather not..."':
-							*clr & cla
-							loverrelation[lover_number] -= 2
-							wantRand = rand(0, 100)
-							wantRand -= 4*loverscompliance[lover_number]
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							if wantRand > sub:
-								'<<$loverdesc[lover_number]>> tries to push you to change the amount of tattoos you have, but you successfully inform <<$tXem>> that you do not want to. This makes <<$tXem>> rather upset.'
-								*nl
-								dynamic $go_home
-							elseif wantRand <= sub:
-								'<<$loverdesc[lover_number]>> keeps up the pressure, and because of your demeanor, and you give in. <<$tXec>> smiles happily then starts to take you to the tattoo parlor to get the right amount of tattoos.'
-								sub += 2
-								loverrelation[lover_number] += 5
-								act 'Go to tattoo parlor': gt 'lover_change', 'Tatt'
-							end
-						end
-						act 'Agree to change the amount of tattoos you have': gt 'lover_change', 'Tatt'
-					end
+
+					dynamic $lover_meet['ChangeActions'], 'tattoos', 'Tatt'
+
 				elseif pcs_lip < lipsPrefTmpMin or pcs_lip > lipsPrefTmpMax and lipsDay <= loverdays[lover_number]:
 					*clr & cla
 					'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
@@ -1571,57 +919,8 @@ if $ARGS[0] = 'actions':
 						'<<$tXec>> tells you that you should have lip reduction.'
 					end
 
-					if sub < 20 and loverrelation[lover_number] < 60 and loverscompliance[lover_number] < 6:
-						act '"My lips are fine the way they are!", you say slightly offended':
-							*clr & cla
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> tries to push you to change your lip size, but you are not that submissive to be pressured by <<$tXem>>, nor do your emotions make you make a choice you may regret.'
-							dynamic $go_home
-						end
-						act 'Go with <<$tXem>>': gt 'lover_change', 'Lips'
-						exit
-					elseif loverrelation[lover_number] <= 60 and loverscompliance[lover_number] < 6:
-						act 'You think to yourself, its not like I like <<$tXem>> THAT much to get work done on my lips':
-							*clr & cla
-							pcs_dom += 1
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> <<$tXe>> realizes you adoration for <<$tXem>> isn''t enough to pressure you to get work done on your lips. <<$tXec>> tells you <<$tXe>> has something to do and heads off.'
-							dynamic $go_home
-						end
-						exit
-					elseif sub <= 20 and loverscompliance[lover_number] < 6:
-						act 'Your personality is not something that can be dominated that easily, and you brush <<$tXem>> off, telling <<$tXem>> that you decide what size lips you look good with':
-							*clr & cla
-							pcs_dom += 1
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> realizes you will not give in this situation, and walks away mumbling to <<$tXemself>>.'
-							dynamic $go_home
-						end
-						act 'Go with <<$tXem>>': gt 'lover_change', 'Lips'
-						exit
-					elseif sub > 20 or loverscompliance[lover_number] >= 6:
-						act 'You squeek, "But I like the size of my lips..."':
-							*clr & cla
-							loverrelation[lover_number] -= 2
-							wantRand = rand(0, 100)
-							wantRand -= 4*loverscompliance[lover_number]
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							if wantRand > sub:
-								'<<$loverdesc[lover_number]>> tries to push you to change the size, but you successfully tell <<$tXem>> that you do not want to. This makes <<$tXem>> rather upset.'
-								*nl
-								dynamic $go_home
-							elseif wantRand <= sub:
-								'<<$loverdesc[lover_number]>> keeps up the pressure, and because of your demeanor, and you give in. <<$tXec>> grins widely and takes you to the clinic.'
-								sub += 4
-								loverrelation[lover_number] += 5
-								act 'Go to the clinic':	gt 'lover_change', 'Lips'
-							end
-						end
-						act 'Go with <<$tXem>>': gt 'lover_change', 'Lips'
-					end
+					dynamic $lover_meet['ChangeActions'], 'lips', 'Lips'
+
 				elseif tits < titMin or tits > titMax and titsDay <= loverdays[lover_number]:
 					*clr & cla
 					'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
@@ -1633,118 +932,16 @@ if $ARGS[0] = 'actions':
 						'<<$tXec>> tells you that you should have a breast reduction.'
 					end
 
-					if sub < 20 and loverrelation[lover_number] < 60 and loverscompliance[lover_number] < 6:
-						act '"My breasts are fine the way they are!", you say slightly offended':
-							*clr & cla
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> tries to push you to change your breast size, but you are not that submissive to be pressured by <<$tXem>>, nor do your emotions make you make a choice you may regret.'
-							dynamic $go_home
-						end
-						act 'Go with <<$tXem>>': gt 'lover_change', 'Tits'
-						exit
-					elseif loverrelation[lover_number] <= 60 and loverscompliance[lover_number] < 6:
-						act 'You think to yourself, its not like I like <<$tXem>> THAT much to get work done on my breasts':
-							*clr & cla
-							pcs_dom += 1
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> <<$tXe>> realizes you adoration for <<$tXem>> isn''t enough to pressure you to get work done on your breasts. <<$tXec>> tells you <<$tXe>> has something to do and heads off.'
-							dynamic $go_home
-						end
-						exit
-					elseif sub <= 20 and loverscompliance[lover_number] < 6:
-						act 'Your personality is not something that can be dominated that easily, and you brush <<$tXem>> off, telling <<$tXem>> that you decide what size breasts you look good with':
-							*clr & cla
-							pcs_dom += 1
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> realizes you will not give in this situation, and walks away mumbling to <<$tXemself>>.'
-							dynamic $go_home
-						end
-						act 'Go with <<$tXem>>': gt 'lover_change', 'Tits'
-						exit
-					elseif sub > 20 or loverscompliance[lover_number] >= 6:
-						act 'You squeek, "But I like the size of my breasts..."':
-							*clr & cla
-							loverrelation[lover_number] -= 2
-							wantRand = rand(0, 100)
-							wantRand -= 4*loverscompliance[lover_number]
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							if wantRand > sub:
-								'<<$loverdesc[lover_number]>> tries to push you to change the size, but you successfully tell <<$tXem>> that you do not want to. This makes <<$tXem>> rather upset.'
-								*nl
-								dynamic $go_home
-							elseif wantRand <= sub:
-								'<<$loverdesc[lover_number]>> keeps up the pressure, and because of your demeanor, and you give in. <<$tXec>> grins widely and takes you to the clinic.'
-								sub += 4
-								loverrelation[lover_number] += 5
-								act 'Go to the clinic':	gt 'lover_change', 'Tits'
-							end
-						end
-						act 'Go with <<$tXem>>': gt 'lover_change', 'Tits'
-					end
+					dynamic $lover_meet['ChangeActions'], 'breasts', 'Tits'
+
 				elseif salocatnow > figurePrefMax and figureDay <= loverdays[lover_number]:
 					*clr & cla
 					'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
 					'<<$loverdesc[lover_number]>> tells you your body is just too thick.'
 					'<<$tXec>> offers to pay for you to get lyposuction.'
-					if sub < 20 and loverrelation[lover_number] < 60 and loverscompliance[lover_number] < 6:
-						act '"My body weight is fine the way it is!", you say slightly offended':
-							*clr & cla
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> tries to push you to change your body weight, but you are not that submissive to be pressured by <<$tXem>>, nor do your emotions make you make a choice you may regret.'
-							dynamic $go_home
-						end
-						act 'Go with <<$tXem>>': gt 'lover_change', 'Figure'
-						exit
-					elseif loverrelation[lover_number] <= 60 and loverscompliance[lover_number] < 6:
-						act 'You think to yourself, its not like I like <<$tXem>> THAT much to get lyposuction':
-							*clr & cla
-							pcs_dom += 1
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> <<$tXe>> realizes you adoration for <<$tXem>> isn''t enough to pressure you to get work done on your weight. <<$tXec>> tells you <<$tXe>> has something to do and heads off.'
-							dynamic $go_home
-						end
-						exit
-					elseif sub <= 20 and loverscompliance[lover_number] < 6:
-						act 'Your personality is not something that can be dominated that easily, and you brush <<$tXem>> off, telling <<$tXem>> that you decide what size your body looks good at':
-							*clr & cla
-							pcs_dom += 1
-							loverrelation[lover_number] -= 3
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							'<<$loverdesc[lover_number]>> realizes you will not give in this situation, and walks away mumbling to <<$tXemself>>.'
-							dynamic $go_home
-						end
-						act 'Go with <<$tXem>>': gt 'lover_change', 'Figure'
-						exit
-					elseif sub > 20 or loverscompliance[lover_number] >= 6:
-						act 'You squeek, "But I like being this weight..."':
-							*clr & cla
-							loverrelation[lover_number] -= 2
-							wantRand = rand(0, 100)
-							wantRand -= 4*loverscompliance[lover_number]
-							'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-							if wantRand > sub:
-								'<<$loverdesc[lover_number]>> tries to push you to change your weight, but you successfully tell <<$tXem>> that you do not want to. This makes <<$tXem>> rather upset.'
-								*nl
-								dynamic $go_home
-							elseif wantRand <= sub:
-								'<<$loverdesc[lover_number]>> keeps up the pressure, and because of your demeanor, and you give in. <<$tXec>> grins widely and takes you to the clinic.'
-								sub += 4
-								loverrelation[lover_number] += 5
-								act 'Go to the clinic':	gt 'lover_change', 'Figure'
-							end
-						end
-						act 'Go with <<$tXem>>': gt 'lover_change', 'Figure'
-					end
-				else
-					*clr & cla
-					'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
-					'"Erm... Nothing..."'
-					act '"Well then..."': xgt 'lover_meet', 'actions'
+
+					dynamic $lover_meet['ChangeActions'], 'body weight', 'Figure'
+
 				end
 			elseif randchan = 1:
 				*clr & cla
@@ -1800,7 +997,6 @@ if $ARGS[0] = 'actions':
 	end
 	act 'I want to do something today':
 		*clr & cla
-		if rand(0,1): pcs_dom += 1
 		'<center><img <<$set_imgh>> src="images/characters/shared/'+lover_picture[lover_number]+'.jpg"></center>'
 		'"What do you want to do?", <<$tXe>> asks'
 		if loverGender[lover_number] = 0:

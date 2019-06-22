@@ -12,34 +12,85 @@ if $ARGS[0] = 'start':
 	gs 'themes', 'indoors'
 	'<center><b><font color="maroon">Fitness Center</font></b></center>'
 	'<center><img <<$set_imgh>> src="images/locations/city/citycenter/gym/fit.jpg"></center>'
+	*nl
 	'This modern and well staffed fitness center provides all the latest equipment and trainers to help you make the most of them.'
 	*nl
-	'Buy subscription for 30 classes (3,000 <b>₽</b>), pool use is free to members.'
-	'You must wear sportswear for all classes.'
-
-	if abonement > 0:'Subscription is valid for <<abonement>> more classes.'
+	'At the reception you may buy '+iif(abonement > 0, 'a subscription package', 'an additional subscription package')+' for access to all available facilities.'
+	if abonement > 0:'Your existing subscription package is valid for <<abonement>> more classes.'
+	*nl
+	'<b>Available Packages:</b>'
+	if money >= 3000:
+		'<a href="exec: money -= 3000 & abonement +=30">30 classes (3,000 <b>₽</b>)</a>'
+	else
+		'30 classes (3,000 <b>₽</b>)'
+	end
+	if money >= 2250:
+		'<a href="exec: money -= 2250 & abonement +=20">20 classes (2,250 <b>₽</b>)</a>'
+	else
+		'20 classes (2,250 <b>₽</b>)'
+	end
+	if money >= 1500:
+		'<a href="exec: money -= 1500 & abonement +=10">10 classes (1,500 <b>₽</b>)</a>'
+	else
+		'10 classes (1,500 <b>₽</b>)'
+	end
+	*nl
+	'<b>Included classes:</b>'
+	'Running'
+	'Crossfit'
+	'Aerobics'
+	'Weights'
+	'Cross Trainer'
+	'Tennis'
+	'Kickboxing'
+	'Swimming pool.'
+	*nl
+	'Sportswear is required for all available classes.'
 
 	act 'Leave': minut += 5 & gt 'down'
 
+	if abonement > 0:
+		act 'Go to the dressing room':
+			gt 'fit', 'dressing room'
+		end
+	else
+		act 'Use the pool (100 <b>₽</b>)': gt 'fit', 'dressing room'
+	end
+
 	if money >= 3000:
-		act 'Buy a subscription (3,000 <b>₽</b>)':
+		act 'Buy 30 classes (3,000 <b>₽</b>)':
 			cla
 			menu_off = 1
 			money -= 3000
 			abonement += 30
-			'You bought a subscription for 30 lessons, including free use of the pool.'
+			'You bought a subscription for 30 classes, and access to all facilities.'
 
 			act 'Move away from cashier':gt 'fit', 'start'
 		end
 	end
 
-	if abonement > 0:
-		act 'Go to the dressing room':
+	if money >= 2250:
+		act 'Buy 20 classes (2,250 <b>₽</b>)':
 			cla
-			gt 'fit', 'dressing room'
+			menu_off = 1
+			money -= 2250
+			abonement += 20
+			'You bought a subscription for 20 classes, and access to all facilities.'
+
+			act 'Move away from cashier':gt 'fit', 'start'
 		end
-	else
-		act 'Use the pool (100 <b>₽</b>)': gt 'fit', 'dressing room'
+	end
+
+	if money >= 1500:
+		act 'Buy 10 classes (1,500 <b>₽</b>)':
+			cla
+			menu_off = 1
+			money -= 1500
+			abonement += 10
+			'You bought a subscription for 10 classes, and access to all facilities.'
+
+			act 'Move away from cashier':gt 'fit', 'start'
+		end
 	end
 end
 
@@ -59,25 +110,40 @@ if $ARGS[0] = 'dressing room':
 	'<center><img <<$set_imgh>> src="images/locations/city/citycenter/gym/razd.jpg"></center>'
 	'Recruiting girls for local track team, the winners will receive cash prizes.'
 	'Attention, visitors to the sports section must wear sports outfits and shoes when using the facilities.'
-	
+
 	if nichTanyaKnown = 0 and (rand(1,100) <= 20 or nichDebug = 1):
 		'In the locker room you notice <a href="exec:gt ''fit'', ''fitgirl''">a cute girl</a>.'
 	end
 
-	act 'Take a shower (0:15)':
-		cla
-		*clr
-		menu_off = 1
-		minut += 15
-		pcs_horny += 1
-		pcs_hairbsh = 0
-		pcs_makeup = 1
-		if pcs_inhib < 15:inhib_exp += rand(1,2)
-		dynamic $showerdin
-		'<center><video autoplay loop src="images/shared/home/bathroom/dush.mp4"></video></center>'
-		'You go into the bathroom and turn on the shower. You lather your body and wash in the shower.'
+	act 'Exit the locker room':
+		if $clothingworntype ! 'nude' and $clothingworntype ! 'swimwear':
+			gt 'fit', 'start'
+		else
+			cla
+			msg'<b><font color = red>You need to get dressed.</font></b>'
+			act 'Return': gt 'fit', 'dressing room'
+		end
+	end
 
-		act 'Get out of the shower':gt 'fit', 'dressing room'
+	if shampoo > 0:
+		act 'Take a shower (0:15)':
+			cla
+			*clr
+			menu_off = 1
+			minut += 15
+			pcs_horny += 1
+			pcs_hairbsh = 0
+			pcs_makeup = 1
+			if pcs_inhib < 15:inhib_exp += rand(1,2)
+			dynamic $showerdin
+			'<center><video autoplay loop src="images/shared/home/bathroom/dush.mp4"></video></center>'
+			'You go into the bathroom and turn on the shower. You lather your body and wash in the shower.'
+			if deodorant_on = 1: gs 'sweat', 'remove_deo' & '<br>Your deodorant gets washed away in the shower.'
+
+			act 'Get out of the shower':gt 'fit', 'dressing room'
+		end
+	else
+		'<font color="red">You''ve run out of shampoo and will have to buy some more before you can wash yourself.</font>'
 	end
 
 	act 'Use mirror':
@@ -133,16 +199,6 @@ if $ARGS[0] = 'dressing room':
 			end
 		end
 	end
-
-	act 'Exit the locker room':
-		if $clothingworntype ! 'nude' and $clothingworntype ! 'swimwear':
-			gt 'fit', 'start'
-		else
-			cla
-			msg'<b><font color = red>You need to get dressed.</font></b>'
-			act 'Return': gt 'fit', 'dressing room'
-		end
-	end
 end
 
 if $ARGS[0] = 'fitgirl':
@@ -154,21 +210,24 @@ if $ARGS[0] = 'fitgirl':
 
 	act 'Follow her':
 		*clr & cla
-		!! pcs_hairbsh = 0
-		!! pcs_makeup = 1
-		!! dynamic $showerdin
-		!! dont ruin the pcs makeup and hair because otherwise its pretty hard to get to 80 appearance
+		pcs_hairbsh = 0
+		pcs_makeup = 1
+		noShampoo = 1
+		dynamic $showerdin
 		shovertania += 1
 		gs 'stat'
 		'<center><img <<$set_imgh>> src="images/characters/city/tanya/gym/shower0.jpg"></center>'
 		'There''s no one in the shower, except this girl. The girl looks around and seeing you smiles again then turns away.'
-		if pcs_dom > 10:
-			act 'Molest her':
-				cla
-				*clr
-				tanday = daystart
+
+		act 'Leave the shower':gt 'fit', 'dressing room'
+
+		gs 'willpower', 'misc', 'force'
+		if will_cost <= pcs_willpwr:
+			act 'Molest her (<<will_cost>> Willpower)':
+				*clr & cla
+				gs 'willpower', 'pay', 'self'
 				gs 'stat'
-				'<center><img <<$set_imgh>> src="images/characters/city/tanya/gym/showermol0.jpg"></center>'
+				'<center><img <<$set_imgh>> src="images/characters/city/tanya/gym/shower_mol0.jpg"></center>'
 				'You walk up to the girl and gently place one hand on her right breast. She turns to face you.'
 
 				gs 'arousal', 'foreplay', 5, 'dom', 'lesbian'
@@ -187,7 +246,7 @@ if $ARGS[0] = 'fitgirl':
 						gs 'underwear', 'remove'
 						gs 'clothing', 'strip'
 
-						'<center><img <<$set_imgh>> src="images/characters/city/tanya/gym/showermol1.jpg"></center>'
+						'<center><img <<$set_imgh>> src="images/characters/city/tanya/gym/shower_mol1.jpg"></center>'
 						'While she is trying to understand what is happening you begin fondling her sex with your fingers, and then her hand strokes your ass.'
 
 						gs 'arousal', 'foreplay', 10, 'dom', 'lesbian'
@@ -200,16 +259,16 @@ if $ARGS[0] = 'fitgirl':
 						*clr & cla
 						gs 'stat'
 
-						if pcs_apprnc < 120:
+						if pcs_apprnc < 100:
 							'The girl smiles at you, but removes your hand and leaves, blowing you a kiss.'
 
-							act '...':gt 'fit', 'dressing room'
-						elseif pcs_apprnc >= 120:
+							act 'Continue':gt 'fit', 'dressing room'
+						elseif pcs_apprnc >= 100:
 							cla
 							*clr
 							gs 'underwear', 'remove'
 							gs 'clothing', 'strip'
-							'<center><img <<$set_imgh>> src="images/characters/city/tanya/gym/showermol2.jpg"></center>'
+							'<center><img <<$set_imgh>> src="images/characters/city/tanya/gym/shower_mol2.jpg"></center>'
 							'The girl presses up to you even stronger and kisses your lips.'
 
 							gs 'arousal', 'kiss', 5, 'dom', 'lesbian'
@@ -223,9 +282,9 @@ if $ARGS[0] = 'fitgirl':
 					end
 				end
 			end
+		else
+			act 'Molest her (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
 		end
-
-		act 'Leave the shower':gt 'fit', 'dressing room'
 	end
 end
 
@@ -233,7 +292,7 @@ if $ARGS[0] = 'tanyaIntroduction':
 	'<center><img <<$set_imgh>> src="images/characters/city/tanya/gym/shower1.jpg"></center>'
 	'Just as the both of you are about to get more intimate a group of middleaged women enters the showers. They haven''t noticed you yet. The girl next to you is clearly afraid of being spotted in the shower with you and takes her first opportunity to quietely escape to the dressing room.'
 	'You follow her only a few seconds later. She has already begun to dress herself.'
-	
+
 	if $pantyworntype = 'none': gs 'underwear', 'wear'
 	gs 'panties', 'dispose'
 	gs 'clothing', 'wear_last_worn'
@@ -406,32 +465,42 @@ if $ARGS[0] = 'exercise end':
 			'You see a nice guy on the weight machine.'
 
 			act 'Continue':gt 'fit', 'dressing room'
+			act 'Flirt':
+				cla
+				*clr
+				guy += 1
+				gs 'npcgeneratec', 0, 'guy from the gym', rand(19,45)
+				gs 'boyStat', $npclastgenerated
+				samecount = 1
+				picrand = 17
+				'<center><img <<$set_imgh>> src="images/locations/city/citycenter/gym/sex/zal2.jpg"></center>'
+				'You go up to the guy lying on the machine, squat and start stroking his cock through his pants. The man rises and kisses you on the lips, then lowers his pants releasing his impressive size dick.'
 
-			if pcs_dom > 0:
-				act 'Flirt':
-					cla
-					*clr
-					guy += 1
-					gs 'npcgeneratec', 0, 'guy from the gym', rand(19,45)
-					gs 'boyStat', $npclastgenerated
-					samecount = 1
-					picrand = 17
-					'<center><img <<$set_imgh>> src="images/locations/city/citycenter/gym/sex/zal2.jpg"></center>'
-					'You go up to the guy lying on the machine, squat and start stroking his cock through his pants. The man rises and kisses you on the lips, then lowers his pants releasing his impressive size dick.'
+				gs 'arousal', 'foreplay', 10, 'dom'
+				gs 'stat'
 
-					gs 'arousal', 'foreplay', 10, 'dom'
-					gs 'stat'
-
-					act 'Suck':gt 'sex', 'minet'
-				end
+				act 'Suck':gt 'sex', 'minet'
 			end
 		elseif RESULT = 1:
 			cla
 			*clr
 			'<center><img <<$set_imgh>> src="images/locations/city/citycenter/gym/sex/zal3.jpg"></center>'
 			'As you finish training, a guy sits behind, caresses your breasts and kisses your ear, sucking the lobe.'
-
-			if pcs_dom > 0:act 'Hit him in the balls':pcs_dom += 1 & gt 'fit', 'dressing room'
+			gs 'willpower', 'misc', 'self', 'medium'
+			if will_cost <= pcs_willpwr:
+				act 'Hit him in the balls (<<will_cost>> Willpower)':
+					*clr & cla
+					gs 'willpower', 'pay', 'self'
+					gs 'stat'
+					gt 'fit', 'dressing room'
+					
+					'Event text'
+					
+					act 'Next action': gt 'farawayistan'
+				end
+			else
+				act 'Hit him in the balls (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
+			end	
 
 			act 'Enjoy':
 				cla
