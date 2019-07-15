@@ -1,6 +1,6 @@
 # swamphouse
 
-if $ARGS[0] = 'start' or $ARGS[0] = '':
+if $ARGS[0] = 'start':
 	$location_type = 'indoors'
 	$loc = 'swamphouse'
 	$metka = 'start'
@@ -12,6 +12,7 @@ if $ARGS[0] = 'start' or $ARGS[0] = '':
 	clr
 	gs 'stat'
 	gs 'themes', 'indoors'
+	gs 'hunter_ambient', 'schedule'
 	huntslutsexrand = rand(1,3)
 	temp_sh = rand(1,5)
 	clothesAtLocation = FUNC('lost_clothes_here','swamphouse')
@@ -37,74 +38,28 @@ if $ARGS[0] = 'start' or $ARGS[0] = '':
 	if clothesAtLocation = 1:'Your clothes are laying on the shelf.'
 	if swamp_enema = 1:'You found an enema syringe on the shelf.'
 	*nl
-	if hour = 20 and hunters = 1 and huntersKnow > 0 or hour = 7 and hunters = 1 and huntersKnow > 0:
-		'The <a href="exec: gs ''swamphouse'', ''hunterstable''">hunters</a> are sitting around the table talking.'
-	elseif hour > 20 and hour < 23 and hunters = 1 and huntersKnow > 0:
-		'You see the <a href="exec: gs ''swamphouse'', ''huntersrelax''">hunters</a> hanging out in the hut.'
-	elseif hour = 23 and hunters = 1 and huntersKnow > 0 or hour >= 0 and hour < 7 and hunters = 1 and huntersKnow > 0:
-		'The hunters are sleeping on the couch.'
+	if sunWeather = 0 or temper < 15:
+		if (hour = 20 and hunters_here = 1 and huntersKnow > 0) or (hour = 7 and hunters_here = 1 and huntersKnow > 0):
+			'The <a href="exec: gs ''swamphouse'', ''hunterstable''">hunters</a> are sitting around the table talking.'
+		elseif (hour > 20 and hour < 23 and hunters_here = 1 and huntersKnow > 0):
+			'You see the <a href="exec: gs ''swamphouse'', ''huntersrelax''">hunters</a> hanging out in the hut.'
+		elseif (hour = 23 and hunters_here = 1 and huntersKnow > 0) or (hour >= 0 and hour < 7 and hunters_here = 1 and huntersKnow > 0):
+			'The hunters are sleeping on the couch.'
+		else
+			'The hunters aren''t here right now'
+		end
 	else
 		'The hunters aren''t here right now'
 	end
 	*nl
 
-	act 'Go outside':hunter_refuse = 0 & minut += 5 & gt 'swamp_yard'
-	if edahot > 0:
-		act 'Eat mushroom soup':
-			gs 'food', 'm_meal'
-			cla
-			*clr
-			edahot -= 1
-			'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/soup.jpg"></center>'
-			*nl
+	act 'Go outside':hunter_refuse = 0 & minut += 5 & gt 'swamp_yard', 'start'
 
-			if pcs_energy >= 100:
-				fat += 3
-				'After having a healthy serving of mushroom soup, you feel stuffed.'
-			elseif pcs_energy >= 80:
-				fat += 1
-				pcs_energy += 30
-				'You force yourself to have another sip of the mushroom soup.'
-			else
-				pcs_energy += 20
-				'You''re enjoing some warm mushroom soup. Just what you needed.'
-			end
-			if pcs_hydra >= 100:
-				pcs_hydra += 20
-			else
-				pcs_hydra += 40
-			end
-			*nl
-			if edahot > 0:
-				'There''s <<edahot>> '+iif(edahot > 1, 'servings','serving')+' of soup left in the pot'
-			else
-				'You have finished the last of the soup, the pot is empty.'
-			end
-			gs 'stat'
-			act 'Get up from the table': gt 'swamphouse', 'start'
-		end
-	end
-	if bilberry > 0:
-		act 'Eat berries':
-			cla
-			*clr
-			minut += 20
-			pcs_energy += 10
-			pcs_hydra += 10
-			bilberry -= 1
-			pcs_health += 5
-			pcs_mood += 10
-			gs 'stat'
-			'<center><img src="images/locations/gadukino/forest/bilberry.jpg"></center>'
-			'You ate a few berries.'
-			act 'Continue': gt 'swamphouse', 'start'
-		end
-	end
 	!re-arrange it, there should be no logic error now by illume
 	if $clothingworntype ! 'nude' and clothesAtLocation = 0:
 		!have cloth, or rag on
 		act 'Get undressed':
-			if huntersKnowSlut > 0 or hunters = 0 or hunters = 1 and hour >= 8 and hour < 20 and huntersKnowSlut = 0:
+			if (huntersKnowSlut > 0 and hunters_here = 1) or (hour >= 8 and hour < 20 and hunters_here =0) or (pcs_inhib >= 25 or exhibitionist_lvl > 1):
 				cla
 				*clr
 				minut+=5
@@ -115,13 +70,13 @@ if $ARGS[0] = 'start' or $ARGS[0] = '':
 				gs 'stat'
 
 				'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/swamphouseundress.jpg"></center>'
-				'Feeling the heat in the cabin, you start removing your clothes.'
+				''+iif(temper > 23, 'Feeling the heat in the cabin', 'You feel the need to get naked, so')+' you start removing your clothes.'
 				act 'Back': gt 'swamphouse', 'start'
 			else
 				cla
 				*clr
 				'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/noundress.jpg"></center>'
-				'Despite the heat you''re still too shy to get undressed - what if someone suddenly comes in?'
+				''+iif(temper > 23, 'Despite the heat', 'Despite your need to get naked')+' you''re still too shy to get undressed - what if someone suddenly comes in?'
 				act 'Back': gt 'swamphouse', 'start'
 			end
 		end
@@ -165,7 +120,7 @@ if $ARGS[0] = 'start' or $ARGS[0] = '':
 		end
 	end
 
-	if pcs_horny >= 50 and hunters = 0 or pcs_horny >= 50 and hunters = 1 and hour >= 8 and hour < 20:
+	if ((pcs_horny >= 50 and hunters_here = 0) or (pcs_horny >= 50 and hunters_here = 1 and hour >= 8 and hour < 20) and $clothingworntype = 'nude'):
 		act 'Masturbate':
 			gt 'selfplay', 'start'
 		end
@@ -177,6 +132,7 @@ if $ARGS[0] = 'start' or $ARGS[0] = '':
 			minut += 10
 			if swamp_enema = 0:
 				swamp_enema = 1
+				klisma = 1
 				gs 'stat'
 				'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/enema.jpg"></center>'
 				'You search for your clothes, but only manage to find an enema syringe... "What is this doing here?" you wonder.'
@@ -195,18 +151,11 @@ if $ARGS[0] = 'start' or $ARGS[0] = '':
 			gt 'lact_bp', 'bp_milking'
 		end
 	end
-	if klismaday ! daystart and swamp_enema = 1 and analplugin = 0 and hour >= 8 and hour < 20 and hunters = 1 or klismaday ! daystart and swamp_enema = 1 and analplugin = 0 and hunters = 0:
-		act 'Perform an enema':
-			cla
-			*clr
-			minut += 5
-			klismaday = daystart
-			'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/swamp_enema.jpg"></center>'
-			'You perform an enema on yourself and manage to cleanse your bowel, your ass is now ready for anal sex.'
-			act 'Finish': gt 'swamphouse', 'start'
-		end
+	if (klismaday ! daystart and swamp_enema = 1 and hour >= 8 and hour < 20 and hunters_here = 1) or (klismaday ! daystart and swamp_enema = 1 and hunters_here = 0):
+		dynamic $enema
 	end
 
+	act 'Grab some food': gt 'swamphouse', 'stove'
 	if dirty_swamphouse > 25:act 'Clean the hut':hunterslut -= 1 & gt 'swamphouse', 'dirty_swamphouse'
 
 	act 'Relax on the couch': gt 'bed', 'start'
@@ -308,7 +257,7 @@ if $ARGS[0] = 'start' or $ARGS[0] = '':
 		end
 	end
 	! trio of HS, Andrei and Sergei, if love
-	if hunters > 0 and doublehunterlove = 1 and hour >= 8 and hour < 20 and (huntersAndreisex = 0 or huntersSergeisex = 0):
+	if hunters_here > 0 and doublehunterlove = 1 and hour >= 8 and hour < 20 and (huntersAndreisex = 0 or huntersSergeisex = 0):
 		*clr & cla
 		minut += 5
 		huntersAndreisex += rand(6,24)
@@ -347,11 +296,11 @@ if $ARGS[0] = 'start' or $ARGS[0] = '':
 
 			'<center><img <<$set_imgh>> src="images/pc/speak_to_the_hand.jpg"></center>'
 			'"No, I refuse, this is something I don''t want part of," you say and without hesitating you turn around and walk away.'
-			act 'Walk away': gt 'swamphouse', 'start', 'doublelovesex'
+			act 'Walk away': gt 'swamphouse', 'start'
 		end
 	end
 	!hunters are invited to the table
-	if hour = 20 and hunters = 1 and huntersKnow > 0 and huntersKnowSlut = 0 and hunter_refuse = 0:
+	if hour = 20 and hunters_here = 1 and huntersKnow > 0 and huntersKnowSlut = 0 and hunter_refuse = 0:
 		cla
 		*clr
 		if hour >= 20 and hour <= 23 :
@@ -407,7 +356,7 @@ if $ARGS[0] = 'start' or $ARGS[0] = '':
 		end
 	end
 	!if GG naked and hunters in the hut
-	if $clothingworntype = 'nude' and hunters = 1 and hour >= 20 and hour < 23 and hunterknowday ! daystart or $clothingworntype = 'nude' and hunters = 1 and hour = 7 and hunterknowday ! daystart:
+	if $clothingworntype = 'nude' and (hunters_here = 1 and hour >= 20 and hour < 23 and hunterknowday ! daystart) or ($clothingworntype = 'nude' and hunters_here = 1 and hour = 7 and hunterknowday ! daystart):
 		cla
 		*clr
 		temp_sh =rand(1,3)
@@ -479,7 +428,7 @@ if $ARGS[0] = 'start' or $ARGS[0] = '':
 	end
 
 	! sex if GG whore
-	if hunters > 0 and huntersRape = 5 and huntslutsexrand = 1 and huntslutsex = 0 and hour >= 7 and hour < 23:
+	if hunters_here > 0 and huntersRape = 5 and huntslutsexrand = 1 and huntslutsex = 0 and hour >= 7 and hour < 23:
 		*clr & cla
 		minut += 5
 		temphunt = rand(1,3)
@@ -504,6 +453,8 @@ end
 if $ARGS[0] = 'stove':
 	cla
 	*clr
+	$loc = 'swamphouse'
+	$metka = 'stove'
 	menu_off = 1
 	minut += 1
 	gs 'stat'
@@ -512,22 +463,14 @@ if $ARGS[0] = 'stove':
 	*nl
 	'A barely functioning wodden stove, but somehow it does what it''s supposed to do. You can heat 5 liters of water at a time. Or you can make a mushroom soup.'
 
-	if bucket > 0 and boletus > 0 and edahot = 0:
-		act 'Prepare a mushroom soup (0:30)':
-			cla
-			*clr
-			boletus -= 1
-			minut += 30
-			bucket -= 1
-			edahot = 4
-			gs 'stat'
+	act 'Move away': gt 'swamphouse', 'start'
 
-			'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/hotsoup.jpg"></center>'
-			*nl
-			'You made a simple mushroom soup. There''s enough for <<edahot>> servings'
+	if bucket > 0 and boletus > 0 and mushroom_soup = 0:
+		act 'Cook some mushroom soup (0:30)': gs 'hunter_favors', 'mushroom_soup'
+	end
 
-			act 'Continue': gt 'swamphouse', 'start'
-		end
+	if bucket > 0 and raw_meat > 0 and meat_stew = 0:
+		act 'Cook some meat stew (1:00)': gs 'hunter_favors', 'meat_stew'
 	end
 	if bucket >= 5 and hotwater = 0:
 		act 'Heat up water (0:30)':
@@ -545,8 +488,34 @@ if $ARGS[0] = 'stove':
 			act 'Continue': gt 'swamphouse', 'start'
 		end
 	end
-	act 'Move away': gt 'swamphouse', 'start'
-
+	act 'Eat jerky and trail mix':gt 'food', 'jerky'
+	if meat_stew > 0:
+		act 'Eat meat stew':
+			gs 'food', 'meat_stew'
+			meat_stew -= 1
+			*nl
+			if meat_stew > 0:
+				'There''s <<meat_stew>> '+iif(meat_stew > 1, 'servings','serving')+' of stew left in the pot'
+			else
+				'You have finished the last of the stew, the pot is empty.'
+			end
+		end
+	end
+	if mushroom_soup > 0:
+		act 'Eat mushroom soup':
+			gs 'food', 'mush_soup'
+			mushroom_soup -= 1
+			if mushroom_soup > 0:
+				'There''s <<mushroom_soup>> '+iif(mushroom_soup > 1, 'servings','serving')+' of soup left in the pot'
+			else
+				'You have finished the last of the soup, the pot is empty.'
+			end
+			gs 'stat'
+		end
+	end
+	if bilberry > 0:
+		act 'Eat berries':gt 'food','bilberry'
+	end
 end
 
 if $ARGS[0] = 'bucket':
@@ -674,7 +643,7 @@ if $ARGS[0] = 'stackmagazines':
 			lastreadday = daystart
 			pcs_nerd += 10
 		end
-		sprt_exp += 4
+		intel_exp += 4
 		blizoruk+=1
 		pcs_mood += 10
 		minut += 60
@@ -932,12 +901,7 @@ if $ARGS[0] = 'hunterstable':
 		act 'Drink vodka':
 			*clr & cla
 			minut += 1
-			if pcs_hydra >= 100:
-				pcs_hydra -= 5
-			else
-				pcs_hydra -= 10
-			end
-			alko +=4
+			gs 'drugs', 'alcohol', 'vodka', 1
 			gs 'stat'
 
 			'<center><img <<$set_imgh>> src="images/locations/pavlovsk/resident/apartment/shulginhome/kuh/vodka'+rand(0,2)+'.jpg"></center>'
@@ -949,9 +913,7 @@ if $ARGS[0] = 'hunterstable':
 		act 'Drink beer':
 			*clr & cla
 			minut += 15
-			alko +=2
-			fat += 1
-			pcs_hydra += 10
+			gs 'drugs', 'alcohol', 'beer', 1
 			gs 'stat'
 
 			'<center><img <<$set_imgh>> src="images/locations/pavlovsk/resident/apartment/shulginhome/kuh/beer2.jpg"></center>'
@@ -961,7 +923,7 @@ if $ARGS[0] = 'hunterstable':
 			act 'Continue': gs 'swamphouse', 'hunterstable'
 		end
 		act 'Eat a snack':
-			gs 'food', 'snack'&!use current one, *clr & cla will clear messages
+			gs 'food', 'snack'
 			*clr & cla
 			minut += 30
 			gs 'stat'
@@ -1238,7 +1200,7 @@ if $ARGS[0] = 'hunterstable':
 						act 'Wake up':
 							*clr & cla
 							minut += 180
-							pcs_sleep += 54
+							pcs_sleep += 30
 							pcs_health -= 15
 							pcs_mood -= 25
 							gs 'stat'
@@ -1264,7 +1226,7 @@ if $ARGS[0] = 'hunterstable':
 						act 'Wake up':
 							*clr & cla
 							minut += 240
-							pcs_sleep += 24
+							pcs_sleep += 45
 							pcs_health -= 20
 							pcs_mood -= 25
 							gs 'stat'
@@ -1289,14 +1251,14 @@ if $ARGS[0] = 'hunterstable':
 						act 'Wake up':
 							*clr & cla
 							minut += 360
-							pcs_sleep += 36
+							pcs_sleep += 75
 							pcs_health -= 10
 							pcs_mood -= 25
 							gs 'stat'
 
 							'<center><img <<$set_imgh>> src="images/locations/pavlovsk/resident/apartment/shulginhome/bigroom/drunk_ev/pohmel2.jpg"></center>'
 							*nl
-							'You sleep for awhile, waking up barely able to lift your head from the pillow. You''ve got a headache and vaguely remember yesterday.'
+							'You sleep for 6 hours, waking up barely able to lift your head from the pillow. You''ve got a headache and vaguely remember yesterday.'
 
 							act 'Continue': gt 'swamphouse', 'start'
 						end
@@ -1323,14 +1285,14 @@ if $ARGS[0] = 'hunterstable':
 								act 'Wake up':
 									*clr & cla
 									minut += 480
-									pcs_sleep += 16
+									pcs_sleep += 100
 									pcs_health -= 5
 									pcs_mood -= 25
 									gs 'stat'
 
 									'<center><img <<$set_imgh>> src="images/locations/pavlovsk/resident/apartment/shulginhome/bigroom/drunk_ev/pohmel2.jpg"></center>'
 									*nl
-									'You sleep for awhile, waking up barely able to get out of bed. You''ve got a headache and vaguely remember yesterday.'
+									'You sleep for eight hours, waking up barely able to get out of bed. You''ve got a headache and vaguely remember yesterday.'
 
 									act 'Continue': gt 'swamphouse', 'start'
 								end
@@ -1385,7 +1347,7 @@ if $ARGS[0] = 'hunterstable':
 													act 'Wake up':
 														*clr & cla
 														minut += 240
-														pcs_sleep += 24
+														pcs_sleep += 45
 														pcs_health -= 5
 														pcs_mood -= 25
 														gs 'stat'
@@ -1410,14 +1372,14 @@ if $ARGS[0] = 'hunterstable':
 												act 'Wake up':
 													*clr & cla
 													minut += 360
-													pcs_sleep += 36
+													pcs_sleep += 60
 													pcs_health -= 15
 													pcs_mood -= 25
 													gs 'stat'
 
 													'<center><img <<$set_imgh>> src="images/locations/pavlovsk/resident/apartment/shulginhome/bigroom/drunk_ev/pohmel2.jpg"></center>'
 													*nl
-													'You sleep for awhile, waking up barely able to get out of bed. You''ve got a headache and vaguely remember yesterday.'
+													'You sleep for 6 hours, waking up barely able to get out of bed. You''ve got a headache and vaguely remember yesterday.'
 
 													act 'Continue': gt 'swamphouse', 'start'
 												end
@@ -1436,14 +1398,14 @@ if $ARGS[0] = 'hunterstable':
 										act 'Wake up':
 											*clr & cla
 											minut += 360
-											pcs_sleep += 36
+											pcs_sleep += 60
 											pcs_health -= 15
 											pcs_mood -= 25
 											gs 'stat'
 
 											'<center><img <<$set_imgh>> src="images/locations/pavlovsk/resident/apartment/shulginhome/bigroom/drunk_ev/pohmel2.jpg"></center>'
 											*nl
-											'You sleep for awhile, waking up barely able to get out of bed. You''ve got a headache and vaguely remember yesterday.'
+											'You sleep for 6 hours, waking up barely able to get out of bed. You''ve got a headache and vaguely remember yesterday.'
 
 											act 'Continue': gt 'swamphouse', 'start'
 										end
@@ -1526,7 +1488,7 @@ if $ARGS[0] = 'hunterstable':
 											act 'Wake up':
 												*clr & cla
 												minut += 240
-												pcs_sleep += 24
+												pcs_sleep += 45
 												pcs_health -= 20
 												pcs_mood -= 25
 												gs 'stat'
@@ -1580,7 +1542,7 @@ if $ARGS[0] = 'hunterstable':
 					act 'Wake up':
 						*clr & cla
 						minut += 180
-						pcs_sleep += 54
+						pcs_sleep += 30
 						pcs_health -= 15
 						pcs_mood -= 25
 						gs 'stat'
@@ -1605,7 +1567,7 @@ if $ARGS[0] = 'hunterstable':
 					act 'Wake up':
 						*clr & cla
 						minut += 240
-						pcs_sleep += 24
+						pcs_sleep += 45
 						pcs_health -= 20
 						pcs_mood -= 25
 						gs 'stat'
@@ -1630,14 +1592,14 @@ if $ARGS[0] = 'hunterstable':
 					act 'Wake up':
 						*clr & cla
 						minut += 360
-						pcs_sleep += 36
+						pcs_sleep += 75
 						pcs_health -= 10
 						pcs_mood -= 25
 						gs 'stat'
 
 						'<center><img <<$set_imgh>> src="images/locations/pavlovsk/resident/apartment/shulginhome/bigroom/drunk_ev/pohmel2.jpg"></center>'
 						*nl
-						'You sleep for awhile, waking up barely able to lift your head from the pillow. You''ve got a headache and vaguely remember yesterday.'
+						'You sleep for 6 hours, waking up barely able to lift your head from the pillow. You''ve got a headache and vaguely remember yesterday.'
 
 						act 'Continue': gt 'swamphouse', 'start'
 					end
@@ -1703,7 +1665,7 @@ if $ARGS[0] = 'hunterstable':
 											act 'Wake up':
 												*clr & cla
 												minut += 240
-												pcs_sleep += 24
+												pcs_sleep += 45
 												pcs_health -= 20
 												pcs_mood -= 25
 												gs 'stat'
@@ -1796,7 +1758,6 @@ if $ARGS[0] = 'hunterstable':
 
 		act 'Go': gt 'swamphouse', 'start'
 	end
-
 end
 
 if $ARGS[0] = 'huntersrelax':
