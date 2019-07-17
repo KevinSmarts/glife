@@ -1,6 +1,7 @@
 # swamphouse
 
 if $ARGS[0] = 'start':
+	*clr & cla
 	$location_type = 'indoors'
 	$loc = 'swamphouse'
 	$metka = 'start'
@@ -10,9 +11,9 @@ if $ARGS[0] = 'start':
 	frost = 0
 	bonusZ = 0
 	clr
-	gs 'stat'
 	gs 'themes', 'indoors'
 	gs 'hunter_ambient', 'schedule'
+	gs 'stat'
 	huntslutsexrand = rand(1,3)
 	temp_sh = rand(1,5)
 	clothesAtLocation = FUNC('lost_clothes_here','swamphouse')
@@ -37,31 +38,48 @@ if $ARGS[0] = 'start':
 	*nl
 	if clothesAtLocation = 1:'Your clothes are laying on the shelf.'
 	if swamp_enema = 1:'You found an enema syringe on the shelf.'
+	if $clothingworntype = 'nude' and hunterknowday ! daystart and hunters_inside = 1:gt 'swamphouse', 'get_dressed'
 	*nl
-	if (sunWeather = 0 and temper < 15) or hunters_off = 1:
-		if (hour = 20 and hunters_here = 1 and huntersKnow > 0) or (hour = 7 and hunters_here = 1 and huntersKnow > 0):
-			'The <a href="exec: gs ''swamphouse'', ''hunterstable''">hunters</a> are sitting around the table talking.'
-		elseif (hour > 20 and hour < 23 and hunters_here = 1 and huntersKnow > 0):
+	if hunters_inside = 1 and huntersknow = 0:
+		if hunters_drink = 1:
 			'You see the <a href="exec: gs ''swamphouse'', ''huntersrelax''">hunters</a> hanging out in the hut.'
-		elseif (hour = 23 and hunters_here = 1 and huntersKnow > 0) or (hour >= 0 and hour < 7 and hunters_here = 1 and huntersKnow > 0):
+		elseif hunters_sleep = 1:
 			'The hunters are sleeping on the couch.'
-		else
-			'The hunters aren''t here right now'
+		elseif hunters_available = 1 or hunters_breakfast = 1 or hunters_lunch = 1 or hunters_evening = 1:
+			'The <a href="exec: gs ''swamphouse'', ''hunterstable''">hunters</a> are sitting around the table talking.'
+		elseif hunters_hunting = 1 and hunters_outside = 1:
+			'The Hunters said they will be out hunting for a couple hours. You have the camp to yourself!'
 		end
 	else
-		'The hunters aren''t here right now'
+		if huntersknow = 0:
+			'The camp is quiet. There''s nobody here right now, where could they be.'
+		else
+			'The camp is quiet. The hunters aren''t here right now, where could they be.'
+		end
 	end
 	*nl
 
-	act 'Go outside':hunter_refuse = 0 & minut += 5 & gt 'swamp_yard', 'start'
+	act 'Go outside':
+		if $clothingworntype = 'nude' and hunterknowday ! daystart and hunters_outside = 1 and hunters_available = 1 or (pcs_inhib >= 25 or exhibitionist_lvl > 1):
+			$loc = 'swamp_yard'
+			$metka = 'start'
+			hunter_refuse = 0
+			gs 'stat'
+			gt 'swamphouse', 'get_dressed'
+		else
+			minut += 5
+			hunter_refuse = 0
+			gs 'stat'
+			gt 'swamp_yard', 'start'
+		end
+	end
 
 	!re-arrange it, there should be no logic error now by illume
 	if $clothingworntype ! 'nude' and clothesAtLocation = 0:
 		!have cloth, or rag on
 		act 'Get undressed':
-			if (huntersKnowSlut > 0 and hunters_here = 1) or (hour >= 8 and hour < 20 and hunters_here =0) or (pcs_inhib >= 25 or exhibitionist_lvl > 1):
-				cla
-				*clr
+			if huntersKnowSlut > 0 or hunters_inside = 0 or (pcs_inhib >= 25 or exhibitionist_lvl > 1):
+				*clr & cla
 				minut+=5
 				if $clothingworntype ! 'nude':
 					gs 'clothing', 'strip', 'swamphouse'
@@ -73,8 +91,7 @@ if $ARGS[0] = 'start':
 				''+iif(temper > 23, 'Feeling the heat in the cabin', 'You feel the need to get naked, so')+' you start removing your clothes.'
 				act 'Back': gt 'swamphouse', 'start'
 			else
-				cla
-				*clr
+				*clr & cla
 				'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/noundress.jpg"></center>'
 				''+iif(temper > 23, 'Despite the heat', 'Despite your need to get naked')+' you''re still too shy to get undressed - what if someone suddenly comes in?'
 				act 'Back': gt 'swamphouse', 'start'
@@ -85,8 +102,7 @@ if $ARGS[0] = 'start':
 		!clothes are ready
 		if $clothingworntype = 'nude':
 			act 'Get dressed':
-				cla
-				*clr
+				*clr & cla
 				'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/swampdvornude1.jpg"</center>'
 				*nl
 				'You put your clothes back on.'
@@ -97,8 +113,7 @@ if $ARGS[0] = 'start':
 			end
 		else
 			act 'Pick up your clothes':
-				cla
-				*clr
+				*clr & cla
 				gs 'clothing', 'recover_lost_clothes', 'swamphouse'
 				'You picked up your clothes.'
 				act 'Back': gt 'swamphouse', 'start'
@@ -107,8 +122,7 @@ if $ARGS[0] = 'start':
 	elseif swamp_clothes = 1:
 		if $clothingworntype = 'nude':
 			act 'Wear hessian sack':
-				cla
-				*clr
+				*clr & cla
 				'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/tkan_cloth.jpg"></center>'
 				*nl
 				'You cover yourself with the hessian sack'
@@ -120,7 +134,7 @@ if $ARGS[0] = 'start':
 		end
 	end
 
-	if ((pcs_horny >= 50 and hunters_here = 0) or (pcs_horny >= 50 and hunters_here = 1 and hour >= 8 and hour < 20) and $clothingworntype = 'nude'):
+	if pcs_horny >= 50 and $clothingworntype = 'nude' and (hunters_inside = 0 or huntersKnowSlut > 0 or (pcs_inhib >= 25 or exhibitionist_lvl > 1)):
 		act 'Masturbate':
 			gt 'selfplay', 'start'
 		end
@@ -145,14 +159,6 @@ if $ARGS[0] = 'start':
 				act 'Back.': gt 'swamphouse', 'start'
 			end
 		end
-	end
-	if breastpump > 0 and bp_unbox >= 1:
-		act 'Use breast pump':
-			gt 'lact_bp', 'bp_milking'
-		end
-	end
-	if (klismaday ! daystart and swamp_enema = 1 and hour >= 8 and hour < 20 and hunters_here = 1) or (klismaday ! daystart and swamp_enema = 1 and hunters_here = 0):
-		dynamic $enema
 	end
 
 	act 'Grab some food': gt 'swamphouse', 'stove'
@@ -257,7 +263,7 @@ if $ARGS[0] = 'start':
 		end
 	end
 	! trio of HS, Andrei and Sergei, if love
-	if hunters_here > 0 and doublehunterlove = 1 and hour >= 8 and hour < 20 and (huntersAndreisex = 0 or huntersSergeisex = 0):
+	if hunters_inside = 1 and doublehunterlove = 1 and hour >= 8 and hour < 20 and (huntersAndreisex = 0 or huntersSergeisex = 0):
 		*clr & cla
 		minut += 5
 		huntersAndreisex += rand(6,24)
@@ -300,135 +306,58 @@ if $ARGS[0] = 'start':
 		end
 	end
 	!hunters are invited to the table
-	if sunWeather = 0 and temper < 17 and hour = 20 and hunters_here = 1 and huntersKnow > 0 and huntersKnowSlut = 0 and hunter_refuse = 0:
-		cla
-		*clr
-		if hour >= 20 and hour <= 23 :
-			huntersdrink = 1
-		else
-			huntersdrink = 0
-		end
+	if hunters_drink = 1 and hunters_inside = 1 and huntersKnowSlut = 0 and hunter_refuse = 0:
+		gs 'stat'
+		minut += 1
+		temp_sh = rand(1,4)
 		gs 'stat'
 
-		if huntersdrink = 1:
+		if temp_sh = 1:
 			*clr & cla
-			minut += 1
-			temp_sh = rand(1,4)
-			gs 'stat'
-
-			if temp_sh = 1:
-				'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/hanterstable.jpg"></center>'
-				'You enter the hut and notice the plastered hunters.'
-				'"Oh look who''s showed up. <<$pcs_nickname>>, come, join us for a drink!" they invite you in.'
-				act 'Join': gs 'swamphouse', 'hunterstable'
-				act 'Politely decline': hunter_refuse = 1 & gt 'swamphouse', 'start'
-			end
-			if temp_sh = 2:
-				huntersAndreiQw += 1
-				'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/andreihanter.jpg"></center>'
-				'You enter the hut and notice the plastered hunters.'
-				'Oh, <<$pcs_nickname>>, come join us for a drink!" said Andrei.'
-				act 'Join': gs 'swamphouse', 'hunterstable'
-				act 'Politely decline': hunter_refuse = 1 & gt 'swamphouse', 'start'
-			end
-			if temp_sh = 3:
-				huntersSergeiQw += 1
-				'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/sergeihanter.jpg"></center>'
-				'You enter the hut and notice the plastered hunters.'
-				'Oh, <<$pcs_nickname>>, come join us for a drink!" Sergei says noticing you entering.'
-				act 'Join': gs 'swamphouse', 'hunterstable'
-				act 'Politely decline': hunter_refuse = 1 & gt 'swamphouse', 'start'
-			end
-			if temp_sh = 4:
-				huntersIgorQw += 1
-				'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/igorhanter.jpg"></center>'
-				'You enter the hut and notice the plastered hunters.'
-				'Oh, <<$pcs_nickname>>, come join us for a drink!" Igor shouts ignoring the other conversation.'
-				act 'Join': gs 'swamphouse', 'hunterstable'
-				act 'Politely decline': hunter_refuse = 1 & gt 'swamphouse', 'start'
-			end
-		else
 			'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/hanterstable.jpg"></center>'
-			'You went into the hut and notice that the hunters have prepared breakfast.'
-			'"Oh, <<$pcs_nickname>>, you''re just in time, come join us!"'
-			act 'Join': gs 'swamphouse', 'hunterstable'
+			'You enter the hut and notice the plastered hunters.'
+			'"Oh look who''s showed up. <<$pcs_nickname>>, come, join us for a drink!" they invite you in.'
+			act 'Join them at the table': gs 'swamphouse', 'hunterstable'
 			act 'Politely decline': hunter_refuse = 1 & gt 'swamphouse', 'start'
 		end
-	end
-	!if GG naked and hunters in the hut
-	if $clothingworntype = 'nude' and (hunters_here = 1 and hour >= 20 and hour < 23 and hunterknowday ! daystart) or ($clothingworntype = 'nude' and hunters_here = 1 and hour = 7 and hunterknowday ! daystart):
-		cla
-		*clr
-		temp_sh =rand(1,3)
-		gs 'stat'
-		if huntersKnowSlut = 0:
-			cla
-			*clr
-			gs 'stat'
-
-			'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/swamphousenude.jpg"></center>'
-			'You hear the hunters nearing the hut, grabbing the handle, about to open the door. You quickly hide your privare parts behind the hands...'
-
-			if clothesAtLocation = 1:
-				act 'Get dressed':
-					cla
-					*clr
-					minut += 5
-					gs 'underwear', 'wear'
-					gs 'clothing', 'recover_lost_clothes', 'swamphouse', 1
-					!tkan_cloth = 0
-
-					'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/swampdvornude1.jpg"></center>'
-					'You look around searching for your clothes. When you spot them, you dash over to grab them.'
-					act 'Continue': gt 'swamphouse', 'start'
-				end
-			else
-				act 'Cover yourself':
-					cla
-					*clr
-					minut+=5
-					gs 'clothing', 'swamp_clothes', 1
-					gs 'stat'
-					'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/tkan_cloth.jpg"></center>'
-					'You look around searching for your clothes but can''t seem to find them, instead you hide behind a piece of hessian... It''s better than nothing.'
-					act 'Continue': gt 'swamphouse', 'start'
-				end
-			end
-			act 'Stay naked':
-				cla
-				*clr
-				hunterslut += 1
-				hunterknowday = daystart
-				gs 'stat'
-				'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/swamphousenude1.jpg"></center>'
-				'You take a deep breath and decided to disregard your nerves and leave it as it is. Upon entering the hut, the hunters can''t help themselves, they start staring at your most private parts.'
-				'"Damn, <<$pcs_nickname>>, you look really good. The things I would want to do to you..." said a somewhat aroused Andrei.'
-				act 'Continue': gt 'swamphouse', 'start'
-			end
+		if temp_sh = 2:
+			*clr & cla
+			huntersAndreiQw += 1
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/andreihanter.jpg"></center>'
+			'You enter the hut and notice the plastered hunters.'
+			'Oh, <<$pcs_nickname>>, come join us for a drink!" said Andrei.'
+			act 'Join them at the table': gs 'swamphouse', 'hunterstable'
+			act 'Politely decline': hunter_refuse = 1 & gt 'swamphouse', 'start'
 		end
-		if huntersKnowSlut > 0:
-			if huntslutsex = 0:
-				*clr & cla
-				gs 'stat'
-
-				'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/swamphousenude1.jpg"></center>'
-				'Seeing you naked, the men get quickly aroused...'
-				'"Come here <<$pcs_nickname>>, come to us," one of the guys calls out to you.'
-
-				act 'Continue':huntersexnude = 1 & gt 'huntersex', 'huntersexnude'
-			else
-				hunterknowday = daystart
-				'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/swamphousenude1.jpg"></center>'
-				'Seeing you naked, the men just shake their heads...'
-				'"Look here <<$pcs_nickname>>, if you want to charm us, you will need to think of something else." said one of the guys.'
-
-				act 'Continue': gt 'swamphouse', 'start'
-			end
+		if temp_sh = 3:
+			*clr & cla
+			huntersSergeiQw += 1
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/sergeihanter.jpg"></center>'
+			'You enter the hut and notice the plastered hunters.'
+			'Oh, <<$pcs_nickname>>, come join us for a drink!" Sergei says noticing you entering.'
+			act 'Join them at the table': gs 'swamphouse', 'hunterstable'
+			act 'Politely decline': hunter_refuse = 1 & gt 'swamphouse', 'start'
 		end
+		if temp_sh = 4:
+			*clr & cla
+			huntersIgorQw += 1
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/igorhanter.jpg"></center>'
+			'You enter the hut and notice the plastered hunters.'
+			'Oh, <<$pcs_nickname>>, come join us for a drink!" Igor shouts ignoring the other conversation.'
+			act 'Join them at the table': gs 'swamphouse', 'hunterstable'
+			act 'Politely decline': hunter_refuse = 1 & gt 'swamphouse', 'start'
+		end
+	elseif hunters_breakfast = 1 or hunters_lunch = 1:
+		*clr & cla
+		'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/hanterstable.jpg"></center>'
+		'You went into the hut and notice that the hunters have prepared breakfast.'
+		'"Oh, <<$pcs_nickname>>, you''re just in time, come join us!"'
+		act 'Join them at the table': gs 'swamphouse', 'hunterstable'
+		act 'Politely decline': hunter_refuse = 1 & gt 'swamphouse', 'start'
 	end
 
 	! sex if GG whore
-	if hunters_here > 0 and huntersRape = 5 and huntslutsexrand = 1 and huntslutsex = 0 and hour >= 7 and hour < 23:
+	if hunters_inside = 1 and huntersRape = 5 and huntslutsexrand = 1 and huntslutsex = 0 and hour >= 7 and hour < 23:
 		*clr & cla
 		minut += 5
 		temphunt = rand(1,3)
@@ -446,13 +375,12 @@ if $ARGS[0] = 'start':
 		if pcs_horny >= 40 and pcs_horny < 70:'"Come and get me..." is all you manage to say before spreading your legs.'
 		if pcs_horny >= 70:'"I was hoping this would happen," you think to yourself, feeling your wet pussy screaming with desire. You jump on him, taking charge, leaving him stunned about who wants it more.'
 
-		act 'Go': gt 'huntersex', 'sluthomesex'
+		act 'Go with him': gt 'huntersex', 'sluthomesex'
 	end
 end
 
 if $ARGS[0] = 'stove':
-	cla
-	*clr
+	*clr & cla
 	$loc = 'swamphouse'
 	$metka = 'stove'
 	menu_off = 1
@@ -531,8 +459,11 @@ if $ARGS[0] = 'bucket':
 	act 'Drink the water':
 		cla
 		minut+=5
-		cumspclnt = 2 & gs 'cum_cleanup' & pcs_breath = 0
+		cumspclnt = 2
+		gs 'cum_cleanup'
+		pcs_breath = 0
 		bucket -= 1
+		gs 'stat'
 		if pcs_hydra >= 100:
 			'You''re not thirsty anymore. You don''t need to drink more water.'
 		else
@@ -540,6 +471,7 @@ if $ARGS[0] = 'bucket':
 			cumspclnt = 2
 			gs 'cum_cleanup'
 			pcs_breath = 0
+			gs 'stat'
 			'You take a sip from bucket, quenching your thirst.'
 		end
 		act 'Continue': gt 'swamphouse', 'start'
@@ -564,6 +496,7 @@ if $ARGS[0] = 'washstand':
 		!use current by illume
 		dynamic $basin
 	end
+	if hunters_inside = 0:gs 'lact_bp', 'massage'
 	act 'Move away': gt 'swamphouse', 'start'
 end
 
@@ -581,6 +514,9 @@ if $ARGS[0] = 'tub':
 	'An old tub, that you can use to bathe yourself. It''s a lot warmer than using the spring! You just need to warm some water, and get undressed first.'
 	'If you are desperate enough, you found a handful of well used '+iif(stanok < 1,'<a href="exec: stanok += 5 & gt ''swamphouse'', ''tub''">razors</a>','razors')+' on a shelf, that you can use to shave with. '+iif(stanok > 0, '<a href="exec:gs ''din_van'', ''shave_options''">Shave Options</a>','')+''
 	dynamic $brit
+	if $clothingworntype = 'nude' and klismaday ! daystart and swamp_enema = 1 and hunters_inside = 0:
+		dynamic $enema
+	end
 		
 	if hotwater = 1 and ($clothingworntype = 'nude' or $clothingworntype = 'swimwear'):
 		act 'Bathe in the tub (0:30)':
@@ -600,7 +536,7 @@ if $ARGS[0] = 'tub':
 			*nl
 			'You fill the tub with warm water, take off your clothes, and climbe into the tub. After a good clean and soak, you feel rejuvenated.'
 
-			act 'Continue': gt 'swamphouse', 'start'
+			act 'Continue': gt 'swamphouse', 'tub'
 		end
 	end
 	act 'Move away': gt 'swamphouse', 'start'
@@ -882,21 +818,15 @@ if $ARGS[0] = 'hunterstableBJ':
 end
 
 if $ARGS[0] = 'hunterstable':
-	cla
-	*clr
+	*clr & cla
 	menu_off = 1
-	if hour >= 20 and hour <= 23 :
-		huntersdrink = 1
-	else
-		huntersdrink = 0
-	end
 	minut += 1
 	smokertemp = rand(1,3)
 	gs 'stat'
 
 	'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/hanterstable.jpg"></center>'
 	*nl
-	if huntersdrink = 1:
+	if hunters_drink = 1:
 		dirty_swamphouse += rand(1,3)
 		'There are loads of vodka bottles and beer on the makeshift table. The hunters are sitting around the table drinking and talking.'
 	else
@@ -904,8 +834,8 @@ if $ARGS[0] = 'hunterstable':
 		'You see loads of spirits on the makeshift table. The hunters are enjoying their meal and discussing current events.'
 	end
 
-	if huntersdrink = 1 and hour >= 20:
-		act 'Drink vodka':
+	if hunters_drink = 1:
+		act 'Drink vodka (0:15)':
 			*clr & cla
 			minut += 1
 			gs 'drugs', 'alcohol', 'vodka', 1
@@ -917,7 +847,7 @@ if $ARGS[0] = 'hunterstable':
 
 			act 'Continue': gs 'swamphouse', 'hunterstable'
 		end
-		act 'Drink beer':
+		act 'Drink beer (0:15)':
 			*clr & cla
 			minut += 15
 			gs 'drugs', 'alcohol', 'beer', 1
@@ -929,10 +859,10 @@ if $ARGS[0] = 'hunterstable':
 
 			act 'Continue': gs 'swamphouse', 'hunterstable'
 		end
-		act 'Eat a snack':
+		act 'Eat a snack (0:15)':
 			gs 'food', 'snack'
 			*clr & cla
-			minut += 30
+			minut += 15
 			gs 'stat'
 
 			'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/snack1.'+rand(1,2)+'.jpg"></center>'
@@ -940,7 +870,7 @@ if $ARGS[0] = 'hunterstable':
 			'You grab something to eat, so you don''t get drunk to quickly.'
 			act 'Continue': gs 'swamphouse', 'hunterstable'
 		end
-		act 'Chat':
+		act 'Chat (0:15)':
 			*clr & cla
 			minut += 15
 			if huntersAndreiQw < 10:huntersAndreiQw += 1
@@ -954,7 +884,7 @@ if $ARGS[0] = 'hunterstable':
 
 			act 'Continue': gs 'swamphouse', 'hunterstable'
 		end
-		act 'Move away from the table':huntersdrink = 0 & hunter_refuse = 1 & gt 'swamphouse', 'start'
+		act 'Move away from the table':hunter_refuse = 1 & gt 'swamphouse', 'start'
 		if alko > 3 and alko < 8 and smokertemp = 1:
 			*clr & cla
 			temp_sh = rand(1,4)
@@ -1705,13 +1635,29 @@ if $ARGS[0] = 'hunterstable':
 				end
 			end
 		end
-	else
-		act 'Eat a meal':
+	elseif hunters_lunch = 1 or hunters_breakfast = 1 or hunters_evening = 1:
+		act 'Eat a meal (0:15)':
 			gs 'food', 'm_meal'
 		end
-		act 'Chat (1:00)':
+		act 'Chat (0:15)':
 			*clr & cla
-			minut += 60
+			minut += 15
+			if huntersAndreiQw < 10:huntersAndreiQw += 1
+			if huntersIgorQw < 10:huntersIgorQw += 1
+			if huntersSergeiQw < 10:huntersSergeiQw += 1
+			gs 'stat'
+
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/hanterstable.jpg"></center>'
+			*nl
+			'You start chating with the guys about trivial stuff...'
+
+			act 'Move away from the table': gt 'swamphouse', 'start'
+		end
+		act 'Move away from the table':hunter_refuse = 1 & gt 'swamphouse', 'start'
+	else
+		act 'Chat (0:15)':
+			*clr & cla
+			minut += 15
 			if huntersAndreiQw < 10:huntersAndreiQw += 1
 			if huntersIgorQw < 10:huntersIgorQw += 1
 			if huntersSergeiQw < 10:huntersSergeiQw += 1
@@ -1726,7 +1672,7 @@ if $ARGS[0] = 'hunterstable':
 		act 'Move away from the table':hunter_refuse = 1 & gt 'swamphouse', 'start'
 	end
 	if huntersKnowSlut > 0 and hunterstableBJ = 0:
-		if huntersdrink = 0:
+		if hunters_drink = 0:
 			*clr & cla
 			minut += 1
 			gs 'stat'
@@ -1842,6 +1788,79 @@ if $ARGS[0] = 'dirty_swamphouse':
 
 	act 'Continue':dirty_swamphouse = 0 & gt 'swamphouse', 'start'
 end
+
+if $ARGS[0] = 'get_dressed':
+	!if GG naked and hunters in the hut
+	temp_sh =rand(1,3)
+	gs 'stat'
+	if huntersKnowSlut > 0:
+		if huntslutsex = 0:
+			*clr & cla
+			gs 'stat'
+
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/swamphousenude1.jpg"></center>'
+			*nl
+			'Seeing you naked, the men get quickly aroused...'
+			'"Come here <<$pcs_nickname>>, come to us," one of the guys calls out to you.'
+
+			act 'Continue':huntersexnude = 1 & gt 'huntersex', 'huntersexnude'
+		else
+			*clr & cla
+			hunterknowday = daystart
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/swamphousenude1.jpg"></center>'
+			*nl
+			'Seeing you naked, the men just shake their heads...'
+			'"Look here <<$pcs_nickname>>, if you want to charm us, you will need to think of something else." said one of the guys.'
+
+			act 'Continue': gt $loc, $metka
+		end
+	else
+		*clr & cla
+		gs 'stat'
+
+		'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/swamphousenude.jpg"></center>'
+		*nl
+		'You hear the hunters nearby. You quickly hide your private parts behind your hands...'
+
+		if clothesAtLocation = 1:
+			act 'Get dressed':
+				*clr & cla
+				minut += 5
+				gs 'underwear', 'wear'
+				gs 'clothing', 'recover_lost_clothes', 'swamphouse', 1
+				!tkan_cloth = 0
+
+				'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/swampdvornude1.jpg"></center>'
+				*nl
+				'You look around searching for your clothes. When you spot them, you dash over to grab them.'
+				act 'Continue': gt $loc, $metka
+			end
+		else
+			act 'Cover yourself':
+				*clr & cla
+				minut+=5
+				gs 'clothing', 'swamp_clothes', 1
+				gs 'stat'
+				'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/tkan_cloth.jpg"></center>'
+				*nl
+				'You look around searching for your clothes but can''t seem to find them, instead you hide behind a piece of hessian... It''s better than nothing.'
+				act 'Continue': gt $loc, $metka
+			end
+		end
+		act 'Stay naked':
+			*clr & cla
+			hunterslut += 1
+			hunterknowday = daystart
+			gs 'stat'
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/swamphousenude1.jpg"></center>'
+			*nl
+			'You take a deep breath and decided to disregard your nerves and leave it as it is. Upon encountering the hunters, they can''t help themselves, they start staring at your most private parts.'
+			'"Damn, <<$pcs_nickname>>, you look really good. The things I would want to do to you..." said a somewhat aroused Andrei.'
+			act 'Continue': gt $loc, $metka
+		end
+	end
+end
+
 
 --- swamphouse ---------------------------------
 
