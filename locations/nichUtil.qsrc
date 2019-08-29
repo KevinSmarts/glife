@@ -15,7 +15,8 @@
 !! nichSalaryNext
 !! nichSalaryOutstanding
 
-
+!! nichPregnancy:	0: Nicholas has not noticed that you are pregnant
+!!					1: Nicholas has noticed you being pregnant
 
 
 
@@ -45,19 +46,25 @@ elseif $ARGS[0] = 'debug':
 			gs 'nichUtil','clearVars'
 			abonement = 30
 			nichWork = 0
-			nichTanyaOpinion = 0
+			nichTanyaRelationship = 0
+			nichTanyaRelationshipState = 0
+			nichTanyaRelationshipBreakup = 0
 			nichTanyaFuckCounter = 0
 			gt 'fit','start'
 		elseif $ARGS[2] = 'getHired':
 			nichWork = 0
-			nichTanyaOpinion = 1
+			nichTanyaRelationship = 1
+			nichTanyaRelationshipState = 10
+			nichTanyaRelationshipBreakup = 0
 			nichJobRefused = 0
 			nichTanyaFuckCounter = 6
 			hour = 16
 			gt 'down'
 		elseif $ARGS[2] = 'tanyaDate100':
 			nichWork = 2
-			nichTanyaOpinion = 1
+			nichTanyaRelationship = 1
+			nichTanyaRelationshipState = 10
+			nichTanyaRelationshipBreakup = 0
 			nichTanyaFuckCounter = 6
 			nichTanyaDominance = 30
 			nichTanyaStrapon = 0
@@ -65,6 +72,23 @@ elseif $ARGS[0] = 'debug':
 			hour = 16
 			$loc = 'nichBedroomTanja'
 			gt 'nichTanya','bedroomTanya'
+		elseif $ARGS[2] = 'nichGentleclubE1':
+			nichWork = 2
+			minut = 0
+			hour = 18
+			nichGentleclubDayE1 = daystart 
+			nichGentleclubE1 = 1
+			gt 'nichApartment'
+			
+		elseif $ARGS[2] = 'galaContract':	
+			nichGalaTraining = 1
+			nichGalaTrainCounter = 5
+			nichWork = 2
+			nichGalaContractActive = 0
+			nichGalaContract = 0
+			minut = 0
+			hour = 18
+			gt 'nichApartment'
 		end
 	end
 
@@ -82,6 +106,9 @@ elseif $ARGS[0] = 'debug':
 	'<a href="exec: gt ''nichUtil'', ''debug'',''shortcut'',''meetTanya''">Meet Tanya</a>: Sets you up to meet Tanya. Go to the dressing room. She is the ''cute girl''. Meeting her has a random chance unless you have activated debug mode.'
 	'<a href="exec: gt ''nichUtil'', ''debug'',''shortcut'',''getHired''">Get hired</a>: You visited Tanya often enough for her to offer you the job as the live-in maid.'
 	'<a href="exec: gt ''nichUtil'', ''debug'',''shortcut'',''tanyaDate100''">Tanya Special Date 1</a>: Tanya became somewhat dominant. Ask her for a date and let her decide where to go.'
+	'<a href="exec: gt ''nichUtil'', ''debug'',''shortcut'',''nichGentleclubE1''">Nicholas Club Event 1</a>: Nicholas has a special guest over. Meet him at his study.'
+	'<a href="exec: gt ''nichUtil'', ''debug'',''shortcut'',''galaContract''">Gala Contract</a>: Gala offers a special contract. Meet her in the living room.'
+	
 	*nl
 	
 	'<i><b>Job performance</b></i>'
@@ -105,6 +132,7 @@ elseif $ARGS[0] = 'debug':
 	
 	*nl
 	'<i><b>NPCs</b></i>'
+	'The following settings are meant for debugging only. Touching them will influence the intended progression in the story.'
 	'<b>Gala</b>'
 	if nichGalaTraining = 1:
 		'Gala Training: <a href="exec: gt ''nichUtil'', ''debug'', ''galaTrainingToggle''">Enabled</a>'
@@ -113,19 +141,26 @@ elseif $ARGS[0] = 'debug':
 	end
 	
 	'<b>Tanya</b>'
+	'Set relationship to:'
+	'-<a href="exec: nichTanyaRelationship = 0 & nichTanyaRelationshipState = 0    & gt ''nichUtil'', ''debug''">Not together (and never have been)</a>'
+	'-<a href="exec: nichTanyaRelationship = 0 & nichTanyaRelationshipState = 1000 & gt ''nichUtil'', ''debug''">Not together (you broke up)</a>'
+	'-<a href="exec: nichTanyaRelationship = 0 & nichTanyaRelationshipState = 1010 & gt ''nichUtil'', ''debug''">Not together (Tanya broke up)</a>'
+	'-<a href="exec: nichTanyaRelationship = 1 & nichTanyaRelationshipState = 10   & gt ''nichUtil'', ''debug''">Casually dating</a>'
+	'-<a href="exec: nichTanyaRelationship = 1 & nichTanyaRelationshipState = 20   & gt ''nichUtil'', ''debug''">In a relationship</a>'
 	'You fucked Tanya <<nichTanyaFuckCounter>> times'
 	'The last time you fucked Tanya was '+(daystart-nichTanyaFuckLast)+' days ago'
 	'Tanya has a dominance of <<nichTanyaDominance>> (range: -100 - 100)'
 	
-	act 'DEBUG: New Workday':
-		gs 'nichUtil', 'startWorkday'
-	end
+	act 'DEBUG: New Workday': gs 'nichUtil', 'startWorkday'
 	
-	act 'Back':
-		gt $menu_loc
-	end
+	act 'Back': gt $menu_loc, $menu_arg
 	
 elseif $ARGS[0] = 'startWorkday':
+	!! Sveta has free Wednesdays.
+	if nichWorkState > 0 and week = 3 and nichVactionTil < daystart:
+		nichVactionTil = daystart
+	end
+	
 	nichMissedWorkdays = daystart - nichLastWorkDay - 1
 		
 	if nickHired + 1 = daystart:
@@ -178,6 +213,8 @@ elseif $ARGS[0] = 'startWorkday':
 	
 	if nichWorkState > 0:
 		nichEvaluationLastReq = 0
+	elseif nichVactionTil >= daystart and nichVacationFrom <= daystart:
+		nichEvaluationLastReq = daystart + 1
 	else
 		nichEvaluationLastReq = daystart
 	end
@@ -213,7 +250,6 @@ elseif $ARGS[0] = 'startWorkday':
 		nichSalaryOutstanding += nichSalaryNext
 		nichSalaryNext = nichSalaryBase
 	end
-	
 	
 	!! NPC behaviour
 	!! Gala will give up talking smack about Sveta after 5 days
@@ -282,8 +318,7 @@ elseif $ARGS[0] = 'clearVars':
 	!!Do not kill Tanyas fuck vars since Sveta might meet her after leaving her job
 	killvar 'nichTanyaSpyLast'
 	killvar 'nichTanyaSpyCounter'
-	
-	
+		
 elseif $ARGS[0] = 'fired':
 	'It takes you a few moments to process what just happened:'
 	'You have just been fired. And kind of lost your home, too.'
@@ -297,7 +332,6 @@ elseif $ARGS[0] = 'fired':
 	
 	act 'Take your belongings and leave the apartment':gt 'down'
 end
-
 
 !! initializes variables when hired, might mess everything up if called at any other time
 if $ARGS[0] = 'hired':
@@ -330,6 +364,37 @@ if $ARGS[0] = 'hired':
 	
 	$npc_nickname['A52'] = 'Master '+$npc_firstname['A52']
 end
+
+if $ARGS[0] = 'onLoad':
+	gs 'nichUtil','updateVars'
+	if $loc = 'tanapartment' or $loc = 'tanhouse' or $loc = 'tanhousezal' or $loc = 'tanhozspal' or $loc = 'tankitchen' or $loc = 'tanNicholas' or $loc = 'tanroom' or $loc = 'tanspalnya' or $loc = 'tanvanr':
+		$loc = 'nichApartment'
+		$metka = ''
+		gt 'nichUtil','updateNotice'
+	end
+end
+
+!!
+if $ARGS[0] = 'updateVars':
+	if nichTanyaOpinion > 0:
+		nichTanyaKnown = 1
+		if nichTanyaOpinion = 1:
+			nichTanyaRelationship = 1
+			nichTanyaRelationshipState = 10
+		elseif nichTanyaOpinion = 10:
+			nichTanyaRelationship = 1
+			nichTanyaRelationshipState = 20
+		elseif nichTanyaOpinion = 20:
+			nichTanyaRelationship = 1
+			nichTanyaRelationshipState = 10
+		elseif nichTanyaOpinion = 30:
+			nichTanyaRelationship = 0
+			nichTanyaRelationshipState = 1010
+		end
+		killvar 'nichTanyaOpinion'
+	end
+end
+
 
 !! convert the old vars to the new system
 if $ARGS[0] = 'convert':
@@ -367,8 +432,10 @@ if $ARGS[0] = 'updateNotice':
 	
 	act 'Stay hired':
 		gs 'nichUtil', 'hired'
-		nichPerformance = tan_work_rep * 5
-		nichTanyaOpinion = 1
+		nichPerformance = max(tan_work_rep * 5,10)
+		nichTanyaRelationship = 1
+		nichTanyaRelationshipState = 10
+		nichTanyaRelationshipBreakup = 0
 		gt $loc, $metka
 	end
 	
@@ -383,6 +450,7 @@ if $ARGS[0] = 'checkOutfit':
 end
 
 !! Creates the actions for cleaning rooms
+!! DEPRECATED
 if $ARGS[0] = 'cleanOptions':
 	$nichTempPic = func('nichUtil','cleanPic',$nichChoreType,$nichChoreLoc)
 	
@@ -403,7 +471,6 @@ if $ARGS[0] = 'cleanOptions':
 		
 		act '(<<nichTimeNormal>> minutes) Clean normally':
 			*clr & cla
-			'DEBUG: '+$nichTempPic
 			'<center><img <<$set_imgh>> src="<<$nichTempPic>>"></center>'
 			minut += nichTimeNormal
 			nichChoreState[nichChoreID] = 0
@@ -500,7 +567,7 @@ if $ARGS[0] = 'cleanPic':
 	else
 		$RESULT = 'images/pc/activities/maidCleaning/'+$nichTempPic[rand(0,ARRSIZE('$nichTempPic')-1)]
 	end
-	'Debug: Picture '+$RESULT
+	if nichDebug = 1: 'Debug: Picture '+$RESULT
 	!!killvar 'nichTemp'
 	killvar '$nichTempPic'
 end
@@ -626,7 +693,12 @@ if $ARGS[0] = 'npcActivity':
 		end
 		
 		!!evening
-		if week <= 4:
+		if nichGentleclubDayE1 = daystart:
+			!!Nicholas has an important guest in his study and stays there all evening
+			gs 'nichUtil', 'npcActivityAdd', 'study', 22 , 30
+			gs 'nichUtil', 'npcActivityAdd', 'bathEvening', 22 , 45
+			gs 'nichUtil', 'npcActivityAdd', 'sleep', 24 , 0
+		elseif week <= 4:
 			gs 'nichUtil', 'npcActivityAdd', 'dinner', 18 , 30
 			gs 'nichUtil', 'npcActivityAdd', 'study', 20 , 30
 			if week = 1:
@@ -657,69 +729,73 @@ if $ARGS[0] = 'npcActivity':
 			gs 'nichUtil', 'npcActivityAdd', 'sleep', 24 , 0
 		end
 	elseif $ARGS[1] = 'gala':
-		!!Morning routine
-		if week <= 5:
-			gs 'nichUtil', 'npcActivityAdd', 'sleep', 6 , 45
-			!! gala will wake up the same time Nicholas does (->alarm clock) but she will wait for him to be finished in bath before she goes there
-			gs 'nichUtil', 'npcActivityAdd', 'snooze', 7 , 15
-			!! Gala is in bath while Nicholas is in his study
-			gs 'nichUtil', 'npcActivityAdd', 'bathMorning', 7 , 45
-			!! note: breakfast time should be the same for all three characters
-			gs 'nichUtil', 'npcActivityAdd', 'breakfast', 8 , 30
+		if nichGalaDisabled = 1:
+			gs 'nichUtil', 'npcActivityAdd', 'vanished', 24 , 0
 		else
-			gs 'nichUtil', 'npcActivityAdd', 'sleep', 7 , 45
-			gs 'nichUtil', 'npcActivityAdd', 'snooze', 8 , 15
-			gs 'nichUtil', 'npcActivityAdd', 'bathMorning', 8 , 45
-			gs 'nichUtil', 'npcActivityAdd', 'breakfast', 9 , 30
-		end
-		!! daily activity
-		if week = 1 or week = 3:
-			gs 'nichUtil', 'npcActivityAdd', 'living', 18 , 05
-		elseif week = 2:
-			!! Gala goes to spa on Tuesdays
-			gs 'nichUtil', 'npcActivityAdd', 'living', 9 , 0
-			gs 'nichUtil', 'npcActivityAdd', 'leaveSpa', 9 , 5
-			gs 'nichUtil', 'npcActivityAdd', 'spa', 15 , 30
-			gs 'nichUtil', 'npcActivityAdd', 'returnSpa', 15 , 35
-			gs 'nichUtil', 'npcActivityAdd', 'living', 18 , 05
-		elseif week = 4:
-			!! Gala visits a friend on Thursdays
-			gs 'nichUtil', 'npcActivityAdd', 'living', 9 , 0
-			gs 'nichUtil', 'npcActivityAdd', 'leaveFriend', 9 , 5
-			gs 'nichUtil', 'npcActivityAdd', 'friend', 17 , 30
-			gs 'nichUtil', 'npcActivityAdd', 'returnFriend', 17 , 35
-			gs 'nichUtil', 'npcActivityAdd', 'living', 18 , 05
-		elseif week = 5:
-			!! TODO: Friday plans
-			gs 'nichUtil', 'npcActivityAdd', 'living', 18 , 05
-		elseif week = 6:
-			!! TODO: Saturday plans
-			gs 'nichUtil', 'npcActivityAdd', 'living', 18 , 05
-		else
-			!! TODO: Sunday plans
-			gs 'nichUtil', 'npcActivityAdd', 'living', 18 , 0
-		end
-		!!evening
-		if week <= 4:
-			!! dinner has to be the same time for all three characters
-			gs 'nichUtil', 'npcActivityAdd', 'dinner', 18 , 30
-			gs 'nichUtil', 'npcActivityAdd', 'living', 20 , 30
-			gs 'nichUtil', 'npcActivityAdd', 'bathEvening', 22 , 15
-			gs 'nichUtil', 'npcActivityAdd', 'sleep', 24 , 0
-		elseif week = 5 or week = 6:
-			!! Gala will prepare herself for the club in the bedroom
-			!! she will accompany Nicholas there, so their times have to be the same
-			gs 'nichUtil', 'npcActivityAdd', 'prepareClub', 18 , 30
-			gs 'nichUtil', 'npcActivityAdd', 'leaveClub', 18 , 35
-			gs 'nichUtil', 'npcActivityAdd', 'club', 23 , 45
-			gs 'nichUtil', 'npcActivityAdd', 'returnClub', 23 , 50
-			gs 'nichUtil', 'npcActivityAdd', 'sleep', 24 , 0
-		else
-			gs 'nichUtil', 'npcActivityAdd', 'dinner', 18 , 30
-			!! Nicholas will do her at this time, so she must have the corresponding entry
-			gs 'nichUtil', 'npcActivityAdd', 'nicholas', 21 , 30
-			gs 'nichUtil', 'npcActivityAdd', 'bathEvening', 21 , 45
-			gs 'nichUtil', 'npcActivityAdd', 'sleep', 24 , 0
+			!!Morning routine
+			if week <= 5:
+				gs 'nichUtil', 'npcActivityAdd', 'sleep', 6 , 45
+				!! gala will wake up the same time Nicholas does (->alarm clock) but she will wait for him to be finished in bath before she goes there
+				gs 'nichUtil', 'npcActivityAdd', 'snooze', 7 , 15
+				!! Gala is in bath while Nicholas is in his study
+				gs 'nichUtil', 'npcActivityAdd', 'bathMorning', 7 , 45
+				!! note: breakfast time should be the same for all three characters
+				gs 'nichUtil', 'npcActivityAdd', 'breakfast', 8 , 30
+			else
+				gs 'nichUtil', 'npcActivityAdd', 'sleep', 7 , 45
+				gs 'nichUtil', 'npcActivityAdd', 'snooze', 8 , 15
+				gs 'nichUtil', 'npcActivityAdd', 'bathMorning', 8 , 45
+				gs 'nichUtil', 'npcActivityAdd', 'breakfast', 9 , 30
+			end
+			!! daily activity
+			if week = 1 or week = 3:
+				gs 'nichUtil', 'npcActivityAdd', 'living', 18 , 05
+			elseif week = 2:
+				!! Gala goes to spa on Tuesdays
+				gs 'nichUtil', 'npcActivityAdd', 'living', 9 , 0
+				gs 'nichUtil', 'npcActivityAdd', 'leaveSpa', 9 , 5
+				gs 'nichUtil', 'npcActivityAdd', 'spa', 15 , 30
+				gs 'nichUtil', 'npcActivityAdd', 'returnSpa', 15 , 35
+				gs 'nichUtil', 'npcActivityAdd', 'living', 18 , 05
+			elseif week = 4:
+				!! Gala visits a friend on Thursdays
+				gs 'nichUtil', 'npcActivityAdd', 'living', 9 , 0
+				gs 'nichUtil', 'npcActivityAdd', 'leaveFriend', 9 , 5
+				gs 'nichUtil', 'npcActivityAdd', 'friend', 17 , 30
+				gs 'nichUtil', 'npcActivityAdd', 'returnFriend', 17 , 35
+				gs 'nichUtil', 'npcActivityAdd', 'living', 18 , 05
+			elseif week = 5:
+				!! TODO: Friday plans
+				gs 'nichUtil', 'npcActivityAdd', 'living', 18 , 05
+			elseif week = 6:
+				!! TODO: Saturday plans
+				gs 'nichUtil', 'npcActivityAdd', 'living', 18 , 05
+			else
+				!! TODO: Sunday plans
+				gs 'nichUtil', 'npcActivityAdd', 'living', 18 , 0
+			end
+			!!evening
+			if week <= 4:
+				!! dinner has to be the same time for all three characters
+				gs 'nichUtil', 'npcActivityAdd', 'dinner', 18 , 30
+				gs 'nichUtil', 'npcActivityAdd', 'living', 20 , 30
+				gs 'nichUtil', 'npcActivityAdd', 'bathEvening', 22 , 15
+				gs 'nichUtil', 'npcActivityAdd', 'sleep', 24 , 0
+			elseif week = 5 or week = 6:
+				!! Gala will prepare herself for the club in the bedroom
+				!! she will accompany Nicholas there, so their times have to be the same
+				gs 'nichUtil', 'npcActivityAdd', 'prepareClub', 18 , 30
+				gs 'nichUtil', 'npcActivityAdd', 'leaveClub', 18 , 35
+				gs 'nichUtil', 'npcActivityAdd', 'club', 23 , 45
+				gs 'nichUtil', 'npcActivityAdd', 'returnClub', 23 , 50
+				gs 'nichUtil', 'npcActivityAdd', 'sleep', 24 , 0
+			else
+				gs 'nichUtil', 'npcActivityAdd', 'dinner', 18 , 30
+				!! Nicholas will do her at this time, so she must have the corresponding entry
+				gs 'nichUtil', 'npcActivityAdd', 'nicholas', 21 , 30
+				gs 'nichUtil', 'npcActivityAdd', 'bathEvening', 21 , 45
+				gs 'nichUtil', 'npcActivityAdd', 'sleep', 24 , 0
+			end
 		end
 	elseif $ARGS[1] = 'tanya':
 		!!Morning routine
@@ -729,6 +805,14 @@ if $ARGS[0] = 'npcActivity':
 			gs 'nichUtil', 'npcActivityAdd', 'breakfast', 8 , 30
 			gs 'nichUtil', 'npcActivityAdd', 'bathMorning', 9 , 15
 			
+		elseif week = 6:
+			!! Tanya will go to a club on Friday evening and return on Saturday morning
+			gs 'nichUtil', 'npcActivityAdd', 'club', 2 , 30
+			gs 'nichUtil', 'npcActivityAdd', 'returnClub', 2 , 35
+			gs 'nichUtil', 'npcActivityAdd', 'sleep', 8 , 45
+			!! note: breakfast time should be the same for all three characters
+			gs 'nichUtil', 'npcActivityAdd', 'breakfast', 9 , 30
+			gs 'nichUtil', 'npcActivityAdd', 'bathMorning', 10 , 15
 		else
 			gs 'nichUtil', 'npcActivityAdd', 'sleep', 8 , 45
 			!! note: breakfast time should be the same for all three characters
@@ -780,6 +864,7 @@ if $ARGS[0] = 'npcActivity':
 		gs 'nichUtil', 'npcActivityAdd', 'tanya', 20 , 30
 		
 		if week = 2 or week = 4:
+			!! Tanya will have sex with Nicholas, her bf or wait for Sveta in her room
 			!! Needs to have corresponding entries to Nicholas entries.
 			if nichNTRelation < 10:
 				gs 'nichUtil', 'npcActivityAdd', 'nicholas', 22 , 0
@@ -788,11 +873,18 @@ if $ARGS[0] = 'npcActivity':
 			else
 				gs 'nichUtil', 'npcActivityAdd', 'tanya', 22 , 0
 			end
+			gs 'nichUtil', 'npcActivityAdd', 'sleep', 24 , 0
+		elseif week = 5:
+			!! Tanya will go to a club on Friday evenings and stay there til Saturday morning
+			gs 'nichUtil', 'npcActivityAdd', 'prepareClub', 21 , 30
+			gs 'nichUtil', 'npcActivityAdd', 'leaveClub', 21 , 35
+			gs 'nichUtil', 'npcActivityAdd', 'club', 24 , 0
 		else	
 			gs 'nichUtil', 'npcActivityAdd', 'tanya', 22 , 0
+			gs 'nichUtil', 'npcActivityAdd', 'sleep', 24 , 0
 		end
 		
-		gs 'nichUtil', 'npcActivityAdd', 'sleep', 24 , 0
+		
 	end
 	
 	$RESULT = $nichNpcActArr[0]
@@ -813,7 +905,7 @@ if $ARGS[0] = 'npcActivity':
 end
 
 if $ARGS[0] = 'whereIs':	
-	$RESULT = 'nowhere'
+	$RESULT = 'unknown'
 	if $ARGS[1] = 'nicholas':
 		$nichTemp = func('nichUtil','npcActivity','nicholas')
 		if $nichTemp = 'sleep' or $nichTemp = 'gala':
@@ -854,11 +946,11 @@ if $ARGS[0] = 'whereIs':
 		$nichTemp = func('nichUtil','npcActivity','tanya')
 		if $nichTemp = 'sleep' or $nichTemp = 'nicholas' or $nichTemp = 'tanya' or $nichTemp = 'boyfriend':
 			$RESULT = 'bedroomTanya'
-		elseif $nichTemp = 'bathMorning' or $nichTemp = 'bathEvening':
+		elseif $nichTemp = 'bathMorning' or $nichTemp = 'bathEvening' or $nichTemp = 'prepareClub':
 			$RESULT = 'masterBathroom'
 		elseif $nichTemp = 'breakfast' or $nichTemp = 'living' or $nichTemp = 'dinner':
 			$RESULT = 'living'
-		elseif $nichTemp = 'leaveUni' or $nichTemp = 'returnUni' or $nichTemp = 'leaveBallet' or $nichTemp = 'returnBallet' or $nichTemp = 'leaveFriend' or $nichTemp = 'returnFriend' or $nichTemp = 'leaveShopping' or $nichTemp = 'returnShopping':
+		elseif $nichTemp = 'leaveUni' or $nichTemp = 'returnUni' or $nichTemp = 'leaveBallet' or $nichTemp = 'returnBallet' or $nichTemp = 'leaveFriend' or $nichTemp = 'returnFriend' or $nichTemp = 'leaveShopping' or $nichTemp = 'returnShopping' or $nichTemp = 'leaveClub' or $nichTemp = 'returnClub':
 			$RESULT = 'hallway'
 		elseif $nichTemp = 'uni':
 			$RESULT = 'uni'
@@ -868,6 +960,8 @@ if $ARGS[0] = 'whereIs':
 			$RESULT = 'friend'
 		elseif $nichTemp = 'shopping':
 			$RESULT = 'shopping'
+		elseif $nichTemp = 'club':
+			$RESULT = 'club'
 		end
 	elseif $ARGS[1] = 'cook':
 		if hour >= 10 and hour < 20:
@@ -884,6 +978,37 @@ if $ARGS[0] = 'isHome':
 	end
 end
 
+!! Returns 1 if the character $ARGS[1] is in the room $ARGS[2] and no other characters are there
+!! Returns 0 if the character is not present and/or other characters are present
+if $ARGS[0] = 'isAlone':
+	$nichTempC1 = $ARGS[1]
+	if $nichTempC1 = 'nicholas':
+		$nichTempC2 = 'gala'
+		$nichTempC3 = 'tanya'
+	else
+		$nichTempC2 = 'nicholas'
+		if $nichTempC1 = 'gala':
+			$nichTempC3 = 'tanya'
+		else
+			$nichTempC3 = 'gala'
+		end
+	end
+	
+	if FUNC('nichUtil','isPresent',$nichTempC1,$ARGS[2]) = 0:
+		RESULT = 0
+	else
+		if FUNC('nichUtil','isPresent',$nichTempC2,$ARGS[2]) = 1 or FUNC('nichUtil','isPresent',$nichTempC3,$ARGS[2]) = 1:
+			RESULT = 0
+		else
+			RESULT = 1
+		end
+	end
+	
+	killvar '$nichTempC1'
+	killvar '$nichTempC2'
+	killvar '$nichTempC3'
+end
+
 if $ARGS[0] = 'isPresent':
 	$npcLocation = FUNC('nichUtil','whereIs',$ARGS[1])
 	if $npcLocation = $ARGS[2]:
@@ -893,4 +1018,70 @@ if $ARGS[0] = 'isPresent':
 	end
 	
 end
+
+!! Returns 1 if $loc is currently set to a location inside Nicholas apartment
+!! USAGE: x = FUNC('nichUtil','isNicholasHome')
+if $ARGS[0] = 'isNicholasHome':
+	if $loc = 'nichBathMaster' or $loc = 'nichBedroomServant':
+		RESULT = 1
+	else
+		RESULT = 0
+	end
+end
+
+!! Called by arousal.qsrc
+!! Usage: gs 'nichUtil','onArouse',TYPE
+!! Type: $ARGS[0] of arousal
+if $ARGS[0] = 'onArouse':
+	
+	if nichGalaImplant > 0:
+		nichTempNaughtyLoc = 1
+		if FUNC('nichUtil','isNicholasHome') = 1:
+			nichTempNaughtyLoc = 0
+		elseif nichGalaImplant > 1 and $loc = 'sauna':
+			nichTempNaughtyLoc = 0
+		end
+		if nichTempNaughtyLoc = 1:
+			if $ARGS[1] = 'vaginal' or $ARGS[1] = 'vaginal_finger' or $ARGS[1] = 'vaginal_fist' or $ARGS[1] = 'vaginal_dildo' or $ARGS[1] = 'vaginal_strap' or $ARGS[1] = 'vaginal_vibe':
+				nichGalaImplantCount += 1
+			end
+		end
+		killvar 'nichTempNaughtyLoc'
+	end
+	
+end
+
+!! Sveta gets ARGS[1] (default: 1) free days 
+!! Usage: gs 'nichUtil','freeDay'
+if $ARGS[0] = 'freeDay':
+	nichTempFree = iif(ARGS[1]>0,ARGS[1],1)
+	if nichVactionTil < daystart + nichTempFree - 1:
+		nichVacationFrom = daystart
+		nichVactionTil = daystart + nichTempFree - 1
+		nichEvaluationLastReq = nichVactionTil + 1
+	end
+end
+
+if $ARGS[0] = 'disableNPC':
+	if $ARGS[1] = 'Gala':
+		nichGalaDisabled = 1
+		killvar 'nichGalaContractTaras'
+		killvar 'nichGalaContractTarasCount'
+		killvar 'nichGalaContractTarasLast'
+		killvar 'nichGalaContractActive'
+		killvar 'nichGalaContractLast'
+		killvar 'nichGalaDoc'
+		killvar 'nichGalaKnowsPT'
+		killvar 'nichGalaOpponent'
+		killvar 'nichGalaOpponentDay'
+		killvar 'nichGalaImplant'
+		killvar 'nichGalaTattoo'
+		killvar 'nichGalaImplantCount'
+		killvar 'nichGalaContractLast'
+		killvar 'nichGalaTraining'
+		killvar 'nichGalaTrainCounter'
+		killvar 'nichGalaTrainLast'
+	end
+end
+
 --- nichUtil ---------------------------------

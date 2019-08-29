@@ -1,314 +1,563 @@
 # fight
+
+!! Variables to be set before fight - in brackets so you can copy/paste
+!!{
+$opp_name[0] = <<name of opponent>>
+$opp_image[0] = opponent image ie. '<img <<$set_imgh>> src="images/characters/city/tobi/tobi.jpg">'
+opp_def[0] = opponent defence
+opp_run[0] = Opponent running skill used for player escape
+opp_wrstlng[0] = Wrestling skill
+opp_kick[0] = Kicking
+opp_punch[0] = Power punch
+opp_jab[0] = Ligth punch
+opp_stren[0] = Strengh
+opp_agil[0] = Agility
+opp_vital[0] = vitality
+opp_react[0] = Reactions
+opp_health[0] = Health
+opp_willpwr[0] = willpower
+opp_shoot[0] = opponent marksmanship (only required if they are armed)
+opp_magik[0] = only if they have magic
+opp_mana[0] = only if they have magic
+opp_fog[0] = (tuman): Obscures vision, makes hitting harder.
+opp_clone[0] = (klon): Copies of the char that absorb 1 hit and disappear.  A char may have some number of them.
+opp_shield[0] = (defence): Shielding that absorbs damage before hitpoints.
+opp_dambonus[0] = (magweapbonus): damage added to melee attacks
+opp_init[0] = (initBonus): attack faster/first
+opp_stun[0] = (stunner): make target unable to act for some amount of time
+}
+
+!! Use the above with [1] and [2] for extra opponents
+!! Use pcs_ prefix for Sveta and add [1] and [2] for allies. ie. $pcs_name[1] = 'Reinhold'
+
+if $ARGS[0] = 'initFight':
+	!! Clear Opponents from previous battle
+	killvar '$opp_name'
+	killvar '$opp_image'
+	killvar 'opp_def'
+	killvar 'opp_run'
+	killvar 'opp_wrstlng'
+	killvar 'opp_kick'
+	killvar 'opp_punch'
+	killvar 'opp_jab'
+	killvar 'opp_stren'
+	killvar 'opp_agil'
+	killvar 'opp_vital'
+	killvar 'opp_react'
+	killvar 'opp_health'
+	killvar 'opp_willpwr'
+	killvar 'opp_shoot'
+	killvar 'opp_magik'
+	killvar 'opp_mana'
+	killvar 'opp_fog'
+	killvar 'opp_clone'
+	killvar 'opp_shield'
+	killvar 'opp_dambonus'
+	killvar 'opp_init'
+	killvar 'opp_stun'
+	killvar 'opp_timer'
+
+	!! Clear any allies from previous battle
+	i = arrsize('pcs_health')
+	:ClearAllyLoop
+	if i > 1:
+		gs 'fight', 'clearPCSArray', i-1
+		i -= 1
+		jump 'ClearAllyLoop'
+	end
+	killvar 'i'
+
+	!! Initialize $pcs_name for Sveta
+	$pcs_name[0] = 'You'
+	$pcs_image[0] = FUNC('$face_image')
+end
+
+if $ARGS[0] = 'clearPCSArray':
+!{ Delete an Ally from the pcs data arrays
+	ARGS[1] = Which ally slot tot delete
+}
+	i = ARGS[1]
+
+	killvar '$pcs_name', i
+	killvar '$pcs_image', i
+	killvar 'pcs_def', i
+	killvar 'pcs_run', i
+	killvar 'pcs_wrstlng', i
+	killvar 'pcs_kick', i
+	killvar 'pcs_punch', i
+	killvar 'pcs_jab', i
+	killvar 'pcs_stren', i
+	killvar 'pcs_agil', i
+	killvar 'pcs_vital', i
+	killvar 'pcs_react', i
+	killvar 'pcs_health', i
+	killvar 'pcs_willpwr', i
+	killvar 'pcs_shoot', i
+	killvar 'pcs_magik', i
+	killvar 'pcs_mana', i
+	killvar 'pcs_fog', i
+	killvar 'pcs_clone', i
+	killvar 'pcs_shield', i
+	killvar 'pcs_dambonus', i
+	killvar 'pcs_init', i
+	killvar 'pcs_stun', i
+	killvar 'pcs_timer', i
+
+	killvar 'i'
+end
+
+if $ARGS[0] = 'randomOpp':
+!{ Generate a random Opponent
+	ARGS[1] = Optional, raise difficulty of the attacker, 0 - 50
+}
+	OppDiffBonus = ARGS[1]
+	i = arrsize('opp_health')
+	$opp_name[i] = 'Opponent 1'
+	$opp_image[i] = 'images/locations/shared/street/mugger.jpg'
+	opp_def[i] = rand(1,50) + OppDiffBonus
+	opp_run[i] = rand(1,50) + OppDiffBonus
+	opp_wrstlng[i] = rand(1,50) + OppDiffBonus
+	opp_kick[i] = rand(1,50) + OppDiffBonus
+	opp_punch[i] = rand(1,50) + OppDiffBonus
+	opp_jab[i] = rand(1,50) + OppDiffBonus
+	opp_stren[i] = rand(1,50) + OppDiffBonus
+	opp_agil[i] = rand(1,50) + OppDiffBonus
+	opp_vital[i] = rand(1,50) + OppDiffBonus
+	opp_health[i] = (opp_vital * 10 + opp_stren * 5)
+	opp_react[i] = rand(1,50) + OppDiffBonus
+	opp_willpwr[i] = rand(1,50) + OppDiffBonus
+	opp_shoot[i] = rand(1,50) + OppDiffBonus
+	killvar 'OppDiffBonus'
+	killvar 'i'
+end
+
+if $ARGS[0] = 'applyDamage':
+!{ Apply Damage to a participant taking into account clones and shields
+	$ARGS[1] = Target Type ('opp','pcs')
+	 ARGS[2] = Target number
+	 ARGS[3] = damage to be applied
+}
+	$fightAppDam['TargetType'] = $ARGS[1]
+	fightAppDam['TargetNumber'] = ARGS[2]
+	fightAppDam['Damage'] = ARGS[3]
+	dynamic "
+	!!If the target has clones, destroy one
+	if <<$fightAppDam['TargetType']>>_clone[<<fightAppDam['TargetNumber']>>] > 0:
+		<<$fightAppDam['TargetType']>>_clone[<<fightAppDam['TargetNumber']>>] -= 1
+		'Clone Destroyed!'
+	!!if the target has enough shields to mitigate, remove some shields
+	elseif <<$fightAppDam['TargetType']>>_shield[<<fightAppDam['TargetNumber']>>] >= fightAppDam['Damage']:
+		<<$fightAppDam['TargetType']>>_shield[<<fightAppDam['TargetNumber']>>] -= fightAppDam['Damage']
+	!!otherwise remove shields to 0 and the remainder comes from health
+	else
+		<<$fightAppDam['TargetType']>>_health -= (fightAppDam['Damage'] - <<$fightAppDam['TargetType']>>_shield[<<fightAppDam['TargetNumber']>>])
+		<<$fightAppDam['TargetType']>>_shield[<<fightAppDam['TargetNumber']>>] = 0
+	end"
+	killvar '$fightAppDam'
+	killvar 'fightAppDam'
+end
+
 if $ARGS[0] = 'start':
 	menu_off = 1
-	cla
-	
-	if fight_cheat = 1:
-		xgt 'ender', 'win'
-		exit
-	end
-	
 	inFight = 1
 	gs 'themes', 'indoors'
-	gs'defence'
-	gs'statBat'
+	cla
 
-	if SasoriBody > 2 and healthV <= 0 or SasoriBody > 2 and manaV <= 0 or SasoriBody > 2 and willpowerV <= 0:
-		SasoriBody = SasoriBody - 1
-		gs'priziv','sasori'
-
-		'<b><font color = red>The doll parts scatter all over and immediately head into battle mode.</font></b>'
-		'<b><font color = red>You hear the sonorous voice of Sasori, "I have a lots of dolls, you can''t beat me."</font></b>'
-	elseif SasoriBody = 2 and healthV <= 0 or SasoriBody = 2 and manaV <= 0 or SasoriBody = 2 and willpowerV <= 0:
-		SasoriBody = SasoriBody - 1
-		gs'priziv','sasori1'
-
-		'<b><font color = red>The last doll crumbles into pieces and you''ve finally reached Sasori.</font></b>'
+	if arrsize('pcs_health') > arrsize('opp_health'):
+		tableSize = arrsize('pcs_health')
+	else
+		tableSize = arrsize('opp_health')
 	end
 
-	if stunV > 0 and SasoriBody > 1:
-		stunV = 0
+	$HTMLText = '<table>
+		<tr>
+			<th align="left">Allies</left></td>
+			<th align="center" valign="center" rowspan=<<tableSize*2+1>> >vs.</center></td>
+			<th align="right">Opponents</right></td>
+		</tr>'
+	i = 0
+	:FightPoster
+	if i < tableSize:
+		$HTMLText += '
+		<tr>
+			<td align="left"><img HEIGHT=400 src="<<$pcs_image[i]>>"></left></td>
 
-		'<b><font color = red>The doll began to move again.</font></b>'
+			<td align="right"><img HEIGHT=400 src="<<$opp_image[i]>>"></right></td>
+		</tr>
+		<tr>
+			<td align="left"><<$pcs_name[i]>></left></td>
+
+			<td align="right"><<$opp_name[i]>></right></td>
+		</tr>'
+		i += 1
+		jump 'FightPoster'
+	end
+	$HTMLText += '</table>'
+
+	*pl func('cleanHTML',$HTMLText)
+
+	i=0
+	:PCSTimerInit
+	if i < arrsize('pcs_health'):
+		pcs_timer[i] = 100 - pcs_react[i]
+		i +=1
+		jump 'PCSTimerInit'
 	end
 
-	if stunV > 0 and SasoriBody = 1:
-		stunV = 0
-
-		'<b><font color = red>Sasori moves again.</font></b>'
+	i=0
+	:OppTimerInit
+	if i < arrsize('opp_health'):
+		opp_timer[i] = 100 - opp_react[i]
+		i +=1
+		jump 'OppTimerInit'
 	end
 
-	if GedoMazo = 1 and healthV <= 0 or GedoMazo = 1 and manaV <= 0 or GedoMazo = 1 and willpowerV <= 0:
-		GedoMazo = 2
-		barierV = 0
+	act 'Engage': gt 'fight', 'main'
 
-		'<b><font color = green><<$boydesc>> He fell to the ground and turned to dust.</font></b>'
+	killvar '$HTMLText'
+	killvar 'tableSize'
+	killvar 'i'
+end
 
-		gs'priziv','tobi'
+if $ARGS[0] = 'findActiveTimer':
+!! Find the participant with the lowest Timer
+!	These values are passed back via two global variables.
+!
+!	$fightTimType = 'player' or 'opponent' depending on which group has the lowest member
+!	fightTimNum = the array number of the lowest participant
 
-		'<b><font color = green><<$boydesc>>Attack</font></b>'
+	$fightTimType = 'player'
+	fightTimNum = 0
+	!! set this to high so that everyone will be lower.
+	fightTimLow = 99999
+
+	!! Find lowest of pcs participants
+	i = 0
+	:LowTimerLoop1
+	if i < arrsize('pcs_timer'):
+		if pcs_timer[i] < fightTimLow:
+			fightTimLow = pcs_timer[i]
+			fightTimNum = i
+		end
+		i += 1
+		jump 'LowTimerLoop1'
 	end
 
-	if pcs_health <= 0 and heart = 0 and izanagi = 0:
+	!!Find if any Opponents have lower than best PCS
+	i = 0
+	:LowTimerLoop2
+	if i < arrsize('opp_timer'):
+		if opp_timer[i] < fightTimLow:
+			fightTimLow = opp_timer[i]
+			fightTimNum = i
+			$fightTimType = 'opponent'
+		end
+		i += 1
+		jump 'LowTimerLoop2'
+	end
+
+	killvar 'i'
+end
+
+if $ARGS[0] = 'main':
+
+	gs 'fight', 'result_check'
+	gs 'fight', 'findActiveTimer'
+	gt 'fight', $fightTimType, fightTimNum
+end
+
+if $ARGS[0] = 'printStats':
+!{ Print the stats for a character
+	$ARGS[1] = The Type of char ('opp','pcs')
+	 ARGS[2] = The member of the party
+}
+	$fightPStats['CharType'] = $ARGS[1]
+	i = ARGS[2]
+
+	if $fightPStats['CharType'] = 'opp':
+		$fightPStats['Name'] = $opp_name[i]
+		fightPStats['Health'] = opp_health[i]
+		fightPStats['Mana'] = opp_mana[i]
+		fightPStats['Willpower'] = opp_willpwr[i]
+		fightPStats['Shield'] = opp_shield[i]
+		fightPStats['Fog'] = opp_fog[i]
+		fightPStats['Clone'] = opp_clone[i]
+	else
+		$fightPStats['Name'] = $pcs_name[i]
+		fightPStats['Health'] = pcs_health[i]
+		fightPStats['Mana'] = pcs_mana[i]
+		fightPStats['Willpower'] = pcs_willpwr[i]
+		fightPStats['Shield'] = pcs_shield[i]
+		fightPStats['Fog'] = pcs_fog[i]
+		fightPStats['Clone'] = pcs_clone[i]
+	end
+
+	'<b><<$fightPStats["Name"]>></b> life <b><font color = red><<fightPStats["Health"]>></font></b>, mana <b><font color = blue><<fightPStats["Mana"]>></font></b>, willpower <b><font color = green><<fightPStats["Willpower"]>></font></b>'
+	if fightPStats['Shield'] > 0:'<b><font color = red>Protection <<fightPStats["Shield"]>> units</font></b>'
+	if fightPStats['Clone'] > 0:'<b><font color = red>Clones active <<fightPStats["Clone"]>> </font></b>'
+	if fightPStats['Fog'] > 0:'<b><font color = red>Obscuring Fog <<fightPStats["Fog"]>> units</font></b>'
+	'<b>= = = = = = = = = = = = = = = = = = = = = = = = = = = = =</b>'
+
+	killvar 'i'
+	killvar 'fightPStats'
+	killvar '$fightPStats'
+end
+
+if $ARGS[0] = 'statDisplay':
+	'<b>= = = = = = = = = = = O p p o n e n t s = = = = = = = = = = =</b>'
+	i = 0
+	:OppLoopRC1
+	if i < arrsize('opp_health'):
+		gs 'fight', 'printStats', 'opp', i
+		i += 1
+		jump 'OppLoopRC1'
+	end
+	*nl
+	'<b>= = = = = = = = = = = = A l l i e s = = = = = = = = = = = = =</b>'
+	i = 0
+	:PCSLoopRC1
+	if i < arrsize('pcs_health'):
+		gs 'fight', 'printStats', 'pcs', i
+		i += 1
+		jump 'PCSLoopRC1'
+	end
+end
+
+if $ARGS[0] = 'result_check':
+!!cheat to auto-win fights check
+	if fight_cheat = 1:
+		xgt 'ender', 'win'
+		gt $loc, $metka
+		exit
+	end
+
+
+!!win/lose conditions
+	if pcs_health <= 0:
 		'<b><font color = red> You lost!</font></b>'
 
 		xgt'ender','loss'
+		gt $loc, $metka
 		exit
-	elseif healthV <= 0 and heartV = 0 and izanagiV = 0:
+	elseif opp_health[0] <= 0:
 		'<b><font color = green><<$boydesc>> You won!</font></b>'
 
 		xgt'ender','win'
+		gt $loc, $metka
 		exit
-	elseif pcs_mana <= 0 and heart = 0 and izanagi = 0:
-		'<b><font color = red> You won!</font></b>'
+	elseif pcs_willpwr <= 0:
+		'<b><font color = red> You cannot summon the will to fight!</font></b>'
 
 		xgt'ender','loss'
-		exit
-	elseif manaV <= 0 and heartV = 0 and izanagiV = 0:
-		'<b><font color = green><<$boydesc>> lost!</font></b>'
-
-		xgt'ender','win'
-		exit
-	elseif pcs_willpwr <= 0 and heart = 0 and izanagi = 0:
-		'<b><font color = red> You lost!</font></b>'
-
-		xgt'ender','loss'
-		exit
-	elseif willpowerV <= 0 and heartV = 0 and izanagiV = 0:
-		'<b><font color = green><<$boydesc>> won!</font></b>'
-
-		xgt'ender','win'
+		gt $loc, $metka
 		exit
 	end
+	!gt 'fight', 'main'
+	killvar 'i'
+end
 
-	if izanagiV > 0 and healthV <= 0 or izanagiV > 0 and manaV <= 0 or izanagiV > 0 and willpowerV <= 0:
-		izanagiV = izanagiV - 1
+!! Kick
+$AttackType[0] = 'Kick'
+$AttackSkill[0] = 'kick'
+AttackMin[0] = 5
+AttackMax[0] = 8
+AttackTime[0] = 40
+!! Hard Punch
+$AttackType[1] = 'Hard Punch'
+$AttackSkill[1] = 'punch'
+AttackMin[1] = 4
+AttackMax[1] = 6
+AttackTime[1] = 30
+!! Jab
+$AttackType[2] = 'Jab'
+$AttackSkill[2] = 'jab'
+AttackMin[2] = 2
+AttackMax[2] = 3
+AttackTime[2] = 15
 
-		'<b><font color = red><<$boydesc>> disappeared.</font></b>'
+!!{Attack a target
+	$ARGS[0] = Attack Type
+	$ARGS[1] = Target Type
+	 ARGS[2] = Which target
+	 ARGS[3] = Which Attacker
+}
 
-		healthV = vitalV*10 + strenV*5
-		manaV = intelV*magikV + magikV*100 + vitalV*10
-		willpowerV = willV*10
-		stunV = 0
-		if program = 6 and izanagiOnce = 0:izanagiOnce = 1 & unmaterialV = 40 & tobizanagi = 0
+if $ARGS[0] = 'Attack':
+	$fightAtk_Type = $ARGS[1]
+	$fightAtk_TargetType = $ARGS[2]
+	fightAtk_TargetNumber = ARGS[3]
+	fightAtk_AttackerNumber = ARGS[4]
 
-		'<b><font color = red><<$boydesc>> appeared in front of you, completely healthy. He folded his arms and made the magic sign for Izanagi, the perfect illusion.</font></b>'
-		'<b><font color = red>The price for this spell was to sacrifice one of my eyes.</font></b>'
-	elseif heartV > 0 and healthV <= 0 or heartV > 0 and manaV <= 0 or heartV > 0 and willpowerV <= 0:
-		heartV = heartV - 1
-
-		'<b><font color = red><<$boydesc>> staggered, as his heart burst.</font></b>'
-
-		healthV = vitalV*10 + strenV*5
-		manaV = intelV*magikV + magikV*100 + vitalV*10
-		willpowerV = willV*10
-		stunV = 0
-
-		'<b><font color = red><<$boydesc>> stood up and got in a frenzy. He must have another heart.</font></b>'
-	elseif izanagi > 0 and pcs_health <= 0 or izanagi > 0 and pcs_mana <= 0 or izanagi > 0 and pcs_willpwr <= 0:
-		izanagi = izanagi - 1
-
-		'<b><font color = green>He vanishes.</font></b>'
-
-		pcs_health = pcs_vital*10 + pcs_stren*5
-		pcs_willpwr = pcs_intel*5 + pcs_sprt*5
-		pcs_mana = (pcs_intel*pcs_magik) + pcs_magik*100 + pcs_vital*10 + rikudo
-		stun = 0
-		zerkaloV = 0
-		poisonV = 0
-		bloodV = 0
-
-		'<b><font color = green>All of a sudden he appears in front of you completely healthy.</font></b>'
-	elseif heart > 0 and pcs_health <= 0 or heart > 0 and pcs_mana <= 0 or heart > 0 and pcs_willpwr <= 0:
-		heart = heart - 1
-		zerkaloV = 0
-		poisonV = 0
-		bloodV = 0
-
-		'<b><font color = green>Your heart took too much of a beating and gave up.</font></b>'
-
-		pcs_health = pcs_vital*10 + pcs_stren*5
-		pcs_willpwr = pcs_intel*5 + pcs_sprt*5
-		pcs_mana = (pcs_intel*pcs_magik) + pcs_magik*100 + pcs_vital*10 + rikudo
-		stun = 0
-
-		'<b><font color = green>You open your eyes as you''re not dead...</font></b>'
+	if $fightAtk_TargetType = 'opp' and fightAtk_AttackerNumber = 0:
+		$fightAtk_AttackerType = 'pcs'
+		$fightAtk['DefenderName'] = $opp_name[fightAtk_TargetNumber]
+		$fightAtk['AttackerName'] = 'You'
+	elseif $fightAtk_TargetType = 'opp':
+		$fightAtk['AttackerName'] = $pcs_name[fightAtk_AttackerNumber]
+		$fightAtk['DefenderName'] = $opp_name[fightAtk_TargetNumber]
+		$fightAtk_AttackerType = 'pcs'
+	else
+		$fightAtk_AttackerType = 'opp'
+		$fightAtk['AttackerName'] = $opp_name[fightAtk_AttackerNumber]
+		$fightAtk['DefenderName'] = $pcs_name[fightAtk_TargetNumber]
 	end
 
-	gs'before'
-	'<b>= = = = = = = = = = = = = (ROUND <<round>>) = = = = = = = = = = = = =</b>'
-	'<b><<$boydesc>></b> life <b><font color = red><<healthV>></font></b>, mana <b><font color = blue><<manaV>></font></b>, willpower <b><font color = green><<willpowerV>></font></b>'
-	if defenceV > 0:'<b><font color = red>Protection <<defenceV>> units</font></b>'
-	if defenceMV > 0:'<b><font color = red>Mana protection <<defenceMV>> units</font></b>'
-	if defenceWV > 0:'<b><font color = red>Will protection <<defenceWV>> units</font></b>'
-	'Your life <b><font color = red><<pcs_health>></font></b>, mana <b><font color = blue><<pcs_mana>></font></b>, willpower <b><font color = green><<pcs_willpwr>></font></b>'
-	if defence > 0:'<b><font color = green>Protection <<defence>> units</font></b>'
-	if defenceM > 0:'<b><font color = green>Mana impact protection <<defenceM>> units</font></b>'
-	if defenceW > 0:'<b><font color = green>Will impact protection <<defenceW>> units</font></b>'
-	if defenceAct > 0:'<b><font color = green><<defenceAct>> Regeneration</font></b>'
-	if defenceActM > 0:'<b><font color = green><<defenceActM>> Mana recovery protection</font></b>'
-	if unmaterial > 0:'<b><font color = green>You''re <<unmaterial>> strokes are not material.</font></b>'
-	'<b>= = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =</b>'
-	gs'init'
+	fightAtk_Type = arrpos('$AttackType',$fightAtk_Type)
+	fightAtk['AttackerSkillValue'] = dyneval('result = <<$fightAtk_AttackerType>>_<<$AttackSkill[fightAtk_Type]>>[<<fightAtk_AttackerNumber>>]')
+	fightAtk['TargetReactValue'] = dyneval('result = <<$fightAtk_TargetType>>_react[<<fightAtk_TargetNumber>>]')
+	fightAtk['TargetAgilValue'] = dyneval('result = <<$fightAtk_TargetType>>_agil[<<fightAtk_TargetNumber>>]')
+	fightAtk['MinDamage'] = AttackMin[fightAtk_Type]
+	fightAtk['MaxDamage'] = AttackMax[fightAtk_Type]
 
-	if hod = 0:
-		!player attacks
-		'<font color = green>Choose your attack</font>'
-
-		if gun > 0:
-			!Boomstick
-			if bulletIn > 0:
-				'You have <<bulletIn>> bullets loaded in the gun.'
-
-				act 'Pistol shot':
-					cla
-					bulletIn -= 1
-					gunpower = 150
-					buu = 1
-					gunpricel = 1
-					Gcrime += 1
-					gt'strelba'
-				end
-			elseif bulletIn <= 0:
-				if bullet = 0:
-					'You''re out of ammunition.'
-				elseif bullet>0:
-					'You have <<bullet>> left.'
-
-					act 'Reload':
-						cla
-						if bullet < 7:
-							bulletIn = bullet
-							bullet = 0
-
-							'You reload the empty gun.'
-						end
-						if bullet >= 7:
-							bullet -= 7
-							bulletIn = 7
-
-							'You reload all the 7 bullets in the gun.'
-						end
-
-						act 'Further':gt'fight','sta'
-					end
-				end
+	if $fightAtk_TargetType = 'opp' and fightAtk_AttackerNumber = 0:
+		'You attempt to <<$fightAtk_Type>> <<$fightAtk["DefenderName"]>>!'
+	else
+		'<<$fightAtk["AttackerName"]>> attempts to <<$fightAtk_Type>> <<$fightAtk["DefenderName"]>>!'
+	end
+	*nl
+	if fightAtk['AttackerSkillValue'] + rand(0,30) > fightAtk['TargetReactValue'] / 4 + 3 * fightAtk['TargetAgilValue'] / 4:
+		!!Calculate Damage
+		dynamic "fightAtk['Damage'] = <<$fightAtk_AttackerType>>_stren[<<fightAtk_AttackerNumber>>] * rand(<<fightAtk['MinDamage']>>,<<fightAtk['MaxDamage']>>) / 15"
+		!!Apply Damage
+		gs 'fight', 'applyDamage', $fightAtk_TargetType, fightAtk_TargetNumber, fightAtk['Damage']
+		if fightAtk['Damage'] > 10:
+			if $fightAtk_TargetType = 'opp' and fightAtk_AttackerNumber = 0:
+				'The hit is hard and <<$fightAtk["DefenderName"]>> reels in pain.'
+			else
+				'The hit is hard and you reel in pain.'
 			end
+		else
+			'Its a glancing blow, but still hurts.'
 		end
-
-		if Mgun > 0:
-			!Boomstick
-			if mbulletIn > 0:
-				'You have <<mbulletIn>> bullets left in the machine gun.'
-
-				act 'Single shot':
-					cla
-					mbulletIn -= 1
-					buu = 1
-					gunpower = 300
-					gunpricel = 2
-					Gcrime += 1
-					gt'strelba'
-				end
-
-				if mbulletIn >= 3:
-					act 'Burst shot':
-						cla
-						mbulletIn -= 3
-						buu = 3
-						gunpower = 300
-						gunpricel = 1
-						Gcrime += buu
-						gt'strelba'
-					end
-					act 'Automatic shot':
-						cla
-						buu = mbulletIn
-						mbulletIn = 0
-						gunpower = 300
-						gunpricel = 0
-						Gcrime += buu
-						gt'strelba'
-					end
-				end
-			elseif mbulletIn <= 0:
-				if mbullet = 0:
-					'You''ve run out of ammunition.'
-				elseif mbullet > 0:
-					'You have <<mbullet>> bullets left in the machine gun.'
-
-					act 'Reload':
-						cla
-						if mbullet < 7:
-							mbulletIn = mbullet
-							mbullet = 0
-
-							'You reload the empty gun.'
-						end
-						if mbullet >= 30:
-							mbullet -= 30
-							mbulletIn = 30
-
-							'You''ve reloaded 30 bullets for the machine gun.'
-						end
-
-						act 'Further':gt'fight','sta'
-					end
-				end
-			end
+	else
+		if $fightAtk_TargetType = 'pcs' and fightAtk_AttackerNumber = 0:
+			'You avoid the blow.'
+		else
+			'<<$fightAtk["DefenderName"]>> avoids the blow.'
 		end
+	end
+	dynamic "<<$fightAtk_AttackerType>>_timer += AttackTime[fightAtk_Type]"
+	cla
+	act 'Next': gt 'fight', 'main'
+end
 
-		if tragun > 0:
-			!travmatik
-			if tbulletIn > 0:
-				'You have <<mbulletIn>> bullets left in the non-lethal gun.'
-
-				act 'Pistol shot':
-					cla
-					tbulletIn -= 1
-					gunpower = 50
-					buu = 1
-					gunpricel = 0
-					gt'strelba'
-				end
-			elseif tbulletIn <= 0:
-				if tbullet = 0:
-					'You''ve run out of ammunition.'
-				elseif tbullet > 0:
-					'You have <<mbullet>> bullets left in the non-lethal gun.'
-
-					act 'Charge':
-						cla
-						if tbullet >= 1:
-							tbullet -= 1
-							tbulletIn = 1
-
-							'You reload the empty gun.'
-						end
-
-						act 'Further':gt'fight','sta'
-					end
-				end
-			end
+if $ARGS[0] = 'opponent':
+	gs 'fight', 'statDisplay'
+	if pcs_health[0] > 0 and pcs_health[1] > 0 and pcs_health[2] > 0:
+		TargetNumber = rand(0,2)
+	elseif pcs_health[0] > 0 and pcs_health[1] > 0:
+		TargetNumber = rand(0,1)
+	elseif pcs_health[0] > 0 and pcs_health[2] > 0:
+		if rand(0,1) = 0:
+			TargetNumber = 0
+		else
+			TargetNumber = 2
 		end
-		if autocombat_cheat = 0 or pcs_magick > 0:
-			act 'Physical Attack':xgt'boxing'
-			if pcs_magik > 0: act 'Magical Attack':gt'magik'
-			act 'Surrender to your opponent': autocombat_surrender = 1 & gt 'ender', 'loss'
-		elseif autocombat_cheat = 1 and pcs_magick = 0:
-			xgt'boxing'
-		end		
-	elseif hod = 1:
-		!enemy attacks
-		'<font color = red><<$boydesc>> attacks</font>'
-		if autocombat_cheat = 0: 
-			act 'Continue': xgt'enemy','start'
-			act 'Surrender to your opponent': autocombat_surrender = 1 & gt 'ender', 'loss'
-		elseif autocombat_cheat = 1: 
-			xgt'enemy','start'
-		end
+	elseif pcs_health[1] > 0 and pcs_health[2] > 0:
+		TargetNumber = rand(1,2)
+	elseif pcs_health[0] > 0:
+		TargetNumber = 0
+	elseif pcs_health[1] > 0:
+		TargetNumber = 1
+	else
+		TargetNumber = 2
+	end		
+!!	if opp_magik[0] > 0: gs 'fight', 'opp_spellcast'
+	if rand(0,opp_kick[0]) > 40:
+		gs 'fight', 'Attack', 'Kick', 'pcs', ARGS[2], TargetNumber
+	elseif rand(0,opp_punch[0]) > 40:
+		gs 'fight', 'Attack', 'Hard Punch', 'pcs', ARGS[2], TargetNumber
+	else
+		gs 'fight', 'Attack', 'Jab', 'pcs', ARGS[2], TargetNumber
 	end
 end
+
+if $ARGS[0] = 'player':
+	gs 'fight', 'statDisplay'
+	if opp_health[0] > 0 and opp_health[1] > 0 and opp_health[2] > 0:
+		TargetNumber = rand(0,2)
+	elseif opp_health[0] > 0 and opp_health[1] > 0:
+		TargetNumber = rand(0,1)
+	elseif opp_health[0] > 0 and opp_health[2] > 0:
+		if rand(0,1) = 0:
+			TargetNumber = 0
+		else
+			TargetNumber = 2
+		end
+	elseif opp_health[1] > 0 and opp_health[2] > 0:
+		TargetNumber = rand(1,2)
+	elseif opp_health[0] > 0:
+		TargetNumber = 0
+	elseif opp_health[1] > 0:
+		TargetNumber = 1
+	else
+		TargetNumber = 2
+	end
+		
+!!	if pcs_magik > 0:
+!!		act 'Cast a Spell': gs 'fight', 'spellcast'
+!!	end
+	if opp_health[0] > 0:
+		act 'Kick <<$opp_name[0]>>':
+			gs 'fight', 'Attack', 'Kick', 'opp', 0, 0
+		end
+
+		act 'Punch <<$opp_name[0]>> hard':
+			gs 'fight', 'Attack', 'Hard Punch', 'opp', 0, 0
+		end
+
+		act 'Jab <<$opp_name[0]>>':
+			gs 'fight', 'Attack', 'Jab', 'opp', 0, 0
+		end
+	end
+	if opp_health[1] > 0:
+		act 'Kick <<$opp_name[1]>>':
+			gs 'fight', 'Attack', 'Kick', 'opp', 0, 1
+		end
+
+		act 'Punch <<$opp_name[1]>> hard':
+			gs 'fight', 'Attack', 'Hard Punch', 'opp', 0, 1
+		end
+
+		act 'Jab <<$opp_name[1]>>':
+			gs 'fight', 'Attack', 'Jab', 'opp', 0, 1
+		end
+	end
+	if opp_health[2] > 0:
+		act 'Kick <<$opp_name[2]>>':
+			gs 'fight', 'Attack', 'Kick', 'opp', 0, 2
+		end
+
+		act 'Punch <<$opp_name[2]>> hard':
+			gs 'fight', 'Attack', 'Hard Punch', 'opp', 0, 2
+		end
+
+		act 'Jab <<$opp_name[2]>>':
+			gs 'fight', 'Attack', 'Jab', 'opp', 0, 2
+		end
+	end	
+	act 'Surrender': gt 'ender', 'surrender'
+end
+
+
+if $ARGS[0] = 'opp_spellcast':
+end
+
+if $ARGS[0] = 'pcs_spellcast':
+end
+
+
+
+
+
+
+
+
+
+
+
+!!--------------------------------------------------old shit--------------------------------------------------
+
 
 if $ARGS[0] = 'sta':
 	menu_off = 1
@@ -388,5 +637,6 @@ if $ARGS[0] = 'Wrestlergen':
 		!!fat[1] = 100
 	end
 end
+
 --- fight ---------------------------------
 

@@ -33,7 +33,9 @@ end
 !!MJ: Dont think that one is needed. But it was here already.
 if day <= 0:day = 1
 
+ciklNewWeek = 0
 if week > 7:
+	ciklNewWeek = 1
 	:loopweek
 	week -= 7
 	husbandrink = 0
@@ -43,10 +45,15 @@ if week > 7:
 	if week > 7:jump 'loopweek'
 end
 
+gs 'daystart'
+
 !!----------------------------------------------------------------------------
 
 !!Fame call to update all the fame variables
 gs 'fame'
+
+!!Cycle stats for Contacts
+gs 'telefon', 'DailyStatRefresh', ciklNewWeek
 
 !!moving the porn schedule ahead a day, flaffing for missed shootings, if it even matters
 if (film > 0 or pornstack = 1) and pfilmNO = 0 and pfilmSTOP = 0:
@@ -63,7 +70,6 @@ if casting = 1:
 	acting_string2 = rand(10000000000,199999999999)
 end
 
-gs 'daystart'
 dynamic $hypnoDaychange
 
 !!phone reset for bf
@@ -356,7 +362,7 @@ end
 if hbraids > 0: hbraids -= 1
 
 
-pcs_sweat += 2
+gs 'sweat', 'add', 2
 
 if pcs_tan > 0: pcs_tan -= 1
 
@@ -1092,7 +1098,7 @@ if day = 25:
 	end
 
 	if workFabrika = 1:
-		pay = smenaFabrika * 420
+		pay = smenaFabrika * 600
 		smenaFabrika = 0
 		karta += pay
 		'<b><font color="green">Your salary of <<pay>> <b>₽</b> has been paid into your bank account for your job at the garment factory.</font></b>'
@@ -1298,7 +1304,7 @@ if storyline = 1:
 			if (school_year = 2000 and year = 2017) or (school_year = 2001 and year = 2018):
 				if day = 25:
 					kanikuli = 6
-                    SchoolAtestat = -1
+					SchoolAtestat = -1
 					$holyday = '<b>Your graduation is today. Be there by 8:00.</b>'
 				elseif day = 24:
 					$holyday = '<b>Your graduation is tomorrow. Be there by 8:00.</b>'
@@ -1341,24 +1347,99 @@ if storyline = 1:
 				$holyday = '<b>Last day of Autumn Break.</b>'
 			end
 		end
-    elseif SchoolAtestat = -1:
-        if ParHomeBlock = 1:
-            $holyday = '<b>You missed your graduation. You could pick up your diploma at the school.</b>'
-        else
-            $holyday = '<b>You missed your graduation. Maybe your mother picked up your diploma.</b>'
-        end
+		if kanikuli = 0 and week < 6:
+			if week = 1:
+				!!The start and end values for i have to be changed if more female schoolgirl npcs are added to the game
+				i = 11
+				
+				:hotcat_calc_jump
+				i += 1
+				
+				if hotcat_rating['A<<i>>'] = 0: jump 'hotcat_calc_jump'
+				
+				switch_rand = rand(1,100)
+				
+				if hotcat_movement['A<<i>>'] = 0 and switch_rand < 21:
+					hotcat_rating['A<<i>>'] -= 1
+					hotcat_movement['A<<i>>'] -= 1
+				elseif hotcat_movement['A<<i>>'] = 0 and switch_rand > 80:
+					hotcat_rating['A<<i>>'] += 1
+					hotcat_movement['A<<i>>'] += 1
+				elseif hotcat_movement['A<<i>>'] = 1 and switch_rand > 40:
+					hotcat_rating['A<<i>>'] -= 1
+					hotcat_movement['A<<i>>'] -= 1
+				elseif hotcat_movement['A<<i>>'] = -1 and switch_rand > 40:
+					hotcat_rating['A<<i>>'] += 1
+					hotcat_movement['A<<i>>'] += 1
+				end
+				if i < 145: jump 'hotcat_calc_jump'
+				killvar 'i'
+				killvar 'switch_rand'
+			end
+			
+			!!Maximum increase for grupvalues is 7/8
+			if oldgrupvalue_set = 0:
+				oldgrupvalue_set = 1
+				old_grupvalue[1] = grupvalue[1]
+				old_grupvalue[2] = grupvalue[2]
+				old_grupvalue[3] = grupvalue[3]
+				old_grupvalue[4] = grupvalue[4]
+			else
+				if old_grupvalue[1] + 8 < grupvalue[1]: grupvalue[1] = old_grupvalue[1] + 8
+				if old_grupvalue[2] + 8 < grupvalue[2]: grupvalue[2] = old_grupvalue[2] + 8
+				if old_grupvalue[3] + 8 < grupvalue[3]: grupvalue[3] = old_grupvalue[3] + 8
+				if old_grupvalue[4] + 8 < grupvalue[4]: grupvalue[4] = old_grupvalue[4] + 8
+			end
+			!!Limit to max school group values
+			if grupvalue[1] > 100: grupvalue[1] = 100
+			if grupvalue[2] > 100: grupvalue[2] = 100
+			if grupvalue[3] > 100: grupvalue[3] = 100
+			if grupvalue[4] > 100: grupvalue[4] = 100
+			!!Decay for the school groups
+			if grupvalue[1] > 0:
+				grupvalue[1] -= rand(0,1)
+			else
+				grupvalue[1] = 0
+			end
+			if grupvalue[2] > 0:
+				grupvalue[2] -= rand(0,1)
+			else
+				grupvalue[2] = 0
+			end
+			if grupvalue[3] > 0:
+				grupvalue[3] -= rand(0,1)
+			else
+				grupvalue[3] = 0
+			end
+			if grupvalue[4] > 0:
+				grupvalue[4] -= rand(0,1)
+			else
+				grupvalue[4] = 0
+			end
+
+			old_grupvalue[1] = grupvalue[1]
+			old_grupvalue[2] = grupvalue[2]
+			old_grupvalue[3] = grupvalue[3]
+			old_grupvalue[4] = grupvalue[4]
+		end
+	elseif SchoolAtestat = -1:
+		if home_owned[2] = 0:
+			$holyday = '<b>You missed your graduation. You could pick up your diploma at the school.</b>'
+		else
+			$holyday = '<b>You missed your graduation. Maybe your mother picked up your diploma.</b>'
+		end
 	end
 	!!Brother''s dick growth as he gets older
-	
-	if kolka_dick_day + 30 < daystart and npc_dick['A34'] < 26: 
-		kolka_dick_day = daystart
-		npc_dick['A34'] += 1
-	end
-	if npc_dick['A34'] < 20 and npc_dick['A34'] > 16:
-		$npc_thdick['A34'] = 'well proportioned'
-	elseif npc_dick['A34'] >= 20 and npc_dick['A34'] <= 26:
-		$npc_thdick['A34'] = 'thick'
-	end
+	!Commented out till some future time
+	!if kolka_dick_day + 30 < daystart and npc_dick['A34'] < 26:
+	!	kolka_dick_day = daystart
+	!	npc_dick['A34'] += 1
+	!end
+	!if npc_dick['A34'] < 20 and npc_dick['A34'] > 16:
+	!	$npc_thdick['A34'] = 'well proportioned'
+	!elseif npc_dick['A34'] >= 20 and npc_dick['A34'] <= 26:
+	!	$npc_thdick['A34'] = 'thick'
+	!end
 end
 
 killvar 'natholi'
@@ -1382,11 +1463,11 @@ if natholi = 1:
 end
 
 if bcream_used >= 1:
-        bcream_used = 0
-        temp = rand(0,max(nbsize-genbsize+5,5)) / max(nbsize-genbsize,1)
-        if temp > 0: temp = 1
-        nbsize += temp
-        if temp > 0:'Feels like your breasts have grown slightly.'
+		bcream_used = 0
+		temp = rand(0,max(nbsize-genbsize+5,5)) / max(nbsize-genbsize,1)
+		if temp > 0: temp = 1
+		nbsize += temp
+		if temp > 0:'Feels like your breasts have grown slightly.'
 end
 if steroid_dose >= 1:
 	if lashair < 1:
@@ -1442,13 +1523,13 @@ if blizoruk < 0: blizoruk = 0
 
 !First look is there any cum in the womb,when womb is empty random genereted npc record are cleaningare deleted
 
-! mid($npclastgenerated[0],2,9)  number of the last random created npcs
+! mid($npclastgenerated[0],2,9)	 number of the last random created npcs
 norandomdads = 1
 !checking if Sveta have children or babies
 if arrsize('$ChildFath') > 0:
 		!Yes she have... cheking if random NPC is the dady
 		!'Sveta have <<$ChildFath>> children'
-		
+
 		childtmp = 0
 		:childloop
 		if mid($ChildFath[childtmp],1,1) = 'C':
@@ -1456,7 +1537,7 @@ if arrsize('$ChildFath') > 0:
 			norandomdads = 0
 		else
 			!child is not from random genereted npc
-			
+
 			childtmp += 1
 			if childtmp < arrsize('$ChildFath'): jump 'childloop'
 		end
@@ -1469,11 +1550,11 @@ number = 0
 
 !checking if there is some cum in womb.
 if arrsize('$cumarrnam') > 0:
-	!there is cum in womb	
+	!there is cum in womb
 
 	:cleaning_records_cum
 	$tmp = 'C' + '<<number>>'
-		
+
 	cum_number = 0
 	:cumloop
 	!look if cum in womb is from random created npc
@@ -1481,7 +1562,7 @@ if arrsize('$cumarrnam') > 0:
 		!'cum from <<$tmp>> is in the womb'
 		number +=1
 		if number < mid($npclastgenerated[0],2,9): jump 'cleaning_records_cum'
-	else	
+	else
 		cum_number += 1
 		if cum_number < arrsize('$cumarrnam'):
 			jump 'cumloop'
@@ -1489,60 +1570,57 @@ if arrsize('$cumarrnam') > 0:
 			!'no cum in woomb from <<$tmp>>'
 			if norandomdads = 1:
 				!no random dads
-				gs 'npccleanc',$tmp
+				If npc_pers[$tmp] ! '': gs 'npccleanc',$tmp 
 			else
 				!some children are from random genereted npc
 				!checking if selected npc is a dady
 				childtmp = 0
 				:childloop3
-				
+
 				if $ChildFath[childtmp] = $tmp:
 					!selected npc is father of the child, he will stay in record or now
 					!moving npc from C array to B array,
 					gs 'npcpreservec',$tmp
-					!updating the childs data about the father
-					$ChildFath[childtmp] = $npclastsaved
-					!cleaining unnecessary data
-					gs 'npccleanc',$tmp
 					number += 1
 					if number < mid($npclastgenerated[0],2,9): jump 'cleaning_records_cum'
 				else
 					!child is not from random genereted npc
 					childtmp += 1
-					if childtmp < arrsize('$ChildFath'): 
+					if childtmp < arrsize('$ChildFath'):
 						jump 'childloop3'
 					else
 						!children are not from seleted random npc, we are cleaning his redords
 						gs 'npccleanc',$tmp
 						number += 1
 						if number < mid($npclastgenerated[0],2,9): jump 'cleaning_records_cum'
-						
+
 					end
 				end
-				
-				
+
+
 			end
-			
+
 		end
 	end
-	
+
 else
 	!there is no cum in womb, cleaning random created npc redords
-		
+
 	if norandomdads = 0:
-	
+
 		:cleaning_with_babies
 		$tmp = 'C' + '<<number>>'
 		!cheking if random NPC is the dady
 		childtmp2 = 0
-		
+
 		:childloop2
-		
+
 		if $ChildFath[childtmp2] = $tmp:
 			!selected random NPC is dady selected child
+			gs 'npcpreservec', $tmp
 			number +=1
-			if number < mid($npclastgenerated[0],2,9): jump 'cleaning_with_babies' 
-		
+			if number < mid($npclastgenerated[0],2,9): jump 'cleaning_with_babies'
+
 		else
 			!selected random NPC is not dady selected child
 			childtmp2 += 1

@@ -36,7 +36,7 @@ if $ARGS[0] = '' or $ARGS[0] = 'start' or $ARGS[0] = 'return':
 	'You are standing in a luxurious and spacious city center home.'
 	
 	$nickFamDesc = 'It belongs to <a href="exec: gt ''nichNicholas'', ''desc''">Nicholas</a>, who is also the head of home.'
-	$nickFamDesc += ' He lives here with his wife <a href="exec: gt ''nichGala'', ''desc''">Gala</a>.'
+	if nichGalaDisabled = 0: $nickFamDesc += ' He lives here with his wife <a href="exec: gt ''nichGala'', ''desc''">Gala</a>.'
 	$nickFamDesc += ' <a href="exec: gt ''nichTanya'', ''desc''">Tanya</a> is the daughter of Gala and step-daughter of Nicholas. She also lives here.'
 	$nickFamDesc
 	killvar '$nickFamDesc'
@@ -130,6 +130,10 @@ if $ARGS[0] = '' or $ARGS[0] = 'start' or $ARGS[0] = 'return':
 		'Tanya is about to leave the apartment. From the way she is dresses you assume that she is heading for a shopping trip.'
 	elseif $nichTanyAct = 'returnShopping':  
 		'Tanya just entered the apartment. She carries some plastic bags with her, indicating that she bought some new clothes and shoes.'
+	elseif $nichTanyAct = 'leaveClub':  
+		'Tanya is about to leave to a dance club.'
+	elseif $nichTanyAct = 'returnClub':  
+		'Tanya just entered the apartment. She wears the clothes she usually wears to her dance club. She appears to be a little bit exhausted.'
 	end
 	
 	killvar '$nichNichAct'
@@ -225,7 +229,7 @@ elseif $ARGS[0] = 'jobInterview':
 			'<center><img <<$set_imgh>> src="images/characters/city/tanya/01.jpg"></center>'
 			'Finally the elevator stops and the its doors open.'
 			
-			if nichTanyaOpinion = 0:
+			if nichTanyaKnown = 0:
 				'In front of you stands a cute girl smiling at you.'
 				'"Hello. My name is Tanya. You are here for the maid-job I guess? Just follow me to the living room. My parents are waiting for you."'
 			else
@@ -237,7 +241,6 @@ elseif $ARGS[0] = 'jobInterview':
 		end
 	end
 elseif $ARGS[0] = 'hiring':
-	*clr & cla
 	$location_type = 'event'
 	menu_off = 1
 	
@@ -255,6 +258,17 @@ elseif $ARGS[0] = 'hiring':
 		'"This is <<$pcs_nickname>>." Tanya says before sitting down next to her mother. You have the feeling that you are expected to keep standing.'
 	elseif nichHireMode = 2:
 		'"This is <<$pcs_nickname>>, the girl I told you about." Tanya says before sitting down next to her mother. You have the feeling that you are expected to keep standing.'
+	end
+	
+	if FUNC('body_din','pregnancyVisibility',0,'nude') = 1:
+		'Nicholas only takes a short look at you.'
+		'"I am sorry, but I can''t have a pregnant woman be my maid. You might apply again once you have given birth. If the position is still open then."'
+		if thinkpreg = 0 and knowpreg = 0:
+			'Pregnant? He can''t be serious! You are not pregnant!'
+		end
+		'You are escorted out of the apartment building.'
+		act 'Leave': gt 'down'
+		exit
 	end
 	
 	if CloInhibit > 20:
@@ -283,7 +297,10 @@ elseif $ARGS[0] = 'hiring':
 		*nl
 		'Whether it''s a whiff of the smell or something he spotted - the cum on you cannot escape his senses; he wrinkles his nose and you can see is expression harden.'
 		'"I cannot believe you have the audacity to come before me like a prostitute after a busy night. Is that how you intend to leave a good impression with me?" He doesn''t give you time to respond, dismissively waving his hand: "I won''t hire anybody who can''t even clean herself up. Get out!"'
-		!!TODO: end event chain
+		'You are escorted out of the apartment building.'
+		!! TODO: prevent Sveta from applying again
+		act 'Leave': gt 'down'
+		exit
 	end
 	nichImperfections = 0
 	if ShoHeels < 4:
@@ -327,12 +344,12 @@ elseif $ARGS[0] = 'hiring':
 	'2. Your job is to clean the apartment, to buy groceries and to pepare breakfast. Sometimes we will have special requests which you are also required to follow.'
 	'3. You have your own bedroom and a personal bathroom. Every other room is your working place only and you will always act and be treated as a maid there.'
 	'4. You will work from Thursday to Tuesday. Once your probations is over Wednesday will be your free day.'
-	'5. Your payment is 10.000 <b>?</b> each month. I will transfer the money to your bank account at the first day of each month.'
+	'5. Your payment is 10.000 <b>₽</b> each month. I will transfer the money to your bank account at the first day of each month.'
 	if day > 24:
-		'Since only a few days of this month remain your first salary will be 2.500 <b>?</b>.'
+		'Since only a few days of this month remain your first salary will be 2.500 <b>₽</b>.'
 		nichSalaryNext = 2500
 	elseif day > 15:
-		'Since you start in the middle of the month your first salary will be 5.000 <b>?</b>.'
+		'Since you start in the middle of the month your first salary will be 5.000 <b>₽</b>.'
 		nichSalaryNext = 5000
 	else
 		nichSalaryNext = 10000
@@ -448,7 +465,8 @@ elseif $ARGS[0] = 'visitTanya':
 			'Not giving you a chance to say a word, she leads you to her room and pushes you on her bed.'
 			act 'Have sex with Tanya': gt 'nichTanya', 'sexL'
 		end
-	elseif nichTanyaFuckCounter > rand(3,5) and nichJobRefused ! 1 and nichWork = 0:
+	elseif nichTanyaFuckCounter > rand(3,5) and nichJobRefused < 1 and nichWork = 0 and FUNC('body_din','pregnancyVisibility',0,'nude') = 0:
+		!! Tanya will only offer the job while she believes that Sveta is not pregnant. Note that it is assumed that Tanya knows how Sveta looks naked and bases her decision on that!
 		'<center><img <<$set_imgh>> src="images/characters/city/tanya/door_01.jpg"></center>'
 		'Tanya opens the door for you. As you look into her eyes, they seem to be sparkling with excitement, and her entire face lights up as she smiles at you.'
 		'"<<$pcs_nickname>>, it''s so good you are here. I have the best idea ever! Our maid left us recently, and my stepfather is looking for a replacement. I could suggest <b>you</b> to him! He pays really well, and all you gotta do is tidy up a bit, but you would be able to live right here with us!"'
@@ -473,51 +491,18 @@ elseif $ARGS[0] = 'visitTanya':
 		end
 		
 		act 'Agree':
+			xgt 'nichTanya','hire'
+		end
+		
+		act 'Maybe later':
 			cla
-			npc_rel['A218'] += 5
-			nichWork = 1
-			'Her offer sounds too good to be true: Living with her, here, in this huge luxury apartment, right in the city center? And big paycheck every month for basically doing nothing? You know your answer immediately: "Okay."'
-			'"Okay?", she asks, making sure she didn''t misunderstand.'
-			if work = 1 and cheatWork = 0:
-				'"Yes, I''ll take your offer... but I have to go and quit my current job first."'
-			else
-				'"Yes, I''ll take your offer. If your stepfather wants to hire m-" You are cut off by Tanya''s fierce hug and kiss.'
-			end
+			nichJobRefused = 2
+			'"Sorry Tanya, this sounds like a great opportunity, but I just don''t have time for this."'
+			'She looks a little bit disappointed.'
+			'"So maybe in the future? When you have settled whatever is holding you back? Just talk to me when you can start working here."'
 			
-			'"That''s great, I''m so happy right now. Of course you will need to pass the interview of my parents."'
-			'You look at her with a questioning look.'
-			'"Don''t worry. Since I will vouch for you this will be nothing but a formality. The only thing important is that you look presentable. And that includes wearing a maid uniform."'
-			'"Where would I get a maid uniform?"'
-			'"I think they sell them at G&M. One of their shops is at the mall nearby. But make sure you don''t buy an outfit that''s too skimpy. Nicholas wouldn''t mind but my mother surely would."'
-			
-			if hour <= 21 and (work = 0 or cheatWork = 1):
-				'"Actually we could go shopping for a uniform right now. The mall is still open and we would even make it back in time to present you to my parents. What do you say?"'
-				
-				act 'Go shopping together':
-					'"Ok, that sounds like a great idea."'
-					'Tanya beams and takes her purse. "Great, lets go then."'
-					cla
-					act 'Go to the mall':
-						gt 'nichTanya','shoppingUniform'
-					end
-				end
-				act 'Turn shopping offer down':
-					'"Sorry Tanya, I can''t do that today."'
-					'"Don''t worry, that''s fine. After all this comes very sudden."'
-					'She hugs you again.'
-					'"Just come back any day between 18 and 22 o''clock while wearing your uniform. My parents should be home then."'
-					cla
-					act 'Leave the apartment':gt 'down'
-				end
-			else
-			
-				act 'Understood':
-					cla
-					'She hugs you again.'
-					'"Great! Just come back any day between 18 and 22 o''clock while wearing your uniform. My parents should be home then."'
-					act 'Leave the apartment':gt 'down'
-				end
-			end
+			'Without saying another word she takes your hand and leads you to her room.'
+		act 'Have sex with Tanya': gt 'nichTanya', 'sexL'
 		end
 	else
 		'<center><img <<$set_imgh>> src="images/characters/city/tanya/door_01.jpg"></center>'

@@ -8,8 +8,27 @@
 !		0  = Failure			-> Spell doesn''t work, probably just fizzles out
 !		-1 = Critical Failure	-> Spell backfires.  Something bad (not terrible) should happen
 !	$ARGS[n >= 2] = Any extra parameters needed by the spell
+!
+!	For Combat Spells:
+!	$ARGS[2] = Target Type ('opp','pcs')
+!	 ARGS[3] = Target party member number
+!	 ARGS[4] = Caster party member number
 
 SuccessValue = $ARGS[1]
+
+! ARGS for Combat Spells if Applicable
+$TargetType = $ARGS[2]
+if $TargetType = 'pcs':
+	$CasterType = 'opp'
+elseif $TargetType = 'opp':
+	$CasterType = 'pcs'
+else
+	$CasterType = 'pcs'
+	$TargetType = 'pcs'
+end
+TargetNumber = ARGS[3]
+CasterNumber = ARGS[3]
+
 
 if $ARGS[0] = 'teleport':
 	! Do the stuff of a Teleport
@@ -19,7 +38,7 @@ if $ARGS[0] = 'teleport':
 	$NewLocation = $ARGS[2]
 
 	:RandLocLoop
-	$randomLoc = $tpLocations[rand(0,arrsize($tpLocations) - 1)]
+	$randomLoc = $tpLocations[rand(0,arrsize('$tpLocations') - 1)]
 	if $randomLoc = $NewLocation or $randomLoc = $EntryPoint:
 		jump 'RandLocLoop'
 	end
@@ -51,6 +70,236 @@ if $ARGS[0] = 'teleport':
 
 	result = ""
 
+end
+
+if $ARGS[0] = 'regenerate':
+	if SuccessValue > 0:
+		! How much health is gained per minute
+		regenVal = 5 * SuccessValue
+		! Immediate health gain
+		pcs_health += regenVal
+		! If Regenerate is already running, we only extend.
+		regenArrIdx = arrpos('$spellTimeName','regenerate')
+		if regenArrIdx > -1:
+			! if it''s found, then update only
+			spellComplete[regenArrIdx] = totminut + 120
+			$spellCompExec[regenArrIdx] = 'pcs_health += (5 * <<regenVal>>)'
+			$spellTickExec[regenArrIdx] = 'pcs_health += <<regenVal>>'
+		else
+			! Add Timer:
+			!	spellName = 'regenerate'
+			!	duration  = 120
+			!	CompCode = 'pcs_health += (5 * <<regenVal>>)'
+			!	TickCode = 'pcs_health += <<regenVal>>'
+			gs 'spellTimer', 'add', 'regenerate', 120, 'pcs_health += (5 * <<regenVal>>)', 'pcs_health += <<regenVal>>'
+		end
+
+		'<b><font color = green>Your body surges with life. You feel better already.</font></b>'
+		killvar 'regenVal'
+		killvar 'regenArrIdx'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
+end
+
+if $ARGS[0] = 'painblock':
+	if SuccessValue > 0:
+		pain['killer'] = 1
+		'<b><font color = green>Your pain recedes into a dull throb.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
+end
+
+if $ARGS[0] = 'curedisease':
+	if SuccessValue > 0:
+		! Cure Diseses
+		dynamic $cheatmenu['std_cure']
+		! Cause pain where diseases burned out
+		pain['head'] += 10
+		pain['nose'] += 10
+		pain['mouth'] += 10
+		pain['lips'] += 10
+		pain['throat'] += 10
+		pain['asshole'] += 10
+		pain['chest'] += 10
+		pain['tummy'] += 10
+		pain['urethra'] += 10
+		pain['vaginal'] += 10
+		! You do not feel good
+		pcs_mood -= 30
+		'<b><font color = green>You burst into a high fever.  You feel terrible, but you know you are now healthy.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
+end
+
+if $ARGS[0] = 'curewounds':
+	if SuccessValue > 0:
+		! Remove some pain
+		gs 'medical_din','healthTreatment'
+		gs 'medical_din','healthTreatment'
+		'<b><font color = green>You feel yourself coursing with life.  You feel better already.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
+end
+
+if $ARGS[0] = 'curewounds2':
+	if SuccessValue > 0:
+		! Remove all pain
+		killvar 'pain'
+		pcs_health = pcs_vital * 10 + pcs_stren * 5 + 1000
+		'<b><font color = green>You feel yourself coursing with life.  All pain is gone.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
+end
+
+if $ARGS[0] = 'berserk':
+	if SuccessValue > 0:
+		spellArrIdx = arrpos('$spellTimeName','berserk')
+		pain['killer'] = 1
+		if spellArrIdx > -1:
+			! if it''s found, then update only
+			spellComplete[spellArrIdx] = totminut + 120
+		else
+			! Save current Health percentage, since changing these stats will change healthmax
+			healthPercent = pcs_health * 100 / healthmax
+			staminPercent = pcs_stam * 100 / stammax
+			! Boost Stats
+			stren_lvl += 200
+			stren_lvlst += 200
+			stren_muta += 4
+			agil_lvl += 200
+			agil_lvlst += 200
+			agil_muta += 4
+			vital_lvl += 200
+			vital_lvlst += 200
+			vital_muta += 4
+			!gs 'stat_sklattrib'
+			! Run stats to recalculate max health
+			gs 'stat'
+			! Update health to be appropiate percentage of new healthmax
+			pcs_health = (healthPercent * healthmax / 100) + 1
+			pcs_stam = (staminPercent * stammax) + 1
+			! Add Timer to remove this effect after tiem period
+			$berserkCode={
+				! Return Stats to normal
+				stren_lvl -= 200
+				stren_lvlst -= 200
+				stren_muta -= 4
+				agil_lvl -= 200
+				agil_lvlst -= 200
+				agil_muta -= 4
+				vital_lvl -= 200
+				vital_lvlst -= 200
+				vital_muta -= 4
+			}
+			gs 'spellTimer', 'add', 'berserk', 120, $berserkCode, ''
+		end
+		'<b><font color = green>You feel a huge adrenalin surge. You begin looking for someone to battle.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
+	killvar 'spellArrIdx'
+	killvar 'berserkCode'
+	killvar 'healthPercent'
+	killvar 'staminPercent'
+end
+
+if $ARGS[0] = 'shower':
+	if SuccessValue > 0:
+		! Take a Shower
+		gs 'cum_cleanup'
+		lactation['lactmess'] = 0
+		pcs_sweat = 10
+		! Brush Teeth
+		pcs_breath = 1
+		'<b><font color = green>You feel clean and refreshed.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
+end
+
+if $ARGS[0] = 'makeup':
+	if SuccessValue > 0:
+		! Argument should be 3 digit string representing Makeup to apply
+		$MakeupArg = $ARGS[2]
+		if $MakeupArg = '': $MakeupArg = '210'
+		! Arg[0] = Makeup Amount (0-3)
+		MakeupArg[0] = val(mid($MakeupArg,1,1))
+		! Arg[1] = Lip Balm application (0-1)
+		MakeupArg[1] = val(mid($MakeupArg,2,1))
+		! Arg[2] = False lash Application (0-2)
+		MakeupArg[2] = val(mid($MakeupArg,3,1))
+
+		! Brush hair
+		pcs_hairbsh = 1
+		! Apply Makeup
+		pcs_makeup = MakeupArg[0]
+		! Apply Lipbalm
+		pcs_lipbalm += 8*MakeupArg[1]
+		! Apply False Lashes
+		if MakeupArg[2] = 1 and pcs_lashes < 3:
+			pcs_lashes = 3
+		elseif MakeupArg[2] = 2 and pcs_lashes < 4:
+			pcs_lashes = 4
+		end
+
+		killvar 'MakeupArg'
+		killvar '$MakeupArg'
+		'<b><font color = green>makeup is applied to your face.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
+end
+
+if $ARGS[0] = 'cosmetica':
+	if SuccessValue > 0:
+		! Take a Shower
+		gs 'cum_cleanup'
+		lactation['lactmess'] = 0
+		pcs_sweat = 10
+		! Brush Teeth
+		pcs_breath = 1
+		! Remove graffiti from self
+		body_write = 0
+		face_write = 0
+		! Enema
+		klismaday = daystart
+		klismaday1 = 1
+		! Brush hair
+		pcs_hairbsh = 1
+		! Apply Makeup
+		pcs_makeup = 3
+		!if shave_menu = 0:nothing
+		!if shave_menu = 1:legs and pussy
+		!if shave_menu = 2:pussy only
+		!if shave_menu = 3:legs only
+		if shave_menu = 1 or shave_menu = 3:
+			! Shave Legs
+			pcs_leghair = 0
+		end
+		if shave_menu = 1 or shave_menu = 2:
+			! Shave Pubes
+			if pubestyle = 1:
+				pcs_pubes = 0
+			elseif pubestyle >= 2 and pubestyle <= 7:
+				pcs_pubes = 11
+			elseif pubestyle = 8:
+				pcs_pubes = 16
+			elseif pubestyle = 9:
+				pcs_pubes = 21
+			elseif pubestyle = 10:
+				pcs_pubes = 26
+			end
+		end
+
+		'<b><font color = green>You feel beautiful.</font></b>'
+	else
+		'<b>The spell fizzles.  Nothing seems to happen.</b>'
+	end
 end
 
 if $ARGS[0] = 'reset':
@@ -191,10 +440,10 @@ end
 if $ARGS[0] = 'energo':
 	! defence = absorbs damage before health begins to be removed
 	if SuccessValue > 0:
-		defence += (100 * SuccessValue)
+		dynamic '<<$CasterType>>_shield[<<CasterNumber>>] += (100 * SuccessValue)'
 		'<b><font color = green>An energy shield materializes around you, protecting you from your enemies.</font></b>'
 	elseif SuccessValue < 0:
-		defenceV += 100
+		dynamic '<<$TargetType>>_shield[<<TargetNumber>>] += 100'
 		'<b><font color = red>The spell backfires! An energy shield materializes around your enemy, protecting him from you.</font></b>'
 	else
 		'<b>The spell fizzles.  Nothing seems to happen.</b>'
@@ -215,7 +464,7 @@ end
 
 if $ARGS[0] = 'heal':
 	if SuccessValue > 0:
-		pcs_health += (400 * SuccessValue)
+		dynamic 'pcs_health += (400 * SuccessValue)'
 		'<b><font color = green>Your body surges with life. You feel much stronger.</font></b>'
 	else
 		'<b>The spell fizzles.  Nothing seems to happen.</b>'
@@ -239,7 +488,7 @@ end
 
 if $ARGS[0] = 'scaldingtouch':
 	if SuccessValue > 0:
-		damTip = 250 * SuccessValue
+		gs 'fight', 'applyDamage', $TargetType, TargetNumber, 250 * SuccessValue
 		'<b><font color = green>Flames spring from your hands.</font></b>'
 	else
 		'<b>The spell fizzles.  Nothing seems to happen.</b>'
@@ -249,7 +498,7 @@ end
 
 if $ARGS[0] = 'burninghands':
 	if SuccessValue > 0:
-		damTip = 2500 * SuccessValue
+		gs 'fight', 'applyDamage', $TargetType, TargetNumber, 2500 * SuccessValue
 		'<b><font color = green>A torrent of flames jets from your hands.</font></b>'
 	else
 		'<b>The spell fizzles.  Nothing seems to happen.</b>'
@@ -271,12 +520,12 @@ end
 
 if $ARGS[0] = 'firestorm':
 	if SuccessValue > 0:
-		damTip = 4250 + (2000 * SuccessValue)
+		gs 'fight', 'applyDamage', $TargetType, TargetNumber, 4250 + (2000 * SuccessValue)
 		bonusSh = 100
 		'<b><font color = green>Uncountable glowing embers steak down upon your foes.</font></b>'
 	elseif SuccessValue < 0:
-		damTip = 2000
-		pcs_health -= 200
+		gs 'fight', 'applyDamage', $TargetType, TargetNumber, 2000
+		gs 'fight', 'applyDamage', $CasterType, CasterNumber, 200
 		bonusSh = 100
 		'<b><font color = red>The spell backfires! Uncountable glowing embers steak down upon the battlefield burning everyone.</font></b>'
 	else
@@ -299,11 +548,11 @@ end
 
 if $ARGS[0] = 'shock':
 	if SuccessValue > 0:
-		damTip = (150 * SuccessValue)
+		gs 'fight', 'applyDamage', $TargetType, TargetNumber, 150 * SuccessValue
 		eleSh = 1
 		'<b><font color = green>You build a static electric charge in your hand and zap your opponent.</font></b>'
 	elseif SuccessValue < 0:
-		pcs_health -= 50
+		gs 'fight', 'applyDamage', $CasterType, CasterNumber, 50
 		'<b><font color = red>The spell backfires! You manage to zap yourself with a static charge.</font></b>'
 	else
 		'<b>The spell fizzles.  Nothing seems to happen.</b>'
@@ -313,11 +562,11 @@ end
 
 if $ARGS[0] = 'lightning':
 	if SuccessValue > 0:
-		damTip = (1500 * SuccessValue)
+		gs 'fight', 'applyDamage', $TargetType, TargetNumber, 1500 * SuccessValue
 		eleSh = 1
 		'<b><font color = green>You shoot a lightning bolt from your hand zapping your opponent.</font></b>'
 	elseif SuccessValue < 0:
-		pcs_health -= 300
+		gs 'fight', 'applyDamage', $CasterType, CasterNumber, 300
 		'<b><font color = red>The spell backfires! You manage to zap yourself with lightning.</font></b>'
 	else
 		'<b>The spell fizzles.  Nothing seems to happen.</b>'
@@ -339,13 +588,13 @@ end
 
 if $ARGS[0] = '1000birds':
 	if SuccessValue > 0:
-		damTip = 2750 + (1000 * SuccessValue)
+		gs 'fight', 'applyDamage', $TargetType, TargetNumber, 2750 + (1000 * SuccessValue)
 		bonusSh = 30
 		eleSh = 1
 		'<b><font color = green>You shoot hundreds of small lightning bolts toward your enemy.</font></b>'
 	elseif SuccessValue < 0:
-		damTip = 2000
-		pcs_health -= 200
+		gs 'fight', 'applyDamage', $TargetType, TargetNumber, 2000
+		gs 'fight', 'applyDamage', $CasterType, CasterNumber, 200
 		bonusSh = 30
 		eleSh = 1
 		'<b><font color = red>The spell backfires! Hundreds of small lightning bolts curl toward the battlefield shocking everyone.</font></b>'
@@ -368,12 +617,12 @@ end
 
 if $ARGS[0] = 'quicksand':
 	if SuccessValue > 0:
-		damTip = 100 * SuccessValue
+		gs 'fight', 'applyDamage', $TargetType, TargetNumber, 100 * SuccessValue
 		eleSh = 5
 		'<b><font color = green>You have trapped your opponent in quicksand.</font></b>'
 	elseif SuccessValue < 0:
-		damTip = 100
-		pcs_health -= 50
+		gs 'fight', 'applyDamage', $TargetType, TargetNumber, 100
+		gs 'fight', 'applyDamage', $CasterType, CasterNumber, 50
 		eleSh = 5
 		'<b><font color = red>The spell backfires! You are both trapped in quicksand.</font></b>'
 	else
@@ -401,12 +650,12 @@ end
 
 if $ARGS[0] = 'abyss':
 	if SuccessValue > 0:
-		damTip = 1500 * SuccessValue
+		gs 'fight', 'applyDamage', $TargetType, TargetNumber, 1500 * SuccessValue
 		eleSh = 5
 		'<b><font color = green>The Earth opens up beneath your opponents feet, slamming shut damaging him and depriving him of the ability to move.</font></b>'
 	elseif SuccessValue < 0:
-		damTip = 1500
-		pcs_health -= 200
+		gs 'fight', 'applyDamage', $TargetType, TargetNumber, 1500
+		gs 'fight', 'applyDamage', $CasterType, CasterNumber, 200
 		eleSh = 5
 		'<b><font color = red>The spell backfires! The Earth opens up beneath your opponents feet, slamming shut damaging him and depriving him of the ability to move.  You are also caught.</font></b>'
 	else
@@ -438,12 +687,12 @@ end
 
 if $ARGS[0] = 'sando':
 	if SuccessValue > 0:
-		damTip = 3000 + (2000 * SuccessValue)
+		gs 'fight', 'applyDamage', $TargetType, TargetNumber, 3000 + (2000 * SuccessValue)
 		bonusSh = 50
 		eleSh = 5
 		'<b><font color = green>Two huge plates of earth colapse together crushing the enemy and depriving him of the ability to move.</font></b>'
 	elseif SuccessValue < 0:
-		pcs_health -= 200
+		gs 'fight', 'applyDamage', $CasterType, CasterNumber, 200
 		'<b><font color = red>The spell backfires! Two huge plates of earth colapse together with crushing force, but the enemy is missed and you are instead caught.</font></b>'
 	else
 		'<b>The spell fizzles.  Nothing seems to happen.</b>'
@@ -453,13 +702,13 @@ end
 
 if $ARGS[0] = 'windgust':
 	if SuccessValue > 0:
-		damTip = 100 * SuccessValue
+		gs 'fight', 'applyDamage', $TargetType, TargetNumber, 100 * SuccessValue
 		bonusSh = 50
 		'<b><font color = green>You have created a gust of wind.</font></b>'
 		if klonV > 0:klonV = 0 & '<b><font color = green>Enemy clones are vaporized.</font></b>'
 		if tumanV > 0:tumanV = 0 & '<b><font color = green>Enemy Fog is torn to shreds by the wind.</font></b>'
 	elseif SuccessValue < 0:
-		pcs_health -= 50
+		gs 'fight', 'applyDamage', $CasterType, CasterNumber, 50
 		'<b><font color = red>The spell backfires! You have created a gust of wind, but the enemy is missed and you are instead caught.</font></b>'
 		if klon > 0:klon = 0 & '<b><font color = green>Your clones are vaporized.</font></b>'
 		if tuman > 0:tuman = 0 & '<b><font color = green>Your Fog is torn to shreds by the wind.</font></b>'
@@ -471,13 +720,13 @@ end
 
 if $ARGS[0] = 'pressure':
 	if SuccessValue > 0:
-		damTip = 1000 * SuccessValue
+		gs 'fight', 'applyDamage', $TargetType, TargetNumber, 1000 * SuccessValue
 		bonusSh = 100
 		'<b><font color = green>You dramatically raised the air pressure.</font></b>'
 		if klonV > 0:klonV = 0 & '<b><font color = green>Enemy clones are vaporized.</font></b>'
 		if tumanV > 0:tumanV = 0 & '<b><font color = green>Enemy Fog is torn to shreds by the wind.</font></b>'
 	elseif SuccessValue < 0:
-		pcs_health -= 200
+		gs 'fight', 'applyDamage', $CasterType, CasterNumber, 200
 		'<b><font color = red>The spell backfires! You dramatically raised the air pressure, but the enemy is missed and you are instead caught.</font></b>'
 		if klon > 0:klon = 0 & '<b><font color = green>Your clones are vaporized.</font></b>'
 		if tuman > 0:tuman = 0 & '<b><font color = green>Your Fog is torn to shreds by the wind.</font></b>'
@@ -501,13 +750,13 @@ end
 
 if $ARGS[0] = 'vacuumshells':
 	if SuccessValue > 0:
-		damTip = 2500 * SuccessValue
+		gs 'fight', 'applyDamage', $TargetType, TargetNumber, 2500 * SuccessValue
 		bonusSh = 100
 		'<b><font color = green>Turbulent spheres of vacuum bombard your enemy. The air is full of whistling sounds as the spheres fly by at high speeds over the battlefield.</font></b>'
 		if klonV > 0:klonV = 0 & '<b><font color = green>Enemy clones are vaporized.</font></b>'
 		if tumanV > 0:tumanV = 0 & '<b><font color = green>Enemy Fog is torn to shreds by the wind.</font></b>'
 	elseif SuccessValue < 0:
-		pcs_health -= 200
+		gs 'fight', 'applyDamage', $CasterType, CasterNumber, 200
 		'<b><font color = red>The spell backfires! Turbulent spheres of vacuum bombard your enemy. The air is full of whistling sounds as the spheres fly by at high speeds over the battlefield, but the enemy is missed and you are instead caught.</font></b>'
 		if klon > 0:klon = 0 & '<b><font color = green>Your clones are vaporized.</font></b>'
 		if tuman > 0:tuman = 0 & '<b><font color = green>Your Fog is torn to shreds by the wind.</font></b>'
@@ -545,11 +794,11 @@ end
 
 if $ARGS[0] = 'leechmana':
 	if SuccessValue > 0:
-		damTip = 100 * SuccessValue
+		gs 'fight', 'applyDamage', $TargetType, TargetNumber, 100
 		damTipM = 1000
 		'<b><font color = green>You leech mana from your enemy.</font></b>'
 	elseif SuccessValue < 0:
-		pcs_health -= 50
+		gs 'fight', 'applyDamage', $CasterType, CasterNumber, 50
 		'<b><font color = red>The spell backfires! Ouch!</font></b>'
 	else
 		'<b>The spell fizzles.  Nothing seems to happen.</b>'
@@ -559,11 +808,11 @@ end
 
 if $ARGS[0] = 'flood':
 	if SuccessValue > 0:
-		damTip = 1000 * SuccessValue
+		gs 'fight', 'applyDamage', $TargetType, TargetNumber, 1000 * SuccessValue
 		damTipM = 500
 		'<b><font color = green>A surge of water rises towards your enemy.</font></b>'
 	elseif SuccessValue < 0:
-		pcs_health -= 100
+		gs 'fight', 'applyDamage', $CasterType, CasterNumber, 100
 		'<b><font color = red>The spell backfires! A surge of water rises towards your enemy, but missed and hits you.</font></b>'
 	else
 		'<b>The spell fizzles.  Nothing seems to happen.</b>'
@@ -591,13 +840,13 @@ end
 
 if $ARGS[0] = 'sharkrockets':
 	if SuccessValue > 0:
-		damTip = 1500 * SuccessValue
+		gs 'fight', 'applyDamage', $TargetType, TargetNumber, 1500 * SuccessValue
 		damTipM = 2500
 		bonusSh = 50
 		'<b><font color = green>Blobs of Water shaped like sharks fly towards your enemy stiking them.</font></b>'
 		if klonV > 0:klonV = 0 & '<b><font color = green>Enemy clones are eliminated.</font></b>'
 	elseif SuccessValue < 0:
-		pcs_health -= 100
+		gs 'fight', 'applyDamage', $CasterType, CasterNumber, 100
 		'<b><font color = red>The spell backfires! Blobs of Water shaped like sharks fly towards your enemy, but missed and hits you.</font></b>'
 		if klon > 0:klon = 0 & '<b><font color = green>Your clones are eliminated.</font></b>'
 	else
@@ -629,5 +878,9 @@ end
 
 
 killvar 'SuccessValue'
+killvar '$TargetType'
+killvar 'TargetNumber'
+killvar '$CasterType'
+killvar 'CasterNumber'
 --- spell ---------------------------------
 

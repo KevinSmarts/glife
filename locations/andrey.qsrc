@@ -98,7 +98,11 @@ if $ARGS[0] = 'regular':
 	if (week = 5 or week = 7) and young_shop_salary > 0:
 		if young_shop_miss = 0:
 			'"Came to get your pay?" he asks quickly and you nod. He beckons you closer and you oblige. He digs around in his desk drawer for your money and as you wait, you catch a glimpse of his computer screen and see an image of a naked woman. He must think you can''t see the screen from where you are. "Here you go," Mr. Sobulyagin says as he holds out a white envelope with the money inside.'
-		elseif young_shop_miss < 3:
+		elseif young_shop_warned = young_shop_miss and young_shop_miss > 0:
+			'"Came to get your pay?" he asks quickly and you nod. He beckons you closer and you oblige. He digs around in his desk drawer for your money and as you wait, you catch a glimpse of his computer screen and see an image of a naked woman. He must think you can''t see the screen from where you are. "Here you go," Mr. Sobulyagin says as he holds out a white envelope with the money inside.'
+			'"You have missed <<young_shop_miss>> '+iif(young_shop_miss = 1, 'time', 'times')+'," he reminds you. "Don''t make a habit out of it. If you miss work 3 times, I will fire you.'
+		elseif young_shop_miss > young_shop_warned and young_shop_miss > 0:
+			young_shop_warned = young_shop_miss
 			'He gives you a hard look when he see''s it''s you. "You missed worked, remember what I said about missing work."'
 			'You nod. "I remember, I''m sorry."'
 			'He snorts slightly and shakes his head. "You better not forget about it the next time, here''s your pay." He beckons you closer and you oblige. He digs around in his desk drawer for your money and as you wait, you catch a glimpse of his computer screen and see an image of a naked woman. He must think you can''t see the screen from where you are. "Here you go," Mr. Sobulyagin says as he holds out a white envelope with your money inside.'
@@ -208,12 +212,21 @@ if $ARGS[0] = 'punish':
 			'Mr. Sobulyagin scoffs at you, obviously not swayed so easily by tears. He looks at you in silence, his dark eyes roaming over your body slowly as he licks his lips. "Listen, I''m not a bad guy," he says as he stands from his chair and walks to the door. "I''m willing to give you another chance, but you need to <i>show me</i> how important this job really is to you..." He cups his balls through his slacks and gives them a light squeeze.'
 			*nl
 			'"Or you can leave and lose your job. It''s up to you, but those are your only options." He opens the door for you, allowing you to leave and lose your job if you don''t accept his offer.'
-			act 'Leave':
-				work = 0
-				young_shop_work = 2
-				young_shop_miss = 0
-				minut += 2
-				gt 'young_shop', 'start'
+			gs 'willpower', 'bj', 'resist'
+			if will_cost <= pcs_willpwr:
+				act 'Leave (<<will_cost>> Willpower)':
+					work = 0
+					young_shop_work = 2
+					young_shop_miss = 0
+					minut += 2
+					gs 'willpower', 'bj', 'resist'
+					gs 'willpower', 'pay', 'resist'
+					gs 'stat'
+					
+					gt 'young_shop', 'start'
+				end
+			else
+				act 'Leave (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
 			end
 			act 'Accept his offer': gt 'andrey', 'fired1'
 		end
@@ -224,33 +237,41 @@ if $ARGS[0] = 'punish':
 		'<center><img <<$set_imgh>> src="images\locations\city\citycenter\mall\cats\fired.jpg"></center>'
 		*nl
 		'"Well look who decided to drag their ass into work today!" Mr. Sobulyagin''s expression twists into a scowl as he greets you at the store entrance. "I realize coming to work is difficult for you, but do you think you can spare me a moment and come into my office?" he says dryly. You sigh and follow him as he takes you into his office and closes the door. He nods and seems to be talking to himself as much as he is talking to you. He leans against his desk and cupping his crotch as he is smiling at you. "Well you know the deal if you want to keep your job."'
-		act 'Agree': gt 'andrey', 'fired1'
-		act 'Refuse and get fired':
-			cla
-			*clr
-			young_shop_work = 2
-			young_shop_miss = 0
-			char_honest += 5
-			work = 0
-			bonus_mood -= 50
-			minut +=15
-			'<center><img <<$set_imgh>> src="images\locations\city\citycenter\mall\cats\fired.jpg"></center>'
-			*nl
-			'"You''re right, and I''ve decided that I''m not doing you anymore favors to keep my job." Mr. Sobulyagin scowls at you but puts his dick away and pulls out a document from his desk drawer and begins to fill in the blanks. A few minutes later he hands you some papers and you sign them in silence.'
-			msg 'You are no longer employed at this store.'
-			if young_shop_salary > 0 or young_shop_bonus > 0:
-				money += young_shop_salary * 205 + young_shop_bonus * 205
-				'For working <b><<young_shop_salary>></b> days you get paid <b><<young_shop_salary * 205>></b>, with a bonus of <b><<young_shop_bonus * 205>></b> <b>₽</b>. Total income is <b><<young_shop_salary * 205 + young_shop_bonus * 205>></b> <b>₽</b>'
-				'Mr. Sobulyagin. counts <b><<young_shop_salary * 205 + young_shop_bonus * 205>></b> <b>₽</b> and hands it over to you.'
-				! reset money,young_shop_salary,young_shop_bonus to zero for a new week
-				young_shop_salary = 0
-				young_shop_bonus = 0
+		gs 'willpower', 'bj', 'resist'
+		if will_cost <= pcs_willpwr:
+			act 'Refuse and get fired (<<will_cost>> Willpower)':
+				cla
+				*clr
+				young_shop_work = 2
+				young_shop_miss = 0
+				char_honest += 5
+				work = 0
+				bonus_mood -= 50
+				minut +=15
+				gs 'willpower', 'bj', 'resist'
+				gs 'willpower', 'pay', 'resist'
+				gs 'stat'
+				'<center><img <<$set_imgh>> src="images\locations\city\citycenter\mall\cats\fired.jpg"></center>'
+				*nl
+				'"You''re right, and I''ve decided that I''m not doing you anymore favors to keep my job." Mr. Sobulyagin scowls at you but puts his dick away and pulls out a document from his desk drawer and begins to fill in the blanks. A few minutes later he hands you some papers and you sign them in silence.'
+				msg 'You are no longer employed at this store.'
+				if young_shop_salary > 0 or young_shop_bonus > 0:
+					money += young_shop_salary * 205 + young_shop_bonus * 205
+					'For working <b><<young_shop_salary>></b> days you get paid <b><<young_shop_salary * 205>></b>, with a bonus of <b><<young_shop_bonus * 205>></b> <b>₽</b>. Total income is <b><<young_shop_salary * 205 + young_shop_bonus * 205>></b> <b>₽</b>'
+					'Mr. Sobulyagin. counts <b><<young_shop_salary * 205 + young_shop_bonus * 205>></b> <b>₽</b> and hands it over to you.'
+					! reset money,young_shop_salary,young_shop_bonus to zero for a new week
+					young_shop_salary = 0
+					young_shop_bonus = 0
+				end
+				act 'Leave':
+					minut += 2
+					gt 'young_shop', 'start'
+				end
 			end
-			act 'Leave':
-				minut += 2
-				gt 'young_shop', 'start'
-			end
+		else
+			act 'Refuse and get fired (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
 		end
+		act 'Agree': gt 'andrey', 'fired1'
 !!this happens if Sveta misses 3 days of work but kept her job by sucking his dick 5 times, so this would trigger on the 6th time and each time after.
 	else
 		cla
@@ -260,33 +281,41 @@ if $ARGS[0] = 'punish':
 		'"Well look who decided to drag their ass into work today!" Mr. Sobulyagin''s expression twists into a scowl as he greets you at the store entrance. "I realize coming to work is difficult for you, but do you think you can spare me a moment and come into my office?" he says dryly. You sigh and follow him, he takes you into his office and closes the door. "You are missing too much work, the other employees are noticing. I am going to need something more from you to prove your deserve to keep your job."'
 		*nl
 		'He leans against his desk and cupping his crotch as he is smiling at you. "You can start of by sucking my cock then you can bend over and let me fuck you in the ass. That''s the only way you can prove to me that you still deserve to keep your job, got it? If not then you''re just another lazy brat, and I don''t need someone like that working for me."'
-		act 'Agree': gt 'andrey', 'fired2'
-		act 'Refuse and get fired':
-			cla
-			*clr
-			young_shop_work = 2
-			young_shop_miss = 0
-			char_honest += 5
-			work = 0
-			bonus_mood -= 50
-			minut +=15
-			'<center><img <<$set_imgh>> src="images\locations\city\citycenter\mall\cats\fired.jpg"></center>'
-			*nl
-			'"You''re right, I''ve skipped out on work too many times and I''m not doing that anymore to keep my job." Mr. Sobulyagin scowls at you but puts his dick away and pulls out a document from his desk drawer and begins to fill in the blanks. A few minutes later he hands you some papers and you sign them without a word.'
-			msg 'You are no longer employed at this store.'
-			if young_shop_salary > 0 or young_shop_bonus > 0:
-				money += young_shop_salary * 205 + young_shop_bonus * 205
-				'For working <b><<young_shop_salary>></b> days you get paid <b><<young_shop_salary * 205>></b>, with a bonus of <b><<young_shop_bonus * 205>></b> <b>₽</b>. Total income is <b><<young_shop_salary * 205 + young_shop_bonus * 205>></b> <b>₽</b>'
-				'Mr. Sobulyagin. counts out <b><<young_shop_salary * 205 + young_shop_bonus * 205>></b> <b>₽</b> and hands it over to you.'
-				! reset money,young_shop_salary,young_shop_bonus to zero for a new week
-				young_shop_salary = 0
-				young_shop_bonus = 0
+		gs 'willpower', 'anal', 'resist'
+		if will_cost <= pcs_willpwr:
+			act 'Refuse (<<will_cost>> Willpower)':
+				cla
+				*clr
+				young_shop_work = 2
+				young_shop_miss = 0
+				char_honest += 5
+				work = 0
+				bonus_mood -= 50
+				minut +=15
+				gs 'willpower', 'anal', 'resist'
+				gs 'willpower', 'pay', 'resist'
+				gs 'stat'
+				'<center><img <<$set_imgh>> src="images\locations\city\citycenter\mall\cats\fired.jpg"></center>'
+				*nl
+				'"You''re right, I''ve skipped out on work too many times and I''m not doing that anymore to keep my job." Mr. Sobulyagin scowls at you but puts his dick away and pulls out a document from his desk drawer and begins to fill in the blanks. A few minutes later he hands you some papers and you sign them without a word.'
+				msg 'You are no longer employed at this store.'
+				if young_shop_salary > 0 or young_shop_bonus > 0:
+					money += young_shop_salary * 205 + young_shop_bonus * 205
+					'For working <b><<young_shop_salary>></b> days you get paid <b><<young_shop_salary * 205>></b>, with a bonus of <b><<young_shop_bonus * 205>></b> <b>₽</b>. Total income is <b><<young_shop_salary * 205 + young_shop_bonus * 205>></b> <b>₽</b>'
+					'Mr. Sobulyagin. counts out <b><<young_shop_salary * 205 + young_shop_bonus * 205>></b> <b>₽</b> and hands it over to you.'
+					! reset money,young_shop_salary,young_shop_bonus to zero for a new week
+					young_shop_salary = 0
+					young_shop_bonus = 0
+				end
+				act 'Leave':
+					minut += 2
+					gt 'young_shop', 'start'
+				end
 			end
-			act 'Leave':
-				minut += 2
-				gt 'young_shop', 'start'
-			end
+		else
+			act 'Refuse (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
 		end
+		act 'Agree': gt 'andrey', 'fired2'
 	end
 
 	if cheatWork = 1:
@@ -321,14 +350,19 @@ if $ARGS[0] = 'beg':
 		'"And why in the hell would I do that?" Mr. Sobulyagin scoffs.'
 		'"Oh please! I''ll do anything you want, I really need this job!" You say, trying your absolute best to convince him.'
 		'"Anything? Ha! Fine, I know what you could do!" The manager says as his eyes begin to wander all over your body. "You can start off by sucking my cock and then bend over and let me stick my cock into your ass. That''s the only way you can prove to me you''re a hard worker, got it? If not then you''re just another lazy brat, and I don''t need someone like that working for me."'
-		act 'Tell him you would never do this':
-			cla
-			*clr
-			'<center><img <<$set_imgh>> src="images\locations\city\citycenter\mall\cats\fired.jpg"></center>'
-			*nl
-			'Your face immediately turns beet-red as you try to comprehend what you''ve just heard. "You want me to give you a blowjob...and then have anal sex?" You don''t understand what the hell he''s thinking. "There''s no way I''ll do that!"'
-			'"Fine, then there''s the door!" Mr. Sobulyagin snaps, clearly upset with your answer.'
-			act 'Leave':gt 'young_shop', 'start'
+		gs 'willpower', 'anal', 'resist'
+		if will_cost <= pcs_willpwr:
+			act 'Refuse (<<will_cost>> Willpower)':
+				cla
+				*clr
+				'<center><img <<$set_imgh>> src="images\locations\city\citycenter\mall\cats\fired.jpg"></center>'
+				*nl
+				'Your face immediately turns beet-red as you try to comprehend what you''ve just heard. "You want me to give you a blowjob...and then have anal sex?" You don''t understand what the hell he''s thinking. "There''s no way I''ll do that!"'
+				'"Fine, then there''s the door!" Mr. Sobulyagin snaps, clearly upset with your answer.'
+				act 'Leave':gt 'young_shop', 'start'
+			end
+		else
+			act 'Refuse (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
 		end
 		act 'Agree': gt 'andrey', 'rehired'
 	end

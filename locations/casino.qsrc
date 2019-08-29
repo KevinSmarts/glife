@@ -766,10 +766,11 @@ if $ARGS[0] = 'blackjack_play':
 	doubleBet = 0
 	minBet = 10
 	maxBet = 500
+	gs 'deckShuffle', 'sort'
 	*pl '<center><img <<$set_imgh>> src="images/locations/city/industrial/casino/stolbd.jpg"></center>'
 	*pl 'You are sitting at the blackjack table.'
 	act 'Move away from the table' : gt 'casino', 'cards'
-	act 'Play blackjack' : gt 'casino', 'bet'
+	act 'Play blackjack' : gt 'casino', 'bet1'
 	act 'Ask for the rules' : gt 'casino', 'rules'
 end
 
@@ -789,7 +790,7 @@ if $ARGS[0] = 'rules':
 	act 'Return' : gt 'casino', 'blackjack_play'
 end
 
-if $ARGS[0] = 'bet':
+if $ARGS[0] = 'bet1':
 	*pl '<center><img <<$set_imgh>> src="images/locations/city/industrial/casino/stavkabd.jpg"></center>'
 	playerBets[0] = input('Place your bet.')
 	if money < playerBets[0]:
@@ -801,9 +802,14 @@ if $ARGS[0] = 'bet':
 	elseif playerBets[0] > maxBet:
 		msg 'There is a maximum bet of <<maxBet>> <b>₽</b>.'
 		gt 'casino', 'blackjack_play'
+	else
+		gt 'casino', 'bet2'
 	end
+end
+
+if $ARGS[0] = 'bet2':
 	betTotal = playerBets[0]
-	gs 'deckShuffle'
+	gs 'deckShuffle', 'shuffle'
 	if (deckFace[playerHand[0]] = 1 and deckFace[playerHand[1]] > 9) or (deckFace[playerHand[0]] > 9 and deckFace[playerHand[1]] = 1):
 		gt 'casino', 'blackjack'
 	elseif deckFace[dealerHand[0]] > 9 and deckFace[dealerHand[1]] = 1:
@@ -869,11 +875,7 @@ if $ARGS[0] = 'insurance2':
 		*pl 'The dealer takes a peek at his hole card; no blackjack.'
 		if insurance > 0: *p 'He relieves you of <<insurance>> <b>₽</b> for your side bet.'
 		money -= insurance
-		act 'Continue' :
-			cla
-			wait 500
-			gt 'casino', 'player'
-		end
+		act 'Continue' : gt 'casino', 'player'
 	end
 end
 
@@ -888,11 +890,7 @@ if $ARGS[0] = 'player':
 		act 'Continue' : gt 'casino', 'blackjack_play'
 	elseif currentHand >= numHands:
 		*pl 'You can take no further actions.'
-		act 'Continue' :
-			cla
-			wait 500
-			gt 'casino', 'dealer'
-		end
+		act 'Continue' : gt 'casino', 'dealer'
 	else
 		if numHands = 1:
 			*pl 'You are considering actions for your hand.'
@@ -909,7 +907,6 @@ if $ARGS[0] = 'player':
 			cardsDealt += 1
 			*clr & cla
 			*pl '<center><img <<$set_imgh>> src="images/locations/city/industrial/casino/cartbde.jpg"></center>'
-			wait 750
 			gt 'casino', 'player'
 		end
 		if money >= betTotal + playerBets[currentHand]:
@@ -924,7 +921,6 @@ if $ARGS[0] = 'player':
 				cardsDealt += 1
 				*clr & cla
 				*pl '<center><img <<$set_imgh>> src="images/locations/city/industrial/casino/cartbde.jpg"></center>'
-				wait 750
 				gt 'casino', 'player'
 			end
 			if playerHand[currentHand * 16 + 2] = 0 and ((deckFace[playerHand[currentHand * 16]] > 9 and deckFace[playerHand[currentHand * 16 + 1]] > 9) or deckFace[playerHand[currentHand * 16]] = deckFace[playerHand[currentHand * 16 + 1]]):
@@ -942,7 +938,6 @@ if $ARGS[0] = 'player':
 					cardsDealt += 1
 					*clr & cla
 					*pl '<center><img <<$set_imgh>> src="images/locations/city/industrial/casino/cartbde.jpg"></center>'
-					wait 750
 					gt 'casino', 'player'
 				end
 			end
@@ -950,7 +945,6 @@ if $ARGS[0] = 'player':
 		act '<<$text>>Stay' :
 			currentHand += 1
 			cla
-			wait 500
 			if currentHand < numHands: gt 'casino', 'player'
 			if currentHand >= numHands: gt 'casino', 'dealer'
 		end
@@ -968,7 +962,6 @@ if $ARGS[0] = 'dealer':
 			cardsDealt += 1
 			*clr & cla
 			*pl '<center><img <<$set_imgh>> src="images/locations/city/industrial/casino/cartbde.jpg"></center>'
-			wait 750
 			gt 'casino', 'dealer'
 		end
 	elseif dealerPoints > 21:
@@ -1035,11 +1028,11 @@ if $ARGS[0] = 'blackjack_view':
 		end
 		i += 1
 		if dealerHand[i] ! 0: jump 'loop7'
-		:loop2
+		:loop8
 		if dealerPoints > 21 and numAces > 0:
 			dealerPoints -= 10
 			numAces -= 1
-			jump 'loop2'
+			jump 'loop8'
 		end
 		if dealerPoints > 21:
 			*p '<br>BUST!'
@@ -1052,12 +1045,12 @@ if $ARGS[0] = 'blackjack_view':
 
 	*pl '<br><br><u>Player</u>'
 	i = 0
-	:loop3
+	:loop9
 	numAces = 0
 	playerPoints[i] = 0
 	if numHands > 1: *pl 'Hand #<<i + 1>>:'
 	j = 0
-	:loop4
+	:loop10
 	if playerHand[i * 16 + j] ! 0:
 		*p '<img <<$set_imgh>> src="<<$deckImg[playerHand[i * 16 + j]]>>">'
 		if deckFace[playerHand[i * 16 + j]] = 1:
@@ -1069,13 +1062,13 @@ if $ARGS[0] = 'blackjack_view':
 			playerPoints[i] += deckFace[playerHand[i * 16 + j]]
 		end
 		j += 1
-		jump 'loop4'
+		jump 'loop10'
 	end
-	:loop8
+	:loop11
 	if playerPoints[i] > 21 and numAces > 0:
 		playerPoints[i] -= 10
 		numAces -= 1
-		jump 'loop8'
+		jump 'loop11'
 	end
 	if playerPoints[i] > 21:
 		*p '<br>BUST!'
@@ -1086,7 +1079,7 @@ if $ARGS[0] = 'blackjack_view':
 	end
 	*p ' Bet = <<playerBets[i]>> <b>₽</b><br><br>'
 	i += 1
-	if i < numHands: jump 'loop3'
+	if i < numHands: jump 'loop9'
 	*pl '</td><td valign="top"><div align="right"><img <<$set_imgh>> src="images/locations/city/industrial/casino/cartbd.jpg"></div></td></tr></table>'
 end
 
