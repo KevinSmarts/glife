@@ -25,6 +25,7 @@ opp_shield[0] = (defence): Shielding that absorbs damage before hitpoints.
 opp_dambonus[0] = (magweapbonus): damage added to melee attacks
 opp_init[0] = (initBonus): attack faster/first
 opp_stun[0] = (stunner): make target unable to act for some amount of time
+opp_spells[0] = comma delimited list of spell names
 }
 
 !! Use the above with [1] and [2] for extra opponents
@@ -55,6 +56,7 @@ if $ARGS[0] = 'initFight':
 	killvar 'opp_dambonus'
 	killvar 'opp_init'
 	killvar 'opp_stun'
+	killvar '$opp_spells'
 	killvar 'opp_timer'
 
 	!! Clear any allies from previous battle
@@ -101,6 +103,7 @@ if $ARGS[0] = 'clearPCSArray':
 	killvar 'pcs_dambonus', i
 	killvar 'pcs_init', i
 	killvar 'pcs_stun', i
+	killvar 'pcs_spells', i
 	killvar 'pcs_timer', i
 
 	killvar 'i'
@@ -333,13 +336,13 @@ if $ARGS[0] = 'result_check':
 
 
 !!win/lose conditions
-	if pcs_health <= 0:
+	if func('fight', 'AvailableTargets', 'pcs') = 0:
 		'<b><font color = red> You lost!</font></b>'
 
 		xgt'ender','loss'
 		gt $loc, $metka
 		exit
-	elseif opp_health[0] <= 0:
+	elseif func('fight', 'AvailableTargets', 'opp') = 0:
 		'<b><font color = green><<$boydesc>> You won!</font></b>'
 
 		xgt'ender','win'
@@ -441,115 +444,226 @@ if $ARGS[0] = 'Attack':
 	act 'Next': gt 'fight', 'main'
 end
 
+!! Make a list of targets that still have health
+!  $ARGS[1] = Target Type ('pcs','opp')
+if $ARGS[0] = 'AvailableTargets':
+	killvar 'fightAvailTarg'
+	i=0
+	:AvailTargetLoop
+	if i < arrsize($ARGS[1]+'_health'):
+		if dyneval('result=<<$ARGS[1]>>_health[<<i>>]') > 0:
+			fightAvailTarg[] = i
+		end
+		i +=1
+		jump 'AvailTargetLoop'
+	end
+	result = arrsize('fightAvailTarg')
+	killvar 'i'
+	exit
+end
+
+!! Pick random target from list of targets.  Returns the Target, or -1 if no target.
+!  $ARGS[1] = Target Type ('pcs','opp')
+if $ARGS[0] = 'RandomTarget':
+	if func('fight', 'AvailableTargets', $ARGS[1]) > 0:
+		result = fightAvailTarg[rand(0,arrsize('fightAvailTarg'))-1]
+	else
+		result = -1
+	end
+	exit
+end
+
+
+!! Find Action for an NPC fighter to take
+!	$ARGS[1] = Attacker Type ('opp','pcs')
+!	 ARGS[2] = Attacker party member number
+if $ARGS[0] = 'fightAlgorithm':
+	$AttackerType = $ARGS[1]
+	AttackerNumber = ARGS[2]
+	if $AttackerType = 'pcs':
+		$TargetType = 'opp'
+	else
+		$TargetType = 'pcs'
+	end
+	TargetNumber = func('fight', 'RandomTarget', $TargetType)
+	!! Some Target still has some hitpoints
+	if TargetNumber>= 0:
+		!!Fight Algorithm
+		ActionMade = 0
+		! First try to cast spells
+		if dyneval('result=<<$AttackerType>>_magik[<<AttackerNumber>>]') > 0:
+			gs 'fight', 'buildCasterSpellList', $dyneval('$result=$<<$AttackerType>>_spells[<<AttackerNumber>>]')
+			!Heal self if hurt badly
+			if dyneval('result=<<$AttackerType>>_health[<<AttackerNumber>>]') < 50:
+				ActionMade = func('fight','spellListCheck', '$comHealSpells',$AttackerType,AttackerNumber,$AttackerType,AttackerNumber)
+			end
+			!Clone if none left
+			if dyneval('result=<<$AttackerType>>_clone[<<AttackerNumber>>]') = 0 and ActionMade = 0:
+				ActionMade = func('fight','spellCheck', 'multiclone',$AttackerType,AttackerNumber,$AttackerType,AttackerNumber)
+				if ActionMade = 0:
+					ActionMade = func('fight','spellCheck', 'clone',$AttackerType,AttackerNumber,$AttackerType,AttackerNumber)
+				end
+			end
+			!Shield if low shield
+			if dyneval('result=<<$AttackerType>>_shield[<<AttackerNumber>>]') = 0 and ActionMade = 0:
+				ActionMade = func('fight','spellListCheck', '$comShldSpells',$AttackerType,AttackerNumber,$AttackerType,AttackerNumber)
+			end
+			!Fog if no Fog , Any fog on the field makes casting fog impossible
+			!if opp_fog[ARGS[2]] = 0 and ActionMade = 0:
+			!	ActionMade = func('fight','spellCheck', 'fog','opp',ARGS[2],'opp',ARGS[2])
+			!end
+			!Buff if needed
+			!  ToDo - How to determine if buff has already been applied
+			!Attack Spell if Possible
+			if ActionMade = 0:
+				ActionMade = func('fight','spellListCheck', '$comAtkSpells',$TargetType,TargetNumber,$AttackerType,AttackerNumber)
+			end
+			!make sure we can continue the fight.
+			!if ActionMode = 1:
+				act 'Next': gt 'fight', 'main'
+			!end
+		end
+		!Physical attack if nothing else can be done.
+		if ActionMade = 0:
+			if rand(0,dyneval('result=<<$AttackerType>>_kick[<<AttackerNumber>>]')) > 40:
+				gs 'fight', 'Attack', 'Kick', $TargetType, AttackerNumber, TargetNumber
+			elseif rand(0,dyneval('result=<<$AttackerType>>_punch[<<AttackerNumber>>]')) > 40:
+				gs 'fight', 'Attack', 'Hard Punch', $TargetType, AttackerNumber, TargetNumber
+			else
+				gs 'fight', 'Attack', 'Jab', $TargetType, AttackerNumber, TargetNumber
+			end
+		end!
+	!!This should never happen
+	else
+		gt 'fight', 'main'
+	end
+
+	killvar 'ActionMade'
+	killvar 'TargetNumber'
+	killvar '$TargetType'
+	killvar '$AttackerType'
+	killvar 'AttackerNumber'
+end
+
 if $ARGS[0] = 'opponent':
 	gs 'fight', 'statDisplay'
-	if pcs_health[0] > 0 and pcs_health[1] > 0 and pcs_health[2] > 0:
-		TargetNumber = rand(0,2)
-	elseif pcs_health[0] > 0 and pcs_health[1] > 0:
-		TargetNumber = rand(0,1)
-	elseif pcs_health[0] > 0 and pcs_health[2] > 0:
-		if rand(0,1) = 0:
-			TargetNumber = 0
-		else
-			TargetNumber = 2
-		end
-	elseif pcs_health[1] > 0 and pcs_health[2] > 0:
-		TargetNumber = rand(1,2)
-	elseif pcs_health[0] > 0:
-		TargetNumber = 0
-	elseif pcs_health[1] > 0:
-		TargetNumber = 1
-	else
-		TargetNumber = 2
-	end		
-!!	if opp_magik[0] > 0: gs 'fight', 'opp_spellcast'
-	if rand(0,opp_kick[0]) > 40:
-		gs 'fight', 'Attack', 'Kick', 'pcs', ARGS[2], TargetNumber
-	elseif rand(0,opp_punch[0]) > 40:
-		gs 'fight', 'Attack', 'Hard Punch', 'pcs', ARGS[2], TargetNumber
-	else
-		gs 'fight', 'Attack', 'Jab', 'pcs', ARGS[2], TargetNumber
-	end
+	gs 'fight','fightAlgorithm','opp',ARGS[2]
 end
 
 if $ARGS[0] = 'player':
 	gs 'fight', 'statDisplay'
-	if opp_health[0] > 0 and opp_health[1] > 0 and opp_health[2] > 0:
-		TargetNumber = rand(0,2)
-	elseif opp_health[0] > 0 and opp_health[1] > 0:
-		TargetNumber = rand(0,1)
-	elseif opp_health[0] > 0 and opp_health[2] > 0:
-		if rand(0,1) = 0:
-			TargetNumber = 0
-		else
-			TargetNumber = 2
+
+	!! If this is the Player character
+	if ARGS[2] = 0:
+		if pcs_magik > 0:
+			act 'Cast a Spell': gs 'fight', 'spellcast'
 		end
-	elseif opp_health[1] > 0 and opp_health[2] > 0:
-		TargetNumber = rand(1,2)
-	elseif opp_health[0] > 0:
-		TargetNumber = 0
-	elseif opp_health[1] > 0:
-		TargetNumber = 1
+		if func('fight', 'AvailableTargets', 'opp') > 0:
+			i=0
+			:loop000000
+			if i < arrsize('fightAvailTarg'):
+				$op_name_000000 = $opp_name[fightAvailTarg[i]]
+				dynamic "
+					act 'Kick <<$op_name_000000>>':
+						gs 'fight', 'Attack', 'Kick', 'opp', 0, <<fightAvailTarg[i]>>
+					end
+
+					act 'Punch <<$op_name_000000>> hard':
+						gs 'fight', 'Attack', 'Hard Punch', 'opp', 0, <<fightAvailTarg[i]>>
+					end
+
+					act 'Jab <<$op_name_000000>>':
+						gs 'fight', 'Attack', 'Jab', 'opp', 0, <<fightAvailTarg[i]>>
+					end
+				"
+				killvar '$op_name_000000'
+				i +=1
+				jump 'loop000000'
+			end
+		end
+		act 'Surrender': gt 'ender', 'surrender'
+
+	!! If this is a team member of the player
 	else
-		TargetNumber = 2
+		gs 'fight','fightAlgorithm','pcs',ARGS[2]
 	end
+end
 
-	if pcs_magik > 0:
-		act 'Cast a Spell': gs 'fight', 'spellcast'
+
+!! Builds an array spell list from a comma delimited spell name list
+!	$ARGS[1] = comma delimited list of spell names
+if $ARGS[0] = 'buildCasterSpellList':
+	killvar '$casterSpellList'
+	$tmpStr = $trim($ARGS[1])
+	:loop000001
+	i=INSTR($tmpStr,',')
+	if i > 0:
+		$casterSpellList[] = $trim($mid($tmpStr,1,i-1))
+		$tmpStr = $trim($mid($tmpStr,i+1))
+		jump 'loop000001'
+	else
+		$casterSpellList[] = $trim($tmpStr)
 	end
-	if opp_health[0] > 0:
-		act 'Kick <<$opp_name[0]>>':
-			gs 'fight', 'Attack', 'Kick', 'opp', 0, 0
-		end
+	killvar 'i'
+	killvar '$tmpStr'
+	exit
+end
 
-		act 'Punch <<$opp_name[0]>> hard':
-			gs 'fight', 'Attack', 'Hard Punch', 'opp', 0, 0
-		end
+!! Check if spell will be cast
+!	$ARGS[1] = spell name
+!	$ARGS[2] = Target Type ('opp','pcs')
+!	 ARGS[3] = Target party member number
+!	$ARGS[4] = Caster Type ('opp','pcs')
+!	 ARGS[5] = Caster party member number
+if $ARGS[0] = 'spellCheck':
+	$spellCheckVar['SpellName'] = $ARGS[1]
+	$spellCheckVar['TargetType'] = $ARGS[2]
+	 spellCheckVar['TargetNumber'] = ARGS[3]
+	$spellCheckVar['CasterType'] = $ARGS[4]
+	 spellCheckVar['CasterNumber'] = ARGS[5]
+	 spellCheckVar['CasterMana'] = dyneval("result = <<$spellCheckVar['CasterType']>>_mana[<<spellCheckVar['CasterNumber']>>]")
 
-		act 'Jab <<$opp_name[0]>>':
-			gs 'fight', 'Attack', 'Jab', 'opp', 0, 0
+	if ARRPOS('$casterSpellList',$spellCheckVar['SpellName'])>=0 and spellCheckVar['CasterMana'] >= spellMana[$spellCheckVar['SpellName']]:
+		if $spellTarget[$spellCheckVar['SpellName']] = 'self':
+			gs 'castSpellNPC', $spellCheckVar['SpellName'], $spellCheckVar['CasterType'], spellCheckVar['CasterNumber'],$spellCheckVar['CasterType'], spellCheckVar['CasterNumber']
+		else
+			gs 'castSpellNPC', $spellCheckVar['SpellName'], $spellCheckVar['TargetType'], spellCheckVar['TargetNumber'],$spellCheckVar['CasterType'], spellCheckVar['CasterNumber']
 		end
+		result = 1
+	else
+		result = 0
 	end
-	if opp_health[1] > 0:
-		act 'Kick <<$opp_name[1]>>':
-			gs 'fight', 'Attack', 'Kick', 'opp', 0, 1
-		end
+	killvar 'spellCheckVar'
+	killvar '$spellCheckVar'
+	exit
+end
 
-		act 'Punch <<$opp_name[1]>> hard':
-			gs 'fight', 'Attack', 'Hard Punch', 'opp', 0, 1
-		end
-
-		act 'Jab <<$opp_name[1]>>':
-			gs 'fight', 'Attack', 'Jab', 'opp', 0, 1
-		end
+!! Check list of spells if they will be cast
+!	$ARGS[1] = spell List array name
+!	$ARGS[2] = Target Type ('opp','pcs')
+!	 ARGS[3] = Target party member number
+!	$ARGS[4] = Caster Type ('opp','pcs')
+!	 ARGS[5] = Caster party member number
+if $ARGS[0] = 'spellListCheck':
+	i=0
+	ActionMade1 = 0
+	:loop000002
+	if i < arrsize($ARGS[1]) and ActionMade1=0:
+		ActionMade1 = func('fight','spellCheck','<<$ARGS[1]>>[<<i>>]',$ARGS[2],ARGS[3],$ARGS[4],ARGS[5])
+		i+=1
+		jump 'loop000002'
 	end
-	if opp_health[2] > 0:
-		act 'Kick <<$opp_name[2]>>':
-			gs 'fight', 'Attack', 'Kick', 'opp', 0, 2
-		end
-
-		act 'Punch <<$opp_name[2]>> hard':
-			gs 'fight', 'Attack', 'Hard Punch', 'opp', 0, 2
-		end
-
-		act 'Jab <<$opp_name[2]>>':
-			gs 'fight', 'Attack', 'Jab', 'opp', 0, 2
-		end
-	end	
-	act 'Surrender': gt 'ender', 'surrender'
+	result = ActionMade1
+	killvar 'ActionMade1'
+	exit
 end
 
 
 if $ARGS[0] = 'spellcast':
-	cls
+	*clr
 	cla
+	act 'Next': gt 'fight', 'main'
 	func('spellBook', 'targetable', '$combatSpells', 'gt ''fight'', ''main''', 'gt ''fight'', ''main''')
-end
-
-if $ARGS[0] = 'opp_spellcast':
-end
-
-if $ARGS[0] = 'pcs_spellcast':
 end
 
 
