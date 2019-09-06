@@ -493,11 +493,16 @@ $d_cycreport_choice = {
 		if thinkpreg = 0:
 			if knowpreg = 1:
 				'<a href="exec: dynamic $d_cycreport_actor, 2 & gs ''stat''">I''m pregnant.</a>'
+				'<a href="exec: dynamic $d_cycreport_actor, 1 & gs ''stat''">I can''t be pregnant no matter the evidence.</a>'
 			else
 				'<a href="exec: dynamic $d_cycreport_actor, 2 & gs ''stat''">I think I''m pregnant.</a>'
 			end
 		elseif thinkpreg = 1:
-			'<a href="exec: dynamic $d_cycreport_actor, 1 & gs ''stat''">I''m not pregnant.</a>'
+			if knowpreg = 1:
+				'<a href="exec: dynamic $d_cycreport_actor, 1 & gs ''stat''">I can''t be pregnant no matter the evidence.</a>'
+			else
+				'<a href="exec: dynamic $d_cycreport_actor, 1 & gs ''stat''">I''m not pregnant.</a>'
+			end
 		end
 		if mesec > 0 and thinkpreg ! 1 and knowpreg ! 1:
 			'<a href="exec: dynamic $d_cycreport_actor, 3">I''m menstruating.</a>'
@@ -509,6 +514,11 @@ $d_cycreport_choice = {
 			'<a href="exec: dynamic $d_cycreport_actor, 6">I think my due date is...</a>'
 			'<a href="exec: dynamic $d_cycreport_actor, 7">I think the father is...</a>'
 		end
+		if knowpregloss = 1:
+			'<a href="exec: dynamic $d_cycreport_actor, 8">I just had an abortion.</a>'
+		elseif knowpregloss > 1 or thinkpreg = 1:
+			'<a href="exec: dynamic $d_cycreport_actor, 8">I think I lost a baby.</a>'
+		end
 	elseif cycle = 5:
 		'Broken water and contractions, it''s pretty clear what is going on. You need to get to a hospital ASAP.'
 	else
@@ -519,24 +529,27 @@ $d_cycreport_choice = {
 }
 
 $d_cycreport_actor = {
+	!! Svetlana has decided she is not pregnant
 	if ARGS[0] = 1:
+		$cycreport_txt = 'It has been <<temp>> days since you last remember having a period.'
 		if knowpreg = 1:
 			denypreg = 1
 			thinkpreg = 0
 		else
 			denypreg = 0
 			thinkpreg = 0
-			temp[1] = daystart - daylastperiod
 		end
 		dynamic $d_cycreport_update
 		gs 'stat'
 		dynamic $d_cycreport_choice
+	!! Svetlana has decided she is pregnant.
 	elseif ARGS[0] = 2:
 		thinkpreg = 1
 		denypreg = 0
 		dynamic $d_cycreport_update
 		gs 'stat'
 		dynamic $d_cycreport_choice
+	!! Svetlana is Menstrating. 
 	elseif ARGS[0] = 3:
 		thinkpreg = 0
 		denypreg = 0
@@ -544,6 +557,7 @@ $d_cycreport_actor = {
 		dynamic $d_cycreport_update
 		gs 'stat'
 		dynamic $d_cycreport_choice
+	!! Svetlana is remembering her last period. 
 	elseif ARGS[0] = 4:
 		thinkpreg = 0
 		denypreg = 0
@@ -553,16 +567,22 @@ $d_cycreport_actor = {
 		'<td width="250" cellspacing="0" cellpadding="0" valign="top">'
 		'How many days ago was it you had your last period?'
 		'Currently: <<pertemp>>'
-		'<a href="exec: pertemp += 1 & dynamic $d_cycreport_actor, 4">+1</a> <a href="exec: pertemp += 5 & dynamic $d_cycreport_actor, 4">+5</a> <a href="exec: pertemp += 10 & dynamic $d_cycreport_actor, 4">+10</a> <a href="exec: pertemp = 0 & dynamic $d_cycreport_actor, 4">Reset</a> <a href="exec: daylastperiod = daystart - pertemp & dynamic $d_cycreport_update & gs ''stat'' & dynamic $d_cycreport_choice">Accept</a>'
+		'<a href="exec: pertemp += 1 & dynamic $d_cycreport_actor, 4">+1</a> <a href="exec: pertemp += 5 & dynamic $d_cycreport_actor, 4">+5</a> <a href="exec: pertemp += 10 & dynamic $d_cycreport_actor, 4">+10</a> <a href="exec: pertemp = 0 & dynamic $d_cycreport_actor, 4">Reset</a> <a href="exec: daylastperiod = (daystart - pertemp) & dynamic $d_cycreport_update & gs ''stat'' & dynamic $d_cycreport_choice">Accept</a>'
 		act 'Return':dynamic $d_cycreport_choice
 		act 'Exit':gs 'stat' & gt $loc, $metka
 		'</td></tr></table></center>'
+	!! Svetlana thinks she doesn't have periods anymore. Good birth control has this effect (as does pregnancy.)
 	elseif ARGS[0] = 5:
+		if knowpreg = 1:
+			denypreg = 1
+		else
+			denypreg = 0
+		end
 		thinkpreg = 0
-		denypreg = 0
 		$cycreport_txt = 'You do not believe you have periods any more.'
 		gs 'stat'
 		dynamic $d_cycreport_choice
+	!! Svetlana is trying to figure out her due date.
 	elseif ARGS[0] = 6:
 		*clr & cla
 		'<center><h1>Fertility Cycle</h1></center>'
@@ -574,6 +594,7 @@ $d_cycreport_actor = {
 		act 'Return':dynamic $d_cycreport_choice
 		act 'Exit':gs 'stat' & gt $loc, $metka
 		'</td></tr></table></center>'
+	!! Svetlana is trying to guess who is the babydaddy.
 	elseif ARGS[0] = 7:
 		*clr & cla
 		'<center><h1>Fertility Cycle</h1></center>'
@@ -634,7 +655,14 @@ $d_cycreport_actor = {
 		killvar 'tempmax'
 		killvar 'tempcurr'
 		}
-		
+	!! Just recently lost a baby to abortion, miscarriage, or think you did because your period finally arrived.
+	elseif ARGS[0] = 8:
+		thinkpreg = 0
+		$cycreport_txt = 'Your body is recovering from the trauma of pregnancy after your miscarrage.'
+		dynamic $d_cycreport_update
+		gs 'stat'
+		dynamic $d_cycreport_choice
+	!! Just recently gave birth.
 	elseif ARGS[0] = 10:
 		temp = arrsize('Babyptype')
 		temp -= 1
@@ -646,8 +674,9 @@ $d_cycreport_actor = {
 $d_cycreport_update = {
 	killvar 'temp'
 	if thinkpreg = 1 or knowpreg = 1: dynamic $d_cycreport_upduedate
-	if mesec > 0:
-		$cycreport_txt = 'You are currently on your period.'
+	!! Vagblood in a future update to account for babydamage and miscarrages.
+	if mesec > 0 or vagblood > 0:
+		$cycreport_txt = 'You are currently bleeding.'
 	else
 		if cyccustom = 1:
 			if preg = 1 and knowpreg = 1:
@@ -656,27 +685,29 @@ $d_cycreport_update = {
 					$cycreport_txt = '<<$cycreport_txt>> You suspect the father being <<$wombthfath>>.'
 				end
 			elseif knowpregloss = 1:
-				$cycreport_txt = 'Your body is recovering from the trauma of pregnancy.'
+				$cycreport_txt = 'Your body is recovering from the trauma of pregnancy after your abortion.'
+			elseif knowpregloss = 2:
+				$cycreport_txt = 'Your body is recovering from the trauma of pregnancy after your miscarrage.'
 			elseif knowpregrecover = 1:
 				$cycreport_txt = 'Your body is recovering from the trauma of childbirth.'
 			elseif menoage <= age and cycle = 6:
 				$cycreport_txt = 'You have gone through menopause.'
 			else
-				temp[1] = daystart-lastmens
+				temp[1] = daystart-daylastperiod
 				if tabletkishot > 0:
-					$cycreport_txt = 'It has been <<temp[1]>> days since you last had a period. <font color=green>You are currently protected by a birth control shot.</font>'
+					$cycreport_txt = 'It has been <<temp[1]>> days since the start of your last period. <font color=green>You are currently protected by a birth control shot.</font>'
 				elseif pillcon2 > 30000:
-					$cycreport_txt = 'It has been <<temp[1]>> days since you last had a period. <font color=green>You are currently on the birth control pill.</font>'
+					$cycreport_txt = 'It has been <<temp[1]>> days since the start of your last period. <font color=green>You are currently on the birth control pill.</font>'
 				elseif pillcon2 > 8000 and ((FocH > (Foch_Max - 96)) or ovulate > 0):
-					$cycreport_txt = 'It has been <<temp[1]>> days since you last had a period. You are currently on the pill but it is not yet effective. <font color=red>It is currently a dangerous day.</font>'
+					$cycreport_txt = 'It has been <<temp[1]>> days since the start of your last period. You are currently on the pill but it is not yet effective. <font color=red>It is currently a dangerous day.</font>'
 				elseif pillcon2 > 8000:
-					$cycreport_txt = 'It has been <<temp[1]>> days since you last had a period. You are currently on the pill but it is not yet effective.'
+					$cycreport_txt = 'It has been <<temp[1]>> days since the start of your last period. You are currently on the pill but it is not yet effective.'
 				elseif daystart = tabletkiday:
-					$cycreport_txt = 'It has been <<temp[1]>> days since you last had a period. You have taken the pill but it will be several weeks before it is fully effective.'
+					$cycreport_txt = 'It has been <<temp[1]>> days since the start of your last period. You have taken the pill but it will be several weeks before it is fully effective.'
 				elseif FocH > (Foch_Max - 96) or ovulate > 0:
-					$cycreport_txt = 'It has been <<temp[1]>> days since you last had a period. <font color=red>It is currently your fertile stage.</font>'
+					$cycreport_txt = 'It has been <<temp[1]>> days since the start of your last period. <font color=red>It is currently your fertile stage.</font>'
 				else
-					$cycreport_txt = 'It has been <<temp[1]>> days since you last had a period.'
+					$cycreport_txt = 'It has been <<temp[1]>> days since the start of your last period.'
 				end
 			end
 		elseif denypreg = 1:
@@ -704,7 +735,7 @@ $d_cycreport_update = {
 				thinkpreg = 0
 				$cycreport_txt = 'Surely if you were pregnant, you''d have had the baby by now, so you can''t possibly be pregnant.'
 			else
-				temp = daystart-lastmens
+				temp = daystart-daylastperiod
 				$cycreport_txt = 'It has been <<temp>> days since you last remember having a period.'
 			end
 		elseif cyccustom = 0:
@@ -716,8 +747,10 @@ $d_cycreport_update = {
 					else
 						$cycreport_txt = 'You<<$temp>> are pregnant with <<$wombthfath>>''s baby. Based on your last remembered period, your due date is probably around <<$pregduedate>>.'
 					end
+				elseif $cycreport_txt = 'Your body is recovering from the trauma of pregnancy after your miscarrage.':
+					if knowpregloss = 1: $cycreport_txt = 'Your body is recovering from the trauma of pregnancy after your abortion.'
 				elseif $cycreport_txt ! 'You do not believe you have periods any more.':
-					temp = daystart-lastmens
+					temp = daystart-daylastperiod
 					$cycreport_txt = 'It has been <<temp>> days since you last remember having a period.'
 				end
 				killvar 'temp'
