@@ -84,6 +84,35 @@ $spellFunc['GetCombatantName'] = {
 	killvar 'SpellFuncVar'
 }
 
+!!ApplyDamageToAll
+!	Apply some damage to all participants fo a given type
+! $ARGS[0] = the Target type (e.g.: pcs or opp)
+! ARGS[1]  = Amount of damage
+$spellFunc['ApplyDamageToAll'] = {
+	$SpellFuncVar['TargetType']= $ARGS[0]
+	SpellFuncVar['Damage']  =  ARGS[1]
+
+	dynamic "
+		i=0
+		:DamageAllLoop1
+		if i < arrsize('<<$SpellFuncVar['TargetType']>>_health'):
+			gs 'fight', 'applyDamage', '<<$SpellFuncVar['TargetType']>>', i, <<SpellFuncVar['Damage']>>
+			i+=1
+			jump 'DamageAllLoop1'
+		end
+		killvar 'i'
+		"
+
+	killvar '$SpellFuncVar'
+	killvar 'SpellFuncVar'
+}
+
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!  SPELLS
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 if $ARGS[0] = 'teleport':
 	! Do the stuff of a Teleport
 	!	ARGS[1] = Success/Failure level
@@ -509,11 +538,11 @@ end
 
 if $ARGS[0] = 'firestorm':
 	if SuccessValue > 0:
-		gs 'fight', 'applyDamage', $TargetType, TargetNumber, 4250 + (2000 * SuccessValue)
-		'<b><font color = green>Uncountable glowing embers steak down upon the foes of <<dyneval($spellFunc["GetCombatantName"], $TargetType, TargetNumber)>>.</font></b>'
+		dynamic $spellFunc['ApplyDamageToAll'], $TargetType, 4250 + (2000 * SuccessValue)
+		'<b><font color = green>Uncountable glowing embers steak down upon the foes of <<dyneval($spellFunc["GetCombatantName"], $CasterType, CasterNumber)>>.</font></b>'
 	elseif SuccessValue < 0:
-		gs 'fight', 'applyDamage', $TargetType, TargetNumber, 2000
-		gs 'fight', 'applyDamage', $CasterType, CasterNumber, 200
+		dynamic $spellFunc['ApplyDamageToAll'], $TargetType, 2000
+		dynamic $spellFunc['ApplyDamageToAll'], $CasterType, 200
 		'<b><font color = red>The spell backfires! Uncountable glowing embers steak down upon the battlefield burning everyone.</font></b>'
 	else
 		'<b>The spell fizzles.  Nothing seems to happen.</b>'
@@ -523,7 +552,7 @@ end
 if $ARGS[0] = 'flameshield':
 	if SuccessValue > 0:
 		dynamic $spellFunc['UpdateAttrib'], 'shield', $TargetType, TargetNumber, '+', SuccessValue * 2500
-		'<b><font color = green>A Shield made of Flames interposes itself between you and your enemy.</font></b>'
+		'<b><font color = green>A Shield made of Flames interposes itself between <<dyneval($spellFunc["GetCombatantName"], $CasterType, CasterNumber)>> and the enemy.</font></b>'
 	else
 		'<b>The spell fizzles.  Nothing seems to happen.</b>'
 	end
@@ -564,11 +593,12 @@ end
 
 if $ARGS[0] = '1000birds':
 	if SuccessValue > 0:
+		dynamic $spellFunc['ApplyDamageToAll'], $TargetType, 2750 + (1000 * SuccessValue)
 		gs 'fight', 'applyDamage', $TargetType, TargetNumber, 2750 + (1000 * SuccessValue)
 		'<b><font color = green>You shoot hundreds of small lightning bolts toward your enemy.</font></b>'
 	elseif SuccessValue < 0:
-		gs 'fight', 'applyDamage', $TargetType, TargetNumber, 2000
-		gs 'fight', 'applyDamage', $CasterType, CasterNumber, 200
+		dynamic $spellFunc['ApplyDamageToAll'], $TargetType, 2000
+		dynamic $spellFunc['ApplyDamageToAll'], $CasterType, 200
 		'<b><font color = red>The spell backfires! Hundreds of small lightning bolts curl toward the battlefield shocking everyone.</font></b>'
 	else
 		'<b>The spell fizzles.  Nothing seems to happen.</b>'
