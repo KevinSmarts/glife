@@ -22,7 +22,7 @@ if $spellBookVar['CodeAfterSpell'] = '':
 end
 
 ! lets the user back out if they don''t want ot cast.
-act 'Never mind':dynamic $spellBookVar['ActionCode']
+dynamic "act 'Never mind': <<$spellBookVar['ActionCode']>>"
 
 ! This just makes sure the current spellLists are loaded
 gs 'spellList'
@@ -106,6 +106,62 @@ elseif $spellBookVar['Type'] = 'cast':
 			$result = ''
 		end
 	}
+!! 'list' type is list of castable targetable spells.  This makes a table of spells for the user to cast in combat.
+elseif $spellBookVar['Type'] = 'targetable':
+	$spellBookVar['TableText'] = "
+	<center>
+		<table CELLPADDING = '5'>
+			<tr>
+				<th align='left'>Spell</th>
+				<th align='left'>Mana</th>
+				<th align='left'>Targets</th>
+				<th align='left'>Description</th>
+			</tr>"
+	$spellBookVar['RowCode'] = {
+		if spellKnown[$ThisSpellName] = 1:
+			$tmpHTMLCode = " 
+			<tr>
+				<td align='left'><<$spellName[$ThisSpellName]>></td>
+				<td align='right'><<spellMana[$ThisSpellName]>></td>
+				<td align='center'>"
+			if $spellTarget[$ThisSpellName] = 'self':
+				$tmpHTMLCode += " 
+				<a href=""EXEC: *clr & gs 'castSpell', '<<$ThisSpellName>>', 'pcs', 0, 0 & <<$spellBookVar['CodeAfterSpell']>>"">You</a>"
+			elseif $spellTarget[$ThisSpellName] = 'team':
+				n=0
+				:RowCodeLoop96
+				if n < arrsize('pcs_health'):
+					$spellBookVar['tmpName']= dyneval('$result = $pcs_name[<<n>>]')
+					$tmpHTMLCode += " 
+					<a href=""EXEC: *clr & gs 'castSpell', '<<$ThisSpellName>>', 'pcs', <<n>>, 0 & <<$spellBookVar['CodeAfterSpell']>>""><<$spellBookVar['tmpName']>></a>
+					<br>"
+					n += 1
+					jump 'RowCodeLoop96'
+				end
+			else
+				n=0
+				:RowCodeLoop97
+				if n < arrsize('opp_health'):
+					$spellBookVar['tmpName']= dyneval('$result = $opp_name[<<n>>]')
+					$tmpHTMLCode += " 
+					<a href=""EXEC: *clr & gs 'castSpell', '<<$ThisSpellName>>', 'opp', <<n>>, 0 & <<$spellBookVar['CodeAfterSpell']>>""><<$spellBookVar['tmpName']>></a>
+					<br>"
+					n += 1
+					jump 'RowCodeLoop97'
+				end
+			end
+			$tmpHTMLCode += " </td>
+				<td align='left'><<$spellDesc[$ThisSpellName]>></td>
+			</tr>"
+
+			$result = $tmpHTMLCode
+			spellBookVar['Counter'] += 1
+			killvar '$tmpHTMLCode'
+			killvar 'n'
+		else
+			$result = ''
+		end
+	}
 !! Default is a list of spells with descriptio nand mana cost listed.
 else
 	$spellBookVar['TableText'] = "
@@ -180,7 +236,7 @@ $spellBookVar['TableText'] += "
 if spellBookVar['Counter'] = 0:
 	$spellBookVar['TableText'] = "<center>You have no spells in this list.</center>"
 end
-
+!*pl $spellBookVar['TableText']
 $result = func('cleanHTML',$spellBookVar['TableText'])
 
 killvar 'i'

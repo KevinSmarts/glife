@@ -1,6 +1,25 @@
 # fight
+!{  To Use Fight:
+	1) Initialize fight to make sure previous fighter are cleared out.
+	2) Add Opponents and Allies
+	3) Set Fight Ending
+	4) Start Fight
 
-!! Variables to be set before fight - in brackets so you can copy/paste
+	Example:
+	Let''s make a fight where Tatiana helps us beat Kisame and a bandit
+
+		gs 'fight','initFight'
+
+		gs 'fight_npcdata', 'tatiana', 'pcs'
+		gs 'fight_npcdata', 'kisame', 'opp'
+		gs 'fight_npcdata', 'bandit', 'opp'
+
+		fightEnding = 2
+
+		gt 'fight', 'start'
+}
+
+!! Variables to be set for each participant before fight - in brackets so you can copy/paste
 !!{
 $opp_name[0] = <<name of opponent>>
 $opp_image[0] = opponent image ie. '<img <<$set_imgh>> src="images/characters/city/tobi/tobi.jpg">'
@@ -9,7 +28,7 @@ opp_run[0] = Opponent running skill used for player escape
 opp_wrstlng[0] = Wrestling skill
 opp_kick[0] = Kicking
 opp_punch[0] = Power punch
-opp_jab[0] = Ligth punch
+opp_jab[0] = Light punch
 opp_stren[0] = Strengh
 opp_agil[0] = Agility
 opp_vital[0] = vitality
@@ -25,6 +44,7 @@ opp_shield[0] = (defence): Shielding that absorbs damage before hitpoints.
 opp_dambonus[0] = (magweapbonus): damage added to melee attacks
 opp_init[0] = (initBonus): attack faster/first
 opp_stun[0] = (stunner): make target unable to act for some amount of time
+opp_spells[0] = comma delimited list of spell names
 }
 
 !! Use the above with [1] and [2] for extra opponents
@@ -55,6 +75,7 @@ if $ARGS[0] = 'initFight':
 	killvar 'opp_dambonus'
 	killvar 'opp_init'
 	killvar 'opp_stun'
+	killvar '$opp_spells'
 	killvar 'opp_timer'
 
 	!! Clear any allies from previous battle
@@ -101,6 +122,7 @@ if $ARGS[0] = 'clearPCSArray':
 	killvar 'pcs_dambonus', i
 	killvar 'pcs_init', i
 	killvar 'pcs_stun', i
+	killvar 'pcs_spells', i
 	killvar 'pcs_timer', i
 
 	killvar 'i'
@@ -140,19 +162,32 @@ if $ARGS[0] = 'applyDamage':
 	$fightAppDam['TargetType'] = $ARGS[1]
 	fightAppDam['TargetNumber'] = ARGS[2]
 	fightAppDam['Damage'] = ARGS[3]
+	$fightAppDam['TargetName'] = dyneval('$result=$<<$fightAppDam[''TargetType'']>>_name[<<fightAppDam[''TargetNumber'']>>]')
+	fightAppDam['Shield'] = dyneval('result=<<$fightAppDam[''TargetType'']>>_shield[<<fightAppDam[''TargetNumber'']>>]')
+	fightAppDam['OverShieldDamage'] = dyneval('result=<<fightAppDam[''Damage'']>> - <<$fightAppDam[''TargetType'']>>_shield[<<fightAppDam[''TargetNumber'']>>]')
 	dynamic "
-	!!If the target has clones, destroy one
-	if <<$fightAppDam['TargetType']>>_clone[<<fightAppDam['TargetNumber']>>] > 0:
-		<<$fightAppDam['TargetType']>>_clone[<<fightAppDam['TargetNumber']>>] -= 1
-		'Clone Destroyed!'
-	!!if the target has enough shields to mitigate, remove some shields
-	elseif <<$fightAppDam['TargetType']>>_shield[<<fightAppDam['TargetNumber']>>] >= fightAppDam['Damage']:
-		<<$fightAppDam['TargetType']>>_shield[<<fightAppDam['TargetNumber']>>] -= fightAppDam['Damage']
-	!!otherwise remove shields to 0 and the remainder comes from health
-	else
-		<<$fightAppDam['TargetType']>>_health -= (fightAppDam['Damage'] - <<$fightAppDam['TargetType']>>_shield[<<fightAppDam['TargetNumber']>>])
-		<<$fightAppDam['TargetType']>>_shield[<<fightAppDam['TargetNumber']>>] = 0
-	end"
+		!!If the target has clones, destroy one
+		if <<$fightAppDam['TargetType']>>_clone[<<fightAppDam['TargetNumber']>>] > 0:
+			<<$fightAppDam['TargetType']>>_clone[<<fightAppDam['TargetNumber']>>] -= 1
+			""<<$fightAppDam['TargetName']>> loses a clone.""
+		!!if the target has enough shields to mitigate, remove some shields
+		elseif <<$fightAppDam['TargetType']>>_shield[<<fightAppDam['TargetNumber']>>] >= <<fightAppDam['Damage']>>:
+			<<$fightAppDam['TargetType']>>_shield[<<fightAppDam['TargetNumber']>>] -= <<fightAppDam['Damage']>>
+			""<<$fightAppDam['TargetName']>> loses <<fightAppDam['Damage']>> defense.""
+		!!otherwise remove shields to 0 and the remainder comes from health
+		else
+			if <<$fightAppDam['TargetType']>>_shield[<<fightAppDam['TargetNumber']>>] > 0:
+				<<$fightAppDam['TargetType']>>_shield[<<fightAppDam['TargetNumber']>>] = 0
+				""<<$fightAppDam['TargetName']>> losses <<fightAppDam['Shield']>> defense.""
+			end
+			if <<$fightAppDam['TargetType']>>_health[<<fightAppDam['TargetNumber']>>] > <<fightAppDam['OverShieldDamage']>>:
+				<<$fightAppDam['TargetType']>>_health[<<fightAppDam['TargetNumber']>>] -= <<fightAppDam['OverShieldDamage']>>
+			else
+				<<$fightAppDam['TargetType']>>_health[<<fightAppDam['TargetNumber']>>] = 0
+			end
+			""<<$fightAppDam['TargetName']>> loses <<fightAppDam['OverShieldDamage']>> health.""
+		end
+	"
 	killvar '$fightAppDam'
 	killvar 'fightAppDam'
 end
@@ -169,25 +204,25 @@ if $ARGS[0] = 'start':
 		tableSize = arrsize('opp_health')
 	end
 
-	$HTMLText = '<table>
+	$HTMLText = '<table border=1>
 		<tr>
-			<th align="left">Allies</left></td>
-			<th align="center" valign="center" rowspan=<<tableSize*2+1>> >vs.</center></td>
-			<th align="right">Opponents</right></td>
+			<th align="left"><b><font size=18>Allies</font></b></td>
+			<th align="center" valign="center" rowspan=<<tableSize*2+1>> ><b><font size=18>vs.</font></b></center></td>
+			<th align="right"><b><font size=18>Opponents</font></b></td>
 		</tr>'
 	i = 0
 	:FightPoster
 	if i < tableSize:
 		$HTMLText += '
 		<tr>
-			<td align="left"><img HEIGHT=400 src="<<$pcs_image[i]>>"></left></td>
+			<td align="left"><img HEIGHT=300 src="<<$pcs_image[i]>>"></left></td>
 
-			<td align="right"><img HEIGHT=400 src="<<$opp_image[i]>>"></right></td>
+			<td align="right"><img HEIGHT=300 src="<<$opp_image[i]>>"></right></td>
 		</tr>
 		<tr>
-			<td align="left"><<$pcs_name[i]>></left></td>
+			<td align="left"><b><font size=10><<$pcs_name[i]>></font></b></left></td>
 
-			<td align="right"><<$opp_name[i]>></right></td>
+			<td align="right"><b><font size=10><<$opp_name[i]>></font></b></right></td>
 		</tr>'
 		i += 1
 		jump 'FightPoster'
@@ -212,7 +247,7 @@ if $ARGS[0] = 'start':
 		jump 'OppTimerInit'
 	end
 
-	act 'Engage': gt 'fight', 'main'
+	act 'Fight!': gt 'fight', 'main'
 
 	killvar '$HTMLText'
 	killvar 'tableSize'
@@ -235,9 +270,15 @@ if $ARGS[0] = 'findActiveTimer':
 	i = 0
 	:LowTimerLoop1
 	if i < arrsize('pcs_timer'):
-		if pcs_timer[i] < fightTimLow:
-			fightTimLow = pcs_timer[i]
-			fightTimNum = i
+		!Skip round if char is stunned
+		if pcs_stun[i] > 0:
+			pcs_stun[i] -= 1
+		!Skip anyone with no Health
+		elseif pcs_health[i] > 0:
+			if pcs_timer[i] < fightTimLow:
+				fightTimLow = pcs_timer[i]
+				fightTimNum = i
+			end
 		end
 		i += 1
 		jump 'LowTimerLoop1'
@@ -247,15 +288,20 @@ if $ARGS[0] = 'findActiveTimer':
 	i = 0
 	:LowTimerLoop2
 	if i < arrsize('opp_timer'):
-		if opp_timer[i] < fightTimLow:
-			fightTimLow = opp_timer[i]
-			fightTimNum = i
-			$fightTimType = 'opponent'
+		!Skip round if char is stunned
+		if opp_stun[i] > 0:
+			opp_stun[i] -= 1
+		!Skip anyone with no Health
+		elseif opp_health[i] > 0:
+			if opp_timer[i] < fightTimLow:
+				fightTimLow = opp_timer[i]
+				fightTimNum = i
+				$fightTimType = 'opponent'
+			end
 		end
 		i += 1
 		jump 'LowTimerLoop2'
 	end
-
 	killvar 'i'
 end
 
@@ -282,6 +328,9 @@ if $ARGS[0] = 'printStats':
 		fightPStats['Shield'] = opp_shield[i]
 		fightPStats['Fog'] = opp_fog[i]
 		fightPStats['Clone'] = opp_clone[i]
+		fightPStats['Stun'] = opp_stun[i]
+		fightPStats['Timer'] = opp_timer[i]
+		$fightPStats['Image'] = $opp_image[i]
 	else
 		$fightPStats['Name'] = $pcs_name[i]
 		fightPStats['Health'] = pcs_health[i]
@@ -290,13 +339,42 @@ if $ARGS[0] = 'printStats':
 		fightPStats['Shield'] = pcs_shield[i]
 		fightPStats['Fog'] = pcs_fog[i]
 		fightPStats['Clone'] = pcs_clone[i]
+		fightPStats['Stun'] = pcs_stun[i]
+		fightPStats['Timer'] = pcs_timer[i]
+		$fightPStats['Image'] = $pcs_image[i]
 	end
 
-	'<b><<$fightPStats["Name"]>></b> life <b><font color = red><<fightPStats["Health"]>></font></b>, mana <b><font color = blue><<fightPStats["Mana"]>></font></b>, willpower <b><font color = green><<fightPStats["Willpower"]>></font></b>'
-	if fightPStats['Shield'] > 0:'<b><font color = red>Protection <<fightPStats["Shield"]>> units</font></b>'
-	if fightPStats['Clone'] > 0:'<b><font color = red>Clones active <<fightPStats["Clone"]>> </font></b>'
-	if fightPStats['Fog'] > 0:'<b><font color = red>Obscuring Fog <<fightPStats["Fog"]>> units</font></b>'
-	'<b>= = = = = = = = = = = = = = = = = = = = = = = = = = = = =</b>'
+	$fightStatRowText = "
+	<tr>
+		<td rowspan=4 align=right valign=center>
+			<img HEIGHT=70 src='<<$fightPStats['Image']>>'>
+			<br> <b><<$fightPStats['Name']>></b>
+		</td>
+		<td align=right> Life </td>
+		<td align=right> <b><font color = red><<fightPStats['Health']>></font></b> </td>
+		<td rowspan=4 align=left valign=center>"
+			if fightPStats['Shield'] > 0:$fightStatRowText += "<b><font color = purple>Protection <<fightPStats['Shield']>> units</font></b><br>"
+			if fightPStats['Clone'] > 0:$fightStatRowText += "<b><font color = purple>Clones active <<fightPStats['Clone']>> </font></b><br>"
+			if fightPStats['Fog'] > 0:$fightStatRowText += "<b><font color = purple>Obscuring Fog <<fightPStats['Fog']>> units</font></b><br>"
+			if fightPStats['Stun'] > 0:$fightStatRowText += "<b><font color = purple>Stunned <<fightPStats['Stun']>> rounds</font></b>"
+	$fightStatRowText += "
+		</td>
+	</tr>
+	<tr>
+		<td align=right> Mana </td>
+		<td align=right> <b><font color = blue><<fightPStats['Mana']>></font></b> </td>
+	</tr>
+	<tr>
+		<td align=right> Willpower </td>
+		<td align=right> <b><font color = green><<fightPStats['Willpower']>></font></b> </td>
+	</tr>
+	<tr>
+		<td align=right> Initiative </td>
+		<td align=right> <b><font color = orange><<fightPStats['Timer']>></font></b> </td>
+	</tr><tr><td colspan=4 bgcolor=grey></td></tr>"
+
+	$result = $fightStatRowText
+
 
 	killvar 'i'
 	killvar 'fightPStats'
@@ -304,23 +382,31 @@ if $ARGS[0] = 'printStats':
 end
 
 if $ARGS[0] = 'statDisplay':
-	'<b>= = = = = = = = = = = O p p o n e n t s = = = = = = = = = = =</b>'
-	i = 0
+	$fightStatText = "
+	<table border=1><th colspan=4><b><font size=12>Opponents</font></b></th>
+	"
+	j = 0
 	:OppLoopRC1
-	if i < arrsize('opp_health'):
-		gs 'fight', 'printStats', 'opp', i
-		i += 1
+	if j < arrsize('opp_health'):
+		$fightStatText += func('fight', 'printStats', 'opp', j)
+		j += 1
 		jump 'OppLoopRC1'
 	end
+	$fightStatText += "</table>"
+	*pl func('cleanHTML',$fightStatText)
 	*nl
-	'<b>= = = = = = = = = = = = A l l i e s = = = = = = = = = = = = =</b>'
-	i = 0
+	$fightStatText = "
+	<table border=1><th colspan=4><b><font size=12>Opponents</font></b></th>
+	"
+	j = 0
 	:PCSLoopRC1
-	if i < arrsize('pcs_health'):
-		gs 'fight', 'printStats', 'pcs', i
-		i += 1
+	if j < arrsize('pcs_health'):
+		$fightStatText += func('fight', 'printStats', 'pcs', j)
+		j += 1
 		jump 'PCSLoopRC1'
 	end
+	$fightStatText += "</table>"
+	*pl func('cleanHTML',$fightStatText)
 end
 
 if $ARGS[0] = 'result_check':
@@ -333,13 +419,13 @@ if $ARGS[0] = 'result_check':
 
 
 !!win/lose conditions
-	if pcs_health <= 0:
+	if func('fight', 'AvailableTargets', 'pcs') = 0:
 		'<b><font color = red> You lost!</font></b>'
 
 		xgt'ender','loss'
 		gt $loc, $metka
 		exit
-	elseif opp_health[0] <= 0:
+	elseif func('fight', 'AvailableTargets', 'opp') = 0:
 		'<b><font color = green><<$boydesc>> You won!</font></b>'
 
 		xgt'ender','win'
@@ -384,6 +470,7 @@ AttackTime[2] = 15
 
 if $ARGS[0] = 'Attack':
 	$fightAtk_Type = $ARGS[1]
+	fightAtk_Type = arrpos('$AttackType',$fightAtk_Type)
 	$fightAtk_TargetType = $ARGS[2]
 	fightAtk_TargetNumber = ARGS[3]
 	fightAtk_AttackerNumber = ARGS[4]
@@ -392,6 +479,8 @@ if $ARGS[0] = 'Attack':
 		$fightAtk_AttackerType = 'pcs'
 		$fightAtk['DefenderName'] = $opp_name[fightAtk_TargetNumber]
 		$fightAtk['AttackerName'] = 'You'
+		!!Add Skill Exp
+		dynamic "<<$AttackSkill[fightAtk_Type]>>_exp += rand(1,3)"
 	elseif $fightAtk_TargetType = 'opp':
 		$fightAtk['AttackerName'] = $pcs_name[fightAtk_AttackerNumber]
 		$fightAtk['DefenderName'] = $opp_name[fightAtk_TargetNumber]
@@ -402,10 +491,10 @@ if $ARGS[0] = 'Attack':
 		$fightAtk['DefenderName'] = $pcs_name[fightAtk_TargetNumber]
 	end
 
-	fightAtk_Type = arrpos('$AttackType',$fightAtk_Type)
 	fightAtk['AttackerSkillValue'] = dyneval('result = <<$fightAtk_AttackerType>>_<<$AttackSkill[fightAtk_Type]>>[<<fightAtk_AttackerNumber>>]')
-	fightAtk['TargetReactValue'] = dyneval('result = <<$fightAtk_TargetType>>_react[<<fightAtk_TargetNumber>>]')
-	fightAtk['TargetAgilValue'] = dyneval('result = <<$fightAtk_TargetType>>_agil[<<fightAtk_TargetNumber>>]')
+	fightAtk['TargetReactValue'] = dyneval('result = iif(<<$fightAtk_TargetType>>_stun[<<fightAtk_TargetNumber>>]>0,0,<<$fightAtk_TargetType>>_react[<<fightAtk_TargetNumber>>])')
+	fightAtk['TargetAgilValue'] = dyneval('result = iif(<<$fightAtk_TargetType>>_stun[<<fightAtk_TargetNumber>>]>0,0,<<$fightAtk_TargetType>>_agil[<<fightAtk_TargetNumber>>])')
+	fightAtk['TargetHealthBefore'] = dyneval('result = <<$fightAtk_TargetType>>_health[<<fightAtk_TargetNumber>>]')
 	fightAtk['MinDamage'] = AttackMin[fightAtk_Type]
 	fightAtk['MaxDamage'] = AttackMax[fightAtk_Type]
 
@@ -415,137 +504,277 @@ if $ARGS[0] = 'Attack':
 		'<<$fightAtk["AttackerName"]>> attempts to <<$fightAtk_Type>> <<$fightAtk["DefenderName"]>>!'
 	end
 	*nl
-	if fightAtk['AttackerSkillValue'] + rand(0,30) > fightAtk['TargetReactValue'] / 4 + 3 * fightAtk['TargetAgilValue'] / 4:
+	if fightAtk['AttackerSkillValue'] + rand(0,40) > fightAtk['TargetReactValue'] / 4 + 3 * fightAtk['TargetAgilValue'] / 4:
 		!!Calculate Damage
-		dynamic "fightAtk['Damage'] = <<$fightAtk_AttackerType>>_stren[<<fightAtk_AttackerNumber>>] * rand(<<fightAtk['MinDamage']>>,<<fightAtk['MaxDamage']>>) / 15"
+		dynamic "fightAtk['Damage'] = <<$fightAtk_AttackerType>>_stren[<<fightAtk_AttackerNumber>>] * rand(<<fightAtk['MinDamage']>>,<<fightAtk['MaxDamage']>>) / 3"
 		!!Apply Damage
 		gs 'fight', 'applyDamage', $fightAtk_TargetType, fightAtk_TargetNumber, fightAtk['Damage']
-		if fightAtk['Damage'] > 10:
-			if $fightAtk_TargetType = 'opp' and fightAtk_AttackerNumber = 0:
-				'The hit is hard and <<$fightAtk["DefenderName"]>> reels in pain.'
-			else
-				'The hit is hard and you reel in pain.'
-			end
-		else
-			'Its a glancing blow, but still hurts.'
-		end
-	else
+	elseif rand(0,3) ! 0:
+		!!Always chance to hit if rand = 0
 		if $fightAtk_TargetType = 'pcs' and fightAtk_AttackerNumber = 0:
 			'You avoid the blow.'
 		else
 			'<<$fightAtk["DefenderName"]>> avoids the blow.'
 		end
+	else
+		!!Apply Damage
+		gs 'fight', 'applyDamage', $fightAtk_TargetType, fightAtk_TargetNumber, fightAtk['Damage']
 	end
-	dynamic "<<$fightAtk_AttackerType>>_timer += AttackTime[fightAtk_Type]"
+	!! Flavor text for size of the hit.
+	fightAtk['TargetHealthLoss'] = fightAtk['TargetHealthBefore'] - dyneval('result = <<$fightAtk_TargetType>>_health[<<fightAtk_TargetNumber>>]')
+	!! If blow does over half health in damage, causes stun
+	if fightAtk['TargetHealthLoss']*2 > fightAtk['TargetHealthBefore']:
+		if $fightAtk_TargetType = 'pcs' and fightAtk_TargetNumber = 0:
+			'It is a devastating blow. You are stunned.'
+		else
+			'It is a devastating blow. <<$fightAtk["DefenderName"]>> is stunned.'
+		end
+		dynamic '<<$fightAtk_TargetType>>_stun[<<fightAtk_TargetNumber>>] += 1'
+		dynamic '<<$fightAtk_TargetType>>_timer[<<fightAtk_TargetNumber>>] += AttackTime[<<fightAtk_Type>>]'
+	!! Very hard hit
+	elseif fightAtk['TargetHealthLoss'] > 50:
+		if $fightAtk_TargetType = 'pcs' and fightAtk_TargetNumber = 0:
+			'The hit is hard and you reel in pain.'
+		else
+			'The hit is hard and <<$fightAtk["DefenderName"]>> reels in pain.'
+		end
+	!! Does physical damage, but not a lot
+	elseif fightAtk['TargetHealthLoss'] > 0:
+		'Its a glancing blow, but still hurts.'
+	!! No physical damage was done.
+	else
+		'Defenses were not pierced.'
+	end
+
+	dynamic "<<$fightAtk_AttackerType>>_timer[<<fightAtk_AttackerNumber>>] += AttackTime[<<fightAtk_Type>>]"
 	cla
 	act 'Next': gt 'fight', 'main'
 end
 
+!! Make a list of targets that still have health
+!  $ARGS[1] = Target Type ('pcs','opp')
+if $ARGS[0] = 'AvailableTargets':
+	killvar 'fightAvailTarg'
+	i=0
+	:AvailTargetLoop
+	if i < arrsize($ARGS[1]+'_health'):
+		if dyneval('result=<<$ARGS[1]>>_health[<<i>>]') > 0:
+			fightAvailTarg[] = i
+		end
+		i +=1
+		jump 'AvailTargetLoop'
+	end
+	result = arrsize('fightAvailTarg')
+	killvar 'i'
+	exit
+end
+
+!! Pick random target from list of targets.  Returns the Target, or -1 if no target.
+!  $ARGS[1] = Target Type ('pcs','opp')
+if $ARGS[0] = 'RandomTarget':
+	if func('fight', 'AvailableTargets', $ARGS[1]) > 0:
+		result = fightAvailTarg[rand(0,arrsize('fightAvailTarg'))-1]
+	else
+		result = -1
+	end
+	exit
+end
+
+
+!! Find Action for an NPC fighter to take
+!	$ARGS[1] = Attacker Type ('opp','pcs')
+!	 ARGS[2] = Attacker party member number
+if $ARGS[0] = 'fightAlgorithm':
+	$AttackerType = $ARGS[1]
+	AttackerNumber = ARGS[2]
+	if $AttackerType = 'pcs':
+		$TargetType = 'opp'
+	else
+		$TargetType = 'pcs'
+	end
+	TargetNumber = func('fight', 'RandomTarget', $TargetType)
+	!! Some Target still has some hitpoints
+	if TargetNumber>= 0:
+		!!Fight Algorithm
+		ActionMade = 0
+		! First try to cast spells
+		if dyneval('result=<<$AttackerType>>_magik[<<AttackerNumber>>]') > 0:
+			gs 'fight', 'buildCasterSpellList', $dyneval('$result=$<<$AttackerType>>_spells[<<AttackerNumber>>]')
+			!Heal self if hurt badly
+			if dyneval('result=<<$AttackerType>>_health[<<AttackerNumber>>]') < 50:
+				ActionMade = func('fight','spellListCheck', '$comHealSpells',$AttackerType,AttackerNumber,$AttackerType,AttackerNumber)
+			end
+			!Clone if none left
+			if dyneval('result=<<$AttackerType>>_clone[<<AttackerNumber>>]') = 0 and ActionMade = 0:
+				ActionMade = func('fight','spellCheck', 'multiclone',$AttackerType,AttackerNumber,$AttackerType,AttackerNumber)
+				if ActionMade = 0:
+					ActionMade = func('fight','spellCheck', 'clone',$AttackerType,AttackerNumber,$AttackerType,AttackerNumber)
+				end
+			end
+			!Shield if low shield
+			if dyneval('result=<<$AttackerType>>_shield[<<AttackerNumber>>]') = 0 and ActionMade = 0:
+				ActionMade = func('fight','spellListCheck', '$comShldSpells',$AttackerType,AttackerNumber,$AttackerType,AttackerNumber)
+			end
+			!Fog if no Fog , Any fog on the field makes casting fog impossible
+			!if opp_fog[ARGS[2]] = 0 and ActionMade = 0:
+			!	ActionMade = func('fight','spellCheck', 'fog','opp',ARGS[2],'opp',ARGS[2])
+			!end
+			!Buff if needed
+			!  ToDo - How to determine if buff has already been applied
+			!Attack Spell if Possible
+			if ActionMade = 0:
+				ActionMade = func('fight','spellListCheck', '$comAtkSpells',$TargetType,TargetNumber,$AttackerType,AttackerNumber)
+			end
+			!make sure we can continue the fight.
+			!if ActionMode = 1:
+				act 'Next': gt 'fight', 'main'
+			!end
+		end
+		!Physical attack if nothing else can be done.
+		if ActionMade = 0:
+			if rand(0,dyneval('result=<<$AttackerType>>_kick[<<AttackerNumber>>]')) > 40:
+				gs 'fight', 'Attack', 'Kick', $TargetType, TargetNumber, AttackerNumber
+			elseif rand(0,dyneval('result=<<$AttackerType>>_punch[<<AttackerNumber>>]')) > 40:
+				gs 'fight', 'Attack', 'Hard Punch', $TargetType, TargetNumber, AttackerNumber
+			else
+				gs 'fight', 'Attack', 'Jab', $TargetType, TargetNumber, AttackerNumber
+			end
+		!Spell was cast, so move timer.
+		else
+			dynamic "<<$AttackerType>>_timer[<<AttackerNumber>>] += 50"
+		end
+	!!This should never happen
+	else
+		gt 'fight', 'main'
+	end
+
+	killvar 'ActionMade'
+	killvar 'TargetNumber'
+	killvar '$TargetType'
+	killvar '$AttackerType'
+	killvar 'AttackerNumber'
+end
+
 if $ARGS[0] = 'opponent':
 	gs 'fight', 'statDisplay'
-	if pcs_health[0] > 0 and pcs_health[1] > 0 and pcs_health[2] > 0:
-		TargetNumber = rand(0,2)
-	elseif pcs_health[0] > 0 and pcs_health[1] > 0:
-		TargetNumber = rand(0,1)
-	elseif pcs_health[0] > 0 and pcs_health[2] > 0:
-		if rand(0,1) = 0:
-			TargetNumber = 0
-		else
-			TargetNumber = 2
-		end
-	elseif pcs_health[1] > 0 and pcs_health[2] > 0:
-		TargetNumber = rand(1,2)
-	elseif pcs_health[0] > 0:
-		TargetNumber = 0
-	elseif pcs_health[1] > 0:
-		TargetNumber = 1
-	else
-		TargetNumber = 2
-	end		
-!!	if opp_magik[0] > 0: gs 'fight', 'opp_spellcast'
-	if rand(0,opp_kick[0]) > 40:
-		gs 'fight', 'Attack', 'Kick', 'pcs', ARGS[2], TargetNumber
-	elseif rand(0,opp_punch[0]) > 40:
-		gs 'fight', 'Attack', 'Hard Punch', 'pcs', ARGS[2], TargetNumber
-	else
-		gs 'fight', 'Attack', 'Jab', 'pcs', ARGS[2], TargetNumber
-	end
+	gs 'fight','fightAlgorithm','opp',ARGS[1]
 end
 
 if $ARGS[0] = 'player':
 	gs 'fight', 'statDisplay'
-	if opp_health[0] > 0 and opp_health[1] > 0 and opp_health[2] > 0:
-		TargetNumber = rand(0,2)
-	elseif opp_health[0] > 0 and opp_health[1] > 0:
-		TargetNumber = rand(0,1)
-	elseif opp_health[0] > 0 and opp_health[2] > 0:
-		if rand(0,1) = 0:
-			TargetNumber = 0
-		else
-			TargetNumber = 2
+
+	!! If this is the Player character
+	if ARGS[2] = 0:
+		if pcs_magik > 0:
+			act 'Cast a Spell': gs 'fight', 'spellcast'
 		end
-	elseif opp_health[1] > 0 and opp_health[2] > 0:
-		TargetNumber = rand(1,2)
-	elseif opp_health[0] > 0:
-		TargetNumber = 0
-	elseif opp_health[1] > 0:
-		TargetNumber = 1
+		if func('fight', 'AvailableTargets', 'opp') > 0:
+			i=0
+			:loop000000
+			if i < arrsize('fightAvailTarg'):
+				$op_name_000000 = $opp_name[fightAvailTarg[i]]
+				dynamic "
+					act 'Kick <<$op_name_000000>>':
+						gs 'fight', 'Attack', 'Kick', 'opp', <<fightAvailTarg[i]>>, 0
+					end
+
+					act 'Punch <<$op_name_000000>> hard':
+						gs 'fight', 'Attack', 'Hard Punch', 'opp', <<fightAvailTarg[i]>>, 0
+					end
+
+					act 'Jab <<$op_name_000000>>':
+						gs 'fight', 'Attack', 'Jab', 'opp', <<fightAvailTarg[i]>>, 0
+					end
+				"
+				killvar '$op_name_000000'
+				i +=1
+				jump 'loop000000'
+			end
+		end
+		act 'Surrender': gt 'ender', 'surrender'
+
+	!! If this is a team member of the player
 	else
-		TargetNumber = 2
-	end	
-	if pcs_magik > 0:
-		act 'Cast a Spell': gs 'fight', 'spellcast'
+		gs 'fight','fightAlgorithm','pcs',ARGS[2]
 	end
-	if opp_health[0] > 0:
-		act 'Kick <<$opp_name[0]>>':
-			gs 'fight', 'Attack', 'Kick', 'opp', 0, 0
-		end
-
-		act 'Punch <<$opp_name[0]>> hard':
-			gs 'fight', 'Attack', 'Hard Punch', 'opp', 0, 0
-		end
-
-		act 'Jab <<$opp_name[0]>>':
-			gs 'fight', 'Attack', 'Jab', 'opp', 0, 0
-		end
-	end
-	if opp_health[1] > 0:
-		act 'Kick <<$opp_name[1]>>':
-			gs 'fight', 'Attack', 'Kick', 'opp', 0, 1
-		end
-
-		act 'Punch <<$opp_name[1]>> hard':
-			gs 'fight', 'Attack', 'Hard Punch', 'opp', 0, 1
-		end
-
-		act 'Jab <<$opp_name[1]>>':
-			gs 'fight', 'Attack', 'Jab', 'opp', 0, 1
-		end
-	end
-	if opp_health[2] > 0:
-		act 'Kick <<$opp_name[2]>>':
-			gs 'fight', 'Attack', 'Kick', 'opp', 0, 2
-		end
-
-		act 'Punch <<$opp_name[2]>> hard':
-			gs 'fight', 'Attack', 'Hard Punch', 'opp', 0, 2
-		end
-
-		act 'Jab <<$opp_name[2]>>':
-			gs 'fight', 'Attack', 'Jab', 'opp', 0, 2
-		end
-	end	
 end
 
 
-if $ARGS[0] = 'opp_spellcast':
+!! Builds an array spell list from a comma delimited spell name list
+!	$ARGS[1] = comma delimited list of spell names
+if $ARGS[0] = 'buildCasterSpellList':
+	killvar '$casterSpellList'
+	$tmpStr = $trim($ARGS[1])
+	:loop000001
+	i=INSTR($tmpStr,',')
+	if i > 0:
+		$casterSpellList[] = $trim($mid($tmpStr,1,i-1))
+		$tmpStr = $trim($mid($tmpStr,i+1))
+		jump 'loop000001'
+	else
+		$casterSpellList[] = $trim($tmpStr)
+	end
+	killvar 'i'
+	killvar '$tmpStr'
+	exit
 end
 
-if $ARGS[0] = 'pcs_spellcast':
+!! Check if spell will be cast
+!	$ARGS[1] = spell name
+!	$ARGS[2] = Target Type ('opp','pcs')
+!	 ARGS[3] = Target party member number
+!	$ARGS[4] = Caster Type ('opp','pcs')
+!	 ARGS[5] = Caster party member number
+if $ARGS[0] = 'spellCheck':
+	$spellCheckVar['SpellName'] = $ARGS[1]
+	$spellCheckVar['TargetType'] = $ARGS[2]
+	 spellCheckVar['TargetNumber'] = ARGS[3]
+	$spellCheckVar['CasterType'] = $ARGS[4]
+	 spellCheckVar['CasterNumber'] = ARGS[5]
+	 spellCheckVar['CasterMana'] = dyneval("result = <<$spellCheckVar['CasterType']>>_mana[<<spellCheckVar['CasterNumber']>>]")
+
+	if ARRPOS('$casterSpellList',$spellCheckVar['SpellName'])>=0 and spellCheckVar['CasterMana'] >= spellMana[$spellCheckVar['SpellName']]:
+		if $spellTarget[$spellCheckVar['SpellName']] = 'self':
+			gs 'castSpellNPC', $spellCheckVar['SpellName'], $spellCheckVar['CasterType'], spellCheckVar['CasterNumber'],$spellCheckVar['CasterType'], spellCheckVar['CasterNumber']
+		else
+			gs 'castSpellNPC', $spellCheckVar['SpellName'], $spellCheckVar['TargetType'], spellCheckVar['TargetNumber'],$spellCheckVar['CasterType'], spellCheckVar['CasterNumber']
+		end
+		result = 1
+	else
+		result = 0
+	end
+	killvar 'spellCheckVar'
+	killvar '$spellCheckVar'
+	exit
+end
+
+!! Check list of spells if they will be cast
+!	$ARGS[1] = spell List array name
+!	$ARGS[2] = Target Type ('opp','pcs')
+!	 ARGS[3] = Target party member number
+!	$ARGS[4] = Caster Type ('opp','pcs')
+!	 ARGS[5] = Caster party member number
+if $ARGS[0] = 'spellListCheck':
+	i=0
+	ActionMade1 = 0
+	:loop000002
+	if i < arrsize($ARGS[1]) and ActionMade1=0:
+		ActionMade1 = func('fight','spellCheck','<<$ARGS[1]>>[<<i>>]',$ARGS[2],ARGS[3],$ARGS[4],ARGS[5])
+		i+=1
+		jump 'loop000002'
+	end
+	result = ActionMade1
+	killvar 'ActionMade1'
+	exit
 end
 
 
-
+if $ARGS[0] = 'spellcast':
+	*clr
+	cla
+	act 'Next': gt 'fight', 'main'
+	func('spellBook', 'targetable', '$combatSpells', 'gt ''fight'', ''main''', 'pcs_timer[0] += 50')
+end
 
 
 

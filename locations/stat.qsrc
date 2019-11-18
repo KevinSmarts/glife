@@ -522,8 +522,11 @@ if minut >= 60:
 	
 	if narkoman = 1 and narkday ! daystart:
 		pcs_health -= 5
-		pcs_willpwr -= 5
-		pcs_mood -= 10
+		if pcs_mood > 40: 
+			pcs_mood -= 40
+		else
+			pcs_mood = 5
+		end
 	end
 
 	if $pantyworntype = 'none' and PCloPants > 0 and PCloPanties = 0 and $clothingworntype ! 'nude':mosol += 1
@@ -660,16 +663,21 @@ end
 if bimbolevel > 0:
 	if bimbowithdrawal = 0:
 		$bimbostatus = '<font color = #FF1493>You''re, like, super hawt today.</font>'
+		$bimbo_tooltip = 'You''re, like, super hawt today.'
 	elseif bimbowithdrawal = 1:
 		$bimbostatus = '<font color="green">You feel, like, kind of lame today.</font>'
+		$bimbo_tooltip = 'You feel, like, kind of lame today.'
 	elseif bimbowithdrawal < 4:
 		$bimbostatus = '<font color="grey">You feel, like, totally lame today.</font>'
+		$bimbo_tooltip = 'You feel, like, totally lame today.'
 	elseif bimbowithdrawal < 6:
 		if pcs_mood > 50: pcs_mood -= 10
 		$bimbostatus = '<font color="red">You really feel, like, awful today.</font>'
+		$bimbo_tooltip = 'You really feel, like, awful today.'
 	elseif bimbowithdrawal >= 6:
 		if pcs_mood > 10: pcs_mood -= 10
 		$bimbostatus= '<font color="red"><b>You feel that, like, horrible today!</b></font>'
+		$bimbo_tooltip = 'You feel that, like, horrible today!'
 	end
 
 	if bimbowithdrawal > 30:
@@ -889,7 +897,6 @@ end
 if pcs_hydra <= 0:
 	pcs_hydra = 1
 	pcs_health -= 5
-	pcs_willpwr -= 1
 end
 
 !!Set hydra_check value
@@ -898,7 +905,6 @@ hydra_check = pcs_hydra
 if pcs_mood <= 0:
 	pcs_mood = 1
 	pcs_health -= 5
-	pcs_willpwr -= 5
 end
 
 if pcs_health < 0:
@@ -1046,6 +1052,77 @@ if hour >= 8 and hour < 14 and week < 6 and StoryLine > 0 and SchoolAtestat = 0 
 end
 
 if cumcondslip <= 0: cumcondslip_deep = 0
+!!Sex stat update
+stat['mast'] += mastr & mastr = 0
+stat['hj'] += hj & hj = 0
+stat['bj'] += bj & bj = 0
+stat['vaginal'] += sex & sex = 0
+stat['anal'] += anal & anal = 0
+stat['cuni'] += kuni & kuni = 0
+stat['anal_strap_give'] += pegging & pegging = 0
+
+!!Pain calculation
+
+paintmp1 = func('shortgs','modul',pain['head'],pain['hair'],pain['ears'],pain['eyebrows'],pain['eyes'],pain['cheeks'],pain['nose'],pain['mouth'])
+paintmp2 = func('shortgs','modul',pain['tummy'],pain['pubic'],pain['vaginal'],pain['labia'],pain['clitoris'],pain['urethra'],pain['cervix'],pain['lips'])
+paintmp3 = func('shortgs','modul',pain['throat'],pain['asscheeks'],pain['asshole'],pain['hips'],pain['thighs'],pain['legL'],pain['legR'],pain['feet'])
+paintmp4 = func('shortgs','modul',pain['toes'],pain['shoulders'],pain['armL'],pain['armR'],pain['hands'],pain['fingers'],pain['chest'],pain['breasts'])
+paintmp5 = func('shortgs','modul',pain['tongue'],pain['neck'],pain['back'],pain['nipples'],pain['ribs'],vgape * 8, agape * 10,spanked * 24)
+
+pain['total'] = func('shortgs','modul',paintmp1,paintmp2,paintmp3,paintmp4,paintmp5)
+
+if pain['total'] > 100: pain['total'] = 100
+pain['damage'] = pain['total']
+pain['relief'] = 0
+
+if alko > 9:
+	pain['relief'] = 70
+elseif alko > 6:
+	pain['relief'] = 40
+elseif alko > 3:
+	pain['relief'] = 15
+end
+
+if StrongNarkota > 0:
+	pain['relief'] = 90
+elseif nark > 0:
+	pain['relief'] = 60
+elseif pain['killer'] > 12 and alko <= 9:
+	pain['relief'] = 50
+end
+
+if pain['relief'] ! 0:
+	if (pain['total'] / pain['relief']) > 0:
+		pain['total'] = pain['total'] / pain['relief']
+	elseif pain['total'] > 0:
+		pain['total'] = 0
+	end
+end
+
+if pain['total'] > 80:
+	if (pcs_health * 5) >= healthmax: pcs_health = pcs_health * 20 / 100
+	if (pcs_mood * 5) >= 100: pcs_mood = pcs_mood * 20 / 100
+elseif pain['total'] > 60:
+	if (pcs_health * 5 / 2) >= healthmax: pcs_health = pcs_health * 40 / 100
+	if (pcs_mood * 5 / 2) >= 100: pcs_mood = pcs_mood * 40 / 100
+elseif pain['total'] > 40:
+	if (pcs_health * 5 / 3) >= healthmax: pcs_health = pcs_health * 60 / 100
+	if (pcs_mood * 5 / 3) >= 100: pcs_mood = pcs_mood * 60 / 100
+elseif pain['total'] > 20:
+	if (pcs_health * 5 / 4) >= healthmax: pcs_health = pcs_health * 80 / 100
+	if (pcs_mood * 5 / 4) >= 100: pcs_mood = pcs_mood * 80 / 100
+elseif pain['total'] > 0:
+	if (pcs_health * 10 / 9) >= healthmax: pcs_health = pcs_health * 90 / 100
+	if (pcs_mood * 10 / 9) >= 100: pcs_mood = pcs_mood * 90 / 100
+end
+
+!!--------------------------pain calculation end--------------------------------
+
+!!update skills and attributes to pcs_ from there _lvl values plus adjustments based on condition
+gs 'stat_sklattrib_lvlset'
+
+!!Sleep variable cap
+if pcs_sleep > 100: pcs_sleep = 100
 
 if insleep = 0: gs 'stat_display'
 
