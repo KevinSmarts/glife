@@ -21,6 +21,16 @@ elif [[ "$OSTYPE" == "msys" ]]; then
 	else
 		./txt2gam.exe glife.txt "${QSPFILE}" 1> /dev/null
 	fi
+elif [[ "$OSTYPE" == "cygwin" ]]; then
+	# Unsure if non-AMD CPUs give this or AMD64, tested on an actual AMD brand chip
+	# requires a python install visible to cygwin (for the txtmerge above)
+	if [[ "$PROCESSOR_ARCHITECTURE" == "x86_64" ]]; then
+		./txt2gam64.exe glife.txt "${QSPFILE}" 1> /dev/null
+	elif [[ "$PROCESSOR_ARCHITECTURE" == "AMD64" ]]; then
+		./txt2gam64.exe glife.txt "${QSPFILE}" 1> /dev/null
+	else
+		./txt2gam.exe glife.txt "${QSPFILE}" 1> /dev/null
+	fi
 fi
 if [ -d "${DESTDIR}" ]; then
 	cp --reflink=auto "${QSPFILE}" "${DESTDIR}"
