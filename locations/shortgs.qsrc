@@ -640,5 +640,125 @@ if $ARGS[0]='img msg':
 	killvar '$shortgstemp'
 end
 
+if $ARGS[0] = 'round_divide':
+	!! ARGS[1] = value you want divided
+	!! ARGS[2] = divider
+	!!  func('shortgs','round_divide', number, divider)
+	!!  func('shortgs','round_divide', 12345, 7)
+	if ARGS[2] ! 0:
+		temp_number = ARGS[1]/ARGS[2]
+		if (ARGS[2] mod 2 ! 0 and ARGS[1] mod ARGS[2] > ARGS[2]/2) or (ARGS[2] mod 2 = 0 and ARGS[1] mod ARGS[2] >= ARGS[2]/2): temp_number += 1
+		result = temp_number
+		killvar 'temp_number'
+	else
+		msg '<b>Error: No dividing by 0! You trying to make the universe disappear?</b>'
+	end
+end
+
+if $ARGS[0] = 'round_tool':
+	!! ARGS[1] = value you want rounded
+	!! ARGS[2] = nearest multiple to round to
+	!!  func('shortgs','round_tool', number, multiple)
+	!!  func('shortgs','round_tool', 12345, 10)
+	if ARGS[2] ! 0:
+		temp_multiple = ARGS[2]
+		result = func('shortgs','round_divide', ARGS[1], ARGS[2]) * temp_multiple
+		killvar 'temp_multiple'
+	else
+		msg '<b>Error: Can''t round to 0!</b>'
+	end
+end
+
+!! Randomly picks one of the items plugged in
+!!
+!!  Option 1: (has 6 input limit)
+!!  $ARGS[1] =		'string' or 'number' to specify what youre plugging in (can also be blank for numbers)
+!!  $ARGS[2-7] =	 strings or numbers to pick from, limited to 6
+!!  Example 1: func('shortgs', 'rand_pick', 'string', 'alpha', 'beta', 'gamma', 'delta', 'epsilon', 'zeta')
+!!  Example 2: func('shortgs', 'rand_pick', '', 2, 3, 5, 7, 11, 13)
+!!
+!!  Option 2: (no limitations, has to be delimited)
+!! 	$ARGS[1] =		'delimit'  -  used for larger numbers of items to pick from
+!!  $ARGS[2] =		'string' or 'number' to specify what youre plugging in (can also be blank for numbers)
+!!  $ARGS[3] =		 Delimited string to parse
+!!  $ARGS[4] =		 Delimiter used (Default = '|' pipe)
+!!  Example 1: func('shortgs', 'rand_pick', 'delimit', 'string', 'alpha|beta|gamma|delta|epsilon|zeta')
+!!  Example 2: func('shortgs', 'rand_pick', 'delimit', 'number', '1-12-123-1234-12345-123456', '-')
+!!  Example 3: func('shortgs', 'rand_pick', 'delimit', '', '0.1.2.3.5.7.11', '.')
+if $ARGS[0] = 'rand_pick':
+	if $ARGS[1] = 'delimit':
+		if $ARGS[2] = 'string':
+			gs 'shortgs', 'parse_string', '$rand_pick_temp', $ARGS[3], $ARGS[4]
+			$result = $rand_pick_temp[rand(0, arrsize('$rand_pick_temp')-1)]
+			killvar '$rand_pick_temp'
+		else
+			gs 'shortgs', 'parse_string', 'rand_pick_temp', $ARGS[3], $ARGS[4]
+			result = rand_pick_temp[rand(0, arrsize('rand_pick_temp')-1)]
+			killvar 'rand_pick_temp'
+		end
+	else
+		if arrsize('ARGS') > 2:
+			if $ARGS[1] = 'string':
+				$result = $ARGS[rand(2, arrsize('$ARGS')-1)]
+			else
+				result = ARGS[rand(2, arrsize('ARGS')-1)]
+			end
+		else
+			msg '<b>Error: ''rand_pick'' is missing ARGS</b>'
+		end
+	end
+end
+
+!! Parse delimited string into an array
+!!	$ARGS[1] =		ArrayName (has to include $ for string values)
+!!	$ARGS[2] =		Delimited string to parse
+!!	$ARGS[3] =		Delimiter used (Default = '|' pipe)
+!!  Example 1: gs 'shortgs', 'parse_string', '$my_array', 'alpha|beta|gamma|delta|epsilon|zeta'
+!!  Example 2: gs 'shortgs', 'parse_string', 'my_array', '1-12-123-1234-12345-123456', '-'
+if $ARGS[0] = 'parse_string':
+	!! Some failsafes (blank array name, blank string or no delimiters in string)
+	if $ARGS[1] ! '':
+		if $ARGS[2] ! '' and instr($ARGS[2],iif($ARGS[3] = '', '|', $ARGS[3])) > 0:
+			!! Set delimiter with default if needed
+			if $ARGS[3] = '':
+				$ParserTmpDelim = '|'
+			else
+				$ParserTmpDelim = $ARGS[3]
+			end
+			!! Clear temp array if needed
+			killvar 'ParserTmpArr' & killvar '$ParserTmpArr'
+			$ParserTmpStr = $ARGS[2]
+			!! Loop through string until no more delimiters found
+			:StringParser01
+			ParserTmpIdx = instr($ParserTmpStr, $ParserTmpDelim)
+			if ParserTmpIdx > 0:
+				if mid($ARGS[1],1,1) = '$':
+					$ParserTmpArr[] = mid($ParserTmpStr, 1, ParserTmpIdx-1)
+					$ParserTmpStr = mid($ParserTmpStr, ParserTmpIdx+1)
+				else
+					ParserTmpArr[] = mid($ParserTmpStr, 1, ParserTmpIdx-1)
+					$ParserTmpStr = mid($ParserTmpStr, ParserTmpIdx+1)
+				end
+				jump 'StringParser01'
+			!! Get last part since no more delimiters were found and copy to the final array
+			elseif mid($ARGS[1],1,1) = '$':
+				$ParserTmpArr[] = $ParserTmpStr
+				copyarr $ARGS[1], '$ParserTmpArr'
+			else
+				ParserTmpArr[] = $ParserTmpStr
+				copyarr $ARGS[1], 'ParserTmpArr'
+			end
+			killvar '$ParserTmpDelim'
+			killvar '$ParserTmpStr'
+			killvar 'ParserTmpIdx'
+			killvar 'ParserTmpArr' & killvar '$ParserTmpArr'
+		else
+			msg '<b>Error: No delimited string found!</b>'
+		end
+	else
+		msg '<b>Error: No array name found!</b>'
+	end
+end
+
 --- shortgs ---------------------------------
 
