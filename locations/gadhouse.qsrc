@@ -1,7 +1,7 @@
 # gadhouse
 
 !! VARIABLE LIST FOR GRANDPARENTS AND THEIR CHORES - START
-!! 
+!!
 !! Quest Variables - Grandma
 !! -------------------------
 !! grandmaQW['chore_type']						Variable for storage of the rand() that picks which chore to assign.
@@ -38,16 +38,20 @@
 !! grandmaQW['last_day_talked']					The most recent day Sveta chatted with Grandma.
 !! grandmaQW['last_hour_talked']				The most recent hour Sveta chatted with Grandma. Checked against hour, allows for several chats through the day.
 !! grandmaQW['last_month_paid']					The most recent month Grandma paid Sveta for her help (i.e. was it the current month?)
-!! grandmaQW['nudity_trouble']					Semi-abstract representation of how annoyed Grandma is by Svetas exhibitionism. At 10 she reprimands Sveta (no effect).
+!! grandmaQW['nudity_trouble']					Semi-abstract representation of how annoyed Grandma is by Svetas exhibitionism. grandmaQW['nudity_trouble'] is subtracted from grandmaQW['help_amount'] and then reset to 0
+!! grandmaQW['nudity_trouble_limit']			Limit based on fame/reputation before Grandma reprimands Sveta about her behavior
+!! grandmaQW['nudity_trouble_base']				Base based on how many times Sveta has been reprimanded by Grandma about her behavior. Starts at 10. Goes up by 1 each time grandmaQW['nudity_trouble'] hits grandmaQW['nudity_trouble_limit']
+!! grandmaQW['block']							0/1 - has Sveta been caught sinning so much Grandma kicks her out
 !! grandmaQW['talked_about_gadukino']			0/1 - has Sveta asked Grandma about Gadukino? Makes the "Ask about Gadukino" option a one-time thing.
 !! grandmaQW['disappointment']					0/1 - marks if you failed a chore and Grandma is disappointed in you. Causes a lecture and -1 to help_amount
+!! grandmaQW['first_visit']						0/1 - triggers first converstion and gift from Grandma. Only get free money from Grandma once. Monthly payments are now only based on grandmaQW['help_amount']
 !!
-!! ------------------------------------------------------------------------ 
-!! 
+!! ------------------------------------------------------------------------
+!!
 !! Quest Variables - Grandpa
 !! -------------------------
 !! grandpaQW['chore_type']						Variable for storage of the rand() that picks which chore to assign.
-!! 
+!!
 !! grandpaQW['chore_bale_hay']					0/1 - is the "bale hay in the field" quest active?
 !! grandpaQW['chore_bathe_horse']				0/1 - is the "bathe the horse in the river" quest active?
 !! grandpaQW['chore_bathe_horse_prog']			0/1/2 - progress of "bathe the horse in the river" quest
@@ -61,14 +65,14 @@
 !! grandpaQW['chore_herd_cattle_experience']	Has Sveta ever done the "herd cows in the field" quest before? (Practically useless, barely changes a couple of action descriptions.)
 !! grandpaQW['chore_lead_cow_to_field']			0/1 - is the "just take the cow to the field and drop it off there" quest active?
 !! grandpaQW['chore_lead_horse_to_field']		0/1 - is the "take the horse to the field" quest active?
-!! 
+!!
 !! grandpaQW['chore_gather_mushrooms']			0/1 - is the "gather mushrooms" quest active?
 !! grandpaQW['chore_gather_berries']			0/1 - is the "gather berries" quest active?
 !! grandpaQW['chore_gather_both']				0/1 - is the "gather mushrooms and berries" quest active?
 !! grandpaQW['chore_mushroom_quantity']			How many kg of mushrooms does Grandpa want?
 !! grandpaQW['chore_berry_quantity']			How many kg of berries does Grandpa want?
-!! 
-!! 
+!!
+!!
 !! Other Variables - Grandpa
 !! -------------------------
 !! grandpaQW['last_day_helped']					The most recent day Sveta asked Grandpa if she could help him with anything.
@@ -80,66 +84,209 @@
 !! VARIABLE LIST FOR GRANDPARENTS AND THEIR CHORES - END
 
 if $ARGS[0] = 'start':
+	*clr & cla
 	CLOSE ALL
 	$location_type = 'indoors'
 	$metka = 'start'
 	$loc = 'gadhouse'
 	$menu_loc = 'gadhouse'
 	$menu_arg = ''
-	menu_off = 0
+	menu_off = 1
 	$locclass = 'singleroom'
 	curr_home = 2
 	display_bb = 1
-	*clr & cla
 	frost = 0
-	mira_temp = rand(1,5)
+	mira_temp = rand(1,10)
 
-	if grandmaQW['last_month_paid'] ! month and hour >= 6 and hour < 22:
-		grandmaQW['last_month_paid'] = month
-		if grandmaQW['help_amount'] > 0: money += grandmaQW['help_amount'] * 50
-		money += 2000
-		minut += 10
+	gs 'gadhouse', 'nudity_trouble_limit'
 
+	!! Grandma sends Sveta back to Pavlovsk for school to start
+	if gadstay = 1 and (kanikuli = 4 or kanikuli = 5) and month = 8 and day >= 27 and hour >= 6 and hour < 20:
+		*clr & cla
+		minut += 5
+		money += 75
+		gs 'stat'
+
+		'<center><b><font color="maroon">Your grandmother</font></b></center>'
+		'<center><img <<$set_imgh>> src="images/locations/gadukino/village/grandmahelp.jpg"></center>'
+		*nl
+		'"<<$pcs_firstname>>, your mother called, school is starting soon, and you have to head back to Pavlovsk to get ready."'
+		'"As much as we loved having you around and getting to see you more, this is it for now."'
+		'"You are always welcome to come and visit on weekends or breaks from school."'
+		'"And if you want to, you can always stay with us again next summer."'
+
+		if grandmaQW['help_amount'] > 0:
+			money += grandmaQW['help_amount']*25
+			gs 'stat'
+
+			'Before leaving your grandma hugs you and gives you <<grandmaQW[''help_amount'']*25>> rubles for your help with chores.'
+			grandmaQW['help_amount'] = 0
+		else
+			'Before leaving your grandma gives you a big hug goodbye.'
+		end
+
+		'As you turn to leave, she stops you, "One last thing, here are some rubles for the train ticket to get you back to Pavlovsk."'
+
+		act 'Leave': gadstay = 0 & gt 'gaddvor'
+	!! Returning home after being lost; no penalty for not doing chores or disappointing either grandparent
+	elseif lost_girl = 1 and hour >= 6 and hour < 20:
+		*clr & cla
+		lost_girl = 0
+		grandmaQW['disappointment'] = 0
+		grandpaQW['disappointment'] = 0
+		grandmaQW['last_day_helped'] = daystart
+		grandpaQW['last_day_helped'] = daystart
+		minut += 5
+		gs 'stat'
+
+		'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/babushka.jpg"></center>'
+		*nl
+		'"<<$pcs_firstname>>, your grandfather and I were so worried when you didn''t come back home from the forest."'
+		'"We are so glad you are back safe and sound. Go have a hot meal and shower and relax."'
+		'"Also, don''t worry about any chores today or tomorrow, just focus on recovering."'
+
+		act 'Continue':gt 'gadhouse', 'main'
+	!!Grandma kicks Sveta out for being a whore
+	elseif grandmaQW['nudity_trouble_limit'] = 50 and hour >= 6 and hour < 20:
+		*clr & cla
+		grandmaQW['help_amount'] = 0
+		grandmaQW['block'] = 1
+		minut += 5
+		gs 'stat'
+
+		'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/grandma.jpg"></center>'
+		*nl
+		'Your grandmother looks at you coldly from across the room. She is speaking softly but somehow that is more unnerving than normal, "I''ve been more than fair to you, <<$pcs_firstname>>, and given you more chances than maybe even your mother."'
+		'"If you won''t at least try to act like a decent lady around here, you are no longer welcome. Take your things and leave. Come back when you''ve learned at least some basic decency."'
+
+		act 'Leave': gadstay = 0 & gt 'gadukino'
+	!! Grandma scolding for being spotted nude around the village
+	elseif grandmaQW['nudity_trouble'] = grandmaQW['nudity_trouble_limit'] and hour >= 6 and hour < 20:
+		*clr & cla
+		if grandmaQW['nudity_trouble'] > grandmaQW['help_amount']:
+			grandmaQW['help_amount'] = 0
+		else
+			grandmaQW['help_amount'] = grandmaQW['help_amount'] - grandmaQW['nudity_trouble']
+		end
+		grandmaQW['nudity_trouble'] = 0
+		grandmaQW['nudity_trouble_base'] += 1
+
+		'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/babushka.jpg"></center>'
+		*nl
+		'Suddenly your grandmother approaches you with disappointed look on her face. "I had higher expectations of you young lady! You should be ashamed of yourself running around outdoors without clothes. You have embarrassed me and your grandfather! Our friends have seen you around naked as have your grandfather and I, so don''t even try to hide it."'
+		'"This will be reflected in your allowance for your chores as well so don''t act all surprised at the beginning of the month either."'
+		'"Unlike you, we have to live in this village, and get along with the people in it. If you keep this up, I''ll be cutting your time here short and sending you back to your mother, and she can deal with your sinful behaviour. We better not hear anymore about this!" She then walks off before you can even respond.'
+
+		act 'Continue': gt 'gadhouse', 'main'
+	!!Grandpa is disappointed in you for failing to do a chore you promised
+	elseif grandpaQW['disappointment'] = 1 and hour >= 6 and hour < 20:
+		*clr & cla
+		grandpaQW['disappointment'] = 0
+		grandmaQW['help_amount'] -= 1
+		minut += 5
+		pcs_mood -= 5
+		gs 'stat'
+
+		'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/grandpa.jpg"></center>'
+		*nl
+		'Your grandfather scowls at you as you walk by.'
+		'<br>"<<$pcs_firstname>>. I am disappointed in you," he says flatly.'
+		'"What? Why?" you ask, taken aback a bit by his demeanor.'
+		'"Yesterday I asked you to help me, and you agreed. And here we are, today, and I find that you did not."'
+		'"Oh n-no, Grandpa," you stutter, "I forgot all about it! I''m sorry!"'
+		'"Quiet, child. I wasn''t done speaking. You promised to help and did not, which means you lied."'
+		'<br>You stare at him, crestfallen.'
+		'<br>"And I don''t want your apologies. A <<$pcs_lastname>> keeps their word, or their word is worth nothing."'
+		'Your eyes tear up a bit as your grandfather berates you. "Yes, sir," you mumble quietly.'
+		'"I would rather you tell me flat-out if you do not want to help, <<$pcs_firstname>>. At least that makes you honest, even if lazy."'
+		'"Grandpa, I honestly just forg-" you begin, but he cuts you off.'
+		'"Hush, child. I don''t care for excuses. Now go on, some of us have work to do."'
+		'<br>You silently turn and walk away, feeling guilty.'
+
+		act 'Continue':gt 'gadhouse', 'main'
+	!!Grandma is disappointed in you for failing to do a chore you promised
+	elseif grandmaQW['disappointment'] = 1 and hour >= 6 and hour < 20:
+		*clr & cla
+		grandmaQW['disappointment'] = 0
+		grandmaQW['help_amount'] -= 1
+		minut += 5
+		pcs_mood -= 5
+		gs 'stat'
+
+		'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/grandma.jpg"></center>'
+		*nl
+		'Grandma frowns at you as you walk by. "<<$pcs_nickname>>, you said you would help me yesterday, and you did not."'
+		'You cringe a little as you remember what you told her you would do. "I''m sorry Grandma, I forgot all about it..."'
+		'"I am an old woman, child. It is difficult for me to do many of the things I once could. But I can still do them if I know I have to."'
+		'You look at the ground, feeling guilty, as she continues: "But it is even harder for me if I expected help and did not receive it."'
+		'"Sorry, Grandma," you mumble again.'
+		'She softens a little, finally. "It''s okay child," she says. "But it makes it harder for me to give you your allowance for sweets if you cannot follow through on your promises."'
+		'"Yes, ma''am," you nod.'
+		'"All right child," she says, patting your shoulder softly. "Go on now, I am sure you have things to do."'
+
+		act 'Continue':gt 'gadhouse', 'main'
+	elseif grandmaQW['first_visit'] = 0 and hour >= 6 and hour < 20:
+		*clr & cla
+		grandmaQW['first_visit'] = 1
+		money += 3000
+		minut += 5
+		pcs_mood += 10
 		gs 'stat'
 
 		'<center><img <<$set_imgh>> src="images/locations/gadukino/village/grandmahelp.jpg"></center>'
-		if gadstay = 0:
-			'Upon entering the house, you let out a screech as you catch sight of your grandmother, throwing yourself at her, wrapping your arms around her neck. She embraces you tightly. She starts by saying "Dear <<$pcs_nickname>>, you''re only skin and bones, but don''t worry, a few months here and you''ll be looking your usual self again ."'
-			'"But look at you, you sure have grown up. A young woman." she says proudly. She continues "Grandpa and I keep getting older and older and need some help around the house. What do you say youngling? You will not have to do much. Here''s the deal, you lend us a helping hand on the farm as much as possible, and we will pay you for each chore you do. It will be a great life lesson, you will learn about hard work. What do you say?"'
-			'"Of course I''ll help out, Grandma." you answer.'
-			'"I''m glad to hear that <<$pcs_nickname>>, here is little something upfront so you know we are serious," Grandma says and hands over <<2000 + grandmaQW[''help_amount''] * 50>>  rubels.'
-			'"Thanks Babushka!" you kiss her on the cheek before you head on out.'
-		else
-			'When you got out of bed, your grandmother called you over to her.'
-			'"I imagine you''ve spent all your allowance on sweets so lets see what we can do to give you some more pocket money, hmmmm?" she says as she opens her purse.'
-			if grandmaQW['help_amount'] > 0:
-				'"You were quite helpful over the last few weeks, so here''s <<2000 + grandmaQW[''help_amount''] * 50>> rubles." She starts to hand you the money, then lifts it away with a stern look, "But you can always do more work, young lady!" she scolds gently then smiles as she gives you the money.'
-			else
-				'"We really could have used your help last month," she says mournfully as she counts out some bills. "Maybe this month you''ll do more to help us?" She looks at you sternly as she hands you 2000 rubles.'
-			end
-			gs 'stat'
-		end
-		grandmaQW['help_amount'] = 0
-		act 'Continue': gt 'gadhouse', 'start'
+		*nl
+		'Upon entering the house, you let out a screech as you catch sight of your grandmother, throwing yourself at her, wrapping your arms around her neck. She embraces you tightly. She starts by saying "Dear <<$pcs_nickname>>, you''re only skin and bones, but don''t worry, a few months here and you''ll be looking your usual self again ."'
+		'"But look at you, you sure have grown up. A young woman." she says proudly. She continues "Grandpa and I keep getting older and older and need some help around the house. What do you say youngling? You will not have to do much. Here''s the deal, you lend us a helping hand on the farm as much as possible, and we will pay you for each chore you do. It will be a great life lesson, you will learn about hard work. What do you say?"'
+		'"Of course I''ll help out, Grandma." you answer.'
+		'"I''m glad to hear that <<$pcs_nickname>>, here is little something anyways just for visiting," Grandma says and gives you 3000 rubles.'
+		'"Thanks Babushka!" you kiss her on the cheek before you head on out.'
 
-	elseif mira_temp = 1 and hour >= 9 and hour <= 19 and npc_rel['A60'] >= 15 and Mira_no = 0 and sunWeather = 0 and mira_guestday ! daystart and (npc_QW['A63'] < 13 or miragopQW >= 10 or mirasex > 1):
+		if (kanikuli = 4 or kanikuli = 5) and ((month = 6 or month = 7) or (month = 8 and day <= 25)):
+			'"Will you be staying with us during the summer or will you be traveling back and forth with your parents?" she asks.'
+
+			act 'Stay with your grandaparents':gadstay = 1 & gt 'gadhouse', 'main'
+			act 'Stay in Pavlovsk':gadstay = 0 & gt 'gadhouse', 'main'
+		else
+			act 'Continue':gt 'gadhouse', 'main'
+		end
+	elseif grandmaQW['last_month_paid'] ! month and hour >= 6 and hour < 20:
+		*clr & cla
+		grandmaQW['last_month_paid'] = month
+		if grandmaQW['help_amount'] > 0: money += (grandmaQW['help_amount'] * 25)
+		minut += 5
+		pcs_mood += 5
+		gs 'stat'
+
+		'<center><img <<$set_imgh>> src="images/locations/gadukino/village/grandmahelp.jpg"></center>'
+		*nl
+		'Your grandmother calls you over to her, "I imagine you''ve spent all your allowance so lets see what we can do to give you some more pocket money, hmmmm?" she says as she opens her purse.'
+		if grandmaQW['help_amount'] > 0:
+			'"You were quite helpful over the last few weeks, so here''s <<grandmaQW[''help_amount''] * 25>> rubles." She starts to hand you the money, then lifts it away with a stern look, "But you can always do more work, young lady!" she scolds gently then smiles as she gives you the money.'
+			grandmaQW['help_amount'] = 0
+		else
+			'"We really could have used your help last month," she says mournfully as she counts out some bills. "Maybe this month you''ll do more to help us?" She looks at you sternly as she puts her purse away.'
+		end
+
+		act 'Continue': gt 'gadhouse', 'main'
+	elseif mira_temp = 1 and MiraLoc = 0 and hour >= 8 and hour <= 19 and npc_rel['A60'] >= 15 and Mira_no = 0 and sunWeather = 0 and mira_guestday ! daystart and (npc_QW['A63'] < 11 or npc_QW['A60'] >= 11 or mirasex > 1):
 		*clr & cla
 		mira_guestday = daystart
 		minut += 5
 		mira_guest = 1
+		MiraLoc = 6
 		gs 'stat'
 
 		gs 'miroslava', 'miraclothes'
+		*nl
 		'You notice Mira coming towards your grandparents home.'
 		'You step out on the porch and greet Mira. She replies "Hi <<$pcs_nickname>>, I was really bored being all alone at home. Do you want to do something?"'
 
-		act 'Continue':gt 'gadhouse', 'start'
-
+		act 'Continue':gt 'gadhouse', 'main'
 	else
 		gt 'gadhouse', 'main'
 	end
 end
-	!125e
+
 if $ARGS[0] = 'main':
 	$metkaM = 'main'
 	$locM = 'gadhouse'
@@ -151,11 +298,10 @@ if $ARGS[0] = 'main':
 	gs 'stat'
 	'<center><H4>Your Grandparents'' Cottage</H4></center>'
 	'<center><img <<$set_imgh>> src="images/locations/gadukino/village/izba.jpg"></center>'
+	*nl
 	'A fairly simple cottage in the village of Gadukino which your grandparents call home. In the main room there is a huge <a href="exec:gt ''wardrobe'', ''start''">wardrobe</a> (where you can choose outfits and organize your clothing), and a <a href="exec:gad = 1 & gt ''bed'', ''start''">bed</a> where you can rest. The bed is more comfortable than it looks.'
 	'There is an old <a href="exec:gt ''TV'',''gad''">television</a> in the living room. It''s positioned next to a body length <a href="exec:gt ''mirror'', ''start''">mirror</a>.'
 	'You can check your weight on your grandma''s old mechanical <a href="exec:msg ''<center>Your weight is <<pcs_weight>> kg<br>Your body mass index (BMI) is <<bmi_calc>>.<br><<$bmi_desc>></center>''">scales</a>.'
-	*nl
-	'You can access your <a href="exec:gt ''wardrobe'', ''default''">default clothing</a> options directly.'
 
 	if hour < 8:
 		temp = rand(0,9)
@@ -181,7 +327,6 @@ if $ARGS[0] = 'main':
 		temp = rand(0,2)
 		if temp = 1:'In a box filled with scraps of cloth, <a href="exec: gt ''gadhouse'',''villagecat''">Boniface</a> is curled up sleeping peacefully.'
 	end
-
 
 	if hour >= 6 and hour < 8:
 		'Your <a href="exec: gt ''gadhouse'',''grandma'' ">grandmother</a> is puttering around in the kitchen, making breakfast.'
@@ -224,16 +369,11 @@ if $ARGS[0] = 'main':
 	gs 'zz_family', 'father_sheduler'
 	if $father['location'] = $curloc and home_owned[2] = 1:
 		'Your parents room.'
-		gs 'gadukino_event', 'go_home'
+		gs 'gadhouse', 'go_home'
 	end
 	}
-	if week = 6 and hour > 12 and family_trip_month ! month: indorf = 1
 
-	if indorf = 1:
-		'Your parents are relaxing inside.'
-
-		if staygad ! daystart and home_owned[2] = 1: gs 'gadukino_event', 'go_home'
-	end
+	gs 'gadhouse', 'family_trip'
 
 	if $clothingworntype ! 'nude':
 		act 'Go outside':minut += 1 & gt 'gaddvor'
@@ -243,7 +383,7 @@ if $ARGS[0] = 'main':
 			menu_off = 1
 			minut += 1
 			inhib_exp += rand(0,2)
-			grandmaQW['nudity_trouble'] += rand(1,3)
+			grandmaQW['nudity_trouble'] += rand(0,2)
 			'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/gaddvor_nude.jpg"></center>'
 			'It''s certainly risky leaving the house like this, and while it''s unlikely anyone saw you go outside naked, there''s a thrill in almost getting caught'
 			gs 'arousal', 'flash', 10, 'exhibitionism'
@@ -256,8 +396,8 @@ if $ARGS[0] = 'main':
 			*clr & cla
 			menu_off = 1
 			minut += 1
-			inhib_exp += rand(0,2)
-			grandmaQW['nudity_trouble'] += rand(1,3)
+			inhib_exp += rand(0,1)
+			grandmaQW['nudity_trouble'] += rand(0,1)
 			'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/gaddvor_nude.jpg"></center>''It''s certainly risky leaving the hosue like this, and while it''s unlikely anyone saw you go outside in your underwear, there''s a thrill in almost getting caught'
 			gs 'arousal', 'flashlite', 10, 'exhibitionism'
 			gs 'arousal', 'end'
@@ -275,7 +415,7 @@ if $ARGS[0] = 'main':
 
 			'<center><img <<$set_imgh>> src="images/locations/gadukino/village/washfloor.jpg"></center>'
 			'You grab a bucket and a rag, and get down on your knees and begin scrubbing the floor. Within the hour the floor shines and you are satisfied with the work you''ve done. You put the cleaning supplies into a corner and continue on with your day.'
-			
+
 			act 'Continue':gt 'gadhouse', 'start'
 		end
 	end
@@ -289,7 +429,7 @@ if $ARGS[0] = 'main':
 
 			'<center><img <<$set_imgh>> src="images/locations/gadukino/village/washclothes1.jpg"></center>'
 			'You pick up your grandfather''s dirty clothes and take them with you outside, where you soak them in the metal basin for an hour.'
-			
+
 			act 'Hang the laundry':
 				*clr & cla
 				minut += 10
@@ -298,10 +438,10 @@ if $ARGS[0] = 'main':
 				'Once you are done with the washing, you walk over to the clothesline where you carefully hang the clothes to dry.'
 
 				act 'Continue':gt'gaddvor'
-			end    
+			end
 		end
 	end
-	
+
 	if (hour >= 6 and hour < 10) or (hour >= 12 and hour < 20): act 'Talk to Grandma':gt 'gadhouse','grandma'
 	if (hour >= 6 and hour < 13) or (hour >= 15 and hour < 20): act 'Talk to Grandpa':gt 'gadhouse','grandpa'
 	act 'Prepare a full meal (0:30)':gs 'food', 'm_meal'
@@ -367,30 +507,6 @@ if $ARGS[0] = 'main':
 end
 
 if $ARGS[0] = 'grandma':
-	!!Grandma is disappointed in you for failing to do a chore you promised
-	if grandmaQW['disappointment'] = 1:
-		*clr & cla
-		menu_off = 1
-		minut += 5
-		gs 'stat'
-		grandmaQW['disappointment'] = 0
-		grandmaQW['help_amount'] -= 1
-		pcs_mood -= 5
-		
-		'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/grandma.jpg"></center>'
-		'Grandma frowns at you as you approach her. "<<$pcs_nickname>>, you said you would help me yesterday, and you did not."'
-		'You cringe a little as you remember what you told her you would do. "I''m sorry Grandma, I forgot all about it..."'
-		'"I am an old woman, child. It is difficult for me to do many of the things I once could. But I can still do them if I know I have to."'
-		'You look at the ground, feeling guilty, as she continues: "But it is even harder for me if I expected help and did not receive it."'
-		'"Sorry, Grandma," you mumble again.'
-		'She softens a little, finally. "It''s okay child," she says. "But it makes it harder for me to give you your allowance for sweets if you cannot follow through on your promises."'
-		'"Yes, ma''am," you nod.'
-		'"All right child," she says, patting your shoulder softly. "Go on now, I am sure you have things to do."'
-		
-		act 'Continue':gt 'gadhouse', 'start'
-		exit
-	end
-	
 	*clr & cla
 	menu_off = 1
 	minut += 2
@@ -428,7 +544,7 @@ if $ARGS[0] = 'grandma':
 						*clr & cla
 						minut += 15
 						gs'stat'
-						
+
 						grandmaQW['chore_can_mushrooms'] = 0
 						grandmaQW['help_amount'] += 2
 						'<center><img <<$set_imgh>> src="images/locations/gadukino/village/canned_mushrooms.jpg"></center>'
@@ -471,7 +587,7 @@ if $ARGS[0] = 'grandma':
 				end
 			end
 		end
-		
+
 		if grandmaQW['chore_can_veggies'] = 1:
 			act 'Help Grandma can veggies (3:00)':
 				*clr & cla
@@ -505,7 +621,7 @@ if $ARGS[0] = 'grandma':
 			end
 		end
 
-		
+
 		if grigory_flower > 0 and grigory_flower < 10: act 'Talk to her about the flowers': gt 'grigory', 'flower4'
 
 	!! ask for chore from Grandma
@@ -520,16 +636,16 @@ if $ARGS[0] = 'grandma':
 				minut += 2
 				grandmaQW['chore_clean_floor'] = 0
 				gs 'stat'
-				
+
 				'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/grandma.jpg"></center>'
 				'"Grandma, the floors are all clean!" you say proudly.'
 				'"Thank you child," your grandmother says, "You have saved my hands and knees a great deal of aching."'
 				'You give her a warm smile and continue on with your day.'
-				
+
 				act 'Continue': gt 'gadhouse', 'grandma'
 			end
 		end
-		
+
 		if grandmaQW['chore_wash_clothes'] = 2:
 			act 'Tell her you washed the clothes':
 				*clr & cla
@@ -542,11 +658,11 @@ if $ARGS[0] = 'grandma':
 				'"Grandma, I finished washing Grandpa''s dirty clothes," you tell her.'
 				'"Thank you <<$pcs_nickname>>. I have no idea how that man gets so dirty!"'
 				'You and your grandmother share a laugh, and you give her a hug before moving on.'
-				
+
 				act 'Continue': gt 'gadhouse', 'grandma'
 			end
 		end
-		
+
 		if grandmaQW['chore_milk_cow'] = 2:
 			act 'Tell her you milked the cow':
 				*clr & cla
@@ -560,11 +676,11 @@ if $ARGS[0] = 'grandma':
 				'"Thank you <<$pcs_nickname>>. She''s such a sweet thing, isn''t she?" your grandmother asks fondly.'
 				'"Um, yes, she is very nice for a cow," you say, smiling. "She''s the nicest cow I know."'
 				'Grandma nods sagely at that, and you grin and continue on with your day.'
-				
+
 				act 'Continue': gt 'gadhouse', 'grandma'
 			end
 		end
-		
+
 		if grandmaQW['chore_groceries'] = 2:
 			act 'Give her the groceries':
 				*clr & cla
@@ -581,11 +697,11 @@ if $ARGS[0] = 'grandma':
 				'You lug the bags into the kitchen and heft them up on the table, before coming back to Grandma.'
 				'"Anything else you need, Grandma?" you ask.'
 				'"No, that is all, <<$pcs_nickname>>," she says, and gives you a gentle pat on the back.'
-				
+
 				act 'Continue': gt 'gadhouse', 'grandma'
 			end
 		end
-		
+
 		if grandmaQW['chore_feed_chickens'] = 2:
 			act 'Tell her you fed the chickens':
 				*clr & cla
@@ -599,11 +715,11 @@ if $ARGS[0] = 'grandma':
 				'"Good, thank you, <<$pcs_nickname>>," she says. "A fat chicken is a happy chicken, and happy chickens lay the best eggs."'
 				'She nods to herself as if she had said something very wise.'
 				'"Um, well, I''m happy to help, Grandma," you say, and give her a quick hug.'
-				
+
 				act 'Continue': gt 'gadhouse', 'grandma'
 			end
 		end
-		
+
 		if grandmaQW['chore_work_in_garden'] = 2:
 			act 'Tell her you worked in the garden':
 				*clr & cla
@@ -630,11 +746,11 @@ if $ARGS[0] = 'grandma':
 				'You grin to yourself, thinking of how <<$npc_nickname[''A29'']>> must have been at your age.'
 				'"Anyway," she continues, "thank you for doing that for me, <<$pcs_nickname>>. My old bones complain when I do it."'
 				'She gives you a peck on the cheek and sends you on your way.'
-				
+
 				act 'Continue': gt 'gadhouse', 'grandma'
 			end
 		end
-		
+
 		if grandmaQW['chore_water_garden'] = 2:
 			act 'Tell her you watered the garden':
 				*clr & cla
@@ -648,11 +764,11 @@ if $ARGS[0] = 'grandma':
 				'"Thank you, <<$pcs_nickname>>," she says. "A healthy plant is always thirsty. You should have some water too, if you want to be a healthy girl."'
 				'"Maybe I will. Is there anything else you need?"'
 				'"No, sweet child. That is enough for today," she says, and gives you a gentle pat on the arm.'
-				
+
 				act 'Continue': gt 'gadhouse', 'grandma'
 			end
 		end
-		
+
 		if grandmaQW['chore_collect_strawberries'] = 2:
 			act 'Give her the strawberries you picked':
 				*clr & cla
@@ -668,11 +784,11 @@ if $ARGS[0] = 'grandma':
 				'You smile and say, "They taste pretty good too!"'
 				'Your grandmother gives you a rueful look and says, "I don''t remember asking you to eat the strawberries, child."'
 				'She cannot hold the charade, though, and breaks into a smile. "I never could resist eating a few fresh off the plant either."'
-				
+
 				act 'Continue': gt 'gadhouse', 'grandma'
 			end
 		end
-		
+
 		if grandmaQW['chore_collect_fruit'] = 2:
 			act 'Give her the fruit you collected':
 				*clr & cla
@@ -686,11 +802,11 @@ if $ARGS[0] = 'grandma':
 				'"I gathered all the fruits I could reach," you say.'
 				'"Thank you, <<$pcs_nickname>>," she says. "I cannot reach or bend like I used to, so you have done me a great favor."'
 				'You smile and hug your grandmother, and go on about your day.'
-				
+
 				act 'Continue': gt 'gadhouse', 'grandma'
 			end
 		end
-		
+
 		if grandmaQW['chore_harvest_garden'] = 2:
 			act 'Give her the vegetables from the garden':
 				*clr & cla
@@ -708,11 +824,11 @@ if $ARGS[0] = 'grandma':
 				'"Oh don''t worry yourself, little <<$pcs_nickname>>," she says, cupping your cheek with her hand. "Forgive an old woman of her wistful ways. We are lucky to have such a kind granddaughter to help us bring in the harvest."'
 				'You place your youthful hand over her wizened old one and smile at her. "I am happy to help, Grandma. Is there anything else you need?"'
 				'"No, child, you have done more than your fair share today. Soon we will have to preserve these vegetables to keep them from spoiling, but for now you can rest."'
-				
+
 				act 'Continue': gt 'gadhouse', 'grandma'
 			end
 		end
-		
+
 		if grandmaQW['chore_gather_mushrooms'] = 2 and boletus >= grandmaQW['chore_mushroom_quantity'] and hour >= 6 and hour < 20:
 			act 'Give Grandma the mushrooms she asked for':
 				*clr & cla
@@ -731,11 +847,11 @@ if $ARGS[0] = 'grandma':
 				'"I can get more, if you want me to."'
 				'"No need for that, little one," she clucks. "You''ve done enough for one day."'
 				'You give her a quick hug in response, and carry on.'
-				
+
 				act 'Continue': grandmaQW['chore_mushroom_quantity'] = 0 & gt 'gadhouse', 'grandma'
 			end
 		end
-		
+
 		if grandmaQW['chore_gather_berries'] = 2 and bilberry >= grandmaQW['chore_berry_quantity'] and hour >= 6 and hour < 20:
 			act 'Give Grandma the berries she asked for':
 				*clr & cla
@@ -810,7 +926,7 @@ if $ARGS[0] = 'grandma':
 				act 'Continue':gt 'gadhouse', 'grandma'
 			end
 		end
-		!125e
+
 		if hour >= grandmaQW['last_hour_talked'] + 3:
 			act 'Chat with your grandmother (0:10)':
 				*clr & cla
@@ -897,35 +1013,6 @@ if $ARGS[0] = 'grandma':
 end
 
 if $ARGS[0]='grandpa':
-
-	!!Grandpa is disappointed in you for failing to do a chore you promised
-	if grandpaQW['disappointment'] = 1:
-		*clr & cla
-		menu_off = 1
-		minut += 5
-		gs 'stat'
-		grandpaQW['disappointment'] = 0
-		grandmaQW['help_amount'] -= 1
-		pcs_mood -= 5
-		
-		'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/grandpa.jpg"></center>'
-		'Your grandfather scowls at you as you approach him.'
-		'<br>"<<$pcs_firstname>>. I am disappointed in you," he says flatly.'
-		'"What? Why?" you ask, taken aback a bit by his demeanor.'
-		'"Yesterday I asked you to help me, and you agreed. And here we are, today, and I find that you did not."'
-		'"Oh n-no, Grandpa," you stutter, "I forgot all about it! I''m sorry!"'
-		'"Quiet, child. I wasn''t done speaking. You promised to help and did not, which means you lied."'
-		'<br>You stare at him, crestfallen.'
-		'<br>"And I don''t want your apologies. A <<$pcs_lastname>> keeps their word, or their word is worth nothing."'
-		'Your eyes tear up a bit as your grandfather berates you. "Yes, sir," you mumble quietly.'
-		'"I would rather you tell me flat-out if you do not want to help, <<$pcs_firstname>>. At least that makes you honest, even if lazy."'
-		'"Grandpa, I honestly just forg-" you begin, but he cuts you off.'
-		'"Hush, child. I don''t care for excuses. Now go on, some of us have work to do."'
-		'<br>You silently turn and walk away, feeling guilty.'
-		
-		act 'Continue':gt 'gadhouse', 'start'
-		exit
-	end
 	*clr & cla
 	menu_off = 1
 	minut += 2
@@ -941,7 +1028,7 @@ if $ARGS[0]='grandpa':
 		act 'Maybe you should get dressed before talking to him':gt 'gadhouse', 'start'
 	else
 		act 'Leave him alone':gt 'gadhouse', 'start'
-		
+
 		if grigory_flower > 0 and grigory_flower < 10: act 'Talk to him about the flowers': gt 'grigory', 'flower3'
 
 		if grandpaQW['chore_gather_mushrooms'] = 1:
@@ -964,7 +1051,7 @@ if $ARGS[0]='grandpa':
 				minut += 5
 				grandpaQW['chore_fetch_firewood'] = 0
 				gs 'stat'
-				
+
 				'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/grandpa1.jpg"></center>'
 				'"I''ve brought in some firewood, Grandpa," you say to your grandfather.'
 				'"Thank you very much, <<$pcs_nickname>>," he replies with a smile. "Just set down it over there."'
@@ -982,7 +1069,7 @@ if $ARGS[0]='grandpa':
 				minut += 5
 				grandpaQW['chore_feed_horse'] = 0
 				gs 'stat'
-				
+
 				'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/grandpa1.jpg"></center>'
 				'"I fed the horse, Grandpa."'
 				'"Thank you <<$pcs_nickname>>," he says. "It is very important to make sure a horse is well fed. They are hard workers and deserve their meals."'
@@ -1001,7 +1088,7 @@ if $ARGS[0]='grandpa':
 				minut += 5
 				grandpaQW['chore_feed_cow'] = 0
 				gs 'stat'
-				
+
 				'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/grandpa1.jpg"></center>'
 				'You tell your grandfather, "I fed Dawn her hay, Grandpa."'
 				'"Very good, <<$pcs_nickname>>," he says. "I presume she acted like we were starving her to death?"'
@@ -1019,7 +1106,7 @@ if $ARGS[0]='grandpa':
 				minut += 5
 				grandpaQW['chore_clean_yard'] = 0
 				gs 'stat'
-				
+
 				'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/grandpa1.jpg"></center>'
 				'"I finished cleaning the yard, Grandpa," you say as you stretch your sore arms.'
 				'"Very good," he says. "It is more work than it seems, isn''t it?"'
@@ -1037,7 +1124,7 @@ if $ARGS[0]='grandpa':
 				minut += 5
 				grandpaQW['chore_brush_horse'] = 0
 				gs 'stat'
-				
+
 				'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/grandpa1.jpg"></center>'
 				'"I brushed the horse, Grandpa," you tell your grandfather.'
 				'"You scrubbed him down with the curry brush?" he asks.'
@@ -1063,7 +1150,7 @@ if $ARGS[0]='grandpa':
 				minut += 5
 				grandpaQW['chore_feed_boar'] = 0
 				gs 'stat'
-				
+
 				'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/grandpa1.jpg"></center>'
 				'You walk up to your grandfather and tell him, "I fed the pig, Grandpa."'
 				'"Thank you <<$pcs_nickname>>," he says.'
@@ -1081,7 +1168,7 @@ if $ARGS[0]='grandpa':
 				minut += 5
 				grandpaQW['chore_lead_horse_to_field'] = 0
 				gs 'stat'
-				
+
 				'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/grandpa1.jpg"></center>'
 				'"Hey Grandpa, I took Desperado out to the field."'
 				'"Good, good," he says. "Horses need freedom to run."'
@@ -1099,7 +1186,7 @@ if $ARGS[0]='grandpa':
 				minut += 5
 				grandpaQW['chore_lead_cow_to_field'] = 0
 				gs 'stat'
-				
+
 				'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/grandpa1.jpg"></center>'
 				'"Hi Grandpa!" you say. "I took Dawn out to the field."'
 				'"Were the others there?" he asks.'
@@ -1121,7 +1208,7 @@ if $ARGS[0]='grandpa':
 				minut += 5
 				grandpaQW['chore_bathe_horse'] = 0
 				gs 'stat'
-				
+
 				'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/grandpa1.jpg"></center>'
 				'You walk up to your grandfather and tell him, "I gave Desperado a bath in the river, Grandpa."'
 				'"Thank you <<$pcs_nickname>>," he says. "Grooming him is all well and good, but sometimes it''s not enough."'
@@ -1152,7 +1239,7 @@ if $ARGS[0]='grandpa':
 				act 'Continue': grandpaQW['chore_mushroom_quantity'] = 0 & gt 'gadhouse', 'start'
 			end
 		end
-		
+
 		if grandpaQW['chore_gather_berries'] = 2 and bilberry >= grandpaQW['chore_berry_quantity'] and hour >= 6 and hour < 20:
 			act 'Give him the berries he asked for':
 				*clr & cla
@@ -1195,7 +1282,7 @@ if $ARGS[0]='grandpa':
 				act 'Continue': grandpaQW['chore_mushroom_quantity'] = 0 & grandpaQW['chore_berry_quantity'] = 0 & gt 'gadhouse', 'start'
 			end
 		end
-		
+
 		if grandpaQW['chore_bale_hay'] = 2:
 			act 'Tell him you helped the townspeople bale hay':
 				*clr & cla
@@ -1203,7 +1290,7 @@ if $ARGS[0]='grandpa':
 				minut += 5
 				grandpaQW['chore_bale_hay'] = 0
 				gs 'stat'
-				
+
 				'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/grandpa1.jpg"></center>'
 				'"I spent all day helping with the hay, Grandpa," you tell him, stretching your sore muscles.'
 				'He smiles proudly at you and says, "Yes, I was there too, <<$pcs_nickname>>. I saw you working hard."'
@@ -1309,6 +1396,107 @@ if $ARGS[0]='villagecat':
 			end
 		end
 	end
+end
+
+if $ARGS[0] = 'nudity_trouble_limit':
+	if grandmaQW['nudity_trouble_base'] = 0 or grandmaQW['nudity_trouble_limit'] = 0:
+		grandmaQW['nudity_trouble_base'] = 10
+		grandmaQW['nudity_trouble_limit'] = grandmaQW['nudity_trouble_base']
+	else
+		grandmaQW['nudity_trouble_limit'] = grandmaQW['nudity_trouble_base']
+	end
+
+	if SchoolBlock = 1: grandmaQW['nudity_trouble_limit'] += 5
+	if momKnowsKolka = 1: grandmaQW['nudity_trouble_limit'] += 10
+	if momKnowsVladimir = 1: grandmaQW['nudity_trouble_limit'] += 10
+	if momslut < 2:
+		if motherKnowWhore > 0: grandmaQW['nudity_trouble_limit'] += 3
+		if motherKnowSpravka > 0: grandmaQW['nudity_trouble_limit'] += 2
+	end
+	if brotherSex < 6:
+		if brotherknowslut > 1: grandmaQW['nudity_trouble_limit'] += 3
+		if brotherknowslut > 0: grandmaQW['nudity_trouble_limit'] += 2
+	end
+	if sisterQW['roma3block'] = 1:
+		if sisterknowslut > 1 and sisboypartyQW > 1: grandmaQW['nudity_trouble_limit'] += 3
+		if sisterknowslut > 0: grandmaQW['nudity_trouble_limit'] += 2
+	end
+	if gadriver_gang = 2:
+		grandmaQW['nudity_trouble_limit'] += 5
+	else
+		if npc_QW['A63'] >= 11: grandmaQW['nudity_trouble_limit'] += 3
+		if npc_QW['A60'] >= 15: grandmaQW['nudity_trouble_limit'] += 2
+	end
+end
+
+if $ARGS[0] = 'family_trip':
+	! family comes to visit first weekend of each month from Saturday at 1200 to Sunday at 2100
+	if week = 6 and hour > 12 and family_trip_month ! month: indorf = 1
+
+	if indorf = 1:
+		'Your parents are relaxing inside.'
+
+		if gadstay_day ! daystart and home_owned[2] = 1:
+			if week = 7:
+				if hour = 20:
+					family_trip_month = month
+					if (kanikuli = 4 or kanikuli = 5) and ((month = 6 or month = 7) or (month = 8 and day <= 25)):
+						*clr & cla
+						menu_off = 1
+						'<center><b><font color="maroon">Your mother, Natasha <<$pcs_lastname>></font></b></center>'
+						'<center><img <<$set_imgh>> src="images/characters/pavlovsk/resident/mom/mother.jpg"></center>'
+						*nl
+						'<<$npc_nickname[''A29'']>> asks you "Well, <<$pcs_nickname>>, are you coming home with us or are you going to stay in the village with your grandparents?"'
+
+						act 'Stay with your grandaparents':gadstay_day = daystart & gadstay = 1 & indorf = 0 & gt 'gadhouse', 'main'
+						act 'Go home to Pavlovsk': gt 'gadhouse', 'to_pavlovsk'
+					else
+						act 'Go home to Pavlovsk': gt 'gadhouse', 'to_pavlovsk'
+					end
+				elseif hour > 20:
+					family_trip_month = month
+				end
+			end
+		end
+	end
+end
+
+if $ARGS[0] = 'to_pavlovsk':
+	menu_off = 1
+	*clr & cla
+	gadstay = 0
+	indorf = 0
+	minut += rand(15,25)
+	gs 'stat'
+
+	'<center><b><font color="maroon">Your grandmother</font></b></center>'
+	'<center><img <<$set_imgh>> src="images/locations/gadukino/village/grandmahelp.jpg"></center>'
+	*nl
+	if grandmaQW['help_amount'] > 0:
+		money += grandmaQW['help_amount']*25
+		gs 'stat'
+
+		'Before leaving your grandma hugs you and gives you <<grandmaQW[''help_amount'']*25>> rubles for your help with chores.'
+		grandmaQW['help_amount'] = 0
+	else
+		'Before leaving your grandma gives you a big hug goodbye.'
+	end
+
+	'You get into the Lada with the rest of your family and before you know it, you''ve arrived back in Pavlovsk.'
+
+	act 'Go to your room': gt 'bedrPar'
+end
+
+if $ARGS[0] = 'to_gadukino':
+	menu_off = 1
+	*clr & cla
+	indorf = 1
+	minut += rand(15,25)
+	gs 'stat'
+
+	'You get into the Lada with the rest of your family and before you know it, you''ve arrived in Gadukino.'
+
+	act 'Go to your grandparents house': gt 'gadhouse', 'start'
 end
 
 if $ARGS[0] = 'intro':
