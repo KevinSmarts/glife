@@ -44,82 +44,64 @@
 !!	This function is called only once in the begining of the game. It is calculating svetas mammary gland density and alveolicount and sets the breastcount which will be 2 naturally
 if $ARGS[0] = 'init_breasttissue' and lactation['breasttissueinitiated'] <= 0:
 	!!	use func('lact_lib','init_breasttissue')
-	lactation['breasttissueinitiated'] = 1
-	!! breast density type. Density of glands.
-	!! 0 = not initialized, 1 = 17% gland tissue, 2 = 36% gland tissue, 3 = 55% gland tissue, 4 = 74% gland tissue, 5 = 93% gland tissue. This is based on studies I found on the internet.
-	!! The logic behind the below is, when losing fat, breasts usually volunteer first. So the more bodyfat sveta has, the more she has in her breasts, and therefore the percentage of gland tissue goes down.
-	!! Breasts cannot lose glandular tissue (if not cut out, yikes), therefore this will define the maximum they can shrink if fat is removed. At the moment this is done by Genbsize. The below will replace this in the future.
-	!! Genbsize is the breastsize that is given to Sveta by her parents. During puberty the breasts swell up to this size with mostly being fat tissue. Due to genetic variability and hormones, breasts will develop more or
-	!! less mammary gland tissue during puberty. As the game starts after Svetas puberty, this is impossible to simulate. That is why I came up with the below part. It will calculate the breastdensity using Svetas body fat.
-	!! During pregnancy most of the breast fat is getting replaced by conjuctive tissue and mammary glands. But the genetical breastsize also affects the total mammary gland growth. So for example, if Sveta is a chubby,
-	!! and has D cups with a breastdensitytype of 1, and she looses weight, her breast will shrink down to B cups. If her Genbsize is D, then she will grow D cups or bigger during pregnancy. But that is part of another function.
-	lactation['breastcount'] = 2
-	if lactation['breastdensitytype'] <= 0:
-		if pregtimes > 0:
-			lactation['breastdensitytype'] = 5
-		elseif salo <= 20:
-			lactation['breastdensitytype'] = 5
-		elseif salo <= 40:
-			lactation['breastdensitytype'] = 4
-		elseif salo <= 60:
-			lactation['breastdensitytype'] = 3
-		elseif salo <= 80:
-			lactation['breastdensitytype'] = 2
-		elseif salo <= 100:
-			lactation['breastdensitytype'] = 1
+	!!	getting the useable tissue
+	lactation['useable_cupsize'] = nbsize + magicf2b - vofat
+	!!	checking the variable. If it is greater 0, sveta has natural breast tissue to work with.
+	!!	else she has fake breasts or no breasts at all and no ability to lactate
+	if lactation['useable_cupsize'] > 0:
+		lactation['breasttissueinitiated'] = 1
+		lactation['last_useable_cupsize'] = lactation['useable_cupsize']
+		!! breast density type. Density of glands.
+		!! 0 = not initialized, 1 = 17% gland tissue, 2 = 36% gland tissue, 3 = 55% gland tissue, 4 = 74% gland tissue, 5 = 93% gland tissue. This is based on studies I found on the internet.
+		!! The logic behind the below is, when losing fat, breasts usually volunteer first. So the more bodyfat sveta has, the more she has in her breasts, and therefore the percentage of gland tissue goes down.
+		!! Breasts cannot lose glandular tissue (if not cut out, yikes), therefore this will define the maximum they can shrink if fat is removed. At the moment this is done by Genbsize. The below will replace this in the future.
+		!! Genbsize is the breastsize that is given to Sveta by her parents. During puberty the breasts swell up to this size with mostly being fat tissue. Due to genetic variability and hormones, breasts will develop more or
+		!! less mammary gland tissue during puberty. As the game starts after Svetas puberty, this is impossible to simulate. That is why I came up with the below part. It will calculate the breastdensity using Svetas body fat.
+		!! During pregnancy most of the breast fat is getting replaced by conjuctive tissue and mammary glands. But the genetical breastsize also affects the total mammary gland growth. So for example, if Sveta is a chubby,
+		!! and has D cups with a breastdensitytype of 1, and she looses weight, her breast will shrink down to B cups. If her Genbsize is D, then she will grow D cups or bigger during pregnancy. But that is part of another function.
+		lactation['breastcount'] = 2
+		lactation['lactlib_change'] = 1
+		!!	setting breastdensitypercent (y) with y = -0,95x + 112 with x being svetas salo
+		if salo <= 20:
+			lactation['breastdensitypercent'] = 93
+		elseif salo > 100:
+			lactation['breastdensitypercent'] = 17
+		else
+			lactation['breastdensitypercent'] = 112 - ((95*salo)/100)
 		end
-	end
-	!!	setting breastdensitypercent (y) with y = -0,95x + 112 with x being svetas salo
-	if salo <= 20:
-		lactation['breastdensitypercent'] = 93
-	elseif salo > 100:
-		lactation['breastdensitypercent'] = 17
+		:ibt_loop
+		!!	initiating breastglandtissue. the size is converted to ccm.
+		lactation['breastglandtissue'] = (func('lact_lib','bsizetoccm', lactation['useable_cupsize'])*lactation['breastdensitypercent'])/100
+		!!	getting the breast max milk storage. Please be aware that there is storage even if no lactation is happening. Factors 100 and 500 stand for flat glands and inflated glands.
+		!!	usually nature intented women to be able to breastfeed. depending on age and size, babys eat about 80ml to 150ml. if both breast make 80ml together, then we are fine. Even AA cups can do this.
+		!!	this is what the pregtime check is for. Making sure sveta would have been able to breastfeed. There is a jump to loop back.
+		if lactation['active'] > 0:
+			lactation['breastmm'] = (lactation['breastglandtissue']*500)*lactation['breastcount']
+			if pregtimes > 0 and (lactation['breastglandtissue']*500) < 80000:
+				!!	make the percentage change and jump back, so everything is recalculated. Do not mess with the factors.
+				lactation['breastdensitypercent'] = 8500/func('lact_lib','bsizetoccm', lactation['useable_cupsize'])
+				jump 'ibt_loop'
+			end
+		elseif lactation['active'] < 1:
+			lactation['breastmm'] = (lactation['breastglandtissue']*100)*lactation['breastcount']
+			if pregtimes > 0 and lactation['breastglandtissue'] < 40:
+				!!	make the percentage change and jump back, so everything is recalculated. Do not mess with the factors.
+				lactation['breastdensitypercent'] = 4500/func('lact_lib','bsizetoccm', lactation['useable_cupsize'])
+				jump 'ibt_loop'
+			end
+		end
 	else
-		lactation['breastdensitypercent'] = 112 - ((95*salo)/100)
-	end
-	!!	breast tissue that can have mammary glands is nbsize + magicf2b
-	!!	Silicone is obviously not a good material to grow milkglands in
-	!!	full breastccm would be nbsize + magicf2b + silicone.
-	!!	Getting percentage tissue from breastccm.
-	lactation['breastccm'] = func('lact_lib','bsizetoccm',(nbsize + magicf2b + silicone))
-	if lactation['breastccm'] <= 0: lactation['breastccm'] = 1	
-	lactation['nbsizepercent'] = ((nbsize*100/(nbsize + magicf2b + silicone)*100)/100)
-	lactation['magicf2bpercent'] = ((magicf2b*100/(nbsize + magicf2b + silicone)*100)/100)
-	lactation['siliconepercent'] = ((silicone*100/(nbsize + magicf2b + silicone)*100)/100)
-	lactation['nbsizepercent_wos'] = ((nbsize*100/(nbsize + magicf2b)*100)/100)
-	lactation['magicf2bpercent_wos'] = ((magicf2b*100/(nbsize + magicf2b)*100)/100)
-	lactation['nbsizechange'] = nbsize
-	lactation['magicf2bchange'] = magicf2b
-	lactation['siliconechange'] = silicone
-	!!	Getting the usuable amount of breast tissue which can actually have mammary glands (in ccm)
-	lactation['breastuseabletissue'] = ((lactation['nbsizepercent'] + lactation['magicf2bpercent'])*lactation['breastccm'])/100
-	lactation['breastsiliconeccm'] = (lactation['siliconepercent']*lactation['breastccm'])/100
-	!!	Getting mammary gland tissue per breast, based on the breastdensitytype/breastdensitypercent. Explaination on the percentages is in the head of the function.
-	lactation['breastglandtissue'] = (lactation['breastuseabletissue']*lactation['breastdensitypercent'])/100
-	!!	calculating breast fat per breast
-	lactation['breastfat'] = lactation['breastuseabletissue'] - lactation['breastglandtissue']
-	!!	calculating alveolicount per breast Alveoli volume 2.18mm² (flat), milk volume 0.18mm³ (flat) and 4mm³ (inflated), milk volume 2mm³ (inflated) 1000 mm³ = 1 cm³
-	if lactation['active'] <= 0:
-		lactation['alveolicount'] = ((lactation['breastglandtissue']*100000)/218)
+		!! when there is no tissue, set everything for zero. Note: the breasttissueinitiated variable is set to 0, so the function will always check if there is useable tissue available and then will create the glandtissue.
+		lactation['breastcount'] = 0
+		lactation['breasttissueinitiated'] = 0
+		lactation['breastdensitypercent'] = 0
+		lactation['breastmm'] = 0
+		lactation['active'] = 0
+		lactation['lactlib_change'] = 0
 		lactation['alveoliexpandlvl'] = 0
-		lactation['nipgrowth'] = 0
-	else
-		lactation['alveolicount'] = ((lactation['breastglandtissue']*1000)/4)
-		lactation['alveoliexpandlvl'] = 10
-		lactation['nipgrowth'] = 2
+		lactation['alveoliexpandlvl_change'] = 0
 	end
-	!!	storing start volumes for later use
-	lactation['breastccm_start'] = lactation['breastccm']
-	lactation['breastfat_start'] = lactation['breastfat']
-	lactation['breastglandtissue_start'] = lactation['breastglandtissue']
-	lactation['alveolicount_start'] = lactation['alveolicount']
-	lactation['nipgrowth_start'] = lactation['nipgrowth']
-	lactation['breastdensitytype_start'] = lactation['breastdensitytype']
-	lactation['usablebtissue_start'] = lactation['usablebtissue']
-	lactation['usablebtissue_change'] = lactation['usablebtissue']
-	!!	Svetas breast can only shrink if there fat to go away. Mammary glands cannot shrink away. Setting minimum nbsize.
-	lactation['min_nbsize'] = func('lact_lib','bccmtosize',lactation['breastglandtissue'])
-	if lactation['min_nbsize'] < 1: lactation['min_nbsize'] = 1
+	
 end
 
 if $ARGS[0] = 'bsizetoccm':
@@ -209,73 +191,112 @@ if $ARGS[0] = 'bccmtosize':
 	end
 end
 
-!!	This function is used for breastgrowth. When nbsize, magicf2b, silicone, alveolicount or the alveoliexpandlvl are changed the breastccm changes. Everything will be written back to the specific variable
-if $ARGS[0] = 'BreastGrowth':
-	!!	usage func('lact_lib','BreastGrowth')
-	!!	Checking for variable errors, and re-initializing breastccm or alveolicount
-	if lactation['breastccm'] <= 0 or lactation['alveolicount'] <= 0:
-		lactation['breasttissueinitiated'] = 0
+!! This function checks for non lact_lib changes made to svetas breasts.
+if $ARGS[0] = 'checkExtBreastGrowth':
+	!!	usage func('lact_lib','checkExtBreastGrowth')
+	!!	lactation['lactlib_change'] is checked here. It is called in the growing functions in lact_lib. State 0 = no internal change, 1 = internal change. If the lactlib did not act upon svetas breasts, make the changes.
+	lactation['useable_cupsize'] = nbsize + magicf2b - vofat
+	if lactation['lactlib_change'] > 0:
+		lactation['lactlib_change'] = 0
+		lactation['useable_cupsize'] = lactation['last_useable_cupsize']
+	else
+		!!	technically, the below will recalculate everything. Nothing else. Just like in init breast tissue. Just added some extra cases for lactation and induction.
+		!!	checking if changes were made to the stuff that is interesting for lactation.
+		if lactation['useable_cupsize'] <> lactation['last_useable_cupsize'] and lactation['useable_cupsize'] > 0:
+			:cEBG_loop
+			lactation['breastglandtissue'] = ((func('lact_lib','bsizetoccm', lactation['useable_cupsize'])*lactation['breastdensitypercent'])/100) + (lactation['preggrowth']/100)
+			!!	getting the breast max milk storage. Please be aware that there is storage even if no lactation is happening. Factors 100 and 500 stand for flat glands and inflated glands.
+			!!	usually nature intented women to be able to breastfeed. depending on age and size, babys eat about 80ml to 150ml. if both breast make 80ml together, then we are fine. Even AA cups can do this.
+			!!	this is what the pregtime check is for. Making sure sveta would have been able to breastfeed. There is a jump to loop back.
+			if lactation['active'] > 0:
+				lactation['breastmm'] = (lactation['breastglandtissue']*(100 + (lactation['alveoliexpandlvl'] * 40)))*lactation['breastcount']
+				if pregtimes > 0 and (lactation['breastglandtissue']*500) < 80000:
+					!!	make the percentage change and jump back, so everything is recalculated. Do not mess with the factors.
+					lactation['breastdensitypercent'] = 8500/func('lact_lib','bsizetoccm', lactation['useable_cupsize'])
+					jump 'cEBG_loop'
+				end
+			elseif lactation['active'] <= 0:
+				!! Taking gland inflation level into account.
+				lactation['breastmm'] = (lactation['breastglandtissue']*(100 + (lactation['alveoliexpandlvl'] * 40)))*lactation['breastcount']
+				if pregtimes > 0 and lactation['breastglandtissue'] < 40:
+					!!	make the percentage change and jump back, so everything is recalculated. Do not mess with the factors.
+					lactation['breastdensitypercent'] = 4500/func('lact_lib','bsizetoccm', lactation['useable_cupsize'])
+					jump 'cEBG_loop'
+				end
+			end
+			lactation['last_useable_cupsize'] = lactation['useable_cupsize']
+		elseif lactation['useable_cupsize'] <= 0:
+			!! when there is no tissue, set everything for zero. Note: the breasttissueinitiated variable is set to 0, so the function will always check if there is useable tissue available and then will create the glandtissue.
+			lactation['breastcount'] = 0
+			lactation['breasttissueinitiated'] = 0
+			lactation['breastdensitypercent'] = 0
+			lactation['breastmm'] = 0
+			lactation['active'] = 0
+			lactation['lactlib_change'] = 0
+		end
+	end	
+end
+
+!! This function is used for lactation based growth. It writes back to nbsize, magicf2b.
+if $ARGS[0] = 'lactationBreastGrowth':
+	lactation['useable_cupsize'] = nbsize + magicf2b - vofat
+	!!	make sure lactation['breasttissueinitiated'] is 1 before starting this.
+	if lactation['breasttissueinitiated'] = 0:
 		lactation['result'] = func('lact_lib','init_breasttissue')
 	end
-	!!	things will start if breastccm is different from bust/cup size (mostly due to other events or cheating) or if the mammaryglands change due to breastpumping or pregnancy.
-	if lactation['breastccm'] <> func('lact_lib','bsizetoccm',(nbsize + magicf2b + silicone)) or lactation['alveolicount_change'] <> lactation['alveolicount'] or lactation['alveoliexpandlvl_change'] <> lactation['alveoliexpandlvl']:
-		!!	There are general breast growth events that will increase nbsize, magicf2b or silicone. So the breast "contents" have to be recalculated. This is happening here with the breastrecalc function.
-		!!	Now the fun part. Warning, crazy math ahead. I got headaches while doing this, so better not mess with it or you will break everything.
-		!!	first - check for alveoligrowth: yes, do the crazy stuff
-		!!	second - check for nbsize, magicf2b and silicone change
-		!!	there is no else on purpose, because nothing should happen to svetas breasts if nothing else changes
-		!!	changes in nbsize, magicf2b or silicone?
-		if nbsize <> lactation['nbsizechange'] or magicf2b <> lactation['magicf2bchange'] or silicone <> lactation['siliconechange']:
-			!!	getting the new percentages
-			!!	nbsize checker. if nbsize is getting too small.
-			if lactation['min_nbsize'] < 1: lactation['min_nbsize'] = 1
-			if nbsize < lactation['min_nbsize']: nbsize = lactation['min_nbsize']
-			lactation['nbsizepercent'] = (nbsize*100/(nbsize + magicf2b + silicone)*100)/100
-			lactation['magicf2bpercent'] = (magicf2b*100/(nbsize + magicf2b + silicone)*100)/100
-			lactation['siliconepercent'] = (silicone*100/(nbsize + magicf2b + silicone)*100)/100
-			lactation['magicf2bpercent_wos'] = (magicf2b*100/(nbsize + magicf2b)*100)/100
-			!!	calculating new breastccm
-			lactation['breastccm'] = func('lact_lib','bsizetoccm',(nbsize + magicf2b + silicone))
+	!!	the milk glands expand.
+	if lactation['preggrowth'] > 0:
+		lactation['breastglandtissue'] = ((func('lact_lib','bsizetoccm', lactation['last_useable_cupsize'])*lactation['breastdensitypercent'])/100) + (lactation['preggrowth']/100)
+	end
+	if lactation['alveoliexpandlvl_change'] <> lactation['alveoliexpandlvl']:
+		!!	lactlib makes a change. we need to flag that, else checkExtBreastGrowth will go off and mess up everything.
+		lactation['lactlib_change'] = 1
+		if pcs_cupsize < 60:
+			!!	getting breastfat in ccm
+			lactation['breastfat'] = func('lact_lib','bsizetoccm', lactation['useable_cupsize']) - lactation['breastglandtissue']
+			!!	calculating the new breasttissue ccm
+			lactation['breastglandtissue'] = (((lactation['breastglandtissue']*10000)/(20 + (lactation['alveoliexpandlvl_change'] * 2)))*(20 + (lactation['alveoliexpandlvl'] * 2)))/10000
+			!!	setting the new breastmm volume in cmm
+			lactation['breastmm'] = (lactation['breastglandtissue']*(100 + (lactation['alveoliexpandlvl'] * 40)))*lactation['breastcount']
+			!!	checking the current pcs_cupsize - silicone versus the new cupsize
+			if (pcs_cupsize - silicone) > func('lact_lib','bccmtosize', (lactation['breastfat'] + lactation['breastglandtissue'])):
+				!!	In case nbsize will go to negative we catch that here. Sad sveta has no breast tissue anymore. Go cry.
+				if nbsize < (func('lact_lib','bccmtosize', (lactation['breastfat'] + lactation['breastglandtissue'])) - (pcs_cupsize - silicone)):
+					nbsize = 0
+				else
+					!!	Writing negative growth (i.e. shrinking) to nbsize. 
+					nbsize -= (func('lact_lib','bccmtosize', (lactation['breastfat'] + lactation['breastglandtissue'])) - (pcs_cupsize - silicone))
+				end
+			elseif (pcs_cupsize - silicone) <= func('lact_lib','bccmtosize', (lactation['breastfat'] + lactation['breastglandtissue'])):
+				!!	Wrting positive (or no growth) to nbsize. You might think: what about magicf2b and vofat? Answer: breaking everything appart will give more space for error and this works well with cheats. Lazy Coding.
+				!!	We need to make sure that pcs_cupsize is not going over 60, so we have to check it. In case it is going over 60, svetas breasts will use breastfat for gland space.
+				if (func('lact_lib','bccmtosize', (lactation['breastfat'] + lactation['breastglandtissue'])) + silicone) > 60:
+					!!	Adding the gap to nbsize
+					nbsize += (60 - pcs_cupsize)
+					!!	Adding the overgrowth by removing fat, yay percentages everyone!
+					lactation['breastdensitypercent'] = (lactation['breastglandtissue']*100)/1580
+				else
+					!!	writing to nbsize, nothing fancy
+					nbsize += func('lact_lib','bccmtosize', (lactation['breastfat'] + lactation['breastglandtissue'])) - (pcs_cupsize - silicone)
+				end				
+			end
+		else
+			lactation['breastglandtissue'] = (((lactation['breastglandtissue']*10000)/(20 + (lactation['alveoliexpandlvl_change'] * 2)))*(20 + (lactation['alveoliexpandlvl'] * 2)))/10000
+			lactation['breastmm'] = (lactation['breastglandtissue']*(100 + (lactation['alveoliexpandlvl'] * 40)))*lactation['breastcount']
+			lactation['breastdensitypercent'] = (lactation['breastglandtissue']*100)/1580
 		end
-		!!	calculating all the breast tissue - breastglandtissue, breastfat and silicone.
-		lactation['breastfat'] = (lactation['breastccm'] - lactation['breastglandtissue'] - ((lactation['siliconepercent']*lactation['breastccm'])/100))
-		lactation['breastsiliconeccm'] = (lactation['siliconepercent']*lactation['breastccm'])/100
-		if lactation['breastfat'] < 0: lactation['breastfat'] = 0
-		if lactation['breastsiliconeccm'] < 0: lactation['breastsiliconeccm'] = 0
-		!!	getting new breastglandtissue
-		lactation['breastglandtissue']= (lactation['alveolicount'] * (218 + (lactation['alveoliexpandlvl'] * 20)))/100000
-		!!	Crazy Math going on here. When I was coding this, only god and I knew what I was doing. Now only god knows.
-		!!	Well actually, this one recalculates all the CCM stuff to normal nbsize, magicf2b and silicone. It works, no idea why, but it works.
-		lactation['breastccm'] = (lactation['breastglandtissue'] + lactation['breastfat'] + lactation['breastsiliconeccm'])
-		lactation['siliconepercent'] = ((lactation['breastsiliconeccm']*100)/lactation['breastccm'])
-		lactation['magicf2bccm'] = ((lactation['breastccm'] - ((lactation['breastccm']*lactation['siliconepercent'])/100))*lactation['magicf2bpercent_wos'])/100
-		lactation['nbsizebccm'] = lactation['breastccm'] - lactation['breastsiliconeccm'] - lactation['magicf2bccm']
-		lactation['nbsizepercent'] = ((lactation['nbsizebccm']*100)/lactation['breastccm'])
-		lactation['magicf2bpercent'] = ((lactation['magicf2bccm']*100)/lactation['breastccm'])
-		!!	fixing QSP rounding issue
-		if (lactation['magicf2bpercent'] + lactation['nbsizepercent'] + lactation['siliconepercent']) < 100:
-			lactation['nbsizepercent'] += (100 - (lactation['magicf2bpercent'] + lactation['nbsizepercent'] + lactation['siliconepercent']))
-		elseif (lactation['magicf2bpercent'] + lactation['nbsizepercent'] + lactation['siliconepercent']) > 100:
-			lactation['nbsizepercent'] -= (100 - (lactation['magicf2bpercent'] + lactation['nbsizepercent'] + lactation['siliconepercent']))
-		end
-		!!	writing back nbsize and magicf2b. Silicone does not change
-		nbsize = (func('lact_lib','bccmtosize',lactation['breastccm'])*lactation['nbsizepercent'])/100
-		magicf2b = (func('lact_lib','bccmtosize',lactation['breastccm'])*lactation['magicf2bpercent'])/100
-		lactation['nbsizechange'] = nbsize
-		lactation['magicf2bchange'] = magicf2b
-		lactation['siliconechange'] = silicone
-		!!	if sveta is lactating, we need to reset the breastmm too
-		if lactation['active'] > 0:	lactation['result'] = func('lact_lib','set_breastmm')
-		!!	Svetas breast can only shrink if there fat to go away. Mammary glands cannot shrink away. Setting minimum nbsize.
-		lactation['min_nbsize'] = func('lact_lib','bccmtosize',lactation['breastglandtissue'])
-		if lactation['min_nbsize'] < 1: lactation['min_nbsize'] = 1
+		lactation['useable_cupsize'] = lactation['last_useable_cupsize']
 	end
 end
 
-!!	new lactation['breastmm'] function. Warning! lactation['breastmm'] is now in microliter (ml*1000) for more acuracy. Alveoli count per breast times 2mm³ (2mm³ = 0,002ml) times breastcount.
+!!	This function is used for breastgrowth. When nbsize, magicf2b, silicone, alveolicount or the alveoliexpandlvl are changed the breastccm changes. Everything will be written back to the specific variable
+!!	if $ARGS[0] = 'BreastGrowth':
+
+
+!!	new lactation['breastmm'] function. Warning! lactation['breastmm'] is in microliter (ml*1000) for more acuracy.
 !!	Breastcount can be changed later on if someone comes up with multibreasts or breast amputation.
 if $ARGS[0] = 'set_breastmm':
-	lactation['breastmm'] = (lactation['alveolicount']*2)*lactation['breastcount']
+	lactation['breastmm'] = (lactation['breastglandtissue']*(100 + (lactation['alveoliexpandlvl'] * 40)))*lactation['breastcount']
 end
 
 !!	Just a function used for debugging. Can be deleted if not needed anymore.
@@ -283,8 +304,8 @@ if $ARGS[0] = 'show_breast_stat':
 	!!	func('lact_lib','show_breast_stat')
 	'lactation[''breastcount''] = <<lactation[''breastcount'']>>'
 	'lactation[''breasttissueinitiated''] = <<lactation[''breasttissueinitiated'']>>'
-	'lactation[''breastccm''] = <<lactation[''breastccm'']>>'
-	'lactation[''min_nbsize''] = <<lactation[''min_nbsize'']>>'
+	'lactation[''breastglandtissue'']] = <<lactation[''breastglandtissue'']>>'
+	'lactation[''breastdensitypercent''] = <<lactation[''breastdensitypercent'']>>'
 	'lactation[''maturebreast''] = <<lactation[''maturebreast'']>>'
 	'lactation[''alveolicount''] = <<lactation[''alveolicount'']>>'
 	'lactation[''prolactinlvl''] = <<lactation[''prolactinlvl'']>>'
@@ -565,7 +586,7 @@ if $ARGS[0] = 'lact_switch':
 		!!	setting lactation to active
 		lactation['active'] = 1
 		!!	setting breast maximum milk volume via function
-		lactation['result'] = func('lact_lib','set_breastmm')
+		lactation['breastmm'] = (lactation['breastglandtissue']*(100 + (lactation['alveoliexpandlvl'] * 40)))*lactation['breastcount']
 		!!	resetting prolactinlvl so that the initial production rate is not too high
 		if lactation['prolactinlvl'] < 200: lactation['prolactinlvl'] = 200
 		!!	setting the lactation rate. Warning! lactation rate is in ml*1000 now for higher accuracy.
@@ -577,13 +598,14 @@ if $ARGS[0] = 'lact_switch':
 		pcs_nips += lactation['nipgrowth']
 		if lactation['alveoliexpandlvl'] < 10: lactation['alveoliexpandlvl'] = 10
 		if lactation['alveoliexpandlvl_change'] < 9: lactation['alveoliexpandlvl_change'] = 9
+		lactation['result'] = func('lact_lib', 'lactationBreastGrowth')
+		if lactation['alveoliexpandlvl_change'] < 10: lactation['alveoliexpandlvl_change'] = 10
 		lactation['milkprod_type'] = 1
 	else
 		!!	If lactation is on, the stuff below will switch it off again.
 		lactation['active'] = 0
 		lactation['lactaterate'] = 0
 		lactation['breastmv'] = 0
-		lactation['breastmm'] = 0
 		lactation['alveoliexpandlvl'] = 0
 		lactation['alveoliexpandlvl_change'] = 1
 		lactation['prolactinlvl'] = 0
@@ -600,15 +622,14 @@ if $ARGS[0] = 'breastcycle':
 	!!	usage func('lact_lib','breastcycle')
 	!!	if lactating or not, breasts will grow during pregnancy. This will only happen during first full pregnancy
 	if pregchem => 2191 and lactation['maturebreast'] <= 0:
-		!!	Alveoligrowth/breastgrowth + 78876 new aveoli per breast average during pregnancy
-		!!	Checking pregchem last. It should not be small than 0.
+		!!	breastgrowth 40ccm per breast.
+		!!	Checking pregchem last. It should not be smaller than 0.
 		if lactation['pregchemlast'] <= 0:
 			lactation['pregchemlast'] = 2191
 			lactation['preggrowth'] = 0
 		end
-		if lactation['preggrowth'] <= 78876 and (pregchem - lactation['pregchemlast']) >= 0:
-			lactation['preggrowth'] = (pregchem - 2191) * 36
-			lactation['alveolicount'] = lactation['alveolicount_start'] + lactation['preggrowth']
+		if lactation['preggrowth'] <= 40000 and (pregchem - lactation['pregchemlast']) >= 0:
+			lactation['preggrowth'] = (pregchem - 2191) * 18
 			lactation['growthsoreness_on'] = 1
 			if pain['breasts'] <= 20: pain['breasts'] = 20
 		else
@@ -718,7 +739,8 @@ if $ARGS[0] = 'breastcycle':
 		lactation['result'] = func('lact_lib','breast_engorment')
 	end
 	if lactation['milkgrowday'] < daystart:
-		lactation['result'] = func('lact_lib','BreastGrowth')
+		lactation['result'] = func('lact_lib','checkExtBreastGrowth')
+		lactation['result'] = func('lact_lib','lactationBreastGrowth')
 		lactation['dailyoverdemand'] = 0
 		lactation['alveolicount_change'] = lactation['alveolicount']
 		lactation['milkgrowday'] = daystart
