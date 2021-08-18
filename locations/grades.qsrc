@@ -1,0 +1,323 @@
+#grades
+
+!!For handling the grades for classes in school, university adn other places the main character teke classes.
+
+!!First important thing is that to use these system to handle the characters grades for a class, it has to be initilized by the following call:
+!! gs 'grades', 'createclass', 'institution', 'name', 'number classes', 'number of optional in class educational activities', 'classes obligatory', 'use of homework', 'use computer in homework and out of class activities', 'number of out of class educational activities for max effectiveness'
+!! 'createclass' is just the name of this action.
+!! 'institution' is the institution where the classes take place. I can be 'school' for high-school or 'uni' for university. But you can also introduce a new place of education if you want. This is used to make sure that we can calculate averages, determine number of passed or failed classes in the give institution.
+!! 'name' is simply just the name of the class, make sure that the combination of institution and name is unique.
+!! 'number of classes' This is the number of classes that the character have each standard week. This number can be 0, but then the only weekly actions that affects grades are the out class educational ones. 
+!! 'number of optional in class educational activities' is the number of actions that the character can do in a given class to improve their grades. Examples include pay attention, ask question. Remember when you write your class to include the given number of activities in each class.
+!! 'class obligatory' this is eithe 'yes' or 'no'. The difference between an obligatory class and a non obligatory is whether your in class performance is taking into account in your grade. Think the difference between a high-school where you grade is partially given by you teacher evaluating your performance throughout the year and a university lecture where your grade only depends on your performance at the exam.
+!! 'use of homework' this is an other 'yes' or 'no' question. This is if the class gives assignments as part of the daily homework. Specifically used to see if doing the daily homework contributes to the grade of this class.
+!! 'use computer in homework and out of class activities' this is to determine if the grade gain from doing homework or out of class activities is affected by access to a computer o not: 0 mean it is not affected, 1 means that the grade is affected if you do not use a computer and 2 means that the homework will not contribute to your grade if you do not use a computer.
+!! 'number of out of class educational activities for max effectiveness' this for classes that have repeatable study activities outside the class. This can for example be use for self study classes at university. The number is not the maximal number of a time the character can do these activities, but the number of times the character have to do them to get the maximal increase in grade id the associated attribute is 50 or skill is 15.
+
+!!When the character attends a class then remember to include the following
+!! gs 'grades', 'attend_class', 'institution', 'name' Here institution and name are the once you assigned when you created the class.
+!!Then remember to include a number af calls for activities during that class corresponding to the number of optional in class educational activities assigned when the class was created.
+!!Each activity should use one of the following 3 different calls.
+!! gs 'grades', 'class_activity', 'institution', 'name'
+!! gs 'grades', 'class_activity_skill', 'institution', 'name', skill
+!! gs 'grades', 'class_activity_attributes', 'institution', 'name', attribute
+!!The first is to be used if the activity is not to be modified by anything.
+!!The second is if the activity is going to be modified by a skill. This will in general only increase the grade gain from the activity up 85% (It can lower it if the skill is less than 15) 
+!!The numerical argument 'skill' should be the skill you want to modify whit, for example if you want to use the characters dance skill it should be pcs_danc. 
+!!If you want to modify it by more that one skill you need to decide how. For example if you want to modify by both the characters singing skill and the instrumental music skill, you could take the maximum which would be the max(psc_vokal,pcs_instrmusic) or you could take the average which would be (pcs_vokal+pcs_instrmusic)/2.
+!!These are just suggestions but remember that the result should return a number between 0 and 100.
+!!The third activity call is to be used if you want to modify by an attribute. This can half the grade gain if the attribute is 0 and increase it by 50% if the attribute is 100. If the attribute is 50 this will give the same as the unmodified call.
+!!If you want to modify by more than one attribute then you can do it by using one of the methods explained under the call modified by skill.
+
+!!Doing homweork is done by using the following call, remember to have the check lernHome >= number of homeworks before calling this to make sure that there is actually homework to do. The action will automatically lower this variable. Also remember that lernHome have to be increased by one for each day of school.
+!! gs 'grades', 'homework', 'institution', 'use of computer', 'number of homeworks', 'joint', 'npc identifier'
+!! 'institution' is which institution this is for.
+!! 'use of computer' is 'yes' if a computer was available for doing the homework and 'no' if not.
+!!	'number of homeworks' is the number of gomework assignments you want to do whit this one call. Remember to make sure that this number is not greater than lernHome.
+!! 'joint' 0 if you do the homework alone, 1 if you do it together with an npc, 2 if a npc does the homework for you.
+!! 'npc identifier' the npc identifier from npcstatic in the for A(number) for the npc helping/doing for you.
+
+!!For a class where there is optional opportunities to study outside class that can effect the characters grade ther is th following three calls.
+!! gs 'grades', 'optional_activity', 'institution', 'name', 'use of computer'
+!! gs 'grades', 'optional_activity_skill', 'institution', 'name', 'use of computer', skill
+!! gs 'grades', 'optional_activity_attributes', 'institution', 'use of computer', 'name', attribute
+!!The difference between the three is how it is modified. This work exactly as for gs 'grades', 'class_activity'.
+!! 'use of computer' is 'yes' if a computer use to make the activity, 'no' if not. This modifies the grade gain depending of what was choose when the class was created.
+!!These optional activities can be called as many time as one want. the are particularly made for repeatable activities.
+!!The number of these optional activities chosen when the class created is how many time this activity have to be done with out modifies to achieve maximal grade gain in a given week.
+!!The modifiers mean that it can take more of less depending on skill, attributes and if a computer is used or not.
+
+!!For converting the weekly grade gain into change of the actual grade for the classes, the following should be called either in cikl Sunday night, or the first time the character enters the institution in a given week.
+!!Remember to call it for each institution the character attends.
+!! gs 'grades', 'calculate_grade', 'institution'
+
+!!Here are some other action that can be done using this file.
+!! gs 'grades', 'grade_cap', 'institution', 'name' number
+!!This make such that the grade can never go above the 'number' given (this should be a number less than 100). Can be used if a teacher don''t want to give higher grade for some reason.
+!! gs 'grades', 'grade_cap', 'institution', 'name'
+!!This removes any grade cap on the class.
+!! gs 'grades', 'grade_award', 'institution', 'name' number
+!!This add or subtract to number given from the grade directly, but respecting any cap on the grade. Can be used for giving the character a grade bonus or punishment for some discrete event. For example a bribe or punishment.
+!! gs 'grades', 'grades_above', 'institution', number
+!!This call set the variable class['<<institution>>_grades_above_<<number>>'] which returns the number of classes in institution which have a grade equal or higher than the number.
+!!This variable is not set automatically, so whenever you want to use it, remeber to make this call first.
+
+!!The following variable is set by this files for reference in events other places.
+!! class['<<institution>>_<<name>>_grade'], This is the grade of the the class in institution by the name given.
+!! class['<<institution>>_grade_average'], This is the average of the grades in institution.
+
+if $ARGS[0] = 'createclass':
+!!This initialize a class, setting the parameters used to track the grades.
+	if $ARGS[6] = 'yes':
+		dynamic 'class[''<<$ARGS[1]>>_<<$ARGS[2]>>_weekly_grade_gain_max''] = 10*<<ARGS[3]>> + 10*<<ARGS[4]>>*<<ARGS[3]>> + 50 + 10*<<ARGS[8]>>'
+	else 
+		dynamic 'class[''<<$ARGS[1]>>_<<$ARGS[2]>>_weekly_grade_gain_max''] = 10*<<ARGS[3]>> + 10*<<ARGS[4]>>*<<ARGS[3]>> + 10*<<ARGS[8]>>'
+	end
+
+	if $ARGS[5] = 'yes':
+		if $ARGS[6] = 'yes':
+			dynamic 'class[''<<$ARGS[1]>>_<<$ARGS[2]>>_weekly_grade_gain_breakeven_point''] = min(10*<<ARGS[3]>>+25, 5*<<ARGS[3]>> +50)'
+		else 
+			dynamic 'class[''<<$ARGS[1]>>_<<$ARGS[2]>>_weekly_grade_gain_breakeven_point''] = 10*<<ARGS[3]>>'
+		end
+	elseif $ARGS[6] ='yes':
+		dynamic 'class[''<<$ARGS[1]>>_<<$ARGS[2]>>_weekly_grade_gain_breakeven_point''] = 50'
+	else
+		dynamic 'class[''<<$ARGS[1]>>_<<$ARGS[2]>>_weekly_grade_gain_breakeven_point''] = 5*<<ARGS[8]>>'
+	end
+
+	if $ARGS[6] = 'yes': dynamic 'class[''<<$ARGS[1]>>_<<$ARGS[2]>>_homework''] = 1'
+	
+	dynamic 'class[''<<$ARGS[1]>>_<<$ARGS[2]>>_optional_weekly_max''] = 10*<<ARGS[8]>>'
+
+	dynamic 'class[''<<$ARGS[1]>>_<<$ARGS[2]>>_use_computer''] = <<ARGS[7]>>'
+
+	!!i = dyneval ('RESULT = ARRSIZE(''<<$ARGS[1]>>_classes'')')
+
+	!!dynamic '$<<$ARGS[1]>>_classes[i] = $ARGS[2]'
+
+	i = ARRSIZE('class_list_institution')
+	
+	$class_list_institution[i] = $ARGS[1]
+	
+	$class_list_name[i] = $ARGS[2]
+
+	dynamic 'class[''<<$ARGS[1]>>_<<$ARGS[2]>>_grade_cap''] = 100'
+	
+end
+
+if $ARGS[0] = 'grade_cap':
+!!This set a cap on the grade of the class. Used if something are preventing the character for obtaining a higher grade, for example a teacher mad at the character.
+	dynamic 'class[''<<$ARGS[1]>>_<<$ARGS[2]>>_grade_cap''] = <<ARGS[3]>>'
+	if 	dyneval( 'RESULT = class[''<<$ARGS[1]>>_<<$ARGS[2]>>_grade'']') > dyneval('RESULT = class[''<<$ARGS[1]>>_<<$ARGS[2]>>_grade_cap'']'):
+		dynamic 'class[''<<$ARGS[1]>>_<<$ARGS[2]>>_grade''] = class[''<<$ARGS[1]>>_<<$ARGS[2]>>_grade_cap'']'
+	end
+end
+
+if $ARGS[0] = 'grade_cap_removed':
+!!Remove the above cap.
+	dynamic 'class[''<<$ARGS[1]>>_<<$ARGS[2]>>_grade_cap''] = 100'
+end
+
+if $ARGS[0] = 'attend_class':
+!!This adds the point for attending a class. Also the first time it is called in a given day it register that there will be classes that day.
+	dynamic 'class[''<<$ARGS[1]>>_<<$ARGS[2]>>_class_day_<<week>>''] = 1'
+	dynamic 'class[''<<$ARGS[1]>>_<<$ARGS[2]>>_weekly_grade_gain''] += 10'
+end
+
+if $ARGS[0] = 'class_activity':
+!!This adds the point for doing an in class activity that is not modified.
+	dynamic 'class[''<<$ARGS[1]>>_<<$ARGS[2]>>_weekly_grade_gain''] += 10'
+end
+
+if $ARGS[0] = 'class_activity_skill':
+!!This adds the point for doing an in class activity modified by a skill.
+	dynamic 'class[''<<$ARGS[1]>>_<<$ARGS[2]>>_weekly_grade_gain''] += (10*(85+<<ARGS[3]>>))/100'
+end
+
+if $ARGS[0] = 'class_activity_attributes':
+!!This adds the point for doing an in class activity modified by an attributes.
+	dynamic 'class[''<<$ARGS[1]>>_<<$ARGS[2]>>_weekly_grade_gain''] += (10*(50+<<ARGS[3]>>))/100'
+end
+
+if $ARGS[0] = 'optional_activity':
+!!This adds the point for doing an optional out of class activity that is not modified.
+	if dyneval('RESULT = class[''<<$ARGS[1]>>_<<$ARGS[2]>>_use_computer'']') = 0 or $ARGS[3] = 'yes':
+		dynamic 'class[''<<$ARGS[1]>>_<<$ARGS[2]>>_optional_weekly_grade_gain''] += 10'
+	elseif dyneval('RESULT = class[''<<$ARGS[1]>>_<<$ARGS[2]>>_use_computer'']') = 1:
+		dynamic 'class[''<<$ARGS[1]>>_<<$ARGS[2]>>_optional_weekly_grade_gain''] += 5'
+	end
+	
+	if dyneval('RESULT = class[''<<$ARGS[1]>>_<<$ARGS[2]>>_optional_weekly_grade_gain'']') > dyneval('RESULT = class[''<<$ARGS[1]>>_<<$ARGS[2]>>_optional_weekly_max'']'):
+		dynamic 'class[''<<$ARGS[1]>>_<<$ARGS[2]>>_optional_weekly_grade_gain''] = class[''<<$ARGS[1]>>_<<$ARGS[2]>>_optional_weekly_max'']'
+	end
+end
+
+if $ARGS[0] = 'optional_activity_skill':
+!!This adds the point for doing an optional out of class activity modified by a skill.
+	if dyneval('RESULT = class[''<<$ARGS[1]>>_<<$ARGS[2]>>_use_computer'']') = 0 or $ARGS[3] = 'yes':
+		dynamic 'class[''<<$ARGS[1]>>_<<$ARGS[2]>>_optional_weekly_grade_gain''] += (10*(85+<<ARGS[4]>>))/100'
+	elseif dyneval('RESULT = class[''<<$ARGS[1]>>_<<$ARGS[2]>>_use_computer'']') = 1:
+		dynamic 'class[''<<$ARGS[1]>>_<<$ARGS[2]>>_optional_weekly_grade_gain''] += (5*(85+<<ARGS[4]>>))/100'
+	end
+
+	if dyneval('RESULT = class[''<<$ARGS[1]>>_<<$ARGS[2]>>_optional_weekly_grade_gain'']') > dyneval('RESULT = class[''<<$ARGS[1]>>_<<$ARGS[2]>>_optional_weekly_max'']'):
+		dynamic 'class[''<<$ARGS[1]>>_<<$ARGS[2]>>_optional_weekly_grade_gain''] = class[''<<$ARGS[1]>>_<<$ARGS[2]>>_optional_weekly_max'']'
+	end
+end
+
+if $ARGS[0] = 'optional_activity_attribute':
+!!This adds the point for doing an optional out of class activity modified by an attributes.
+	if dyneval('RESULT = class[''<<$ARGS[1]>>_<<$ARGS[2]>>_use_computer'']') = 0 or $ARGS[3] = 'yes':
+		dynamic 'class[''<<$ARGS[1]>>_<<$ARGS[2]>>_optional_weekly_grade_gain''] += (10*(50+<<ARGS[4]>>))/100'
+	elseif dyneval('RESULT = class[''<<$ARGS[1]>>_<<$ARGS[2]>>_use_computer'']') = 1:
+		dynamic 'class[''<<$ARGS[1]>>_<<$ARGS[2]>>_optional_weekly_grade_gain''] += (5*(50+<<ARGS[4]>>))/100'
+	end
+
+	if dyneval('RESULT = class[''<<$ARGS[1]>>_<<$ARGS[2]>>_optional_weekly_grade_gain'']') > dyneval('RESULT = class[''<<$ARGS[1]>>_<<$ARGS[2]>>_optional_weekly_max'']'):
+		dynamic 'class[''<<$ARGS[1]>>_<<$ARGS[2]>>_optional_weekly_grade_gain''] = class[''<<$ARGS[1]>>_<<$ARGS[2]>>_optional_weekly_max'']'
+	end
+end
+
+if $ARGS[0] = 'homework':
+!!For doing the daily homowork.
+	lernHome -= ARGS[3]
+	!!The modifier for doing home work is the characters intelligence if that do it alone, the intelligence of the npc that make it for them (but at least 50), or the maximum of the intelligence of the character and the npc the are doing it together with, with a small bonus if the there intelligence is close.
+	if ARGS[4] = 2:
+		modifier = dyneval('RESULT = max(npc_intel[''<<$ARGS[5]>>''], 50)')
+	elseif ARGS[4] = 1:
+		modifier = dyneval('RESULT = max(npc_intel[''<<$ARGS[5]>>''], pcs_intel) + (max(10+min(npc_intel[''<<$ARGS[5]>>''] -pcs_intel, pcs_intel -npc_intel[''<<$ARGS[5]>>'']),0)*(100 - max(npc_intel[''<<$ARGS[5]>>''], pcs_intel)))/50')
+	else
+		modifier = pcs_intel
+	end
+	i=0
+	:homework_loop
+		if $class_list_institution[i] = $ARGS[1]:
+			!!$i = dyneval ('RESULT = $<<$ARGS[1]>>_classes[i]')
+			if dyneval ('RESULT = class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_homework'']') = 1:
+				if $ARGS[2] = 'no':
+					dynamic 'class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_weekly_grade_gain''] += ARGS[3]*((2-class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_use_computer''])*5*(50+modifier))/100'
+				else
+					dynamic 'class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_weekly_grade_gain''] += ARGS[3]*(10*(50+modifier))/100'
+				end
+			end
+		end
+		i +=1
+	if ARRSIZE('class_list_institution') >= i: jump 'homework_loop'
+	!! if dyneval ('RESULT = ARRSIZE(''<<$ARGS[1]>>_classes'')') >= i: jump 'homework_loop'
+	
+	killvar 'modifier'
+end
+
+if $ARGS[0] = 'grade_award':
+!!This changes the grade directly of ARGS[3]
+	dynamic 'class[''<<$ARGS[1]>>_<<$ARGS[2]>>_grade''] += <<ARGS[3]>>'
+	if 	dyneval( 'RESULT = class[''<<$ARGS[1]>>_<<$ARGS[2]>>_grade'']') > dyneval('RESULT = class[''<<$ARGS[1]>>_<<$ARGS[2]>>_grade_cap'']'):
+		dynamic 'class[''<<$ARGS[1]>>_<<$ARGS[2]>>_grade''] = class[''<<$ARGS[1]>>_<<$ARGS[2]>>_grade_cap'']'
+	end
+	if 	dyneval( 'RESULT = class[''<<$ARGS[1]>>_<<$ARGS[2]>>_grade'']') < 0:
+		dynamic 'class[''<<$ARGS[1]>>_<<$ARGS[2]>>_grade''] = 0'
+	end	
+	temp = 0
+	n = 0
+	i=0
+	:grade_loop
+		if $class_list_institution[i] = $ARGS[1]:
+			temp += dyneval( 'RESULT = class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_grade'']')
+			n += 1
+			dynamic 'class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_weekly_grade_gain''] = 0'
+		end
+		i +=1
+	if ARRSIZE('class_list_institution') > i: jump 'grade_loop'
+	if n > 0: dynamic 'class[''<<$ARGS[1]>>_grade_average''] = temp/n'
+	killvar 'temp'
+	killvar 'n'
+	killvar 'i'
+end
+
+if $ARGS[0] = 'calculate_grade':
+!!This calculates the change in grade for each class in the institution $ARGS[1] at the end of the week. Should either be called from cikl when we move from Sunday to Monday, or the first time the character enters the institution in a given week.
+	temp = 0
+	n = 0
+	i=0
+	:grade_loop
+		if $class_list_institution[i] = $ARGS[1]:
+			!!$i = dyneval ('RESULT = $<<$ARGS[1]>>_classes[i]')
+			dynamic 'class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_weekly_grade_gain''] += class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_optional_weekly_grade_gain'']'
+			dynamic 'class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_optional_weekly_grade_gain''] = 0'
+			if dyneval ('RESULT = class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_weekly_grade_gain'']') < dyneval('RESULT = class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_weekly_grade_gain_breakeven_point'']'):
+				dynamic 'class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_grade''] -= (5 - (5*class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_weekly_grade_gain''])/class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_weekly_grade_gain_breakeven_point''])'
+			else
+				dynamic 'class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_grade''] += (3*(class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_weekly_grade_gain'']-class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_weekly_grade_gain_breakeven_point'']))/(class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_weekly_grade_gain_max''] -class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_weekly_grade_gain_breakeven_point''])'
+			end
+
+			if 	dyneval( 'RESULT = class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_grade'']') > dyneval('RESULT = class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_grade_cap'']'):
+				dynamic 'class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_grade''] = class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_grade_cap'']'
+			end
+			temp += dyneval( 'RESULT = class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_grade'']')
+			n += 1
+			dynamic 'class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_weekly_grade_gain''] = 0'
+		end
+		i +=1
+	if ARRSIZE('class_list_institution') > i: jump 'grade_loop'
+	if n > 0: dynamic 'class[''<<$ARGS[1]>>_grade_average''] = temp/n'
+	killvar 'temp'
+	killvar 'n'
+	killvar 'i'
+end
+
+if $ARGS[0] = 'assing_grade_description':
+	i=0
+	:assing_grade_loop
+		if $class_list_institution[i] = $ARGS[1]:
+			if dyneval( 'RESULT = class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_grade'']') < 10:
+				dynamic '$class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_grade''] = ''1'''
+			elseif dyneval( 'RESULT = class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_grade'']') < 20:
+				dynamic '$class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_grade''] = ''2-'''
+			elseif dyneval( 'RESULT = class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_grade'']') < 35:
+				dynamic '$class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_grade''] = ''2'''
+			elseif dyneval( 'RESULT = class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_grade'']') < 40:
+				dynamic '$class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_grade''] = ''2+'''
+			elseif dyneval( 'RESULT = class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_grade'']') < 50:
+				dynamic '$class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_grade''] = ''3-'''
+			elseif dyneval( 'RESULT = class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_grade'']') < 65:
+				dynamic '$class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_grade''] = ''3'''
+			elseif dyneval( 'RESULT = class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_grade'']') < 70:
+				dynamic '$class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_grade''] = ''3+'''
+			elseif dyneval( 'RESULT = class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_grade'']') < 75:
+				dynamic '$class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_grade''] = ''4-'''
+			elseif dyneval( 'RESULT = class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_grade'']') < 86:
+				dynamic '$class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_grade''] = ''4'''
+			elseif dyneval( 'RESULT = class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_grade'']') < 90:
+				dynamic '$class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_grade''] = ''4+'''
+			elseif dyneval( 'RESULT = class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_grade'']') < 92:
+				dynamic '$class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_grade''] = ''5-'''
+			elseif dyneval( 'RESULT = class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_grade'']') < 97:
+				dynamic '$class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_grade''] = ''5'''
+			else
+				dynamic '$class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_grade''] = ''5+'''
+			end
+		end
+		i += 1
+		if ARRSIZE('class_list_institution') >= i: jump 'assing_grade_loop'
+	end
+end
+
+if $ARGS[0] = 'grade above':
+!!This set the variable class['<<$ARGS[1]>>_grades_above_<<ARGS[2]>>'] which have the value of the number of classes in the institution that is above ARGS[2]. This only update when this gosub is called. It does not update automatically. So if you want to use it call this gosub first.
+	dynamic 'class[''<<$ARGS[1]>>_grades_above_<<ARGS[2]>>''] = 0'
+	i=0
+	:grade_above_loop
+		!!$i = dyneval ('RESULT = $<<$ARGS[1]>>_classes[i]')
+		if $class_list_institution[i] = $ARGS[1]:
+			if dyneval ('RESULT = class[''<<$ARGS[1]>>_<<$class_list_name[i]>>_grade'']') >= ARGS[2]:
+				dynamic 'class[''<<$ARGS[1]>>_grades_above_<<ARGS[2]>>''] += 1'
+			end
+		end
+		i +=1
+	if ARRSIZE('class_list_institution') >= i: jump 'grade_above_loop'	
+	!!if dyneval ('RESULT = ARRSIZE(''<<$ARGS[1]>>_classes'')') >= i: jump 'grade_above_loop'
+end
+
+
+---------grades-------------------------------------------------
