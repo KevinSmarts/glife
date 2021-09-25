@@ -499,8 +499,15 @@ if $ARGS[0] = 'sports_entry_set':
 end
 
 if $ARGS[0] = 'sports_entry_wear':
+	$backup['clothing_type'] = $clothingworntype
+	backup['clothing_number'] = clothingwornnumber
+	$backup['bra_type'] = $braworntype
+	backup['bra_number'] = brawornnumber
+	$backup['panty_type'] = $pantyworntype
+	backup['panty_number'] = pantywornnumber
+	$backup['shoe_type'] = $shoeworntype
+	backup['shoe_number'] = shoewornnumber
 	gs 'stat'
-
 	!gs 'wardrobe', 'prev_entry_set' this does not exist
 
 	gs 'clothing_attributes', 'danilovich_outfits', sportsclothingnumber
@@ -512,11 +519,25 @@ if $ARGS[0] = 'sports_entry_wear':
 	end
 
 	if dyneval('RESULT = <<$sportsbratype>>_bras[<<sportsbranumber>>]') = 0: $sportsbratype = 'none' & sportsbranumber = 0
-	gs 'bras', 'wear', $sportsbratype, sportsbranumber
+	
+	if $sportspantytype = 'none':
+		$lastwornbratype = 'none'
+		lastwornbranumber = 0
+		gs 'bras', 'remove'
+	else
+		gs 'bras', 'wear', $sportsbratype, sportsbranumber
+	end
+		
 
 	if dyneval('RESULT = <<$sportspantytype>>_panties[<<sportspantynumber>>]') = 0: $sportspantytype = 'none' & sportspantynumber = 0
-	gs 'panties', 'wear', $sportspantytype, sportspantynumber
-
+	if $sportspantytype = 'none':
+		$lastwornpantytype = 'none'
+		lastwornpantynumber = 0
+		gs 'panties', 'remove'
+	else
+		gs 'panties', 'wear', $sportspantytype, sportspantynumber
+	end
+	
 	gs 'shoes', 'wear', 'danilovich', sportsshoenumber
 
 	minut += 2
@@ -552,6 +573,7 @@ if $ARGS[0] = 'sports_entry_wear':
 		'<center><video autoplay loop src="images/pc/activities/misc/dress_1.mp4"></video></center>'
 		'You put on your sports outfit without any problems.'
 	end
+	
 	act 'Return':
 		if $wloc = 'wardrobe':
 			gt 'wardrobe', 'start'
@@ -563,10 +585,38 @@ if $ARGS[0] = 'sports_entry_wear':
 	end
 end
 
+if $ARGS[0] = 'sports_outfit_remove':
+	$lastwornclothingtype = $backup['clothing_type']
+	lastwornclothingnumber = backup['clothing_number']
+	$lastwornbratype = $backup['bra_type']
+	lastwornbranumber = backup['bra_number']
+	$lastwornpantytype = $backup['panty_type']
+	lastwornpantynumber = backup['panty_number']
+	$shoelastworntype = $backup['shoe_type']
+	shoelastwornnumber = backup['shoe_number']
+	gs 'clothing', 'wear_last_worn'
+	gs 'underwear', 'wear'
+	gs 'shoes', 'wear', 'last_worn'
+	gs 'stat'
+	killvar 'backup'
+	cla & *clr
+	'<center><video autoplay loop src="images/pc/activities/misc/dress_1.mp4"></video></center>'
+	'You change out of your sports outfit and back into your regular clothes.'
+	act 'Return':
+		if $wloc = 'wardrobe':
+			gt 'wardrobe', 'start'
+		else
+			gt $loc, $loc_arg
+		end
+	end
+end
+
 if $ARGS[0] = 'sports_outfit':
 	gs 'stat'
 	if $clothingworntype ! 'danilovich_outfits' or $shoeworntype ! 'danilovich':
-		act 'Change into: <<$sports_clothing_name>>': gs 'wardrobe', 'sports_entry_wear'
+		act 'Change into: <<$sports_clothing_name>>':gs 'wardrobe', 'sports_entry_wear'
+	elseif $backup['clothing_type'] ! '' and ($clothingworntype = 'danilovich_outfits' and $shoeworntype = 'danilovich'):
+		act'Change out of your <<$sports_clothing_name>>':gs 'wardrobe', 'sports_outfit_remove'
 	end
 end
 
