@@ -41,8 +41,8 @@
 !!	temp_var = need to find ways to get rid of temp_var dump
 !!	temp_var2 = need to find ways to get rid of temp_var dump
 
-!!	This function is called only once in the begining of the game. It is calculating svetas mammary gland density and alveolicount and sets the breastcount which will be 2 naturally
-if $ARGS[0] = 'init_breasttissue' and lactation['breasttissueinitiated'] <= 0:
+!!	This function is calculating Sveta''s mammary gland density and alveolicount and sets the breastcount which will be 2 naturally
+if $ARGS[0] = 'init_breasttissue':
 	!!	use func('lact_lib','init_breasttissue')
 	!!	getting the useable tissue
 	lactation['useable_cupsize'] = nbsize + magicf2b - vofat
@@ -60,36 +60,29 @@ if $ARGS[0] = 'init_breasttissue' and lactation['breasttissueinitiated'] <= 0:
 		!! During pregnancy most of the breast fat is getting replaced by conjuctive tissue and mammary glands. But the genetical breastsize also affects the total mammary gland growth. So for example, if Sveta is a chubby,
 		!! and has D cups with a breastdensitytype of 1, and she looses weight, her breast will shrink down to B cups. If her Genbsize is D, then she will grow D cups or bigger during pregnancy. But that is part of another function.
 		lactation['breastcount'] = 2
-		lactation['lactlib_change'] = 1
-		!!	setting breastdensitypercent (y) with y = -0,95x + 112 with x being svetas salo
-		if salo <= 20:
-			lactation['breastdensitypercent'] = 93
-		elseif salo > 100:
-			lactation['breastdensitypercent'] = 17
-		else
-			lactation['breastdensitypercent'] = 112 - ((95*salo)/100)
+		
+		if lactation['breastdensitytype'] < 3:
+			lactation['breastdensitytype'] = rand(3,5)
+			lactation['lactlib_change'] = 1
 		end
-		:ibt_loop
+		if lactation['maturebreast'] > 0:
+			lactation['breastdensitytype'] = 5
+			lactation['breastdensitypercent'] = 93
+		elseif lactation['breastdensitytype'] = 5:
+			lactation['breastdensitypercent'] = 93
+		elseif lactation['breastdensitytype'] = 4:
+			lactation['breastdensitypercent'] = 74
+		elseif lactation['breastdensitytype'] = 3:
+			lactation['breastdensitypercent'] = 55
+		end
+
 		!!	initiating breastglandtissue. the size is converted to ccm.
-		lactation['breastglandtissue'] = (func('lact_lib','bsizetoccm', lactation['useable_cupsize'])*lactation['breastdensitypercent'])/100
+		lactation['breastglandtissue'] = (func('lact_lib','bsizetoccm', lactation['useable_cupsize'])*lactation['breastdensitypercent'])/100 + (lactation['preggrowth']/100)
+		lactation['breastmm'] = (lactation['breastglandtissue']*(100 + (lactation['alveoliexpandlvl'] * 40)))*lactation['breastcount']
 		!!	getting the breast max milk storage. Please be aware that there is storage even if no lactation is happening. Factors 100 and 500 stand for flat glands and inflated glands.
 		!!	usually nature intented women to be able to breastfeed. depending on age and size, babys eat about 80ml to 150ml. if both breast make 80ml together, then we are fine. Even AA cups can do this.
 		!!	this is what the pregtime check is for. Making sure sveta would have been able to breastfeed. There is a jump to loop back.
-		if lactation['active'] > 0:
-			lactation['breastmm'] = (lactation['breastglandtissue']*500)*lactation['breastcount']
-			if pregtimes > 0 and (lactation['breastglandtissue']*500) < 80000:
-				!!	make the percentage change and jump back, so everything is recalculated. Do not mess with the factors.
-				lactation['breastdensitypercent'] = 8500/func('lact_lib','bsizetoccm', lactation['useable_cupsize'])
-				jump 'ibt_loop'
-			end
-		elseif lactation['active'] < 1:
-			lactation['breastmm'] = (lactation['breastglandtissue']*100)*lactation['breastcount']
-			if pregtimes > 0 and lactation['breastglandtissue'] < 40:
-				!!	make the percentage change and jump back, so everything is recalculated. Do not mess with the factors.
-				lactation['breastdensitypercent'] = 4500/func('lact_lib','bsizetoccm', lactation['useable_cupsize'])
-				jump 'ibt_loop'
-			end
-		end
+
 	else
 		!! when there is no tissue, set everything for zero. Note: the breasttissueinitiated variable is set to 0, so the function will always check if there is useable tissue available and then will create the glandtissue.
 		lactation['breastcount'] = 0
@@ -191,129 +184,42 @@ if $ARGS[0] = 'bccmtosize':
 	end
 end
 
-!! This function checks for non lact_lib changes made to svetas breasts.
-if $ARGS[0] = 'checkExtBreastGrowth':
-	!!	usage func('lact_lib','checkExtBreastGrowth')
-	!!	lactation['lactlib_change'] is checked here. It is called in the growing functions in lact_lib. State 0 = no internal change, 1 = internal change. If the lactlib did not act upon svetas breasts, make the changes.
-	lactation['useable_cupsize'] = nbsize + magicf2b - vofat
-	if lactation['lactlib_change'] > 0:
-		lactation['lactlib_change'] = 0
-		lactation['useable_cupsize'] = lactation['last_useable_cupsize']
-	else
-		!!	technically, the below will recalculate everything. Nothing else. Just like in init breast tissue. Just added some extra cases for lactation and induction.
-		!!	checking if changes were made to the stuff that is interesting for lactation.
-		if lactation['useable_cupsize'] <> lactation['last_useable_cupsize'] and lactation['useable_cupsize'] > 0:
-			!! to prevent the infinite loop, I limited the maximal number of the loops - rachel , but the author should check the code and find the bug
-			i = 0
-			:cEBG_loop
-			i += 1
-			lactation['breastglandtissue'] = ((func('lact_lib','bsizetoccm', lactation['useable_cupsize'])*lactation['breastdensitypercent'])/100) + (lactation['preggrowth']/100)
-			!!	getting the breast max milk storage. Please be aware that there is storage even if no lactation is happening. Factors 100 and 500 stand for flat glands and inflated glands.
-			!!	usually nature intented women to be able to breastfeed. depending on age and size, babys eat about 80ml to 150ml. if both breast make 80ml together, then we are fine. Even AA cups can do this.
-			!!	this is what the pregtime check is for. Making sure sveta would have been able to breastfeed. There is a jump to loop back.
-			if lactation['active'] > 0:
-				lactation['breastmm'] = (lactation['breastglandtissue']*(100 + (lactation['alveoliexpandlvl'] * 40)))*lactation['breastcount']
-				if i < 10 and pregtimes > 0 and (lactation['breastglandtissue']*500) < 80000:
-					!!	make the percentage change and jump back, so everything is recalculated. Do not mess with the factors.
-					lactation['breastdensitypercent'] = 8500/func('lact_lib','bsizetoccm', lactation['useable_cupsize'])
-					jump 'cEBG_loop'
-				end
-			elseif lactation['active'] <= 0:
-				!! Taking gland inflation level into account.
-				lactation['breastmm'] = (lactation['breastglandtissue']*(100 + (lactation['alveoliexpandlvl'] * 40)))*lactation['breastcount']
-				if i < 10 and pregtimes > 0 and lactation['breastglandtissue'] < 40:
-					!!	make the percentage change and jump back, so everything is recalculated. Do not mess with the factors.
-					lactation['breastdensitypercent'] = 4500/func('lact_lib','bsizetoccm', lactation['useable_cupsize'])
-					jump 'cEBG_loop'
-				end
-			end
-			lactation['last_useable_cupsize'] = lactation['useable_cupsize']
-		elseif lactation['useable_cupsize'] <= 0:
-			!! when there is no tissue, set everything for zero. Note: the breasttissueinitiated variable is set to 0, so the function will always check if there is useable tissue available and then will create the glandtissue.
-			lactation['breastcount'] = 0
-			lactation['breasttissueinitiated'] = 0
-			lactation['breastdensitypercent'] = 0
-			lactation['breastmm'] = 0
-			lactation['active'] = 0
-			lactation['lactlib_change'] = 0
-		end
-	end	
-end
-
 !! This function is used for lactation based growth. It writes back to nbsize, magicf2b.
 if $ARGS[0] = 'lactationBreastGrowth':
-	lactation['useable_cupsize'] = nbsize + magicf2b - vofat
-	!!	make sure lactation['breasttissueinitiated'] is 1 before starting this.
-	if lactation['breasttissueinitiated'] = 0:
+	if lactation['maturebreast'] = 1 and lactation['preggrowth'] > 0:
+!!		lactation['lactlib_change'] = 1
+		lactation['useable_cupsize'] = nbsize + magicf2b - vofat
+		nbsize += func('lact_lib','bccmtosize',(func('lact_lib','bsizetoccm', lactation['useable_cupsize']) + (lactation['preggrowth']/100))) + vofat - magicf2b - nbsize
 		lactation['result'] = func('lact_lib','init_breasttissue')
-	end
-	!!	the milk glands expand.
-	if lactation['preggrowth'] > 0:
-		lactation['breastglandtissue'] = ((func('lact_lib','bsizetoccm', lactation['last_useable_cupsize'])*lactation['breastdensitypercent'])/100) + (lactation['preggrowth']/100)
 	end
 	if lactation['alveoliexpandlvl_change'] <> lactation['alveoliexpandlvl']:
 		!!	lactlib makes a change. we need to flag that, else checkExtBreastGrowth will go off and mess up everything.
-		lactation['lactlib_change'] = 1
-		if pcs_cupsize < 60:
-			!!	getting breastfat in ccm
-			lactation['breastfat'] = func('lact_lib','bsizetoccm', lactation['useable_cupsize']) - lactation['breastglandtissue']
-			!!	calculating the new breasttissue ccm
-			lactation['breastglandtissue'] = (((lactation['breastglandtissue']*10000)/(20 + (lactation['alveoliexpandlvl_change'] * 2)))*(20 + (lactation['alveoliexpandlvl'] * 2)))/10000
-			!!	setting the new breastmm volume in cmm
-			lactation['breastmm'] = (lactation['breastglandtissue']*(100 + (lactation['alveoliexpandlvl'] * 40)))*lactation['breastcount']
-			!!	checking the current pcs_cupsize - silicone versus the new cupsize
-			if (pcs_cupsize - silicone) > func('lact_lib','bccmtosize', (lactation['breastfat'] + lactation['breastglandtissue'])):
-				!!	In case nbsize will go to negative we catch that here. Sad sveta has no breast tissue anymore. Go cry.
-				if nbsize < (func('lact_lib','bccmtosize', (lactation['breastfat'] + lactation['breastglandtissue'])) - (pcs_cupsize - silicone)):
-					nbsize = 0
-				else
-					!!	Writing negative growth (i.e. shrinking) to nbsize. 
-					nbsize -= (func('lact_lib','bccmtosize', (lactation['breastfat'] + lactation['breastglandtissue'])) - (pcs_cupsize - silicone))
-				end
-			elseif (pcs_cupsize - silicone) <= func('lact_lib','bccmtosize', (lactation['breastfat'] + lactation['breastglandtissue'])):
-				!!	Wrting positive (or no growth) to nbsize. You might think: what about magicf2b and vofat? Answer: breaking everything appart will give more space for error and this works well with cheats. Lazy Coding.
-				!!	We need to make sure that pcs_cupsize is not going over 60, so we have to check it. In case it is going over 60, svetas breasts will use breastfat for gland space.
-				if (func('lact_lib','bccmtosize', (lactation['breastfat'] + lactation['breastglandtissue'])) + silicone) > 60:
-					!!	Adding the gap to nbsize
-					nbsize += (60 - pcs_cupsize)
-					!!	Adding the overgrowth by removing fat, yay percentages everyone!
-					lactation['breastdensitypercent'] = (lactation['breastglandtissue']*100)/1580
-				else
-					!!	writing to nbsize, nothing fancy
-					nbsize += func('lact_lib','bccmtosize', (lactation['breastfat'] + lactation['breastglandtissue'])) - (pcs_cupsize - silicone)
-				end				
-			end
-		else
-			lactation['breastglandtissue'] = (((lactation['breastglandtissue']*10000)/(20 + (lactation['alveoliexpandlvl_change'] * 2)))*(20 + (lactation['alveoliexpandlvl'] * 2)))/10000
-			lactation['breastmm'] = (lactation['breastglandtissue']*(100 + (lactation['alveoliexpandlvl'] * 40)))*lactation['breastcount']
-			lactation['breastdensitypercent'] = (lactation['breastglandtissue']*100)/1580
-		end
-		lactation['useable_cupsize'] = lactation['last_useable_cupsize']
+!!		lactation['lactlib_change'] = 1
+		if lactation['alveoliexpandlvl'] mod 3 = 0 and lactation['alveoliexpandlvl_change'] + 1 = lactation['alveoliexpandlvl']:
+			nbsize += 5
+			'<b>Your breasts seem fuller.</b>'
+		elseif lactation['alveoliexpandlvl_change'] mod 3 = 0 and lactation['alveoliexpandlvl'] + 1 = lactation['alveoliexpandlvl_change'] and lactation['alveoliexpandlvl_change'] > 0 and nbsize > 10:
+			nbsize -= 5
+			'<b>Your breasts seem to be getting smaller.</b>'
+		end	
+		lactation['alveoliexpandlvl_change'] = lactation['alveoliexpandlvl'] 	
 	end
+	lactation['result'] = func('lact_lib','init_breasttissue')
 end
 
-!!	This function is used for breastgrowth. When nbsize, magicf2b, silicone, alveolicount or the alveoliexpandlvl are changed the breastccm changes. Everything will be written back to the specific variable
-!!	if $ARGS[0] = 'BreastGrowth':
-
-
-!!	new lactation['breastmm'] function. Warning! lactation['breastmm'] is in microliter (ml*1000) for more acuracy.
-!!	Breastcount can be changed later on if someone comes up with multibreasts or breast amputation.
-if $ARGS[0] = 'set_breastmm':
-	lactation['breastmm'] = (lactation['breastglandtissue']*(100 + (lactation['alveoliexpandlvl'] * 40)))*lactation['breastcount']
-end
 
 !!	Just a function used for debugging. Can be deleted if not needed anymore.
 if $ARGS[0] = 'show_breast_stat':
 	!!	func('lact_lib','show_breast_stat')
-	'lactation[''breastcount''] = <<lactation[''breastcount'']>>'
-	'lactation[''breasttissueinitiated''] = <<lactation[''breasttissueinitiated'']>>'
-	'lactation[''breastglandtissue'']] = <<lactation[''breastglandtissue'']>>'
+	'lactation[''breastdensitytype''] = <<lactation[''breastdensitytype'']>>'
 	'lactation[''breastdensitypercent''] = <<lactation[''breastdensitypercent'']>>'
+	'lactation[''breastglandtissue'']] = <<lactation[''breastglandtissue'']>>'
 	'lactation[''maturebreast''] = <<lactation[''maturebreast'']>>'
 	'lactation[''alveolicount''] = <<lactation[''alveolicount'']>>'
 	'lactation[''prolactinlvl''] = <<lactation[''prolactinlvl'']>>'
 	'lactation[''dailyoverdemand''] = <<lactation[''dailyoverdemand'']>>'
 	'lactation[''alveoliexpandlvl''] = <<lactation[''alveoliexpandlvl'']>>'
+	'lactation[''alveoliexpandlvl_change''] = <<lactation[''alveoliexpandlvl_change'']>>'
 	'lactation[''active''] = <<lactation[''active'']>>'
 	'lactation[''lactaterate''] = <<lactation[''lactaterate'']>>'
 	'lactation[''breastmm''] = <<lactation[''breastmm'']>>'
@@ -600,8 +506,6 @@ if $ARGS[0] = 'lact_switch':
 		lactation['nipgrowth'] = 2
 		pcs_nips += lactation['nipgrowth']
 		if lactation['alveoliexpandlvl'] < 10: lactation['alveoliexpandlvl'] = 10
-		if lactation['alveoliexpandlvl_change'] < 9: lactation['alveoliexpandlvl_change'] = 9
-		lactation['result'] = func('lact_lib', 'lactationBreastGrowth')
 		if lactation['alveoliexpandlvl_change'] < 10: lactation['alveoliexpandlvl_change'] = 10
 		lactation['milkprod_type'] = 1
 	else
@@ -621,7 +525,8 @@ end
 
 !!	new breast cycle function, replaced the monster lactation function in femcyc
 if $ARGS[0] = 'breastcycle':
-	if lactation['breasttissueinitiated'] <= 0: lactation['result'] = func('lact_lib','init_breasttissue')
+	!!if lactation['breasttissueinitiated'] <= 0: lactation['result'] = func('lact_lib','init_breasttissue')
+	lactation['result'] = func('lact_lib','init_breasttissue')
 	!!	usage func('lact_lib','breastcycle')
 	!!	if lactating or not, breasts will grow during pregnancy. This will only happen during first full pregnancy
 	if pregchem => 2191 and lactation['maturebreast'] <= 0:
@@ -631,13 +536,15 @@ if $ARGS[0] = 'breastcycle':
 			lactation['pregchemlast'] = 2191
 			lactation['preggrowth'] = 0
 		end
-		if lactation['preggrowth'] <= 40000 and (pregchem - lactation['pregchemlast']) >= 0:
-			lactation['preggrowth'] = (pregchem - 2191) * 18
+		if lactation['preggrowth'] <= 20000 and (pregchem - lactation['pregchemlast']) >= 0:
+			lactation['preggrowth'] = (pregchem - 2191) * 9
 			lactation['growthsoreness_on'] = 1
 			if pain['breasts'] <= 20: pain['breasts'] = 20
 		else
 			lactation['growthsoreness_on'] = 0
 			lactation['maturebreast'] = 1
+			lactation['result'] = func('lact_lib','lactationBreastGrowth')
+			lactation['preggrowth'] = 0
 		end
 		lactation['pregchemlast'] = pregchem
 	elseif PregChem > 4383 and lactation['maturebreast'] > 0:
@@ -673,12 +580,12 @@ if $ARGS[0] = 'breastcycle':
 		if lactation['alveoliexpandlvl'] > 10: lactation['alveoliexpandlvl'] = 10
 		!!	Breast growth due to mammarygland expansion. Happens if prolactin level is high enough and will cause breastsoreness.
 		!!	If prolactinlvl lowers, milkglands will shrink again.
-		if lactation['milkgrowday'] < daystart and lactation['prolactinlvl'] >= 100 and lactation['alveoliexpandlvl'] < 10:
+		if lactation['milkgrowday'] < daystart and lactation['prolactinlvl'] > 100 and lactation['alveoliexpandlvl'] < 10:
 			lactation['alveoliexpandlvl_change'] = lactation['alveoliexpandlvl']
 			lactation['alveoliexpandlvl'] += 1
 			lactation['growthsoreness_on'] = 1
 			if pain['breasts'] <= 20: pain['breasts'] = 20
-		elseif lactation['milkgrowday'] < daystart and lactation['prolactinlvl'] < 100 and lactation['alveoliexpandlvl'] > 0:
+		elseif lactation['milkgrowday'] < daystart and lactation['prolactinlvl'] < 100 and lactation['prolactinlvl'] > 0 and lactation['alveoliexpandlvl'] > 0:
 			lactation['alveoliexpandlvl_change'] = lactation['alveoliexpandlvl']
 			lactation['alveoliexpandlvl'] -= 1
 			lactation['growthsoreness_on'] = 1
@@ -693,15 +600,19 @@ if $ARGS[0] = 'breastcycle':
 		if lactation['milkgrowday'] < daystart:
 			!!	Lactation rate growth. The higher the lactationrate is, the slower it will grow. I have not found a study on this, so this is pure asumption and common sense.
 			!!	funny parabelfunction for the lactrategrowth > 65 - ((1/1466)*((lactrate-304)*(lactrate-304)))
+
 			lactation['prolactinlvl'] += (lactation['dailyoverdemand']/10000)
 			if lactation['dailyoverdemand'] > 0 and lactation['breastpumped'] >= 0:
-				lactation['max_lactrate_growth'] = (65 - ((((lactation['lactaterate']/1000) - 304)*((lactation['lactaterate']/1000) - 304))/1466))*1000
-				if lactation['max_lactrate_growth'] < ((10*lactation['prolactinlvl'])/2) and lactation['max_lactrate_growth'] >= 1000:
-					lactation['lactaterate'] += lactation['max_lactrate_growth']
-				elseif lactation['max_lactrate_growth'] < ((10*lactation['prolactinlvl'])/2) and lactation['max_lactrate_growth'] < 1000:
-					lactation['lactaterate'] += 1000
-				else
-					lactation['lactaterate'] += (10*lactation['prolactinlvl'])/2
+				!!  adding cap
+				if (lactation['breastmm'] / lactation['lactaterate']) > lactation['caplactaterate']:		
+					lactation['max_lactrate_growth'] = (65 - ((((lactation['lactaterate']/1000) - 304)*((lactation['lactaterate']/1000) - 304))/1466))*1000
+					if lactation['max_lactrate_growth'] < ((10*lactation['prolactinlvl'])/2) and lactation['max_lactrate_growth'] >= 1000:
+						lactation['lactaterate'] += lactation['max_lactrate_growth']
+					elseif lactation['max_lactrate_growth'] < ((10*lactation['prolactinlvl'])/2) and lactation['max_lactrate_growth'] < 1000:
+						lactation['lactaterate'] += 1000
+					else
+						lactation['lactaterate'] += (10*lactation['prolactinlvl'])/2
+					end
 				end
 				lactation['prolactinlvl'] = 100
 			elseif lactation['dailyoverdemand'] <= 0 and lactation['breastpumped'] > 0:
@@ -721,7 +632,7 @@ if $ARGS[0] = 'breastcycle':
 					else
 						lactation['lactaterate'] = (lactation['lactaterate'] - (lactation['lactaterate']/2) + (lactation['lactaterate']/5) - (lactation['lactaterate']/8))
 					end
-				elseif lactation['lactaterate'] <= 0 and lactation['maturebreast'] > 0 and pregchem >= 4383:
+				elseif lactation['lactaterate'] <= 0 and pregchem >= 4383:
 					!!	during pregnancy lactation is not switched off. Svetas breasts will always produce a bit off milk
 					lactation['lactaterate'] = 10
 				elseif lactation['lactaterate'] <= 0:
@@ -731,9 +642,9 @@ if $ARGS[0] = 'breastcycle':
 			end
 		end
 		!!	Filling milk into svetas breast every hour and checking for breastengorgement
-		if lactation['breastmv'] < lactation['breastmm'] and lactation['lactaterate'] > 50 and lactation['milkprod_type'] = 1:
+		if lactation['breastmv'] < lactation['breastmm'] and lactation['lactaterate'] >= 500 and lactation['milkprod_type'] = 1:
 			lactation['breastmv'] += func('lact_lib','prod_milk',lactation['lactaterate'])
-		elseif lactation['breastmv'] < lactation['breastmm'] and lactation['lactaterate'] > 50 and lactation['milkprod_type'] = 0:
+		elseif lactation['breastmv'] < lactation['breastmm'] and lactation['lactaterate'] >= 500 and lactation['milkprod_type'] = 0:
 			lactation['breastmv'] += lactation['lactaterate']
 			if lactation['breastmv'] > lactation['breastmm']: lactation['breastmv'] = lactation['breastmm']
 		end
@@ -742,10 +653,8 @@ if $ARGS[0] = 'breastcycle':
 		lactation['result'] = func('lact_lib','breast_engorment')
 	end
 	if lactation['milkgrowday'] < daystart:
-		lactation['result'] = func('lact_lib','checkExtBreastGrowth')
 		lactation['result'] = func('lact_lib','lactationBreastGrowth')
 		lactation['dailyoverdemand'] = 0
-		lactation['alveolicount_change'] = lactation['alveolicount']
 		lactation['milkgrowday'] = daystart
 	end	
 end
@@ -774,9 +683,10 @@ if $ARGS[0] = 'get_suckflowrate':
 	!!	ARGS[1] = sucktion_type: the type of suction. adult_mouth [0], child_mouth [1], baby_mouth [2], manual_breastpump [3] , electric_breastpump [4], hand_expressing [5], cow milker [6], weak baby_mouth [7], stimulation during sex/sex play [8]
 	!!	what type of sucktion is happening? different sucktion can cause a different demand of breast milk.
 	!!	Result is base rate of sucktion 10ml/minute x 1000. So if the sucktion rate is 10ml/min then suck_flow_rate = 10000.
+	!!  increased caps
 	if ARGS[1] = 0:
 		!!	'adult sucking'
-		result = 12000
+		result = 17000
 	elseif ARGS[1] = 1:
 		!!	'child sucking'
 		result = 11000
@@ -785,16 +695,16 @@ if $ARGS[0] = 'get_suckflowrate':
 		result = 8000
 	elseif ARGS[1] = 3:
 		!!	'manual_breastpump sucking'
-		result = 18000
+		result = 40000
 	elseif ARGS[1] = 4:
 		!!	'electric_breastpump sucking'
-		result = 40000
+		result = 100000
 	elseif ARGS[1] = 5:
 		!!	'hand expression'
-		result = 10500
+		result = 20000
 	elseif ARGS[1] = 6:
 		!!	'cow milker sucking'
-		result = 100000
+		result = 160000
 	elseif ARGS[1] = 7:
 		!!	'weak baby sucking'
 		result = 5000
@@ -813,14 +723,19 @@ if $ARGS[0] = 'get_maxnipflowrate':
 	!!	How much milk can be sucked out through svetas nipples per minute.
 	!!	Result is base rate is 10ml/minute x 1000.
 	!!	Calculating the nip flow mod. The more svetas breasts were worked/sucked, the more milk can go through her nipples. Max cap is at 9000 (9ml/min).
-	lactation['nip_flow_mod'] = breastcounter * 100
-	!!	IT IS OVER 9000! 
-	if lactation['nip_flow_mod'] > 9000: lactation['nip_flow_mod'] = 9000
-	!!	y = 100x + 6000 linear growth for the nip flowrate
+	!!   increased the cap 10 times
+	
+	if breastcounter > 0:
+		lactation['nip_flow_mod'] += breastcounter * 500
+		breastcounter = 0
+	end
+	!!	IT IS OVER 90000! 
+	if lactation['nip_flow_mod'] > 90000: lactation['nip_flow_mod'] = 90000
+	!!	linear growth for the nip flowrate
 	if pcs_nips > 0:
-		result = ((100*pcs_nips) + 6000 + lactation['nip_flow_mod'])
+		result = ((1000*pcs_nips) + 8000 + lactation['nip_flow_mod'])
 	else
-		result = (6000 + lactation['nip_flow_mod'])
+		result = (8000 + lactation['nip_flow_mod'])
 	end
 end
 
@@ -854,24 +769,30 @@ if $ARGS[0] = 'get_moodmod':
 end
 
 !!	get soreness_mod
+!! probably needs a tweak
 if $ARGS[0] = 'get_sorenessmod':
 	!!	lactation['soreness_mod'] = func('lact_lib','get_sorenessmod')
+	
 	if lactation['nipple_cream_applied'] > 0:
 		lactation['nipple_cream_applied'] = 0
-		if (breastcounter/10) > 20:
+		if lactation['dailyoverdemand'] = 0:
 			result = 40
-		elseif (breastcounter/10) <= 0:
+		elseif lactation['dailyoverdemand'] <= (lactation['breastmm'] / 2):
+			result = 30
+		elseif lactation['dailyoverdemand'] <= lactation['breastmm']:
 			result = 20
 		else
-			result = ((breastcounter/10) + 20)
+			result = 10
 		end
 	else
-		if (breastcounter/10) > 20:
+		if lactation['dailyoverdemand'] = 0:
+			result = 30
+		elseif lactation['dailyoverdemand'] <= (lactation['breastmm'] / 2):
 			result = 20
-		elseif (breastcounter/10) <= 0:
-			result = 1
+		elseif lactation['dailyoverdemand'] <= lactation['breastmm']:
+			result = 10
 		else
-			result = (breastcounter/10)
+			result = 1
 		end
 	end
 end
@@ -971,7 +892,7 @@ if $ARGS[0] = '$get_breastmilk':
 		!!	This is how much milk demand is applied to the breasts. In this function it is needed to calculate the nipple pain and breast pain.
 		lactation['max_sucktion_demand'] = lactation['suck_flow_rate']*ARGS[2]
 		if pain['nipples'] <= 60:
-			suck_until_pain = (((60 - pain['nipples'])*lactation['soreness_mod'])*1000)/(lactation['suck_flow_rate']/18)
+			suck_until_pain = (((60 - pain['nipples'])*lactation['soreness_mod'])*10000)/lactation['suck_flow_rate']
 		end
 		temp_var = pain['nipples'] + lactation['max_sucktion_demand']/(lactation['soreness_mod']*10000)
 		if temp_var > 60:
@@ -980,7 +901,8 @@ if $ARGS[0] = '$get_breastmilk':
 			pumptime = suck_until_pain
 			lactation['max_sucktion_demand'] = lactation['suck_flow_rate']*pumptime
 		else
-			pain['nipples'] += lactation['max_sucktion_demand']/(lactation['soreness_mod']*100000)
+			pumptime = ARGS[2]
+			pain['nipples'] += lactation['max_sucktion_demand']/(lactation['soreness_mod']*10000)
 		end
 		temp_var = pain['breasts'] + lactation['max_sucktion_demand']/10000
 		if temp_var > 20:
@@ -1019,6 +941,8 @@ if $ARGS[0] = '$get_breastmilk':
 		!!	Case: Enough milk in Svetas breasts, covering the demand
 		if lactation['breastmv'] >= lactation['max_sucktion_demand']:
 			!!	Checking if svetas nipple flow is enough to serve the demand. If yes - get the demand; If no - get what she is able to give us.
+			!!   we still should not be able to give more milk than we can for that time, so commenting "if"
+			
 			if lactation['max_nip_flow_rate'] >= lactation['suck_flow_rate']:
 				lactation['get_bm_milkedvolume'] = lactation['max_sucktion_demand']
 				lactation['breastmv'] -= lactation['max_sucktion_demand']
@@ -1026,6 +950,7 @@ if $ARGS[0] = '$get_breastmilk':
 				lactation['get_bm_milkedvolume'] = lactation['max_nip_flow_rate']*ARGS[2]
 				lactation['breastmv'] -= lactation['get_bm_milkedvolume']
 			end
+			pumptime = ARGS[2]
 		!!	Case: Not enough milk in Svetas breasts.
 		elseif lactation['breastmv'] < lactation['max_sucktion_demand']:
 			!!	We have two sub cases in this one. Sveta has no lactation['breastmv'] and Sveta has not enough lactation['breastmv']. This means she has to produce more milk, but first we need to know how much is needed.
@@ -1039,93 +964,65 @@ if $ARGS[0] = '$get_breastmilk':
 					pumptime_left = ARGS[2] - (lactation['breastmv']/lactation['suck_flow_rate'])
 				else
 					pumptime_left = ARGS[2] - (lactation['breastmv']/lactation['max_nip_flow_rate'])
-				end
-				if pumptime_left < 0: pumptime_left = 0
+				end	
 			end
-			!!	Now we know how much time we have and how much demand we have. Time to check if Sveta can do it.
-			!!	For the case, that svetas milk flow is not big enough pumptime left will be 0, therefore this is handled here.
-			if pumptime_left > 0:
-				if lactation['max_nip_flow_rate'] >= lactation['suck_flow_rate']:
-					!!	the lactaterate is per hour, so it is possible that lactaterate will end up being zero when devided by 60. therefore everything here is multiplied by 100.
-					if (lactation['suck_flow_rate']*100) <= ((lactation['lactaterate']*100)/60):
-						lactation['get_bm_milkedvolume'] += lactation['suck_flow_rate']*pumptime_left
-					else
-						lactation['get_bm_milkedvolume'] += ((((lactation['lactaterate']*100)/60)*pumptime_left)/100)
-						breastcounter += 2
-					end
-				else
-					!!	Same here as above.
-					if (lactation['max_nip_flow_rate']*100) <= ((lactation['lactaterate']*100)/60):
-						lactation['get_bm_milkedvolume'] += lactation['max_nip_flow_rate']*pumptime_left
-						breastcounter += 2
-					else
-						lactation['get_bm_milkedvolume'] += ((((lactation['lactaterate']*100)/60)*pumptime_left)/100)
-						breastcounter += 2
-					end
-				end
-				!!	Produced milk needs to be subtracted from the hourly lactate rate, so femcycle is only adding the milk that was not produced yet in the next hour - lactaterate_use
-				if pumptime_left > 60:
-					if ((pumptime_left*100)/60) > 100:
-						lactation['used_lactaterate'] -= ((((lactation['lactaterate']*100)/60)*(pumptime_left mod 60))/100)
-					else
-						lactation['used_lactaterate'] = lactation['lactaterate']
-					end
-				else
-					if lactation['lactaterate'] >= lactation['used_lactaterate']:
-						lactation['used_lactaterate'] -= lactation['get_bm_milkedvolume']
-					else
-						lactation['used_lactaterate'] = lactation['lactaterate']
-					end
-				end
-				if lactation['used_lactaterate'] <= 0: lactation['used_lactaterate'] = 0
-				!!	Sveta had to make milk, so she needs to use some of her body resources to make the milk.
-				if lactation['get_bm_milkedvolume'] > 0:
-					!!	energy usage flag on. Can be used in events to show that sveta is getting hungry or thirsty
-					energytomilkpump = 1
-					lactation['produced_milk'] = func('lact_lib','prod_milk',lactation['get_bm_milkedvolume'])
-				end
-			end
+			
+			!! Next check is for cases when not only there is less milk than demanded, but also not enough max_nip_flow_rate 
+			if pumptime_left > 0: 
+				!! returning unused time (could use it a lot in RL... -_-)
+				minut -= pumptime_left
+				pumptime = ARGS[2] - pumptime_left + 1 
+				!!	time to add the pumped lactation['breastmv'] to the milkedvolume and empty lactation['breastmv'].
+				lactation['get_bm_milkedvolume'] += lactation['breastmv']
+				lactation['breastmv'] = 0
+			else
+				pumptime_left = 0
+				pumptime = ARGS[2]
+				lactation['get_bm_milkedvolume'] += lactation['max_nip_flow_rate'] * ARGS[2] 
+				lactation['breastmv'] -= lactation['max_nip_flow_rate'] * ARGS[2] 							
+			end	
 			!!	Now we check if sveta was able to make it or not. If not we have milk overdemand which will be used in femcycle to make her produce more milk next day.
-			if temp_var > lactation['get_bm_milkedvolume']: lactation['dailyoverdemand'] += (temp_var - lactation['get_bm_milkedvolume'])
-			!!	time to add the pumped lactation['breastmv'] to the milkedvolume and empty lactation['breastmv'].
-			lactation['get_bm_milkedvolume'] += lactation['breastmv']
-			lactation['breastmv'] = 0
+!!			if temp_var > lactation['get_bm_milkedvolume']: lactation['dailyoverdemand'] += (temp_var - lactation['get_bm_milkedvolume'])
+			!! as we stop pumping when there is no more milk lets just add 1 minute of pumping for overdemand 
+			if lactation['max_nip_flow_rate'] >= lactation['suck_flow_rate']:
+				if temp_var > lactation['get_bm_milkedvolume']: lactation['dailyoverdemand'] += (lactation['suck_flow_rate'] * pumptime - lactation['get_bm_milkedvolume'])
+			else
+				if temp_var > lactation['get_bm_milkedvolume']: lactation['dailyoverdemand'] += (lactation['max_nip_flow_rate'] * pumptime - lactation['get_bm_milkedvolume'])
+			end
 			!!	Here we have nipple and breastpain. The idea is - if there is more suction than the nipples can take more pain is applied. If the breasts make less milk then demanded pain to the breasts is applied.
 			!!	Else - there will only be nipple pain.
 			if lactation['max_nip_flow_rate'] < lactation['suck_flow_rate']:
-				temp_var = pain['nipples'] + ((lactation['suck_flow_rate'] - lactation['max_nip_flow_rate'])*ARGS[2])/2000 - (lactation['soreness_mod']*ARGS[2])*15
+				temp_var = pain['nipples'] + ((lactation['suck_flow_rate'] - lactation['max_nip_flow_rate']) * pumptime)/(lactation['soreness_mod'] * 10000)
 				if temp_var >= 60:
 					pain['nipples'] = 65
 				elseif temp_var <= 0:
 					pain['nipples'] += 1
 				else
-					pain['nipples'] += (((lactation['suck_flow_rate'] - lactation['max_nip_flow_rate'])*ARGS[2])/2000 - (lactation['soreness_mod']*ARGS[2])*15)
+					pain['nipples'] += ((lactation['suck_flow_rate'] - lactation['max_nip_flow_rate']) * pumptime)/(lactation['soreness_mod'] * 10000)
 				end
 			else
-				if ARGS[2] < 10:
-					pain['nipples'] += 1
-				elseif ARGS[2] >= 10 and lactation['soreness_mod'] > ARGS[2]:
+				if (pumptime + 1) < 10:
 					pain['nipples'] += 1
 				else
-					pain['nipples'] += (ARGS[2]/10 - lactation['soreness_mod']/10)
+					pain['nipples'] += ((pumptime + 1)/10)
 				end
 			end
 			if lactation['max_nip_flow_rate'] >= lactation['suck_flow_rate']:
-				if (lactation['suck_flow_rate']*100) > ((lactation['lactaterate']*100)/60):
-					temp_var = pain['breasts'] + (((lactation['suck_flow_rate']*100)-((lactation['lactaterate']*100)/60))*pumptime_left)/1000
+				if lactation['suck_flow_rate'] > (lactation['lactaterate']/60):
+					temp_var = pain['breasts'] + ((lactation['suck_flow_rate']-(lactation['lactaterate']/60)) * pumptime)/(lactation['soreness_mod'] * 10000)
 					if temp_var > 20:
 						pain['breasts'] = 20
 					else
-						pain['breasts'] += (((lactation['suck_flow_rate']*100)-((lactation['lactaterate']*100)/60))*pumptime_left)/1000
+						pain['breasts'] += ((lactation['suck_flow_rate']-(lactation['lactaterate']/60)) * pumptime)/(lactation['soreness_mod'] * 10000)
 					end
 				end
 			else
-				if (lactation['max_nip_flow_rate']*100) > ((lactation['lactaterate']*100)/60):
-					temp_var = pain['breasts'] + (((lactation['max_nip_flow_rate']*100)-((lactation['lactaterate']*100)/60))*pumptime_left)/1000
+				if lactation['max_nip_flow_rate'] > (lactation['lactaterate']/60):
+					temp_var = pain['breasts'] + ((lactation['max_nip_flow_rate'] - (lactation['lactaterate']/60)) * pumptime)/(lactation['soreness_mod'] * 10000)
 					if temp_var > 20:
 						pain['breasts'] = 20
 					else
-						pain['breasts'] += (((lactation['max_nip_flow_rate']*100)-((lactation['lactaterate']*100)/60))*pumptime_left)/1000
+						pain['breasts'] += ((lactation['max_nip_flow_rate'] - (lactation['lactaterate']/60)) * pumptime)/(lactation['soreness_mod'] * 10000)
 					end
 				end
 			end
@@ -1141,6 +1038,7 @@ if $ARGS[0] = '$get_breastmilk':
 		result = lactation['get_bm_milkedvolume']
 	end
 end
+
 
 
 --- lact_lib ---------------------------------
