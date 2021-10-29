@@ -1,0 +1,123 @@
+# uni_shop
+!2021/10/27
+
+if $ARGS[0] = 'start' or $ARGS[0] = '':
+	*clr & cla
+	$loc = 'uni_shop'
+	$loc_arg = 'start'
+	$menu_loc = 'uni_shop'
+	$menu_arg = 'start'
+	$location_type = 'public_indoors'
+	killvar '$locclass'
+	killvar '$shoplocation'
+	menu_off = 0
+	gs 'themes', 'indoors'
+	if sound = 0:PLAY 'sound/shop.mp3',30
+	gs 'stat'
+	*clr & cla
+	'<center><b><font color="maroon">Convenience Store</font></b></center>'
+	'<center><img <<$set_imgh>> src="images/locations/city/island/unimarket.jpg"></center>'
+
+	if hour < 8 or hour >= 23:
+		'The store is currently closed.'
+		act 'Leave the store':minut += 2 & gt 'city_island'
+		exit
+	end
+
+	'In the store there is an <a href="exec: gt ''uni_shop'', ''atm''">ATM</a>, from which you can withdraw money from and deposit money to your bank account.'
+
+	!! output from purchase
+	if $message ! '':
+		'<center>'+$message+'</center>'
+		killvar '$message'
+	else
+		''
+	end
+	*pl '<center><table align="center" width=80%>'
+	*p func ('$stock_item', 1, 'Regular food', 80, 'eda', $curloc)
+	*p func ('$stock_item', 10, 'Regular food', 800, 'eda', $curloc)
+	*p func ('$stock_item', 10, 'Tea biscuits', 400, 'pranik', $curloc)
+	*p func ('$single_stock_item', 1, 'Bottle of water', 100, 'bottle', $curloc, '', iif(bag > 0, 0, 1), 'You need a handbag')
+	*p func ('$single_stock_item', 1, 'Sandwich', 100, 'buterbrod', $curloc, '', iif(bag > 0, 0, 1), 'You need a handbag')
+	*p func ('$single_stock_item', 1, 'Cheap Bottle of wine', 200, 'wine', $curloc, '', iif(bag > 0, 0, 1), 'You need a handbag')
+	*p func ('$stock_item', 20, 'Tampons', 200, 'tampon', $curloc)
+	*p func ('$stock_item', 20, 'Sanitary napkins', 100, 'sanpad', $curloc)
+	*p func ('$stock_item', 30, 'Shampoo', 250, 'shampoo', $curloc)
+	*p '</table></center>'
+
+	act 'Leave the store':minut += 2 & gt 'city_island'
+end
+
+if $ARGS[0] = 'atm':
+	'<center><b><font color="maroon">ATM</font></b></center>'
+	'<center><img <<$set_imgh>> src="images/locations/shared/store/atm.jpg"></center>'
+
+	if bankAccount = 1:
+		if karta >= 0:
+			'You have <<karta>> <b>₽</b> in your account.'
+			'You have an overdraft limit of <font color="blue"><<bankDebtLimit>></font>!'
+		else
+			'You are overdrawn by <font color="red"><<-1 * karta>> <b>₽</b></font>.'
+			'You have a remaining credit limit of <font color="blue"><<bankDebtLimit + karta>></font>!'
+		end
+
+		'<br>ATM Deposit Fee: 100 <b>₽</b>'
+
+		if atmDeposit = 0:
+			act 'Deposit money':
+				cla
+				minut += 5
+
+				kartaINATM = input ("How much money do you want to deposit into the account? Note: A service charge of 100 <b>₽</b> will be deducted from the amount deposited.")
+				if kartaINATM < 100 or kartaINATM > money:
+					'This is not a valid input.'
+				else
+					atmDeposit += kartaINATM - 100
+					atmDepositDate = daystart + 2
+					money -= kartaINATM
+					'<br>You deposit <<kartaINATM>> <b>₽</b> into your account.'
+					'It will take 2 days for funds to be available. Your new balance will be <<karta+atmDeposit>> <b>₽</b>.'
+				end
+
+				gs 'stat'
+				act 'Move away': gt 'uni_shop', 'start'
+			end
+		else
+			'<br>★ Processing deposit of <<atmDeposit>> <b>₽</b> in <<atmDepositDate - daystart>> days.'
+		end
+
+		if karta + bankDebtLimit > 0:
+			act 'Withdraw money from the ATM':
+				cla
+				minut += 5
+
+				kartaOUT = input ("How much money do you want to withdraw?")
+				if kartaOUT <= 0 or kartaOUT > karta + bankDebtLimit:
+					'<br>Invalid operation.'
+				else
+					karta -= kartaOUT
+					money += kartaOUT
+					if karta > 0:
+						'<br>You withdraw <<kartaOUT>> <b>₽</b>. You have <<karta>> <b>₽</b> left in your bank account.'
+					elseif karta = 0:
+						'<br>You withdraw <<kartaOUT>> <b>₽</b>. You have no money left in your bank account.'
+					else
+						'<br>You withdraw <<kartaOUT>> <b>₽</b>. <font color="red">Your bank account is overdrawn by <b><<karta>> ₽</b>.</font>'
+					end
+				end
+
+				gs 'stat'
+				act 'Move away': gt 'uni_shop', 'start'
+			end
+		else
+			'You have maxed out your overdraft.'
+		end
+	else
+		'You don''t have a bank account yet!'
+	end
+
+	act 'Move away':gt 'uni_shop', 'start'
+end
+
+--- uni_shop ---------------------------------
+
