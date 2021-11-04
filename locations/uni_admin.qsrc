@@ -1,0 +1,186 @@
+# uni_admin
+
+!!This is the file containing the university administartion office.
+!!It is important since include to option to enroll in university, and therefore sets the variable regarding the choice of study.
+
+!!The follwoing vables will be set in this file.
+!! university['prep_enrolled'] is set to 1 in the player enrolls in the university preparation program. 
+!! university['student'] is set to 1 in the player enrolls in a university program.
+!! $university['enrolled_in'] is set to the name of the university program the player enrolls in, there is the following progams: teaching_studies
+!! university['enrolled_in_semester'] is set to the semester the player enrolls in starting fom 1 for the first semester and ending with 8 for the last.
+
+
+
+if $ARGS[0] = 'start':
+	$sexloc = 'uni_admin'
+    $location_type = 'public_indoors'
+	cla & *clr
+	minut += 5
+	$menu_loc = 'uni_admin'
+	$menu_arg = 'start'
+	menu_off = 0
+	gs 'stat'
+	gs 'themes', 'indoors'
+	'<center><b><font color="maroon">The University Administration Building</font></b></center>'
+	'<center><img <<$set_imgh>> src="images/locations/city/island/uni_adminsity/uni_admin.jpg"></center>'
+	'The main lobby is large with several pillars across the room, on each end is a large set of stairs that go up to the next level. Opposite you is a long wall with several hallways going off to each side and two straight ahead.'
+	!!this below will all need to be updated and cleaned up. I am leaving it as is for now as I don''t know how to fix it
+	if university['diploma'] > 0:
+		'You have graduated from the University.'
+	elseif func('uniutil', 'student', 'expelled_for_failing'):
+		'You have been expelled from the University for failing your exams.'
+	elseif func('uniutil', 'student', 'expelled_for_skipping'):
+		'You have been expelled from the University for skipping your exams.'
+	elseif func('uniutil', 'student', 'expelled_for_other_reason'):
+		'You have been expelled from the University for reasons unrelated to your exam results.'
+	elseif university['student'] = 0:
+		if university['prep_enrolled'] = 1 and month = 8:
+			'You''ve enrolled in the preparatory classes.'
+		elseif university['prep_enrolled'] = 1:
+			'You''ve enrolled in the preparatory classes. They will start in August'
+		else
+			'You can take preparatory classes at the University on weekdays for 15000<b>₽</b>.'
+		end
+		'Admission examinations for the University are held in August.'
+	end
+	act 'Leave':
+		minut += 2
+		gt 'uni_grounds', 'main'
+	end
+
+	if university['prep_enrolled'] = 1 and month = 8:
+		act 'Attend preparatory class (1:00)': gt 'uni_admin', 'take_prep'
+	end
+	!!if graduated school with good grade or 
+	if university['entrance_exam_passed'] = 0 and university['prep_enrolled'] = 1 and month = 8: 
+		act 'Take the entrance exam (1:00)': gt 'uni_admin', 'take_test'
+	end
+	if university['student'] = 0 and university['diploma'] = 0 and age >= 17 and (storyline ! 1 or SchoolAtestat = 1) and month < 9:
+		act 'Enroll at the University': gt 'uni_admin', 'enrollment'
+	end
+	!!the if below should only show up if Sveta tried to enroll and didn''t or couldn''t pay for the classes before
+	if university['entrance_information'] = 1 and university['prep_enrolled'] = 0 and university['student'] = 0 and month < 9: gs 'uni_admin', 'prep_pay'
+end
+
+if $ARGS[0] = 'enrollment':
+	$sexloc = 'uni_admin'
+	cla & *clr
+	minut += 15
+	gs 'stat'
+	'<center><b><font color="maroon">Enrollment office</font></b></center>'
+	'<center><img <<$set_imgh>> src="images/locations/city/island/university/administration/enrollment1.jpg"></center>'
+	'You enter the enrollment office, there is several desks with women working behind them and a fair number of young people about your age waiting in a side room. You inform them you wish to enroll at the university, they take down your name and ask you to go wait in the waiting room until your name is called. You walk into the other room, smile a nod to the other prospective students and take a seat.'
+	act 'Wait your turn':
+		cla & *clr
+		'<center><b><font color="maroon">Enrollment office</font></b></center>'
+		'<center><img <<$set_imgh>> src="images/locations/city/island/university/administration/enrollment2.jpg"></center>'
+		'You wait until until your name is called by a woman. She then leads you down a side hall to one of the offices, you take a seat introducing yourself. After a brief discussion the woman takes your information and enters it into the computer.'
+		if class['school_grade_average'] >= 70 or university['entrance_exam_passed'] = 1:
+			minut += 15
+			'She looks over the information for a bit, filling in some data. Several minutes later she turns to you and smiles, telling you, that you are eligible to enroll at the university. She gives you a lot of paperwork to fill out and you spend the next bit filling it all out. Once done, she asks you to stand up where she takes your picture. As she tells you about the different degrees she works on your university ID card, while you decided which degree you want to acquire.'
+			act 'Teaching degree':
+				cla
+				'You inform her you wish to acquire a teaching degree. She hands you a packet of information about your classes you will be attending and about dorm life., next she inquires if you will be signing up for any elective classes at this time.'
+				act 'No not now':
+					cla
+					'You shake your head no. Informing her you don''t intend to sign up for any elective classes right now. She nods and makes a few more notes and then hands over your finished paperwork welcoming you to Saint Petersburg University. You think up and then get up and leave, looking forward to when you can come back and start your classes.'
+					act 'Leave':gt 'uni_admin', 'start'
+				end
+				act 'Enroll':
+					!!This sets the variables such that the player is enrroled in the first semester of the teaching program.
+					university['prep_counter'] = 0
+					university['prep_enrolled'] = 0
+					university['student'] = 1
+					$university['enrolled_in']= 'teaching_studies'
+					university['enrolled_in_semester'] = 1
+					!!This creates the classes for the first semester of the teaching program to be used by the grade system, and gives the player a starting grade value (which is a failing grade, the player have to study if they want to pass)
+					gs 'grades', 'createclass', 'uni_teaching_studies_semester_1', 'general education', 3, 2, 'no', 'no', 1, 12
+					gs 'grades', 'createclass', 'uni_teaching_studies_semester_1', 'teaching methods', 3, 2, 'no', 'no', 1, 12
+					gs 'grades', 'createclass', 'uni_teaching_studies_semester_1', 'learning theories', 3, 2, 'no', 'no', 1, 12
+					gs 'grades', 'grade_award', 'uni_teaching_studies_semester_1', 'general education', 35
+					gs 'grades', 'grade_award', 'uni_teaching_studies_semester_1', 'teaching methods', 35
+					gs 'grades', 'grade_award', 'uni_teaching_studies_semester_1', 'learning theories', 35
+					cla
+					'You tell her you would like to purse a teaching degree. She smiles and nods, then finishes filling out some more paper work about the courses you can expect to take. Once the ID is done she hands it over, along with all of your paperwork. You are now officially enrolled as a student at the Saint Petersburg University.'
+					if (day - week) >= 27 and month = 8:
+						university['semester_week'] = 1
+						*nl
+						'She tells you that you enrolment in the last minute, nad the classes have allready started this week'
+					end
+					act 'Leave':gt 'uni_admin', 'start'
+!!once we have the framework working i will start working on some elective classes, once we have a couple of them I will add them here.
+					!!act 'Take some elective classes':
+				end
+			end
+		else
+			university['entrance_information'] = 1
+			minut += 5
+			'She looks over the information for a bit, filling in some data. Several minutes later she turns to you and frowns, telling you, that you not are eligible to enroll at the university at this time, your grades from Pavlovsk Secondary School is not good enough. She informs you with so many students applying they can only take those with better grades, but you can still get in if you sign up and take the preparatory classes and pass them with a high enough grade, but you have to pay for the classes.'
+			act 'You don''t want to sign up':
+				cla
+				'You shake your head and thank her, but tell her you will think about it. She smiles to you and tells you she understands, then you leave.'
+				act 'Leave class':gt 'uni_admin', 'start'
+			end
+			act 'You don''t have enough money':
+				cla
+				'You tell her you don''t have enough money to pay for the classes. She nods in understanding and tells you if you get the money to come back and you can sign up later. You thank her for the information and leave.'
+				act 'Leave class':gt 'uni_admin', 'start'
+			end
+			gs 'uni_admin', 'prep_pay'
+		end
+	end
+end
+
+if $ARGS[0] = 'prep_pay':
+	if money >= 15000:
+		act 'Pay for the preparatory classes 15000<b>₽</b>)':
+			cla & *clr
+			minut += 10
+			gs 'stat'
+			university['prep_enrolled'] = 1
+			'<center><b><font color="maroon">Enrollment office</font></b></center>'
+			'<center><img <<$set_imgh>> src="images/locations/city/island/university/administration/payment.jpg"></center>'
+			'You go back to the enrollment office and then pay 15000<b>₽</b> for the preparatory classes. They are held every weekday until <b>21:00</b>.'
+			act 'Leave':gt 'uni_admin', 'start'
+		end
+	end
+end
+
+if $ARGS[0] = 'take_prep':
+	$sexloc = 'uni_admin'
+	cla & *clr
+	minut += 60
+	university['prep_counter'] += 1
+	intel_exp += 1 + (mentats_dose - rand(0,mentats_dose))
+	gs 'stat'
+	'<center><b><font color="maroon">Preparatory class</font></b></center>'
+	'<center><img <<$set_imgh>> src="images/locations/city/island/university/administration/prepcourse1.jpg"></center>'
+	'You attend the preparatory class for an hour. You pay close attention to what is being said and take notes for the entrance examination later on.'
+	act 'Leave class':gt 'uni_admin', 'start'
+end
+
+if $ARGS[0] = 'take_test':
+	$sexloc = 'uni_admin'
+	cla & *clr
+	minut += 60
+	intel_exp += 1 + (mentats_dose - rand(0,mentats_dose))
+	gs 'stat'
+	'<center><b><font color="maroon">Entrance Exam</font></b></center>'
+	'<center><img <<$set_imgh>> src="images/locations/city/island/university/administration/prepcourse1.jpg"></center>'
+	'You enter the exam room and take your seat. A professor comes out and talks over all the different parts of the exam you will be taking and discusses what is required to pass. Once that is done he passes out the test, then starts the clock. You have one hour to complete the test.'
+!!this is a copy of the old stuff, the code will need to be completely rewritten not sure how we will do it. I assume it will take intel and pav school grades into account? don''t know
+	if pcs_intel >= 100 and func('uniutil', 'attendance', 'is_ok') and func('uniutil', 'assignments_done', 'did_min_num'):
+		university['entrance_exam_passed'] = 1
+		'You completed the entrance examination, passing it with a perfect score.'
+	elseif (pcs_intel >= 80 or func('uniutil', 'attendance', 'is_ok')) and func('uniutil', 'assignments_done', 'did_min_num'):
+		university['entrance_exam_passed'] = 1
+		'You completed the entrance examination, passing it.'
+	else
+		university['entrance_exam_passed'] = -1
+		'You completed the entrance examination, failing to pass the exam.'
+	end
+	act 'Leave the exam room':gt 'uni_admin', 'start'
+end
+
+--- uni_admin ---------------------------------
+
