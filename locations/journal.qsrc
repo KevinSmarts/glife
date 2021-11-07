@@ -161,6 +161,7 @@ if $ARGS[0] = 'records':
 	'<br><center><a href="exec: gt ''journal'', ''locations''">Locations</a></center>'
 	'<br><center><a href="exec: gt ''journal'', ''friends_family''">Friends & Family</a></center>'
 	if SchoolAtestat = 0 and storyline = 1 and SchoolBlock = 0: '<br><center><a href="exec: gt ''journal'', ''school''">School</a></center>'
+	if university['student'] = 1: '<br><center><a href="exec: gt ''journal'', ''uni''">University</a></center>'
 	'<br><center><a href="exec: gt ''journal'', ''clothing''">Clothing information</a></center>'
 	
 	'<center><h2>Relationships</h2></center>'
@@ -1464,6 +1465,95 @@ if $ARGS[0] = 'outcasts':
 	end
 	
 	act 'Go back': gt 'journal', 'school'
+	act 'Put your notebook down': gt $loc, $loc_arg
+end
+
+if $ARGS[0] = 'uni':
+	
+	if university['diploma'] > 0:
+		'You have graduated from The University of St. Petersburg with degree in '+func('uni_programs', 'program_name')+'.'
+	else
+		'You have are enrolled in semester <<university[''enrolled_in_semester'']>> of the '+func('uni_programs', 'program_name')+' at The University of St. Petersburg.'
+	end
+
+	if $university['elective1'] ! '' or $university['elective2'] ! '' or $university['elective3'] ! '':
+		*nl
+		'This semester you are taking the following elective classes <<$university[''elective1'']>>, <<$university[''elective2'']>>, <<$university[''elective1'']>>.'
+	end
+
+	i = 1
+	:semester_loop
+	if university['semester_passed'] = i:
+		*nl
+		'You passed semester <<i>> with the following grades:'
+		j = 0
+		:class_loop
+		if $class_list_institution[j] = 'uni_<<$university[''enrolled_in'']>>_semester_<<i>>':
+			'<<$class_list_name[j]>>: <<$class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_grade'']>>'
+		end
+		j += 1
+		if ARRSIZE('class_list_institution') >= j: jump 'class_loop'
+		killvar 'j'		
+	end
+	i += 1
+	if i < 8: jump 'semester_loop'
+	killvar 'i'
+	
+	if university['semester_passed'] = university['enrolled_in_semester'] and university['diploma'] = 0:
+		'You need to enroll in you next semester at the university administration'
+	elseif university['semester_week'] <= 0 and university['exam_week'] = 0:
+		'You currently have a break between the semesters'
+		if university['semester_week'] = -1:
+			'The next semester will start next week'
+		end
+
+		'<center><h2>Class schedule for Next Semester</h2></center>'
+	
+		'Monday: '+func('uni_programs', 'uni_period_first', 'monday')+' '+func('uni_programs', 'uni_period_second', 'monday')+' '+func('uni_programs', 'uni_period_third', 'monday')
+		'Tuesday: '+func('uni_programs', 'uni_period_first', 'tuesday')+' '+func('uni_programs', 'uni_period_second', 'tuesday')+' '+func('uni_programs', 'uni_period_third', 'tuesday')
+		'Wednesday: '+func('uni_programs', 'uni_period_first', 'wednesday')+' '+func('uni_programs', 'uni_period_second', 'wednesday')+' '+func('uni_programs', 'uni_period_third', 'wednesday')
+		'Thursday: '+func('uni_programs', 'uni_period_first', 'thursday')+' '+func('uni_programs', 'uni_period_second', 'thursday')+' '+func('uni_programs', 'uni_period_third', 'thursday')
+
+	elseif university['semester_week'] > 0:
+		'You are in the <<university[''semester_week'']>> week of the semester which last 15 weeks.'
+
+		'<center><h2>Class schedule</h2></center>'
+	
+		'Monday: '+func('uni_programs', 'uni_period_first', 'monday')+' '+func('uni_programs', 'uni_period_second', 'monday')+' '+func('uni_programs', 'uni_period_third', 'monday')
+		'Tuesday: '+func('uni_programs', 'uni_period_first', 'tuesday')+' '+func('uni_programs', 'uni_period_second', 'tuesday')+' '+func('uni_programs', 'uni_period_third', 'tuesday')
+		'Wednesday: '+func('uni_programs', 'uni_period_first', 'wednesday')+' '+func('uni_programs', 'uni_period_second', 'wednesday')+' '+func('uni_programs', 'uni_period_third', 'wednesday')
+		'Thursday: '+func('uni_programs', 'uni_period_first', 'thursday')+' '+func('uni_programs', 'uni_period_second', 'thursday')+' '+func('uni_programs', 'uni_period_third', 'thursday')
+
+		'<center><h2>Grades</h2></center>'
+	
+		gs 'grades', 'assing_grade_description', 'school'
+	
+		j = 0
+		:grade_loop
+		if $class_list_institution[j] = 'uni_<<$university[''enrolled_in'']>>_semester_<<university[''enrolled_in_semester'']>>':
+			If dyneval( 'RESULT = class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_grade'']') >= dyneval( 'RESULT = (4*<<university[''semester_week'']>> + 32)'):
+				'You think you are doing great in <<$class_list_name[j]>> and will probably pass with a top grade if you keep this up.'
+			elseIf dyneval( 'RESULT = class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_grade'']') > dyneval( 'RESULT = (2*<<university[''semester_week'']>> + 32)'):
+				'You you following the <<$class_list_name[j]>> class well and will probably pass with a good grade if you keep this up. But to get the top mark you need to put in some more effort'
+			elseIf dyneval( 'RESULT = class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_grade'']') >= dyneval( 'RESULT = (1*<<university[''semester_week'']>> + 32)'):
+				'You you have trouble following the <<$class_list_name[j]>> class but will probably still pass. But if you want a good grade you really need to do somethingthin about it'
+			elseIf dyneval( 'RESULT = class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_grade'']') < 40:
+				'You will fail your <<$class_list_name[j]>> class unless you do something about it right now. It might even be to late to catch up.'
+			else
+				'You are hopelessly behind in your <<$class_list_name[j]>> class can probably still pass. Any hope of getting a good grade will require that you start doing something about it right now'
+			end
+		end
+		j += 1
+		if ARRSIZE('class_list_institution') >= j: jump 'grade_loop'
+		killvar 'j'		
+	
+	elseif university['exam_week'] = 1:
+		'You are in the first of the two weeks of exams'
+	else
+		'You are in the last of the two weeks of exams'
+	end
+	
+	act 'Go back': gt 'journal', 'records'
 	act 'Put your notebook down': gt $loc, $loc_arg
 end
 
