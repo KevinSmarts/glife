@@ -13,16 +13,18 @@ if $ARGS[0] = 'simple':
 	varsleep['time_now'] = daystart*1440 + hour * 60 + minut
 
 
-	if alarm_holiday = 1 and (kanikuli > 0 or week > 5):
-		varsleep['alarm_time'] = daystart*1440 + timerEnd * 60 + timerEndM
-	elseif week > 5:
-		varsleep['alarm_time'] = daystart*1440 + timerEnd * 60 + timerEndM
-	else
-		varsleep['alarm_time'] = daystart*1440 + timer * 60 + timerM
-	end
+	varsleep['time_now'] = daystart*1440 + hour * 60 + minut
+	varsleep['alarm_time_end'] = daystart*1440 + timerEnd * 60 + timerEndM
+	if varsleep['time_now'] >= varsleep['alarm_time_end']: varsleep['alarm_time_end'] += 1440
+	varsleep['alarm_time'] = daystart*1440 + timer * 60 + timerM
 	if varsleep['time_now'] >= varsleep['alarm_time']: varsleep['alarm_time'] += 1440
-
-	if budilnikOn = 1: varsleep['minutes to wakeup'] = min(varsleep['time_to_full'], varsleep['alarm_time'] - varsleep['time_now']) else varsleep['minutes to wakeup'] = varsleep['time_to_full']
+	if budilnikOn = 1: 
+		varsleep['minutes to wakeup'] = min(varsleep['time_to_full'], varsleep['alarm_time'] - varsleep['time_now'])
+		varsleep['minutes to wakeup end'] = min(varsleep['time_to_full'], varsleep['alarm_time_end'] - varsleep['time_now'])
+	else 
+		varsleep['minutes to wakeup'] = varsleep['time_to_full']
+		varsleep['minutes to wakeup end'] = varsleep['time_to_full']
+	end
 
 	InSleep = 1
 	:loopson_sleep
@@ -37,7 +39,21 @@ if $ARGS[0] = 'simple':
 	end
 	
 	varsleep['minutes to wakeup'] -= 1
-	if varsleep['minutes to wakeup'] > 0:jump 'loopson_sleep'
+	varsleep['minutes to wakeup end'] -= 1
+
+	if alarm_holiday = 1 and kanikuli > 0:
+	!! use weekend time alarm
+		varsleep['alarm_time'] = daystart*1440 + timerEnd * 60 + timerEndM
+		if varsleep['minutes to wakeup end'] > 0:jump 'loopson_bed'
+	elseif week > 5:
+	!! use weeken time alarm 
+		varsleep['alarm_time'] = daystart*1440 + timerEnd * 60 + timerEndM
+		if varsleep['minutes to wakeup end'] > 0:jump 'loopson_bed'
+	else 
+		varsleep['alarm_time'] = daystart*1440 + timer * 60 + timerM
+		if varsleep['minutes to wakeup'] > 0:jump 'loopson_bed'
+	end
+	varsleep['time_now'] = daystart*1440 + hour * 60 + minut
 	InSleep = 0
 	gs'stat'
 end
