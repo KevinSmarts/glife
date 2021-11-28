@@ -1563,7 +1563,7 @@ if $ARGS[0] = 'uni':
 
 		'<center><h2>Grades</h2></center>'
 	
-		gs 'grades', 'assing_grade_description', 'school'
+		gs 'grades', 'assing_grade_description', $university['enrolled_in']
 	
 		j = 0
 		:grade_loop
@@ -1584,10 +1584,31 @@ if $ARGS[0] = 'uni':
 		if ARRSIZE('class_list_institution') >= j: jump 'grade_loop'
 		killvar 'j'		
 	
-	elseif university['exam_week'] = 1:
-		'You are in the first of the two weeks of exams'
-	else
-		'You are in the last of the two weeks of exams'
+	elseif university['exam_week'] > 0:
+		'You are in the '+iif(university['exam_week'] = 1,'first','second')+' of the two weeks of exams. '+func('uni_programs', 'exam', 'schedule')
+		*nl
+		j = 0
+		:exam_loop
+		if $class_list_institution[j] = 'uni_<<$university[''enrolled_in'']>>_semester_<<university[''enrolled_in_semester'']>>':
+			if dyneval( 'RESULT = class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_exam_done'']') = 1:
+				'You did your <<$class_list_name[j]>> exam and think you will get an <<$class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_grade'']>>.'
+			elseif func('uni_programs', 'exam', 'is_over', $class_list_name[j]) = 1:
+				'Your exam <<$class_list_name[j]>> is over and you did not go. This means you will fail the class and thefore also the semester.'
+			elseif dyneval( 'RESULT = class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_grade'']') >= 100:
+				'You think you are so well prepared in your <<$class_list_name[j]>> exam well and will probably pass with the highest mark possible.'
+			elseif dyneval( 'RESULT = class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_grade'']') >= 90:
+				'You think you are so well prepared in your <<$class_list_name[j]>> exam well and will probably pass with a 5. But a little more studying never hurt.'
+			elseif dyneval( 'RESULT = class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_grade'']') >= 70:
+				'You think that you are prepared pretty well for your <<$class_list_name[j]>> exam and would probably get a 4 if the exam was today. With some more studying you might get a 5'
+			elseif dyneval( 'RESULT = class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_grade'']') >= 40:
+				'You you think you are prepared enough to pass your <<$class_list_name[j]>> exam. But if you want a good grade you need to do some seriuos studying.'
+			else
+				'If your <<$class_list_name[j]>> exam was today you would afil. So time to hit the books if you don''t want to fail your semester.'
+			end
+		end
+		j += 1
+		if ARRSIZE('class_list_institution') >= j: jump 'exam_loop'
+		killvar 'j'
 	end
 	
 	act 'Go back': gt 'journal', 'records'
