@@ -313,18 +313,17 @@ if $ARGS[0] = 'dream':
 	varsleep['time_to_full'] += 150 + rand(0,60)
 
 	varsleep['time_now'] = daystart*1440 + hour * 60 + minut
-
-
-	if alarm_holiday = 1 and (kanikuli > 0 or week > 5):
-		varsleep['alarm_time'] = daystart*1440 + timerEnd * 60 + timerEndM
-	elseif week > 5:
-		varsleep['alarm_time'] = daystart*1440 + timerEnd * 60 + timerEndM
-	else
-		varsleep['alarm_time'] = daystart*1440 + timer * 60 + timerM
-	end
+	varsleep['alarm_time_end'] = daystart*1440 + timerEnd * 60 + timerEndM
+	if varsleep['time_now'] >= varsleep['alarm_time_end']: varsleep['alarm_time_end'] += 1440
+	varsleep['alarm_time'] = daystart*1440 + timer * 60 + timerM
 	if varsleep['time_now'] >= varsleep['alarm_time']: varsleep['alarm_time'] += 1440
-
-	if budilnikOn = 1: varsleep['minutes to wakeup'] = min(varsleep['time_to_full'], varsleep['alarm_time'] - varsleep['time_now']) else varsleep['minutes to wakeup'] = varsleep['time_to_full']
+	if budilnikOn = 1: 
+		varsleep['minutes to wakeup'] = min(varsleep['time_to_full'], varsleep['alarm_time'] - varsleep['time_now'])
+		varsleep['minutes to wakeup end'] = min(varsleep['time_to_full'], varsleep['alarm_time_end'] - varsleep['time_now'])
+	else 
+		varsleep['minutes to wakeup'] = varsleep['time_to_full']
+		varsleep['minutes to wakeup end'] = varsleep['time_to_full']
+	end
 
 	:loopson_bed
 	minut += 1
@@ -378,29 +377,41 @@ if $ARGS[0] = 'dream':
 
 	
 	varsleep['minutes to wakeup'] -= 1
-	if varsleep['minutes to wakeup'] > 0:jump 'loopson_bed'
+	varsleep['minutes to wakeup end'] -= 1
 
+	if alarm_holiday = 1 and kanikuli > 0:
+	!! use weekend time alarm
+		varsleep['alarm_time'] = daystart*1440 + timerEnd * 60 + timerEndM
+		if varsleep['minutes to wakeup end'] > 0:jump 'loopson_bed'
+	elseif week > 5:
+	!! use weeken time alarm 
+		varsleep['alarm_time'] = daystart*1440 + timerEnd * 60 + timerEndM
+		if varsleep['minutes to wakeup end'] > 0:jump 'loopson_bed'
+	else 
+		varsleep['alarm_time'] = daystart*1440 + timer * 60 + timerM
+		if varsleep['minutes to wakeup'] > 0:jump 'loopson_bed'
+	end
+
+	varsleep['time_now'] = daystart*1440 + hour * 60 + minut
+
+	gs 'stat'
 	if slept_in = 1:
-		gs 'stat'
 		$waketext = 'You wake up at <b><<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>></b>, after sleeping-in a little longer than planned, but at least you''ve had plenty of sleep.'
-		gs 'bed2', 'wake'
-	elseif pcs_sleep >= 100 and budilnikOn = 0:
-		gs 'stat'
-		$waketext = 'You wake up at <b><<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>></b>, no longer tired and ready to start the day with plenty of sleep.'
-		gs 'bed2', 'wake'
-	elseif pcs_sleep >= 100 and budilnikOn = 1 and alarm_now >= alarm_set:
-		gs 'stat'
+	elseif pcs_sleep >= 100 and budilnikOn = 1 and varsleep['time_now'] >= varsleep['alarm_time']:
 		$waketext = 'You wake up at <b><<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>></b>, just before your alarm goes off. You''ve had plenty of sleep.'
-		gs 'bed2', 'wake'
-	elseif budilnikOn = 1 and alarm_now = alarm_time:
+	elseif pcs_sleep >= 100:
+		$waketext = 'You wake up at <b><<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>></b>, no longer tired and ready to start the day with plenty of sleep.'
+	elseif budilnikOn = 1 and varsleep['time_now'] = varsleep['alarm_time']:
 		pcs_mood -= 10
-		gs 'stat'
 		$waketext = 'Your alarm goes off at <b><<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>></b>, '+iif(pcs_sleep < 90, 'but you could do with some extra sleep.', 'and you''ve had plenty of sleep.')+''
 		gs 'bed2', 'extra'
-		gs 'bed2', 'wake'
+	else
+		!! I do not think that it could go here
+		$waketext = ''
 	end
-	*nl
 
+	gs 'bed2', 'wake'
+	*nl
 	'<<$waketext>>'
 end
 
@@ -586,9 +597,6 @@ if $ARGS[0] = 'extra':
 	act '"Snooze" a few minutes more...':
 		menu_off = 1
 		slept_in = 1
-		stime = 0
-		minut += (100-pcs_sleep)*6
-		pcs_sleep += 100
 		gs 'stat'
 		gt 'bed2', 'dream'
 	end
