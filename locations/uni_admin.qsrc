@@ -18,6 +18,8 @@ if $ARGS[0] = 'start':
 	minut += 5
 	$menu_loc = 'uni_admin'
 	$menu_arg = 'start'
+	$loc = 'uni_admin'
+	$loc_arg = 'start'
 	menu_off = 0
 	gs 'stat'
 	gs 'themes', 'indoors'
@@ -27,9 +29,9 @@ if $ARGS[0] = 'start':
 	!!this below will all need to be updated and cleaned up. I am leaving it as is for now as I don''t know how to fix it
 	if university['diploma'] > 0:
 		'You have graduated from the University.'
-	elseif func('uniutil', 'student', 'expelled_for_failing'):
+	elseif university['expelled_for_missing_exam'] = 0 and university['expelled'] = 1:
 		'You have been expelled from the University for failing your exams.'
-	elseif func('uniutil', 'student', 'expelled_for_skipping'):
+	elseif university['expelled_for_missing_exam'] = 1:
 		'You have been expelled from the University for skipping your exams.'
 	elseif func('uniutil', 'student', 'expelled_for_other_reason'):
 		'You have been expelled from the University for reasons unrelated to your exam results.'
@@ -57,6 +59,9 @@ if $ARGS[0] = 'start':
 	end
 	if (university['entrance_exam_passed'] = 1 or university['prep_enrolled'] = 0) and university['student'] = 0 and university['diploma'] = 0 and age >= 17 and (storyline ! 1 or SchoolAtestat = 1) and month < 9:
 		act 'Enroll at the University': gt 'uni_admin', 'enrollment'
+	end
+	if university['enrolled_in_semester'] > 0 and university['enrolled_in_semester'] = university['semester_passed'] and university['semeter_passed'] < 8:
+		act 'Enroll in your next semester': gt 'uni_admin', 'enrollment_semester'
 	end
 	!!the if below should only show up if Sveta tried to enroll and didn''t or couldn''t pay for the classes before
 	if university['entrance_information'] = 1 and university['prep_enrolled'] = 0 and university['student'] = 0 and month < 9: gs 'uni_admin', 'prep_pay'
@@ -95,12 +100,12 @@ if $ARGS[0] = 'enrollment':
 					university['enrolled_in_semester'] = 1
 					home_owned[11] = 1
 					!!This creates the classes for the first semester of the teaching program to be used by the grade system, and gives the player a starting grade value (which is a failing grade, the player have to study if they want to pass)
-					gs 'grades', 'createclass', 'uni_teaching_studies_semester_1', 'general education', 3, 2, 'no', 'no', 1, 12
-					gs 'grades', 'createclass', 'uni_teaching_studies_semester_1', 'teaching methods', 3, 2, 'no', 'no', 1, 12
-					gs 'grades', 'createclass', 'uni_teaching_studies_semester_1', 'learning theories', 3, 2, 'no', 'no', 1, 12
-					gs 'grades', 'grade_award', 'uni_teaching_studies_semester_1', 'general education', 35
-					gs 'grades', 'grade_award', 'uni_teaching_studies_semester_1', 'teaching methods', 35
-					gs 'grades', 'grade_award', 'uni_teaching_studies_semester_1', 'learning theories', 35
+					gs 'grades', 'createclass', 'uni_teaching_studies_semester_1', 'general education 101', 3, 2, 'no', 'no', 1, 12
+					gs 'grades', 'createclass', 'uni_teaching_studies_semester_1', 'teaching methods 101', 3, 2, 'no', 'no', 1, 12
+					gs 'grades', 'createclass', 'uni_teaching_studies_semester_1', 'learning theories 101', 3, 2, 'no', 'no', 1, 12
+					gs 'grades', 'grade_award', 'uni_teaching_studies_semester_1', 'general education 101', 35
+					gs 'grades', 'grade_award', 'uni_teaching_studies_semester_1', 'teaching methods 101', 35
+					gs 'grades', 'grade_award', 'uni_teaching_studies_semester_1', 'learning theories 101', 35
 					cla
 					'You tell her you would like to pursue a teaching degree. She smiles and nods, then finishes filling out some more paperwork about the courses you can expect to take. Once the ID is done she hands it over, along with all of your paperwork. You are now officially enrolled as a student at the Saint Petersburg University.'
 					if (day - week) >= 27 and month = 8:
@@ -131,6 +136,50 @@ if $ARGS[0] = 'enrollment':
 		end
 	end
 end
+
+if $ARGS[0] = 'enrollment_semester':
+	$sexloc = 'uni_admin'
+	cla & *clr
+	minut += 15
+	gs 'stat'
+	'<center><b><font color="maroon">Enrollment office</font></b></center>'
+	'<center><img <<$set_imgh>> src="images/locations/city/island/university/admin/enrollment1.jpg"></center>'
+	'You enter the enrollment office, where there are several desks with women working behind them and a fair number of young people about your age waiting in a side room. You inform them you wish to enroll at the university, they take down your name and ask you to go wait in the waiting room until your name is called. You walk into the other room, smile and nod to the other prospective students and take a seat.'
+	act 'Wait your turn':
+		cla & *clr
+		'<center><b><font color="maroon">Enrollment office</font></b></center>'
+		'<center><img <<$set_imgh>> src="images/locations/city/island/university/admin/enrollment2.jpg"></center>'
+		'You wait until until your name is called by one of the women. She then leads you down a side hall to one of the offices, letting you take a seat and introduce yourself. After a brief discussion the woman takes your information and enters it into the computer.'
+		if 	$university['enrolled_in']= 'teaching_studies':
+			minut += 15
+			'She looks over the information for a bit, filling in some data. Several minutes later she turns to you and smiles, telling you that you since you passed your last semester you can enroll in the '+trim(MID('  first, second, third, fourth, fifth, sixth, seventh, eighth,  ninth,  tenth', (university['enrolled_in_semester']+1)*8,7))+' of the Teaching Studies Program. She gives you the paperwork and you spend some time filling it all out.'
+			act 'Enroll':
+				!!This sets the variables such that the player is enrolled in next semester of the teaching program.
+				university['enrolled_in_semester'] += 1
+				if university['enrolled_in_semester'] = 2:
+					!!This creates the classes for the first semester of the teaching program to be used by the grade system, and gives the player a starting grade value (which is a failing grade, the player have to study if they want to pass)
+					gs 'grades', 'createclass', 'uni_teaching_studies_semester_2', 'general education 102', 3, 2, 'no', 'no', 1, 12
+					gs 'grades', 'createclass', 'uni_teaching_studies_semester_2', 'teaching methods 102', 3, 2, 'no', 'no', 1, 12
+					gs 'grades', 'createclass', 'uni_teaching_studies_semester_2', 'psychology of a student 101', 3, 2, 'no', 'no', 1, 12
+					gs 'grades', 'grade_award', 'uni_teaching_studies_semester_2', 'general education 102', (class['uni_teaching_studies_semester_1_general education 101_grade']/3+10)
+					gs 'grades', 'grade_award', 'uni_teaching_studies_semester_2', 'teaching methods 102', (class['uni_teaching_studies_semester_1_teaching methods 101_grade']/3+10)
+					gs 'grades', 'grade_award', 'uni_teaching_studies_semester_2', 'psychology of a student 101', 35
+				end
+				cla
+				'You tell her you would like to continue to pursue a teaching degree. She smiles and nods, then finishes filling out some more paperwork about the courses you can expect to take.'
+				if (day - week) >= 27 and month = 8:
+					university['semester_week'] = 1
+					*nl
+					'She tells you that you enrolled at the last minute, and the classes have already started this week.'
+				end
+				act 'Leave':gt 'uni_admin', 'start'
+!!once we have the framework working i will start working on some elective classes, once we have a couple of them I will add them here.
+					!!act 'Take some elective classes':
+			end
+		end
+	end
+end
+
 
 if $ARGS[0] = 'prep_pay':
 	if money >= 15000:

@@ -2,11 +2,13 @@
 !!2021/04/15
 if $ARGS[0] = 'strip':
 	clr
+	custbooing = 0
+	countmoney = 1
 	gs 'stat'
 	'<center><b><font color="maroon">Stage</font></b></center>'
 	'<center><img <<$set_imgh>> src="images/locations/city/redlight/stripclub/stripclub1.jpg"></center>'
 	'You are ready to start, the music starts. It''s now or never.'
-	act 'get on stage': gs 'stwork2', 'strip_hub'
+	act 'get on stage': gs 'stwork2', 'strip_hub2', 1
 end	
 
 if $ARGS[0] = 'strip_hub':
@@ -24,27 +26,50 @@ if $ARGS[0] = 'strip_hub':
 	if striptip >= 90:$pubhot = 'completely indulged in you. They''re clapping and waving money at you trying to get you attention.'
 
 	'There are men sitting in front of the stage <<$pubhot>>.'
+	
+	gs  'stwork2', 'strip_hub2'
+end
 
+if $ARGS[0] = 'strip_hub2':
+	if ARGS[1] = 1:
+		if fame['city_stripping'] < 50:
+			'There are men sitting in front of the stage, mostly talking amongst themselves.'
+		elseif fame['city_stripping'] < 200:
+			'There are men sitting in front of the stage, some chatting and some watching to see you dance.'
+		elseif fame['city_stripping'] < 500:
+			'There are men sitting in front of the stage, most are waiting to see you dance.'
+		elseif fame['city_stripping'] < 1000:
+			'There are men sitting in front of the stage, eagerly waiting for your show to start.'
+		else
+			'There are men sitting in front of the stage, cheering as soon as your name is announced. Some stand to applaud chanting your name and whistling'
+		end
+	end
 	if hour >= 11 or hour <= 2:
 		if stpredmet = 3:lapdance = 0
 		if stpredmet > 0:
 			if $clothingworntype ! 'nude':
-				act 'Dance around the pole in your underwear': gt 'stwork2', 'pole_underwear'
+				act 'Dance on the pole in your clothes': gt 'stwork2', 'dance_clothed'
 				act 'Strip out of your outfit': gt 'stwork2', 'strip_clothes'
-			elseif $braworntype ! 'none' or CloBra = 1:
-				if $pantyworntype ! 'none':
-					act 'Take off your bra': gt 'stwork2', 'strip_bra'
-				else
-					act 'Discard your bra and dance nude': gt 'stwork2', 'strip_nude'
-				end
-			elseif $pantyworntype ! 'none' or PCloPanties = 1:
-				act 'Dance around the pole in your panties': gt 'stwork2', 'pole_underwear'
-				act 'Take off your panties': gt 'stwork2', 'strip_panties'
 			else
-				act 'Dance nude': gt 'stwork2', 'strip_nude'
+				if ($braworntype ! 'none' or CloBra = 1) and ($pantyworntype ! 'none' or PCloPanties = 1):
+					act 'Dance around the pole in your underwear': gt 'stwork2', 'pole_underwear'
+				end
+				if $braworntype ! 'none' or CloBra = 1:
+					if $pantyworntype ! 'none':
+						act 'Take off your bra': gt 'stwork2', 'strip_bra'
+					else
+						act 'Discard your bra and dance nude': gt 'stwork2', 'dance_nude'
+					end
+				elseif $pantyworntype ! 'none' or PCloPanties = 1:
+					act 'Dance around the pole in your panties': gt 'stwork2', 'pole_underwear'
+					act 'Take off your panties': gt 'stwork2', 'strip_panties'
+				else
+					act 'Dance nude': gt 'stwork2', 'dance_nude'
+				end
 			end
 		else
-			'Your time is up and the music stops.'
+			'Your time is up and the music stops. You collect up your clothes and any tips.'
+
 			if striptip >= 60:
 				'The men cheer and clap as you gather your clothes and head back stage.'
 			else
@@ -52,7 +77,7 @@ if $ARGS[0] = 'strip_hub':
 			end
 			gs 'sweat', 'add', 5
 			pcs_hairbsh = 0 & stripdancesum += 1
-			if lapdance >= 150:
+			if striptip >= 150:
 				privatrand = rand(0, 100)
 				if privatrand >= 50:
 					*nl
@@ -72,12 +97,27 @@ if $ARGS[0] = 'strip_hub':
 	
 	act 'Leave the stage':gt 'stwork', 'start'
 end
-				
+
+if $ARGS[0] = 'dance_clothed':	
+	*clr & cla
+	minut += 5
+	gs 'sweat', 'add', 5
+	fat -= 1
+	dancero_exp += rand(1, 2)
+
+	striptip = rand(pcs_dancero,(pcs_dancero*5))
+
+	gs 'stat'
+	
+	'<center><img <<$set_imgh>> src="images/locations/city/redlight/stripclub/stripclo' + rand(1,3) + '.jpg"></center>'
+	'You dance seductively around the pole in the center of the stage.'
+	gs 'stwork2', 'custboo'
+	'The men are starting to call for you to strip, you''d better give them what they want.'
+	act 'Strip out of your outfit': gt 'stwork2', 'strip_clothes'
+end
 
 if $ARGS[0] = 'strip_clothes':
 	*clr & cla
-	countmoney = 1
-	custbooing = 0
 	minut += 5
 	gs 'sweat', 'add', 5
 	fat -= 1
@@ -85,12 +125,10 @@ if $ARGS[0] = 'strip_clothes':
 	inhib_exp += rand(1,2)
 	gs 'fame', 'city', 'stripping', rand(1,2)
 
-	striptip = rand(pcs_dancero,100)
-	lapdance += striptip
+	striptip = rand(pcs_dancero,(pcs_dancero*5))
 
 	gs 'stat'
 	
-	!You either start with underwear and clothes or in underwear. Each has a different picture set.
 	'<center><img <<$set_imgh>> src="images/locations/city/redlight/stripclub/stripclo' + rand(1,3) + '.jpg"></center>'
 	'You start moving seductively around the pole in the center of the stage...'
 	gs 'stwork2', 'custboo'
@@ -104,8 +142,6 @@ if $ARGS[0] = 'strip_clothes':
 			pcs_mood -= 5
 			'Ignoring the comments from the audience, you take off your blouse and let it drop to the stage while you keep teasing them.'
 		end
-		gs 'stwork2', 'custboo'
-		gs 'stat'
 		if PCloSkirt > 0:
 			$i = 'skirt'
 			$i[1] = 'it'
@@ -125,7 +161,6 @@ if $ARGS[0] = 'strip_clothes':
 				'The negative comments make you feel a bit uncomfortable as you unzip your <<$i>> and let <<$i[1]>> drop to your ankles before kicking <<$i[1]>> off and lying down on the stage, rolling around and looking several customers straight in the eyes.'
 			end
 			killvar '$i'
-			gs 'stwork2', 'custboo'
 			gs 'stat'
 			act 'Continue': gt 'stwork2', 'strip_hub'
 		end
@@ -134,8 +169,6 @@ end
 
 if $ARGS[0] = 'strip_bra':
 	*clr & cla
-	countmoney = 1
-	custbooing = 0
 	minut += 5
 	gs 'sweat', 'add', 5
 	fat -= 1
@@ -143,12 +176,11 @@ if $ARGS[0] = 'strip_bra':
 	inhib_exp += rand(1,2)
 	gs 'fame', 'city', 'stripping', rand(1,2)
 
-	striptip = rand(pcs_dancero,100)
-	lapdance += striptip
+	striptip += rand(pcs_dancero,(pcs_dancero*5))
 
 	gs 'stat'
 	'<center><img <<$set_imgh>> src="images/locations/city/redlight/stripclub/stripund' + rand(1,3) + '.jpg"></center>'
-	'You start moving seductively around the pole in the center of the stage...'
+	'You start moving seductively around the pole in the center of the stage wearing just your underwear...'
 	gs 'stwork2', 'custboo'
 	act 'Take off your bra':
 		gs 'bras', 'remove'
@@ -163,7 +195,6 @@ if $ARGS[0] = 'strip_bra':
 			'Ignoring the comments from the audience, you slowly take off your bra and let it drop to the stage while you keep teasing them.'
 			'All you can hear is mockery as you try to ignore them and continue your act. The cutting remarks keep coming however, and soon you are close to tears.'
 		end
-		gs 'stwork2', 'custboo'
 		gs 'arousal', 'flash', -10
 		gs 'stat'
 		act 'Continue': gt 'stwork2', 'strip_hub'
@@ -173,8 +204,6 @@ end
 if $ARGS[0] = 'strip_panties':
 	gs 'panties', 'remove'
 	*clr & cla
-	countmoney = 1
-	custbooing = 0
 	minut += 5
 	gs 'sweat', 'add', 5
 	fat -= 1
@@ -182,28 +211,30 @@ if $ARGS[0] = 'strip_panties':
 	inhib_exp += rand(1,2)
 	gs 'fame', 'city', 'stripping', rand(1,2)
 
-	striptip = rand(pcs_dancero,100)
-	lapdance += striptip
+	striptip += rand(pcs_dancero,(pcs_dancero*5))
 
 	gs 'stat'
-	'<center><img <<$set_imgh>> src="images/locations/city/redlight/stripclub/stripund' + rand(9,12) + '.jpg"></center>'
-	if custboo = 0:
-		pcs_mood += 5
-		'The positive responses make you smile even broader as you playfully drop your panties to your ankles before kicking them off. You look several customers straight in the eyes as you do so. Some of them throw some bills your way, and you take care to pay them some extra attention.'
-	else
-		pcs_mood -= 5
-		'The negative comments make you feel a bit uncomfortable as you playfully drop your panties to your ankles before kicking them off. You look several customers straight in the eyes as you do so.'
-	end
+	'<center><img <<$set_imgh>> src="images/locations/city/redlight/stripclub/stripund9.jpg"></center>'
+	'You dance seductively in just your panties, teasing the crowd.'
 	gs 'stwork2', 'custboo'
-	gs 'arousal', 'flash', -15
-	gs 'stat'
-	act 'Continue': gt 'stwork2', 'strip_hub'
+	act 'Strip out of your panties':
+		*clr & cla
+		'<center><img <<$set_imgh>> src="images/locations/city/redlight/stripclub/stripund' + rand(10,12) + '.jpg"></center>'
+		if custboo = 0:
+			pcs_mood += 5
+			'The positive responses make you smile even broader as you playfully drop your panties to your ankles before kicking them off. You look several customers straight in the eyes as you do so. Some of them throw some bills your way, and you take care to pay them some extra attention.'
+		else
+			pcs_mood -= 5
+			'The negative comments make you feel a bit uncomfortable as you playfully drop your panties to your ankles before kicking them off. You look several customers straight in the eyes as you do so.'
+		end
+		gs 'arousal', 'flash', -15
+		gs 'stat'
+		act 'Continue': gt 'stwork2', 'strip_hub'
+	end
 end
 
-if $ARGS[0] = 'strip_nude':
+if $ARGS[0] = 'dance_nude':
 	*clr & cla
-	countmoney = 1
-	custbooing = 0
 	minut += 5
 	gs 'sweat', 'add', 5
 	fat -= 1
@@ -211,45 +242,36 @@ if $ARGS[0] = 'strip_nude':
 	inhib_exp += rand(1,2)
 	gs 'fame', 'city', 'stripping', rand(1,2)
 
-	striptip = rand(pcs_dancero,100)
-	lapdance += striptip
+	striptip += rand(pcs_dancero,(pcs_dancero*5))
 
 	gs 'stat'
+	'<center><img <<$set_imgh>> src="images/locations/city/redlight/stripclub/stripund' + rand(13,14) + '.jpg"></center>'
+	gs 'stwork2', 'custboo'
 	if custbooing < 2:
-		act 'Dance some more':
-			*clr & cla
-			'<center><img <<$set_imgh>> src="images/locations/city/redlight/stripclub/stripund' + rand(13,14) + '.jpg"></center>'
-			if custboo = 0:
-				pcs_mood += 5
-				'The men in the first row go wild as soon as you are fully nude, shouting out their approval. Several of them are tipping generously.'
-				'You dance as seductively as you can, trying to spread your attention over the audience, but paying extra attention to the ones who give you more money.'
-			else
-				'The negative comments make you feel a bit uncomfortable. Not wanting to give up, you put all your effort into your dancing. This seems to please some of them, and they start tipping you after all.'
-				'You dance as seductively as you can, trying to spread your attention over the audience, but paying extra attention to the ones who give you more money.'
-			end
-			'When the music starts winding down, you collect your tips and pick up your clothes, blowing a few kisses to your audience before going backstage again.'
-			gs 'arousal', 'flash', -20
-			gs 'arousal', 'end'
-			stprivatechance = 1
-			pcs_hairbsh = 0 & stripdancesum += 1
-			gs 'stat'
-			act 'Leave the stage': gt 'stwork', 'start'
-		end
+		pcs_mood += 5
+		'The men in the first row go wild seeing you dance nude, shouting out their approval. Several of them are tipping generously.'
+		'You dance as seductively as you can, trying to spread your attention over the audience, but paying extra attention to the ones who give you more money.'
+		'When the music starts winding down, you collect your tips and pick up your clothes, blowing a few kisses to your audience before going backstage again.'
+		
+		gs 'arousal', 'flash', -20
+		gs 'arousal', 'end'
+		stprivatechance = 1
+		pcs_hairbsh = 0 & stripdancesum += 1
+		gs 'stat'
+		act 'Leave the stage': gt 'stwork', 'start'
 	else
-		act 'Flee the stage':
-			*clr & cla
-			'<center><img <<$set_imgh>> src="images/locations/city/redlight/stripclub/stripund' + rand(13,14) + '.jpg"></center>'
-			pcs_mood -= 5
-			'Even being completely naked doesn''t seem to get any positive responses.'
-			'All you can hear is mockery as you try to ignore them and continue your act. The cutting remarks keep coming however, and soon you are close to tears.'
-			'Before the music stops, you start collecting your meager tips and clothes and flee backstage.'
-			gs 'arousal', 'flash', -20
-			gs 'arousal', 'end'
-			stprivatechance = 0
-			pcs_hairbsh = 0 & stripdancesum += 1
-			gs 'stat'
-			act 'Leave the stage': gt 'stwork', 'start'
-		end
+		*clr & cla
+		'<center><img <<$set_imgh>> src="images/locations/city/redlight/stripclub/stripund' + rand(13,14) + '.jpg"></center>'
+		pcs_mood -= 5
+		'Even being completely naked doesn''t seem to get any positive responses.'
+		'All you can hear is mockery as you try to ignore them and continue your act. The cutting remarks keep coming however, and soon you are close to tears.'
+		'Before the music stops, you start collecting your meager tips and clothes and flee backstage.'
+		gs 'arousal', 'flash', -20
+		gs 'arousal', 'end'
+		stprivatechance = 0
+		pcs_hairbsh = 0 & stripdancesum += 1
+		gs 'stat'
+		act 'Leave the stage': gt 'stwork', 'start'
 	end
 end
 
@@ -265,8 +287,7 @@ if $ARGS[0] = 'pole_underwear':
 	gs 'fame', 'city', 'stripping', rand(1,2)
 
 	!pcs_hairbsh = 0
-	striptip = rand(pcs_dancpol,100)
-	lapdance += striptip
+	striptip += rand(pcs_dancpol,(pcs_dancpol*5))
 	
 	gs 'stat'
 	'<center><img <<$set_imgh>> src="images/locations/city/redlight/stripclub/strippole.jpg"></center>'
@@ -285,14 +306,11 @@ if $ARGS[0] = 'pole_underwear':
 				gs 'stat'
 				'As you fall, you hit the floor really hard, and you can feel a bruise forming on your face.'
 			end
-		end
-		if vesrand >= 50:
+		elseif vesrand >= 50:
 			striptip -= rand(5, 10)
 			'You overhear some of the customers right next to the stage, "Look at her fat hanging out. Her gut and ass are shaking like jelly."'
 		end
 	end
-
-	gs 'stwork2', 'tipcalculator'
 
 	act 'Continue': gt 'stwork2', 'strip_hub'
 end
@@ -309,8 +327,7 @@ if $ARGS[0] = 'pole_panties':
 	gs 'fame', 'city', 'stripping', rand(1,2)
 
 	!pcs_hairbsh = 0
-	striptip = rand(pcs_dancpol,100)
-	lapdance += striptip
+	striptip += rand(pcs_dancpol,(pcs_dancpol*5))
 	
 	gs 'stat'
 	'<center><img <<$set_imgh>> src="images/locations/city/redlight/stripclub/stripund' + rand(7,8) + '.jpg">"></center>'
@@ -321,6 +338,7 @@ if $ARGS[0] = 'pole_panties':
 
 		if vesrand >= 75:
 			'Performing another trick on the pole, you can not support your weight and fall flat on your face. The crowd laughs, "Hey, hippopotamus, stomp back to the swamp where you came from."'
+			custbooing += 1
 			striptip -= 15
 			fingalrand = rand(0, 100)
 			if fingalrand >= 75:
@@ -329,14 +347,12 @@ if $ARGS[0] = 'pole_panties':
 				gs 'stat'
 				'As you fall, you hit the floor really hard, and you can feel a bruise forming on your face.'
 			end
-		end
-		if vesrand >= 50:
+		elseif vesrand >= 50:
+			custbooing += 1
 			striptip -= rand(5, 10)
 			'You overhear some of the customers right next to the stage, "Look at her fat hanging out. Her gut and ass are shaking like jelly."'
 		end
 	end
-
-	gs 'stwork2', 'tipcalculator'
 
 	act 'Continue': gt 'stwork2', 'strip_hub'
 end
@@ -374,47 +390,6 @@ if $ARGS[0] = 'custboo':
 			'Several customers are catcalling. They want to see more.'
 		elseif resprand = 1:
 			'Most of the crowd seems to like what they are seeing. "Show us some more flesh!" You hear one of them yell.'
-		end
-	end
-end
-
-if $ARGS[0] = 'tipcalculator':
-	!20% chance that tattoos increase tips
-	if rand (0, 4) = 0:
-		striptip += stripKoef
-	end
-	if striptip < 30:
-		'Nobody even noticed you or your efforts on the stage.'
-	elseif striptip < 60:
-		'A couple of people looked at you but nothing more than that, you didn''t receive a single tip.'
-	elseif striptip < 70:
-		if payrand = 0: 'A couple of people looked at you but nothing more than that, you didn''t receive any tips.'
-	elseif striptip < 80:
-		if rand(0,5) = 0:
-			'The customers were pleased with your performance. No one tipped you however.'
-		else
-			paymoneyrand = rand(3,10) * 5
-			money += paymoneyrand
-			pcs_mood += rand(1,2)
-			'The customers were pleased with your performance. They gave you <<paymoneyrand>> <b>₽</b> in tips.'
-		end
-	elseif striptip < 90:
-		if rand(0,10) = 0:
-			'The customers followed your movements between their conversations. No one tipped you however.'
-		else
-			paymoneyrand = rand(10,50) * 5
-			money += paymoneyrand
-			pcs_mood += rand(1,2)
-		'The customers followed your movements between their conversations. After counting out your tips it amounts to <<paymoneyrand>> <b>₽</b>.'
-		end
-	else
-		if rand(0,15) = 0:
-			'The customers were mesmerized by your dancing, but no one tipped you.'
-		else
-			paymoneyrand = rand(10,100) * 5
-			money += paymoneyrand
-			pcs_mood += rand(1,2)
-			'The customers were mesmerized by your dancing and have tipped <<paymoneyrand>> <b>₽</b>.'
 		end
 	end
 end

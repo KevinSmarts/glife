@@ -50,6 +50,16 @@ if $ARGS[0] = 'study':
 		i += 1
 		if ARRSIZE('class_list_institution') >= i: jump 'study_loop'
 		killvar 'i'
+	elseif university['exam_week'] > 0:
+		i = 0
+		:exam_loop
+		if $class_list_institution[i] = 'uni_<<$university[''enrolled_in'']>>_semester_<<university[''enrolled_in_semester'']>>' and func('uni_programs', 'exam', 'is_over', $class_list_name[i]) = 0:
+			dynamic '	act ''Study intensely for your <<$class_list_name[i]>> exam (30 minuts)'': gt ''uni_library'', ''studying_exam'', ''<<$class_list_institution[i]>>'', ''<<$class_list_name[i]>>'' '
+		end
+		
+		i += 1
+		if ARRSIZE('class_list_institution') >= i: jump 'exam_loop'
+		killvar 'i'
 	end	
 	act 'Leave':
 		minut += 5
@@ -76,6 +86,104 @@ if $ARGS[0] = 'studying':
 	else
 		'You study for half an hour, and you think you understand everything that is covered this week'
 	end
+	act 'Leave':
+		minut += 5
+		gt 'uni_grounds', 'main'
+	end
+	if (week < 6 or hour < 23) and hour > 7:
+		act 'Return to entrance':
+			minut += 2
+			gt 'uni_library', 'start'
+		end
+		act 'Keep Studying': gt 'uni_library', 'study'
+		act 'Wander around': gt 'uni_library', 'wander'
+	else
+		'The library is closing'
+	end
+end
+
+if $ARGS[0] = 'studying_exam':
+	cla & *clr
+	'<center><b><font color="maroon">The University Library</font></b></center>'
+	'<center><img <<$set_imgh>> src="images/locations/city/island/university/library/study' + rand(1,7) + '.jpg"></center>'
+	!!Nerds likes studying and so their mood improves a little. Everbody else get in a worse mood by studying.
+	intel_exp += max(0,rand(-1,1))
+	pcs_mood += (traits['nerd_status']*5 -10)
+	minut += 30
+	'Once there you open the books and start studying for your <<$ARGS[2]>> exam, the library is mostly quiet but you hear occasionally noises some of them hard to make out and some of them fairly suspect. Still for the most part it is a good environment to study in, there is a few other students you can see studying as well.'
+	if pcs_sleep < 5:
+		no_study = 1
+		'You are so tired that you are constantly falling a sleep. You get no studying done in this condition.'
+	elseif pcs_sleep < 30:
+		study_mod -= 20
+		'You are very tired and have a hard time keeping you eyes open.'
+	end
+	if alko >= 6:
+		no_study = 1
+		'You are so drunk that you eyes can''t make sense of the letters written in the books. Holding your pen is also a problem.'
+	elseif alko >= 4:
+		study_mod -= 40
+		'You are drunk and have trouble concentration on reading the books. When you look back on the notes you made a lot of them are incomprehensible.'
+	elseif alko >= 2:
+		study_mod -= 20
+		'You are feeling a little tipsy and the you think that the studying is going great. But when you afterwards look at it you notice that a lot of your notes you made makes no sense.'
+	end
+	if mentats_dose >= 1: study_mod += 30
+	If pcs_mood < 50:
+		study_mod -= 20
+		'you are in a bad mood and it clearly effects you studying.'
+	end
+	if StrongNarkota > 0 or jointhigh > 0:
+		study_mod -= 40
+		'You are stoned, and it is not making it easier to concentrate on studying.'
+	end
+	if amphHigh > 0: study_mod += 20
+	if pcs_energy < 5:
+		study_mod -= 20
+		'You are extremely hungry and it it is hard thinking about anything else that food.'
+	elseif pcs_energy < 10:
+		study_mod -= 10
+		'You are very hungry and it affect your ability to concentrate.'
+	elseif pcs_energy < 20:
+		study_mod -=10
+		'You ar hungry and your thought often drift to food, affecting your performance negatively.'
+	end
+	if pcs_horny > 90:
+		study_mod -= 10
+		'ou are so arouse that you thought often drifts to sex effecting you ability your study.'
+	end
+	if pain['total'] > 90:
+		no_study = 1
+		'You are in so much pain that you can''t study.'
+	elseif pain['total'] > 75:
+		study_mod -= 40
+		'You are in so much pain that you have a very hard time concentrating on studying.'
+	elseif pain['total'] > 60:
+		study_mod -= 20
+		'Your pain a constantly bothering and it makes it harder to study.'
+	end
+	*nl
+ 	study_mod = max(0,(rand(30 + study_mod,pcs_intel + study_mod) + 10)/33)
+	if no_study = 1:
+		'You try to study for half an hour, but gets nothing done.'
+	else
+		if study_mod = 0:
+			'You study for half an hour. But don''t think you are improving.'
+		elseif study_mod = 1:
+			'You study for half an hour, and think you are improving a little.'
+		elseif study_mod = 2:
+			'You study for half an hour, and think you are doing good progress in getting ready for the exam.'
+		else
+			'You study for half an hour, and think you are improving a lot.'
+		end		
+		gs 'grades', 'grade_award', '<<$ARGS[1]>>', '<<$ARGS[2]>>', 'yes', study_mod
+	end
+	
+	gs 'stat'
+	
+	killvar 'study_mod'
+	killvar 'nod_study'
+	
 	act 'Leave':
 		minut += 5
 		gt 'uni_grounds', 'main'
