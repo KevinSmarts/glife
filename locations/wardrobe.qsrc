@@ -142,6 +142,9 @@ if $ARGS[0] = 'removeall':
 end
 
 !!---------------------------Oufit stuff----------------------------------
+$default_clothing_suma = {
+	RESULT = defclothingnumber[ARGS[0]]+ defbranumber[ARGS[0]] + defpantynumber[ARGS[0]] + defshoenumber[ARGS[0]] + defpursenumber[ARGS[0]] + defcoatnumber[ARGS[0]]
+	}
 
 $default_clothing_line = {
 	!! a single line in a clothing list (wardrobe, etc)
@@ -259,15 +262,17 @@ if $ARGS[0] = 'default':
 	'<center><table><TH>Name</TH><TH>Outfit</TH><TH>Panties</TH><TH>Bra</TH><TH>Shoes</TH><TH>Coat</TH><TH>Purse</TH><TH></TH><TH></TH><TH></TH><TH></TH><TR>'
 
 	default_entry = 0
-
-	:loopdefault_entry_sport
-
-	*p dyneval($default_sports_line)
-
+	:loopdefault_entry_sport_set
+		if dyneval($default_clothing_suma,default_entry) ! 0: *p dyneval($default_sports_line)
 		default_entry += 1
+	if default_entry <= 9:jump 'loopdefault_entry_sport_set'
 
-	if default_entry <= 9:jump 'loopdefault_entry_sport'
-	
+	default_entry = 0
+	:loopdefault_entry_sport_empty
+		if dyneval($default_clothing_suma,default_entry) = 0: *p dyneval($default_sports_line)
+		default_entry += 1
+	if default_entry <= 9:jump 'loopdefault_entry_sport_empty'
+
 	'</table></center>'
 
 	gs 'wardrobe', 'default_actions', 0
@@ -280,15 +285,18 @@ if $ARGS[0] = 'default_template':
 	'<center><table><TH><a href="exec:gt ''wardrobe'', ''main''"><img src="images/system/icons/clothing/clothes.png" height="50"></TH><TH><B>Your Sets: <<$default_entry[2]>></B></TH><TH><a href="exec:gt ''clothing'', ''view_clothing_list'', ''wardrobe''"><img src="images/system/icons/clothing/organize.png" height="50"></TH><TR><TD></TD><TD><center><a href="exec: gs ''wardrobe'', ''default_set_name''">Rename set</a></center></TD></table></center>'
 	'<center><table><TH>Name</TH><TH>Outfit</TH><TH>Panties</TH><TH>Bra</TH><TH>Shoes</TH><TH>Coat</TH><TH>Purse</TH><TH></TH><TH></TH><TH></TH><TH></TH><TR>'
 
-
-	:loopdefault_entry
-		
-		*p dyneval($default_clothing_line)
-		
+	temp = default_entry
+	:loopdefault_entry_set
+		if dyneval($default_clothing_suma,default_entry) ! 0: *p dyneval($default_clothing_line)
 		default_entry += 1
+	if default_entry <= default_entry[1]:jump 'loopdefault_entry_set'
 
-	if default_entry <= default_entry[1]:jump 'loopdefault_entry'
-	
+	default_entry = temp
+	:loopdefault_entry_empty
+		if dyneval($default_clothing_suma,default_entry) = 0: *p dyneval($default_clothing_line)
+		default_entry += 1
+	if default_entry <= default_entry[1]:jump 'loopdefault_entry_empty'
+
 	'</table></center>'
 end
 
@@ -878,7 +886,7 @@ if $ARGS[0] = 'school_outfit':
 			! put the outfit on
 			gs 'wardrobe', 'default_entry_wear', SchoolOutfitLoop
 			!over ride the uniform with the most recent one used if there was one
-			if tempSchtype <> 0:	
+			if tempSchtype <> 0:
 				clothingwornnumber = tempSchtype
 				$clothingworntype = $tempSchbrand
 				schtype = clothingwornnumber
