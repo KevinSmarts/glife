@@ -11,12 +11,12 @@ echo python is not installed or python's path Path is not in the %%$path%% env. 
 exit/b
 
 :2
-python tools/check_images2.py > missing_pictures.txt
+python ./tools/check_images2.py > missing_pictures.txt
 
 exit/b
 
 :3
-python tools/check_images3.py > missing_pictures.txt
+python ./tools/check_images3.py > missing_pictures.txt
 
 exit/b
 
