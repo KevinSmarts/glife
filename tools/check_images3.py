@@ -14,6 +14,7 @@ imgFormats = ['jpg','gif','png','mp4']
 
 images = []
 jmages = []
+numberoflinks = 0
 
 filename_false = 'LinksToSkip.txt'
 with open(filename_false, 'r', encoding='UTF-8') as file:
@@ -55,4 +56,6 @@ for image in images:
 
 for image in jmages:
     if not re.search(r"[<$]", image) and not os.path.isfile(image):
-        print ("Image not found:", image)
+        print (image)
+        numberoflinks += 1
+print ("Number of images not found: ",numberoflinks )
