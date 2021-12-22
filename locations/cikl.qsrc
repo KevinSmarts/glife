@@ -144,9 +144,6 @@ if husbandMark = 1 and husband <= 10:
 	'<b><font color="red">Your husband has filed for a divorce.</font></b>'
 end
 
-!!Out commented Katja becoming pregnant until more content for a pregnant Katja is done 
-!!if katjaPreg = 0 and month >= 2 and year > 2016: katjaPreg = 1
-
 !! after having surgery you will be in recuperation for a few days
 
 if surgeryday ! '':
@@ -995,37 +992,13 @@ end
 !!------------------------------------------------------------------------------------------------------------
 
 
-!!Modifying Katja''s arousal level.
-if katjaQW['QWstage'] > 2:
-	if katjaQW['horny'] > 0: katjaQW['horny'] += (katjaQW['slut'] - rand(1,50))/10
-	if katjaQW['horny'] < 0:katjaQW['horny'] = 0
-	if katjaQW['horny'] >= 100:
-		if rand(0,2) = 0 and week < 6:
-			katjaQW['horny'] =	max(katjaQW['slut']/2,50)
-			if katjaQW['masturbates'] = 0: katjaQW['masturbates'] = 1
-		else
-			katjaQW['horny'] = 100
-		end
-	end
-end
-
-!!Reseting if Katja have shown you that she is not wearing panties at the disco
-if katjaQW['no_panties_at_disco'] > 0: katjaQW['no_panties_at_disco'] = 0
+!!Updating Katja''s variables.
+gs 'katjaHomeTalk', 'cikl'
 
 if npc_rel['A69'] > 60 and rand(0,3) = 0:npc_rel['A69'] -= 1
 
 !!Making Sonia''s fall progress if the player do not see the scenes at the disco, by making it such that if at a Sunday her fall have not advanced this weekend it will automatically advance.
-if storyline = 1 and week = 7 and soniaPS = 0 and month > 9 and daystart >= soniafallDay + 6:
-	if soniafall < 7:
-		soniafallDay = daystart -1
-		soniafall += 1
-	else	
-		soniaPS = 1
-		soniaPSdays = daystart
-		npc_grupTipe['A25'] = 5
-		$npc_notes['A25'] = 'Ever since Sonia inadvertently got way too drunk and gave five guys including Vitek and his friends a simultaneous blowjob near the disco, her reputation in Pavlovsk has been in shambles. The girls in her class all give her the silent treatment, pretending she does not exist. Meanwhile, the guys all treat her like a cheap whore and regularly ask (or sometimes even demand) sex from her, knowing she doesn''t have the strength to say no.'
-	end
-end
+gs 'soniadisco', 'cikl'
 
 dmishaevent = 0
 
@@ -1601,19 +1574,8 @@ if storyline = 1:
 	!	$npc_thdick['A34'] = 'thick'
 	!end
 
-	if kanikuli = 0 and week = 1:
-		lernHome = 0
-		if class['first_grade_check'] > 0:
-			gs 'grades', 'calculate_grade', 'school'
-			gs 'grades', 'assing_grade_description', 'school'
-		else
-			i = 0
-			:grade_loop
-			dynamic 'class[''school_<<$class_list_name[i]>>_weekly_grade_gain''] = 0'
-			i +=1
-			if ARRSIZE('class_list_institution') > i: jump 'grade_loop'
-		end
-	end
+	!! Calcualting the increase/decreas of the grade each week.
+	gs 'gschool', 'weekly grade update'
 
 end
 
@@ -1640,56 +1602,8 @@ end
 !!------------------------------------------------------------------------------------------------------------------------
 !!Setting the the weeks in the university semester and makeing sure that the gades are calculated at the right times
 
-if university['enrolled_in_semester'] > university['semester_passed'] and university['semester_week'] = 0 and (month = 8 or month = 1) and (day - week) >= 20:
-	university['semester_week'] = -1
-end
+gs 'uni_lessons', 'cikl'
 
-if week = 1:
-	if university['semester_week'] = -1:
-		university['semester_week'] = 1
-	elseif university['semester_week'] > 0 and university['semester_week'] < 15: 
-		university['semester_week'] += 1
-		gs 'grades', 'calculate_grade', 'uni_<<$university[''enrolled_in'']>>_semester_<<university[''enrolled_in_semester'']>>'
-		gs 'grades', 'assing_grade_description', 'uni_<<$university[''enrolled_in'']>>_semester_<<university[''enrolled_in_semester'']>>'
-	elseif university['semester_week'] = 15:
-		university['semester_week'] = 0
-		university['exam_week'] = 1
-		gs 'grades', 'calculate_grade', 'uni_<<$university[''enrolled_in'']>>_semester_<<university[''enrolled_in_semester'']>>'
-		gs 'grades', 'assing_grade_description', 'uni_<<$university[''enrolled_in'']>>_semester_<<university[''enrolled_in_semester'']>>'
-	elseif university['exam_week'] = 1: 
-		university['exam_week'] = 2
-	elseif university['exam_week'] = 2: 
-		university['exam_week'] = 0
-		i = 0
-		passed_count = 0
-		class_count = 0
-		:passed_exams_loop
-		if $class_list_institution[i] = 'uni_<<$university[''enrolled_in'']>>_semester_<<university[''enrolled_in_semester'']>>':
-			class_count += 1
-			if dyneval ('RESULT = class[''<<$class_list_institution[i]>>_<<$class_list_name[i]>>_grade'']') > 40 and dyneval ('RESULT = class[''<<$class_list_institution[i]>>_<<$class_list_name[i]>>_exam_done'']') = 1:
-				passed_count += 1
-			elseif dyneval ('RESULT = class[''<<$class_list_institution[i]>>_<<$class_list_name[i]>>_exam_done'']') = 0
-				dynamic 'class[''<<$class_list_institution[i]>>_<<$class_list_name[i]>>_grade''] = 0'
-				university['expelled_for_missing_exam'] = 1
-			end
-		end
-		i += 1
-		if ARRSIZE('class_list_institution') >= i: jump 'passed_exams_loop'
-		killvar 'i'
-		if passed_count = class_count: 
-			university['semester_passed'] = university['enrolled_in_semester']
-		else
-			university['expelled'] = 1
-			university['student'] = 0
-		end
-		if university['semester_passed'] = 8:
-			university['diploma'] = 1
-			university['student'] = 0
-		end
-		killvar 'class_count'
-		killvar 'passed_count'
-	end
-end
 !!------------------------------------------------------------------------------------------------------------------------
 
 if bcream_used >= 1:
