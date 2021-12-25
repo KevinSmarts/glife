@@ -1,268 +1,500 @@
-# cum_arrcheat
+# fertility
 
+if $ARGS[0] = 'birth_control':
+!!------------------------------------------------------------------------------------------------------------
+!!	Birth control
+!!------------------------------------------------------------------------------------------------------------
+!!	Birth Control Management variables
+!!
+!!	tabletkimm		: The modifier for the current mood of the MC.
+!!	tabletkiap		: Autopill factor affecting the liklihood you took your pill as you should have
+!!	tabletkipt		: Pill Dicipline Take increase
+!!	tabletkipi		: Pill Dicipline Dont take increase
+!!	tabletkicpd		: Current MC Pill Dicipline
+!!	tabletkichday	: Current day that the Birth Control is being evaluated for
+!!	tabletkicheck	: If the birth control from shot (2) or pill (1)
+!!	tabletki		: How many packages of Birth Control Pills there are
+!!	tabletkiold		: Total number packages of expired pills
+!!	tabletkifake	: Total number packages of fake/counterfeit pills
+!!	tabletkirej		: Total number packages of factory rejected pills
+!!	tabletkifert	: Total number packages of subsituted fertility pills
+!!	tabletkisug		: Total number packages of sugar pills
+!!	pillsleft		: Total number packages of pills in current package
+!!	tabletkishot	: The flag for being on the Birth Control shot.
+!!	pillcon			: The number for the current birth control chemical level.
+!!	pilldays		: The number of consecutive days (you believe) you have taken your pill
+
+	if Luth > (LutH_Max-75) and placebopart <= 0: placebopart = 8
+	placebopart -= 1
+
+	if tabletkishot <= 0: pillcon -= 1000 & pillcon2 -= 1000
+	if pillcon < 0:	pillcon = 0
+	if pillcon2 < 0: pillcon2 = 0
+
+	if tabletkicheck = 2:
+		if tabletkishot ! 0:
+			!!cycle = 1
+			mesec = 0
+			if rand(0,1000) = 1000:
+				EggRH = rand(20,80)
+			else
+				EggRH = 0
+			end
+			FocH = EggRH
+		end
+		if tabletkishot <= 0:
+			pillcon -= 29000
+			pillcon2 -= 29000
+			if tabletkishot < 0: tabletkishot = 0
+		end
+		if shotdays = -8:
+			tabletkicheck = 0
+			shotdue = 0
+			if  birth_control['implant_status'] > 0:
+				'Your birth control shot is no longer protecting you.'
+			end
+		elseif shotdays <= 0:
+			if shotdays = 0:
+				shotdue = 7
+			else
+				shotdue -= 1
+			end
+			if  birth_control['implant_status'] > 0:
+				'The chemicals regulating your fertility cycle are wearing off, you need to get your shot in <<shotdue>> days.'
+			end
+		elseif shotdays > 1 and shotdays < 5 and birth_control['implant_status'] = 0:
+			'You are due for a birth control shot soon if you do not get one, you might get pregnant.'
+		elseif shotdays = 1 and birth_control['implant_status'] = 0:
+			'Your birth control shot is due for renewal tomorrow.'
+		end
+
+		if shotdays > -100:shotdays -=1
+		if tabletkishot > 0:tabletkishot -= 1
+	end
+
+	!! birth_control['implant_status']
+	!! 0: No implant
+	!! 3: Implant (more than 30 days left)
+	!! 2: Implant (less than 30 days left)
+	!! 1: Empty implant
+
+	if birth_control['implant_status'] > 1:
+		pcs_skin += rand(0,1)
+		
+		pillcon += ((pillcon + 15000) / 25) + 4000
+		if pillcon > 40000: pillcon = 40000
+		
+		pillcon2 += ((pillcon2 + 15000) / 25) + 4000
+		if pillcon2 > 40000: pillcon2 = 40000
+			
+		birth_control['implant_timer'] -= 1
+		if (birth_control['implant_timer'] - 1090) > 0:
+			gs 'pain', '<<(birth_control[''implant_timer''] - 1090)*2>>', 'armL', 'ache'
+		elseif birth_control['implant_timer'] > 0 and birth_control['implant_timer'] < 30:
+			birth_control['implant_status'] = 2
+			'Your birth control implant is only good for <<birth_control[''implant_timer'']>> more'+iif(birth_control['implant_timer'] = 1, 'day.', 'days.')
+		elseif birth_control['implant_timer'] < 0:
+			birth_control['implant_status'] = 1
+			'You should renew or remove your birth control implant.'
+		end
+	elseif birth_control['implant_status'] = 1:
+		'You should renew or remove your birth control implant.'
+	end
+
+	tabletkipd += tabletkipi
+	tabletkipi = 0
+	tabletkipt = 0
+	if tabletkicheck = 1:
+		if tabletki = 0 and pillsleft[ptype] = 0:
+			tabletkicheck = 0
+			'You are out of birth control pills.'
+			tabletkipi = -5
+		elseif tabletki = 0 and pillsleft[ptype] = 28:
+			'You have just opened your last package of birth control pills. You need to buy more.'
+		elseif tabletki = 0 and pillsleft[ptype] <= 5:
+			'You are running out of birth control pills, you only have a few left.'
+		end
+	end
+
+	if tabletkicheck = 1 and tabletkichday < daystart:
+		tabletkichday = daystart
+		tabletkimm = (100*(pcs_willpwr / willpowermax)) + pcs_mood
+		if pcs_sleep < 10:
+			tabletkimm -= (100- (pcs_sleep * 10))
+		end
+		if pcs_willpwr < willpowermax / 4:
+			tabletkimm = tabletkimm / 4
+		elseif pcs_mood < 10:
+			tabletkimm = tabletkimm / 2
+		end
+		tabletkiap = tabletkimm
+		tabletkiap += (pcs_intel * 4) + (pcs_sprt * 2) + (age * 3)
+		tabletkiap -= ((kid * 30) + (abort * 2) - (tabletkipd * ((60 - age) / 10)))
+		temprand = rand(0,(200 + (tabletkimm - ((100 - pcs_sprt) * 3))))
+		tabletkiap += temprand
+		if tabletkiap < 300:
+			if tabletkipd > -10:
+				if pcs_willpwr < willpowermax / 4:
+					pilldaychk = 0
+					'You stare at your package of birth control pills, you know you should take one but you can''t quite work up enough effort to care.'
+				elseif pcs_mood < 10:
+					pilldaychk = 0
+					'You stare at your package of birth control pills, but you don''t open it.'
+				elseif pcs_sleep < 10:
+					pilldaychk = 0
+					'You fumble with your birth control pills, trying to get a pill out. You finally give up too tired to manage it.'
+				else
+					pilldaychk = 0
+					'You just realized you forgot to take your birth control pill today.'
+				end
+			end
+			tabletkipt = 2
+			tabletkipi = -4
+		else
+			if tabletkiap < 350:
+				temprand = rand(0,5)
+			else
+				temprand = rand(0,1000)
+			end
+			if temprand = 0:
+				temprand = rand(0,1)
+				if temprand = 0:
+					gs 'din_bad','takepill'
+					tabletkipt = -2
+					tabletkipi = 1
+				else
+					tabletkipt = 3
+					tabletkipi = -3
+				end
+
+				if tabletkipd > -10:
+					pilldaychk = 0
+					'You find yourself holding the bottle of birth control pills, you cannot remember if you took one or not.'
+				end
+				if tabletkipd > 0:
+					if rand(0,9) = 0:
+						if tabletkipt < 0:
+							pilldaychk = 0
+							'You don''t think you have taken your pill today.'
+						else
+							pilldaychk = 1
+							'You think you have taken your pill today.'
+						end
+					else
+						if tabletkipt > 0:
+							pilldaychk = 0
+							'You don''t think you have taken your pill today.'
+						else
+							pilldaychk = 1
+							'You think you have taken your pill today.'
+						end
+					end
+				end
+			else
+				'You take your birth control pill for the day.'
+				pilldaychk = 1
+				gs 'din_bad','takepill'
+				if rand(0,7) = 0 and tabletkiday >= (daystart - 1): tabletkipd += 1
+				tabletkiday = daystart
+				tabletkipt = 0
+				tabletkipi = 0
+			end
+		end
+	elseif tabletkicheck = 0:
+		if tabletkiday >= (daystart - 1) and tabletkipt = 0 and rand(0,7) = 0: tabletkipt = 1
+		if pillcon > 0 and tabletkipi = 0 and rand(0,3) = 0 and (tabletkiday + 15) > daystart = 0: tabletkipi = -1
+	end
+
+	if pilldaychk = 1:
+		pilldays += 1
+	else
+		pilldays -= 1
+	end
+
+	pilldaychk = 0
+	if pilldays > 18: pilldays = 18
+	if pilldays < 0: pilldays = 0
+
+	if pillcon > 38000:
+		birth_control['safe'] = 1
+	else
+		birth_control['safe'] = 0
+	end
+
+	if pillcon2 > 38000:
+		birth_control['think_safe'] = 1
+	else
+		birth_control['think_safe'] = 0
+	end
+
+	$MenCal[] = $str(cycle)
+	if ArrSize('$MenCal') = 60: killvar '$MenCal',0
+end
+
+if $ARGS[0] = 'cum_arrcheat':
 !! npc_pregtalk[] 0/1: Does character A# know that you are currently pregnant
 !! pcs_pregtalk 0/1: Has PC been told she is pregnant
 
-*clr & cla
-'<center><h2>Cheat Menu - OOX Debug</h2></center>'
-if cycle = 0:
-	$cycletemp[1] = 'menstruating with <<mesec>> hours remaining'
-elseif cycle = 1:
-	cycletemp[6] = (Foch_Max-FocH)
-	$cycletemp[1] = 'in your follicular phase with an egg release hormone level of <<EggRH>> with around <<cycletemp[6]>> hours remaining until ovulation'
-elseif cycle = 2:
-	$cycletemp[1] = 'ovulating with around <<Ovulate>> hours remaining until your luteal phase begins and <<EggRH>> remaining egg release hormone. You have <<UnfertEgg>> unfertilized egg and <<FertEgg>> unimplanted zygote. It has been <<ferteggage>> hours since ovulation began'
-elseif cycle = 3:
-	cycletemp[6] = (LutH_Max-LutH)
-	$cycletemp[1] = 'in your luteal phase with <<BabyEmbryo>> foetus and <<FertEgg>> unimplanted zygote. Your body currently has a pregnancy chemical level of <<pregchem>>. It has been <<ferteggage>> hours since you ovulated. You have around <<cycletemp[6]>> hours remaining until menstruation or official pregnancy'
-elseif cycle = 4:
-	$cycletemp[1] = 'in your post pregnancy recovery phase. You have around <<RecovH>> hours remaining before your follicular phase begins'
-elseif cycle = 5:
-	$cycletemp[1] = 'pregnant. Your body currently has a pregnancy chemical level of <<pregchem>>. You have <<BabyEmbryo>> baby growing inside you'
-elseif cycle = 6:
-	$cycletemp[1] = 'menopausal'
-else
-	$cycletemp[1] = 'an unknown value'
-end
+	*clr & cla
+	'<center><h2>Cheat Menu - OOX Debug</h2></center>'
+	if cycle = 0:
+		$cycletemp[1] = 'menstruating with <<mesec>> hours remaining'
+	elseif cycle = 1:
+		cycletemp[6] = (Foch_Max-FocH)
+		$cycletemp[1] = 'in your follicular phase with an egg release hormone level of <<EggRH>> with around <<cycletemp[6]>> hours remaining until ovulation'
+	elseif cycle = 2:
+		$cycletemp[1] = 'ovulating with around <<Ovulate>> hours remaining until your luteal phase begins and <<EggRH>> remaining egg release hormone. You have <<UnfertEgg>> unfertilized egg and <<FertEgg>> unimplanted zygote. It has been <<ferteggage>> hours since ovulation began'
+	elseif cycle = 3:
+		cycletemp[6] = (LutH_Max-LutH)
+		$cycletemp[1] = 'in your luteal phase with <<BabyEmbryo>> foetus and <<FertEgg>> unimplanted zygote. Your body currently has a pregnancy chemical level of <<pregchem>>. It has been <<ferteggage>> hours since you ovulated. You have around <<cycletemp[6]>> hours remaining until menstruation or official pregnancy'
+	elseif cycle = 4:
+		$cycletemp[1] = 'in your post pregnancy recovery phase. You have around <<RecovH>> hours remaining before your follicular phase begins'
+	elseif cycle = 5:
+		$cycletemp[1] = 'pregnant. Your body currently has a pregnancy chemical level of <<pregchem>>. You have <<BabyEmbryo>> baby growing inside you'
+	elseif cycle = 6:
+		$cycletemp[1] = 'menopausal'
+	else
+		$cycletemp[1] = 'an unknown value'
+	end
 
-if steriletu < 0:
-	$cycletemp[2]= '. You have had a tubal ligation procedure'
-else
-	$cycletemp[2]= ''
-end
-if lactation['active'] > 0:
-	$cycletemp[3]= '. You are lactating. You currently have <<lactation[''breastmv'']/1000>> millilitres of milk stored, with a capacity of <<lactation[''breastmm'']/1000>> millilitres'
-else
-	$cycletemp[3]= ''
-end
-if tabletkicheck = 2:
-	$cycletemp[4] = '. You are currently protected from pregnancy by a birth control shot. You have <<tabletkishot>> days until it runs out'
-elseif tabletkicheck = 1:
-	if tabletkiday = daystart:
-		$cycletemp[6] = '. You have taken your pill today'
+	if steriletu < 0:
+		$cycletemp[2]= '. You have had a tubal ligation procedure'
 	else
-		$cycletemp[6] = '. You have not taken your pill today'
+		$cycletemp[2]= ''
 	end
-	$cycletemp[4] = '. You automatically take your pill. Your current pill discipline is <<tabletkipd>><<$cycletemp[6]>>. <<tabletkipt>> will be added to your pill discipline if you take the pill now, and <<tabletkipi>> will be added to your pill discipline if you do no additional action. You currently have <<pillcon>> units of birth control chemical in your body, though you believe it is actually <<pillcon2>>.'
-elseif pillcon2 > 0:
-	$cycletemp[4] = '. You currently have <<pillcon>> units of birth control chemical in your body, but you think it is actually <<pillcon2>>.'
-else
-	$cycletemp[4] = ''
-end
+	if lactation['active'] > 0:
+		$cycletemp[3]= '. You are lactating. You currently have <<lactation[''breastmv'']/1000>> millilitres of milk stored, with a capacity of <<lactation[''breastmm'']/1000>> millilitres'
+	else
+		$cycletemp[3]= ''
+	end
+	if tabletkicheck = 2:
+		$cycletemp[4] = '. You are currently protected from pregnancy by a birth control shot. You have <<tabletkishot>> days until it runs out'
+	elseif tabletkicheck = 1:
+		if tabletkiday = daystart:
+			$cycletemp[6] = '. You have taken your pill today'
+		else
+			$cycletemp[6] = '. You have not taken your pill today'
+		end
+		$cycletemp[4] = '. You automatically take your pill. Your current pill discipline is <<tabletkipd>><<$cycletemp[6]>>. <<tabletkipt>> will be added to your pill discipline if you take the pill now, and <<tabletkipi>> will be added to your pill discipline if you do no additional action. You currently have <<pillcon>> units of birth control chemical in your body, though you believe it is actually <<pillcon2>>.'
+	elseif pillcon2 > 0:
+		$cycletemp[4] = '. You currently have <<pillcon>> units of birth control chemical in your body, but you think it is actually <<pillcon2>>.'
+	else
+		$cycletemp[4] = ''
+	end
 
-if pilldays > 0:
-	$cycletemp[8] = '. You believe you have taken your birth control pill <<pilldays>> days in a row'
-else
-	$cycletemp[8] = ''
+	if pilldays > 0:
+		$cycletemp[8] = '. You believe you have taken your birth control pill <<pilldays>> days in a row'
+	else
+		$cycletemp[8] = ''
+	end
+
+	'You are currently <<$cycletemp[1]>><<$cycletemp[2]>><<$cycletemp[4]>><<$cycletemp[8]>>. Your womb damage is at <<sterilewb>> and your Ovary damage is at <<sterileov>><<$cycletemp[2]>>. You have been cummed on or inside yourself <<stat[''cum_count'']>> times.'
+
+	cycletemp[4] = arrsize('$wombpotfath')
+	if cycletemp[4] > 0:
+		cycletemp = 0
+		'Potential Father List (of <<cycletemp[4]>>):'
+		:cumcpfloop
+		if $wombpotfath[cycletemp] ! 'unknown':
+			$cycletemp[5] = $npc_usedname[$wombpotfath[cycletemp]]
+		else
+			$cycletemp[5] = ''
+		end
+		'Father <<cycletemp>>: <<$wombpotfath[cycletemp]>> - <<$cycletemp[5]>>'
+		cycletemp += 1
+		if cycletemp < arrsize('$wombpotfath'): jump 'cumcpfloop'
+	else
+		'No listed potential fathers.'
+	end
+
+	cycletemp[4] = arrsize('$cumarrnam')
+	if cycletemp[4] > 0:
+		cycletemp = 0
+		'Sperm in your womb (of <<cycletemp[4]>>):'
+		'<Table border=1><TR><TH>Index</TH><TH>ID</TH><TH>Owner</TH><TH>Potential Potency</TH><TH>Current Potency</TH><TH>Method of Acquisition</TH><TH>Contraception Type</TH><TH>Age in Hours</TH><TH>Aware</TH><TH>DNA</TH></TR>'
+		:cumcswloop
+		if cumarrdel[cycletemp] = 0:
+			$cycletemp[2] = 'Vaginal intercourse'
+		elseif cumarrdel[cycletemp] = 1:
+			$cycletemp[2] = 'From spatter on the vagina'
+		elseif cumarrdel[cycletemp] = 2:
+			$cycletemp[2] = 'From the anal area'
+		elseif cumarrdel[cycletemp] = 3:
+			$cycletemp[2] = 'From sperm on clothing'
+		elseif cumarrdel[cycletemp] = 4:
+			$cycletemp[2] = 'From sperm on fingers'
+		elseif cumarrdel[cycletemp] = 5:
+			$cycletemp[2] = 'From sperm on wipes'
+		else
+			$cycletemp[2] = 'improperly defined'
+		end
+		if cumarrcon[cycletemp] = 0:
+			$cycletemp[3] = 'No contraception used'
+		elseif cumarrcon[cycletemp] = 1:
+			$cycletemp[3] = 'You lied about being on the pill'
+		elseif cumarrcon[cycletemp] = 2:
+			$cycletemp[3] = iif(birth_control['implant_status'] > 1, 'You have a birth control implant', 'You were on the pill')
+		elseif cumarrcon[cycletemp] = 3:
+			$cycletemp[3] = 'You used a condom'
+		elseif cumarrcon[cycletemp] = 4:
+			$cycletemp[3] = 'The condom broke'
+		elseif cumarrcon[cycletemp] = 5:
+			$cycletemp[3] = 'The condom slipped off inside you'
+		elseif cumarrcon[cycletemp] = 6:
+			$cycletemp[3] = 'The condom was sabotaged by someone else'
+		elseif cumarrcon[cycletemp] = 7:
+			$cycletemp[3] = 'You sabotaged the condom'
+		elseif cumarrcon[cycletemp] = 8:
+			$cycletemp[3] = 'Precum had sperm in it'
+		elseif cumarrcon[cycletemp] = 9:
+			$cycletemp[3] = 'Semen from a previous sexual act was pushed into the vagina'
+		else
+			$cycletemp[3] = 'improperly defined'
+		end
+		$cycletemp[5] = $npc_usedname[$cumarrnam[cycletemp]]
+		!'Index number: <<cycletemp>>. Sperm ID: <<cumarrcnt[cycletemp]>>. Sperm Owner: <<$cumarrnam[cycletemp]>>. Sperm Potential Potency: <<cumarrppt[cycletemp]>> Sperm Current Potency: <<cumarrcpt[cycletemp]>>. Sperm Method of Acquisition: <<$cycletemp[2]>>. Sperm Contraception Type: <<$cycletemp[3]>>. Sperm Age in Hours: <<Cumarrage[cycletemp]>>. If you know who did it (0 means no): <<cumarrkno[cycletemp]>>.'
+		*P '<TR><TD><<cycletemp>></TD><TD><<cumarrcnt[cycletemp]>></TD><TD><<$cumarrnam[cycletemp]>> - <<$cycletemp[5]>></TD><TD><<cumarrppt[cycletemp]>> Sperm</TD><TD><<cumarrcpt[cycletemp]>> Sperm</TD><TD><<$cycletemp[2]>></TD><TD><<$cycletemp[3]>></TD><TD><<Cumarrage[cycletemp]>></TD><TD><<cumarrkno[cycletemp]>></TD><TD><<$npc_dna[$cumarrnam[cycletemp]]>></TD></TR>'
+		cycletemp += 1
+		if cycletemp < arrsize('$cumarrnam'):
+			jump 'cumcswloop'
+		else
+			'</TABLE>'
+		end
+	else
+		'No sperm is registered in your womb.'
+	end
+
+
+	cycletemp[4] = arrsize('sparrvol')
+	if cycletemp[4] > 0:
+		cycletemp = 0
+		'Sperm spatter (of <<cycletemp[4]>>):'
+		'<Table border=1><TR><TH>Index</TH><TH>ID</TH><TH>Sperm Owner</TH><TH>Potential Potency</TH><TH>Age in Hours</TH><TH>Aware</TH><TH>Volume (ml)</TH><TH>Location</TH><TH>Spread Value</TH></TR>'
+		:cumcsbloop
+		cycletemp[2] = (sparrvol[cycletemp]/10)
+		if sparrloc[cycletemp] = 0:
+			$cycletemp[3] = 'In your Vagina'
+		elseif sparrloc[cycletemp] = 1:
+			$cycletemp[3] = 'On your labia'
+		elseif sparrloc[cycletemp] = 2:
+			$cycletemp[3] = 'On your panties over your vagina'
+		elseif sparrloc[cycletemp] = 3:
+			$cycletemp[3] = 'In your anus'
+		elseif sparrloc[cycletemp] = 4:
+			$cycletemp[3] = 'On your butt'
+		elseif sparrloc[cycletemp] = 5:
+			$cycletemp[3] = 'On your panties over your butt'
+		elseif sparrloc[cycletemp] = 6:
+			$cycletemp[3] = 'On your clothes in your groin area'
+		elseif sparrloc[cycletemp] = 7:
+			$cycletemp[3] = 'On your clothes'
+		elseif sparrloc[cycletemp] = 8:
+			$cycletemp[3] = 'On your back'
+		elseif sparrloc[cycletemp] = 9:
+			$cycletemp[3] = 'On your legs'
+		elseif sparrloc[cycletemp] = 10:
+			$cycletemp[3] = 'On your arms'
+		elseif sparrloc[cycletemp] = 11:
+			$cycletemp[3] = 'On your face'
+		elseif sparrloc[cycletemp] = 12:
+			$cycletemp[3] = 'Inside your mouth'
+		elseif sparrloc[cycletemp] = 13:
+			$cycletemp[3] = 'On your hands'
+		elseif sparrloc[cycletemp] = 14:
+			$cycletemp[3] = 'On your stomach'
+		elseif sparrloc[cycletemp] = 15:
+			$cycletemp[3] = 'On your breasts'
+		elseif sparrloc[cycletemp] = 16:
+			$cycletemp[3] = 'In your hair'
+		elseif sparrloc[cycletemp] = 17:
+			$cycletemp[3] = 'In a condom in your vagina'
+		else
+			$cycletemp[3] = 'improperly defined'
+		end
+		$cycletemp[5] = $npc_usedname[$sparrnam[cycletemp]]
+		!'Index number: <<cycletemp>>. Spatter Sperm ID: <<sparrcnt[cycletemp]>>. Spatter Sperm Owner: <<$sparrnam[cycletemp]>>. Spatter Potential Potency: <<sparrppt[cycletemp]>> Spatter Age in Hours: <<sparrage[cycletemp]>>. If you know who did it (0 means no): <<sparridt[cycletemp]>>. Spatter Volume: <<cycletemp[2]>> Milliliters. Spatter Location: <<$cycletemp[3]>>. Spatter Spread Value: <<sparrslc[cycletemp]>>.'
+		*P '<TR><TD><<cycletemp>></TD><TD><<sparrcnt[cycletemp]>></TD><TD><<$sparrnam[cycletemp]>> - <<$cycletemp[5]>></TD><TD><<sparrppt[cycletemp]>></TD><TD><<sparrage[cycletemp]>></TD><TD><<sparridt[cycletemp]>></TD><TD><<cycletemp[2]>></TD><TD><<$cycletemp[3]>></TD><TD><<sparrslc[cycletemp]>></TD></TR>'
+		cycletemp += 1
+		if cycletemp < arrsize('sparrvol'):
+			jump 'cumcsbloop'
+		else
+			'</TABLE>'
+		end
+	else
+		'No sperm spatter is registered.'
+	end
+
+	cycletemp[4] = arrsize('$ChildFath')
+	if cycletemp[4] > 0:
+		cycletemp = 0
+		if $wombthfath ! 'unknown': 'Current father set as the father you think is of the children in the womb: <<$wombthfath>>'
+		'Babies and Children (of <<cycletemp[4]>>):'
+		'<Table border=1><TR><TH>Index</TH><TH>Name</TH><TH>Age</TH><TH>Born(M/D/Y)</TH><TH>Sex</TH><TH>Pregnancy Type</TH><TH>Biological Father</TH><TH>Believed Father</TH><TH>Eye Color</TH><TH>Hair Color</TH><th>Type</th><TH>Contraception Type</TH><TH>Child DNA</TH></TR>'
+		:cumcbcloop
+		if polkid[cycletemp] = 0:
+			$cycletemp[2] = 'F'
+		else
+			$cycletemp[2] = 'M'
+		end
+		if babyptype[cycletemp] = 0:
+			$cycletemp[3] = 'Zygote'
+		elseif babyptype[cycletemp] = 1:
+			$cycletemp[3] = 'Healthy Implantation'
+		elseif babyptype[cycletemp] = 2:
+			$cycletemp[3] = 'Ectopic Pregnancy'
+		elseif babyptype[cycletemp] = 3:
+			$cycletemp[3] = 'Breach'
+		elseif babyptype[cycletemp] = 40:
+			$cycletemp[3] = 'Damaged Foetus from Alcohol/Smoking/Other drugs'
+		elseif babyptype[cycletemp] = 45:
+			$cycletemp[3] = 'Damaged Foetus from other sources'
+		elseif babyptype[cycletemp] = 50:
+			$cycletemp[3] = 'Severely Damaged Foetus'
+		elseif babyptype[cycletemp] = 100:
+			$cycletemp[3] = 'Foetal Death'
+		elseif babyptype[cycletemp] = 105:
+			$cycletemp[3] = 'Foetal Death, will not self purge'
+		else
+			$cycletemp[3] = 'Unlabelled Ptype'
+		end
+		if ChildConType[cycletemp] = 0:
+			$cycletemp[4] = 'No contraception used'
+		elseif ChildConType[cycletemp] = 1:
+			$cycletemp[4] = 'You lied about being on the pill'
+		elseif ChildConType[cycletemp] = 2:
+			$cycletemp[4] = 'You were on the pill'
+		elseif ChildConType[cycletemp] = 3:
+			$cycletemp[4] = 'You used a condom'
+		elseif ChildConType[cycletemp] = 4:
+			$cycletemp[4] = 'The condom broke'
+		elseif ChildConType[cycletemp] = 5:
+			$cycletemp[4] = 'The condom slipped off inside you'
+		elseif ChildConType[cycletemp] = 6:
+			$cycletemp[4] = 'The condom was sabotaged by someone else'
+		elseif ChildConType[cycletemp] = 7:
+			$cycletemp[4] = 'You sabotaged the condom'
+		else
+			$cycletemp[4] = 'improperly defined'
+		end
+		$cycletemp[5] = $npc_usedname[$ChildFath[cycletemp]]
+		if $ChildThFath[cycletemp] ! 'unknown':
+			$cycletemp[7] = $npc_usedname[$ChildThFath[cycletemp]]
+		else
+			$cycletemp[7] = ''
+		end
+		!'Index number: <<cycletemp>>. Name of the kid: <<$kidname[cycletemp]>>. Age of the kid: <<kidage[cycletemp]>>. Born(M/D/Y): <<monthkid[cycletemp]>> / <<daykid[cycletemp]>> / <<yearkid[cycletemp]>>. Sex: <<$cycletemp[2]>>. Pregnancy Type: <<$cycletemp[3]>>. Biological Father: <<$ChildFath[cycletemp]>>. Believed Father: <<$ChildThFath[cycletemp]>>. Child Eye Color: <<eyeskid[cycletemp]>>. Child Hair Color: <<hairkid[cycletemp]>>. Child Type: <<$childtype[cycletemp]>>. Child Contraceptive Type: <<$cycletemp[4]>>'
+		*P '<TR><TD><<cycletemp>></TD><TD><<$kidname[cycletemp]>></TD><TD><<kidage[cycletemp]>></TD><TD><<monthkid[cycletemp]>> / <<daykid[cycletemp]>> / <<yearkid[cycletemp]>></TD><TD><<$cycletemp[2]>></TD><TD><<$cycletemp[3]>></TD><TD><<$ChildFath[cycletemp]>> - <<$cycletemp[5]>></TD><TD><<$ChildThFath[cycletemp]>> - <<$cycletemp[7]>></TD><TD><<eyeskid[cycletemp]>></TD><TD><<hairkid[cycletemp]>></TD><td><<$childtype[cycletemp]>></td><TD><<$cycletemp[4]>></TD><TD><<$kid_dna[cycletemp]>></TD></TR>'
+		cycletemp += 1
+		if cycletemp < arrsize('$ChildFath'):
+			jump 'cumcbcloop'
+		else
+			'</TABLE>'
+		end
+	else
+		'No Pregnancies registered.'
+	end
+	killvar '$cycletemp'
+	act 'Return to cheat index': dynamic $cheatmenu
 end
-
-'You are currently <<$cycletemp[1]>><<$cycletemp[2]>><<$cycletemp[4]>><<$cycletemp[8]>>. Your womb damage is at <<sterilewb>> and your Ovary damage is at <<sterileov>><<$cycletemp[2]>>. You have been cummed on or inside yourself <<stat[''cum_count'']>> times.'
-
-cycletemp[4] = arrsize('$wombpotfath')
-if cycletemp[4] > 0:
-	cycletemp = 0
-	'Potential Father List (of <<cycletemp[4]>>):'
-	:cumcpfloop
-	if $wombpotfath[cycletemp] ! 'unknown':
-		$cycletemp[5] = $npc_usedname[$wombpotfath[cycletemp]]
-	else
-		$cycletemp[5] = ''
-	end
-	'Father <<cycletemp>>: <<$wombpotfath[cycletemp]>> - <<$cycletemp[5]>>'
-	cycletemp += 1
-	if cycletemp < arrsize('$wombpotfath'): jump 'cumcpfloop'
-else
-	'No listed potential fathers.'
-end
-
-cycletemp[4] = arrsize('$cumarrnam')
-if cycletemp[4] > 0:
-	cycletemp = 0
-	'Sperm in your womb (of <<cycletemp[4]>>):'
-	'<Table border=1><TR><TH>Index</TH><TH>ID</TH><TH>Owner</TH><TH>Potential Potency</TH><TH>Current Potency</TH><TH>Method of Acquisition</TH><TH>Contraception Type</TH><TH>Age in Hours</TH><TH>Aware</TH><TH>DNA</TH></TR>'
-	:cumcswloop
-	if cumarrdel[cycletemp] = 0:
-		$cycletemp[2] = 'Vaginal intercourse'
-	elseif cumarrdel[cycletemp] = 1:
-		$cycletemp[2] = 'From spatter on the vagina'
-	elseif cumarrdel[cycletemp] = 2:
-		$cycletemp[2] = 'From the anal area'
-	elseif cumarrdel[cycletemp] = 3:
-		$cycletemp[2] = 'From sperm on clothing'
-	elseif cumarrdel[cycletemp] = 4:
-		$cycletemp[2] = 'From sperm on fingers'
-	elseif cumarrdel[cycletemp] = 5:
-		$cycletemp[2] = 'From sperm on wipes'
-	else
-		$cycletemp[2] = 'improperly defined'
-	end
-	if cumarrcon[cycletemp] = 0:
-		$cycletemp[3] = 'No contraception used'
-	elseif cumarrcon[cycletemp] = 1:
-		$cycletemp[3] = 'You lied about being on the pill'
-	elseif cumarrcon[cycletemp] = 2:
-		$cycletemp[3] = iif(birth_control['implant_status'] > 1, 'You have a birth control implant', 'You were on the pill')
-	elseif cumarrcon[cycletemp] = 3:
-		$cycletemp[3] = 'You used a condom'
-	elseif cumarrcon[cycletemp] = 4:
-		$cycletemp[3] = 'The condom broke'
-	elseif cumarrcon[cycletemp] = 5:
-		$cycletemp[3] = 'The condom slipped off inside you'
-	elseif cumarrcon[cycletemp] = 6:
-		$cycletemp[3] = 'The condom was sabotaged by someone else'
-	elseif cumarrcon[cycletemp] = 7:
-		$cycletemp[3] = 'You sabotaged the condom'
-	elseif cumarrcon[cycletemp] = 8:
-		$cycletemp[3] = 'Precum had sperm in it'
-	elseif cumarrcon[cycletemp] = 9:
-		$cycletemp[3] = 'Semen from a previous sexual act was pushed into the vagina'
-	else
-		$cycletemp[3] = 'improperly defined'
-	end
-	$cycletemp[5] = $npc_usedname[$cumarrnam[cycletemp]]
-	!'Index number: <<cycletemp>>. Sperm ID: <<cumarrcnt[cycletemp]>>. Sperm Owner: <<$cumarrnam[cycletemp]>>. Sperm Potential Potency: <<cumarrppt[cycletemp]>> Sperm Current Potency: <<cumarrcpt[cycletemp]>>. Sperm Method of Acquisition: <<$cycletemp[2]>>. Sperm Contraception Type: <<$cycletemp[3]>>. Sperm Age in Hours: <<Cumarrage[cycletemp]>>. If you know who did it (0 means no): <<cumarrkno[cycletemp]>>.'
-	*P '<TR><TD><<cycletemp>></TD><TD><<cumarrcnt[cycletemp]>></TD><TD><<$cumarrnam[cycletemp]>> - <<$cycletemp[5]>></TD><TD><<cumarrppt[cycletemp]>> Sperm</TD><TD><<cumarrcpt[cycletemp]>> Sperm</TD><TD><<$cycletemp[2]>></TD><TD><<$cycletemp[3]>></TD><TD><<Cumarrage[cycletemp]>></TD><TD><<cumarrkno[cycletemp]>></TD><TD><<$npc_dna[$cumarrnam[cycletemp]]>></TD></TR>'
-	cycletemp += 1
-	if cycletemp < arrsize('$cumarrnam'):
-		jump 'cumcswloop'
-	else
-		'</TABLE>'
-	end
-else
-	'No sperm is registered in your womb.'
-end
-
-
-cycletemp[4] = arrsize('sparrvol')
-if cycletemp[4] > 0:
-	cycletemp = 0
-	'Sperm spatter (of <<cycletemp[4]>>):'
-	'<Table border=1><TR><TH>Index</TH><TH>ID</TH><TH>Sperm Owner</TH><TH>Potential Potency</TH><TH>Age in Hours</TH><TH>Aware</TH><TH>Volume (ml)</TH><TH>Location</TH><TH>Spread Value</TH></TR>'
-	:cumcsbloop
-	cycletemp[2] = (sparrvol[cycletemp]/10)
-	if sparrloc[cycletemp] = 0:
-		$cycletemp[3] = 'In your Vagina'
-	elseif sparrloc[cycletemp] = 1:
-		$cycletemp[3] = 'On your labia'
-	elseif sparrloc[cycletemp] = 2:
-		$cycletemp[3] = 'On your panties over your vagina'
-	elseif sparrloc[cycletemp] = 3:
-		$cycletemp[3] = 'In your anus'
-	elseif sparrloc[cycletemp] = 4:
-		$cycletemp[3] = 'On your butt'
-	elseif sparrloc[cycletemp] = 5:
-		$cycletemp[3] = 'On your panties over your butt'
-	elseif sparrloc[cycletemp] = 6:
-		$cycletemp[3] = 'On your clothes in your groin area'
-	elseif sparrloc[cycletemp] = 7:
-		$cycletemp[3] = 'On your clothes'
-	elseif sparrloc[cycletemp] = 8:
-		$cycletemp[3] = 'On your back'
-	elseif sparrloc[cycletemp] = 9:
-		$cycletemp[3] = 'On your legs'
-	elseif sparrloc[cycletemp] = 10:
-		$cycletemp[3] = 'On your arms'
-	elseif sparrloc[cycletemp] = 11:
-		$cycletemp[3] = 'On your face'
-	elseif sparrloc[cycletemp] = 12:
-		$cycletemp[3] = 'Inside your mouth'
-	elseif sparrloc[cycletemp] = 13:
-		$cycletemp[3] = 'On your hands'
-	elseif sparrloc[cycletemp] = 14:
-		$cycletemp[3] = 'On your stomach'
-	elseif sparrloc[cycletemp] = 15:
-		$cycletemp[3] = 'On your breasts'
-	elseif sparrloc[cycletemp] = 16:
-		$cycletemp[3] = 'In your hair'
-	elseif sparrloc[cycletemp] = 17:
-		$cycletemp[3] = 'In a condom in your vagina'
-	else
-		$cycletemp[3] = 'improperly defined'
-	end
-	$cycletemp[5] = $npc_usedname[$sparrnam[cycletemp]]
-	!'Index number: <<cycletemp>>. Spatter Sperm ID: <<sparrcnt[cycletemp]>>. Spatter Sperm Owner: <<$sparrnam[cycletemp]>>. Spatter Potential Potency: <<sparrppt[cycletemp]>> Spatter Age in Hours: <<sparrage[cycletemp]>>. If you know who did it (0 means no): <<sparridt[cycletemp]>>. Spatter Volume: <<cycletemp[2]>> Milliliters. Spatter Location: <<$cycletemp[3]>>. Spatter Spread Value: <<sparrslc[cycletemp]>>.'
-	*P '<TR><TD><<cycletemp>></TD><TD><<sparrcnt[cycletemp]>></TD><TD><<$sparrnam[cycletemp]>> - <<$cycletemp[5]>></TD><TD><<sparrppt[cycletemp]>></TD><TD><<sparrage[cycletemp]>></TD><TD><<sparridt[cycletemp]>></TD><TD><<cycletemp[2]>></TD><TD><<$cycletemp[3]>></TD><TD><<sparrslc[cycletemp]>></TD></TR>'
-	cycletemp += 1
-	if cycletemp < arrsize('sparrvol'):
-		jump 'cumcsbloop'
-	else
-		'</TABLE>'
-	end
-else
-	'No sperm spatter is registered.'
-end
-
-cycletemp[4] = arrsize('$ChildFath')
-if cycletemp[4] > 0:
-	cycletemp = 0
-	if $wombthfath ! 'unknown': 'Current father set as the father you think is of the children in the womb: <<$wombthfath>>'
-	'Babies and Children (of <<cycletemp[4]>>):'
-	'<Table border=1><TR><TH>Index</TH><TH>Name</TH><TH>Age</TH><TH>Born(M/D/Y)</TH><TH>Sex</TH><TH>Pregnancy Type</TH><TH>Biological Father</TH><TH>Believed Father</TH><TH>Eye Color</TH><TH>Hair Color</TH><th>Type</th><TH>Contraception Type</TH><TH>Child DNA</TH></TR>'
-	:cumcbcloop
-	if polkid[cycletemp] = 0:
-		$cycletemp[2] = 'F'
-	else
-		$cycletemp[2] = 'M'
-	end
-	if babyptype[cycletemp] = 0:
-		$cycletemp[3] = 'Zygote'
-	elseif babyptype[cycletemp] = 1:
-		$cycletemp[3] = 'Healthy Implantation'
-	elseif babyptype[cycletemp] = 2:
-		$cycletemp[3] = 'Ectopic Pregnancy'
-	elseif babyptype[cycletemp] = 3:
-		$cycletemp[3] = 'Breach'
-	elseif babyptype[cycletemp] = 40:
-		$cycletemp[3] = 'Damaged Foetus from Alcohol/Smoking/Other drugs'
-	elseif babyptype[cycletemp] = 45:
-		$cycletemp[3] = 'Damaged Foetus from other sources'
-	elseif babyptype[cycletemp] = 50:
-		$cycletemp[3] = 'Severely Damaged Foetus'
-	elseif babyptype[cycletemp] = 100:
-		$cycletemp[3] = 'Foetal Death'
-	elseif babyptype[cycletemp] = 105:
-		$cycletemp[3] = 'Foetal Death, will not self purge'
-	else
-		$cycletemp[3] = 'Unlabelled Ptype'
-	end
-	if ChildConType[cycletemp] = 0:
-		$cycletemp[4] = 'No contraception used'
-	elseif ChildConType[cycletemp] = 1:
-		$cycletemp[4] = 'You lied about being on the pill'
-	elseif ChildConType[cycletemp] = 2:
-		$cycletemp[4] = 'You were on the pill'
-	elseif ChildConType[cycletemp] = 3:
-		$cycletemp[4] = 'You used a condom'
-	elseif ChildConType[cycletemp] = 4:
-		$cycletemp[4] = 'The condom broke'
-	elseif ChildConType[cycletemp] = 5:
-		$cycletemp[4] = 'The condom slipped off inside you'
-	elseif ChildConType[cycletemp] = 6:
-		$cycletemp[4] = 'The condom was sabotaged by someone else'
-	elseif ChildConType[cycletemp] = 7:
-		$cycletemp[4] = 'You sabotaged the condom'
-	else
-		$cycletemp[4] = 'improperly defined'
-	end
-	$cycletemp[5] = $npc_usedname[$ChildFath[cycletemp]]
-	if $ChildThFath[cycletemp] ! 'unknown':
-		$cycletemp[7] = $npc_usedname[$ChildThFath[cycletemp]]
-	else
-		$cycletemp[7] = ''
-	end
-	!'Index number: <<cycletemp>>. Name of the kid: <<$kidname[cycletemp]>>. Age of the kid: <<kidage[cycletemp]>>. Born(M/D/Y): <<monthkid[cycletemp]>> / <<daykid[cycletemp]>> / <<yearkid[cycletemp]>>. Sex: <<$cycletemp[2]>>. Pregnancy Type: <<$cycletemp[3]>>. Biological Father: <<$ChildFath[cycletemp]>>. Believed Father: <<$ChildThFath[cycletemp]>>. Child Eye Color: <<eyeskid[cycletemp]>>. Child Hair Color: <<hairkid[cycletemp]>>. Child Type: <<$childtype[cycletemp]>>. Child Contraceptive Type: <<$cycletemp[4]>>'
-	*P '<TR><TD><<cycletemp>></TD><TD><<$kidname[cycletemp]>></TD><TD><<kidage[cycletemp]>></TD><TD><<monthkid[cycletemp]>> / <<daykid[cycletemp]>> / <<yearkid[cycletemp]>></TD><TD><<$cycletemp[2]>></TD><TD><<$cycletemp[3]>></TD><TD><<$ChildFath[cycletemp]>> - <<$cycletemp[5]>></TD><TD><<$ChildThFath[cycletemp]>> - <<$cycletemp[7]>></TD><TD><<eyeskid[cycletemp]>></TD><TD><<hairkid[cycletemp]>></TD><td><<$childtype[cycletemp]>></td><TD><<$cycletemp[4]>></TD><TD><<$kid_dna[cycletemp]>></TD></TR>'
-	cycletemp += 1
-	if cycletemp < arrsize('$ChildFath'):
-		jump 'cumcbcloop'
-	else
-		'</TABLE>'
-	end
-else
-	'No Pregnancies registered.'
-end
-killvar '$cycletemp'
-act 'Return to cheat index': dynamic $cheatmenu
-
---- cum_arrcheat ---------------------------------
+--- fertility ---------------------------------
 
