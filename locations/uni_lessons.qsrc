@@ -1,6 +1,64 @@
 # uni_lessons
-!2021/05/02
-!!obviously a fair bit of the code will have to be changed to match the new only 3 main classes and grades etc
+!2021/22/12
+!! This file includes the code to amek sure that the player characters can go to class and and exams when they are enrolled in the university.
+!! The file does not includ the seleciton of classes depending upon which progem they are enrolled in only the part of the code that don''t depend on the progreamm.
+!! The code for the induvidual programs is in uni_programs
+
+
+if $ARGS[0] = 'cikl':
+!! Setting the the weeks in the university semester and makeing sure that the gades are calculated at the right times
+
+	if university['enrolled_in_semester'] > university['semester_passed'] and university['semester_week'] = 0 and (month = 8 or month = 1) and (day - week) >= 20:
+		university['semester_week'] = -1
+	end
+
+	if week = 1:
+		if university['semester_week'] = -1:
+			university['semester_week'] = 1
+		elseif university['semester_week'] > 0 and university['semester_week'] < 15: 
+			university['semester_week'] += 1
+			gs 'grades', 'calculate_grade', 'uni_<<$university[''enrolled_in'']>>_semester_<<university[''enrolled_in_semester'']>>'
+			gs 'grades', 'assing_grade_description', 'uni_<<$university[''enrolled_in'']>>_semester_<<university[''enrolled_in_semester'']>>'
+		elseif university['semester_week'] = 15:
+			university['semester_week'] = 0
+			university['exam_week'] = 1
+			gs 'grades', 'calculate_grade', 'uni_<<$university[''enrolled_in'']>>_semester_<<university[''enrolled_in_semester'']>>'
+			gs 'grades', 'assing_grade_description', 'uni_<<$university[''enrolled_in'']>>_semester_<<university[''enrolled_in_semester'']>>'
+		elseif university['exam_week'] = 1: 
+			university['exam_week'] = 2
+		elseif university['exam_week'] = 2: 
+			university['exam_week'] = 0
+			i = 0
+			passed_count = 0
+			class_count = 0
+			:passed_exams_loop
+			if $class_list_institution[i] = 'uni_<<$university[''enrolled_in'']>>_semester_<<university[''enrolled_in_semester'']>>':
+				class_count += 1
+				if dyneval ('RESULT = class[''<<$class_list_institution[i]>>_<<$class_list_name[i]>>_grade'']') > 40 and dyneval ('RESULT = class[''<<$class_list_institution[i]>>_<<$class_list_name[i]>>_exam_done'']') = 1:
+					passed_count += 1
+				elseif dyneval ('RESULT = class[''<<$class_list_institution[i]>>_<<$class_list_name[i]>>_exam_done'']') = 0
+					dynamic 'class[''<<$class_list_institution[i]>>_<<$class_list_name[i]>>_grade''] = 0'
+					university['expelled_for_missing_exam'] = 1
+				end
+			end
+			i += 1
+			if ARRSIZE('class_list_institution') >= i: jump 'passed_exams_loop'
+			killvar 'i'
+			if passed_count = class_count: 
+				university['semester_passed'] = university['enrolled_in_semester']
+			else
+				university['expelled'] = 1
+				university['student'] = 0
+			end
+			if university['semester_passed'] = 8:
+				university['diploma'] = 1
+				university['student'] = 0
+			end
+			killvar 'class_count'
+			killvar 'passed_count'
+		end
+	end
+end
 
 if $ARGS[0] = 'short_break':
 	menu_off = 1
