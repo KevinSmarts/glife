@@ -26,6 +26,16 @@
 !! imgset6ovr[x] and imgset7ovr[x] = a flag to indicate that an image set (x) has its own image 6 and/or 7
 !! extended lash functionality; pcs_lashes = n are: {2, largest natural size}, {3, with temporary false lashes on or basic 2D lash extensions}, {4, with ornate false lashes on or lavish 4D extensions}, {5, with extremely ornate, 6D-style extensions} - xerya
 
+$this = 'body_shape'
+
+if $ARGS[0] = 'RegularUpdate':
+	if dounspell = 0:
+		gs $this, 'UpdateBodyMeasurement'
+		pcs_weight = func($this, 'CalcWeight')
+		pcs_bmi = func($this, 'CalcBMI')
+	end
+end
+
 if $ARGS[0] = '':
 	!!This controls the gradual change in stat to -buf
 	if strenbuf > pcs_stren: strenbuf -= 1
@@ -244,7 +254,7 @@ if $ARGS[0] = '':
 	if salolast < salo: salolast += 1
 
 	!!Setting the pcs_apprnc bonus based on fat and strength
-	bmi_calc = FUNC('body_shape', 'bmicalc')
+	pcs_bmi = FUNC('body_shape', 'CalcBMI')
 	bodykoef = FUNC('body_shape', 'setbodykoef')
 
 	!!This is to clean up unused variables
@@ -253,28 +263,120 @@ if $ARGS[0] = '':
 	killvar 'koefvesbt' & killvar 'koefbt'
 end
 
+if $ARGS[0] = 'UpdateBodyMeasurement':
+	pcs_hips = (pcs_hgt * hratio) / 100 + vhips
+	pcs_waist = (pcs_hips * wratio) / 100 + vofat
+	pcs_band = (pcs_waist * bratio) / 100 + vofat
+	pcs_bust = (pcs_waist * bratio) / 100 + nbsize + magicf2b + silicone
+	pcs_butt = (pcs_hips / 10) + silicone_butt + butt_cheat
+	pcs_cupsize = pcs_bust - pcs_band
+
+	! Update tits size
+	if pcs_cupsize <= 5:
+		tits = 0
+		$titsize = 'AA cup'
+	elseif pcs_cupsize <= 10:
+		tits = 1
+		$titsize = 'A cup'
+	elseif pcs_cupsize <= 15:
+		tits = 2
+		$titsize = 'B cup'
+	elseif pcs_cupsize <= 20:
+		tits = 3
+		$titsize = 'C cup'
+	elseif pcs_cupsize <= 25:
+		tits = 4
+		$titsize = 'D cup'
+	elseif pcs_cupsize <= 30:
+		tits = 5
+		$titsize = 'E cup'
+	elseif pcs_cupsize <= 35:
+		tits = 6
+		$titsize = 'F cup'
+	elseif pcs_cupsize <= 40:
+		tits = 7
+		$titsize = 'G cup'
+	elseif pcs_cupsize <= 45:
+		tits = 8
+		$titsize = 'H cup'
+	elseif pcs_cupsize <= 50:
+		tits = 9
+		$titsize = 'I cup'
+	elseif pcs_cupsize <= 55:
+		tits = 10
+		$titsize = 'J cup'
+	else
+		tits = 11
+		$titsize = 'K cup'
+	end
+end
+
+if $ARGS[0] = 'CalcWeight':
+	!{pcs_weight: Svetas weight in kg 
+	Optimal Weight (170cm): 60kg, 60 salo
+	This is an approximation, so that a sveta with a different height has the same BMI for the same salo values.
+	The default height of 170 cm is used as a starting point. The bmi deviates by 0.06 for a deviation of 10cm and 0.4 for a deviation of 20cm.}
+	result = 30 + salo / 2 + (pcs_hgt - 170) * 7 / 10
+
+	!{Do not remove (julzor)
+	This is the old more complex function, but it doesn''t work correctly.
+	This variable is actually only used ONCE (except for the BMI calculation), when stripping, to see if you fall off the pole from being too heavy. I am reluctant to touch it, since the math is not explained. Maybe later.
+	Weight = (height in cm x bottom of average weight in kilos for a 170cm female / 170cm + (hip modifier + 2 x overrun fat)/4 + cup size}
+	
+	!result = (pcs_hgt * 62 / 170) + (vhips + (vofat * 2)) / 4 + tits
+end
+
+if $ARGS[0] = 'UpdateBodyImage':
+	if dounspell = 1:
+		salocatnow = (pcs_hips / 10) - 5
+		if bdsetlock = 0:
+			if (knowpreg = 1 or (preg = 1 and thinkpreg = 1) or (preg = 1 and PregChem > 3600)):
+				bodset = 3
+			elseif strenbuf >= 70:
+				bodset = 2
+			elseif strenbuf <= 40:
+				bodset = 0
+			else
+				bodset = 1
+			end
+		else
+			bodset = fixbodset
+		end
+	elseif (knowpreg = 1 or (preg = 1 and thinkpreg = 1) or (preg = 1 and PregChem > 3600)) and bodet ! 3 and bdsetlock = 0:
+		bodset = 3
+	elseif preg = 0 and bodset = 3 and bdsetlock = 0:
+		if strenbuf >= 70:
+			bodset = 2
+		elseif strenbuf <= 40:
+			bodset = 0
+		else
+			bodset = 1
+		end
+	end 
+end
+
 if $ARGS[0] = 'setbodykoef':
 	!!Setting the pcs_apprnc bonus based on fat and strength
 
-	if bmi_calc < 16:
+	if pcs_bmi < 16:
 		!! severely underweight
 		tempbodykoef = 30
-    elseif bmi_calc < 19:
+    elseif pcs_bmi < 19:
 		!! underweight
 		tempbodykoef = 65
-    elseif bmi_calc < 25:
+    elseif pcs_bmi < 25:
 		!! healthy weight
 		tempbodykoef = 85
-    elseif bmi_calc < 30:
+    elseif pcs_bmi < 30:
 		!! overweight
 		tempbodykoef = 75
-    elseif bmi_calc < 35:
+    elseif pcs_bmi < 35:
 		!! moderately obese
 		tempbodykoef = 45
-    elseif bmi_calc < 40:
+    elseif pcs_bmi < 40:
 		!! severely obese
 		tempbodykoef = 25
-    elseif bmi_calc < 45:
+    elseif pcs_bmi < 45:
 		!! very severely obese
 		tempbodykoef = 5
     else
@@ -308,33 +410,33 @@ if $ARGS[0] = 'setbodykoef':
 	killvar 'tempbodykoef'
 end
 
-if $ARGS[0] = 'bmicalc':
+if $ARGS[0] = 'CalcBMI':
 	result = 10000 * (30 + salo / 2 + (pcs_hgt - 170) * 7 / 10) / (pcs_hgt * pcs_hgt)
 end
 
 if $ARGS[0] = 'bmiadjust':
 	tempValue = ARGS[1] & !!value to be adjusted
-	tempadjbmi_calc = ARGS[2] & !!bmi_calc
+	tempadjpcs_bmi = ARGS[2] & !!pcs_bmi
 
-	if tempadjbmi_calc < 16:
+	if tempadjpcs_bmi < 16:
 		!! severely underweight
 		tempValue = tempValue * 50 / 100
-    elseif tempadjbmi_calc < 19:
+    elseif tempadjpcs_bmi < 19:
 		!! underweight
 		tempValue = tempValue * 95 / 100
-    elseif tempadjbmi_calc < 25:
+    elseif tempadjpcs_bmi < 25:
 		!! healthy weight
 		!! normal bonus
-    elseif tempadjbmi_calc < 30:
+    elseif tempadjpcs_bmi < 30:
 		!! overweight
 		tempValue = tempValue * 95 / 100
-    elseif tempadjbmi_calc < 35:
+    elseif tempadjpcs_bmi < 35:
 		!! moderately obese
 		tempValue = tempValue * 80 / 100
-    elseif tempadjbmi_calc < 40:
+    elseif tempadjpcs_bmi < 40:
 		!! severely obese
 		tempValue = tempValue * 55 / 100
-    elseif tempadjbmi_calc < 45:
+    elseif tempadjpcs_bmi < 45:
 		!! very severely obese
 		tempValue = tempValue * 50 / 100
     else
@@ -344,7 +446,7 @@ if $ARGS[0] = 'bmiadjust':
 
 	result = tempValue
 	killvar 'tempValue'
-	killvar 'tempadjbmi_calc'
+	killvar 'tempadjpcs_bmi'
 end
 
 if $ARGS[0] = 'softreset':
@@ -478,24 +580,24 @@ if $ARGS[0] = 'initial':
 	!!pcs_weight = (pcs_hgt * 62 / 170) + (vhips + (vofat * 2)) / 4 + tits
 	
 	!!BMI Calculation
-	bmi_calc = FUNC('body_shape', 'bmicalc')
+	pcs_bmi = FUNC('body_shape', 'CalcBMI')
 	
 	!!BMI Descriptions
-	if bmi_calc < 16:
+	if pcs_bmi < 16:
 		$bmi_desc = 'You are severely underweight.'
-	elseif bmi_calc >= 16 and bmi_calc < 19:
+	elseif pcs_bmi >= 16 and pcs_bmi < 19:
 		$bmi_desc = 'You are underweight'
-	elseif bmi_calc >= 19 and bmi_calc < 25:
+	elseif pcs_bmi >= 19 and pcs_bmi < 25:
 		$bmi_desc = 'You have a normal, healthy weight.'
-	elseif bmi_calc >= 25 and bmi_calc < 30:
+	elseif pcs_bmi >= 25 and pcs_bmi < 30:
 		$bmi_desc = 'You are overweight.'
-	elseif bmi_calc >= 30 and bmi_calc < 35:
+	elseif pcs_bmi >= 30 and pcs_bmi < 35:
 		$bmi_desc = 'You are moderately obese.'
-	elseif bmi_calc >= 35 and bmi_calc < 40:
+	elseif pcs_bmi >= 35 and pcs_bmi < 40:
 		$bmi_desc = 'You are severely obese.'
-	elseif bmi_calc >= 40 and bmi_calc < 45:
+	elseif pcs_bmi >= 40 and pcs_bmi < 45:
 		$bmi_desc = 'You are very severely obese.'
-	elseif bmi_calc >= 45:
+	elseif pcs_bmi >= 45:
 		$bmi_desc = 'You are morbidly obese.'
 	end
 end
@@ -550,7 +652,7 @@ if $ARGS[0] = 'calcHeadBonus':
 	else
 		resnicbonus = 0		
 	end
-	resnicbonus = FUNC('body_shape', 'bmiadjust', resnicbonus, bmi_calc)
+	resnicbonus = FUNC('body_shape', 'bmiadjust', resnicbonus, pcs_bmi)
 
 	!!	Setting Eye Size bonus
 	if pcs_eyesize = 1:
@@ -562,7 +664,7 @@ if $ARGS[0] = 'calcHeadBonus':
 	else
 		glarazbonus = 0
 	end
-	glarazbonus = FUNC('body_shape', 'bmiadjust', glarazbonus, bmi_calc)
+	glarazbonus = FUNC('body_shape', 'bmiadjust', glarazbonus, pcs_bmi)
 
 	!!	Setting the Lip size bonus
 	if pcs_lip = 0:
@@ -576,10 +678,10 @@ if $ARGS[0] = 'calcHeadBonus':
 	else
 		lipbonus = 3
 	end
-	lipbonus = FUNC('body_shape', 'bmiadjust', lipbonus, bmi_calc)
+	lipbonus = FUNC('body_shape', 'bmiadjust', lipbonus, pcs_bmi)
 	
 	teethcalc = (5 * pcs_teeth)
-	if teethcalc < 0: teethcalc = FUNC('body_shape', 'bmiadjust', teethcalc, bmi_calc)
+	if teethcalc < 0: teethcalc = FUNC('body_shape', 'bmiadjust', teethcalc, pcs_bmi)
 
 	result = resnicbonus + glarazbonus + lipbonus - teethcalc
 
@@ -588,7 +690,7 @@ end
 if $ARGS[0] = 'calcAttributeBonus':
 	tempAttributeBonus = (pcs_agil / 10) + (pcs_vital / 10)
 
-	result = FUNC('body_shape', 'bmiadjust', tempAttributeBonus, bmi_calc)
+	result = FUNC('body_shape', 'bmiadjust', tempAttributeBonus, pcs_bmi)
 	killvar 'tempAttributeBonus'
 end
 
