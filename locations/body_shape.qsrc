@@ -270,7 +270,6 @@ if $ARGS[0] = '':
 
 	!!Setting the pcs_apprnc bonus based on fat and strength
 	pcs_bmi = FUNC('body_shape', 'CalcBMI')
-	bodykoef = FUNC('body_shape', 'setbodykoef')
 
 	!!This is to clean up unused variables
 	killvar 'normbuffpick' & killvar 'nrmbfpckct'
@@ -445,41 +444,6 @@ if $ARGS[0] = 'CalcBMI':
 	result = 10000 * (30 + salo / 2 + (pcs_hgt - 170) * 7 / 10) / (pcs_hgt * pcs_hgt)
 end
 
-if $ARGS[0] = 'bmiadjust':
-	tempValue = ARGS[1] & !!value to be adjusted
-	tempadjpcs_bmi = ARGS[2] & !!pcs_bmi
-
-	if tempadjpcs_bmi < 16:
-		!! severely underweight
-		tempValue = tempValue * 50 / 100
-    elseif tempadjpcs_bmi < 19:
-		!! underweight
-		tempValue = tempValue * 95 / 100
-    elseif tempadjpcs_bmi < 25:
-		!! healthy weight
-		!! normal bonus
-    elseif tempadjpcs_bmi < 30:
-		!! overweight
-		tempValue = tempValue * 95 / 100
-    elseif tempadjpcs_bmi < 35:
-		!! moderately obese
-		tempValue = tempValue * 80 / 100
-    elseif tempadjpcs_bmi < 40:
-		!! severely obese
-		tempValue = tempValue * 55 / 100
-    elseif tempadjpcs_bmi < 45:
-		!! very severely obese
-		tempValue = tempValue * 50 / 100
-    else
-		!!morbidly obese
-		tempValue = tempValue * 40 / 100
-    end
-
-	result = tempValue
-	killvar 'tempValue'
-	killvar 'tempadjpcs_bmi'
-end
-
 if $ARGS[0] = 'softreset':
 	!!This is for use in immediately updating shape if something has caused a large change in salo, primarily fat burners and plastic surgery
 	sftrstflag = 1
@@ -557,141 +521,6 @@ if $ARGS[0] = 'initial':
 	pcs_weight = func($this, 'CalcWeight')
 	pcs_bmi = func($this, 'CalcBMI')
 	gs 'body_desc', 'BMI'
-end
-
-if $args[0] = 'basebeautycalc':
-	if pcs_lashes <= 0: pcs_lashes = 0
-	pcs_HeadBonus = FUNC('body_shape', 'calcHeadBonus')
-	tempAttributeBonus = FUNC('body_shape', 'calcAttributeBonus')
-	pcs_apprncbase = FUNC('body_shape', 'basebeautycalc2', ARGS[1])
-
-	if ARGS[1] = 0:
-	!!	This is the rate of change limiter
-		if pcs_apprncbase > vneshtemp:
-			if pcs_apprncbase - 5 > vneshtemp:
-				pcs_apprncbase -= 5
-			elseif pcs_apprncbase - 3 > vneshtemp:
-				pcs_apprncbase -= 3
-			else
-				pcs_apprncbase -= 1
-			end
-		elseif pcs_apprncbase < vneshtemp:
-			if pcs_apprncbase + 5 < vneshtemp:
-				pcs_apprncbase += 5
-			elseif pcs_apprncbase + 3 < vneshtemp:
-				pcs_apprncbase += 3
-			else
-				pcs_apprncbase += 1
-			end
-		end
-		killvar 'vneshtemp'
-	end
-
-	killvar 'pcs_HeadBonus'
-	killvar 'tempAttributeBonus'
-end 
-
-if $ARGS[0] = 'calcHeadBonus':
-
-	!!	Setting Eyelashes bonus
-	if pcs_lashes <= 0:
-		resnicbonus = 0
-	elseif pcs_lashes = 1:
-		resnicbonus = 2
-	elseif pcs_lashes = 2:
-		resnicbonus = 5
-	elseif pcs_lashes = 3:
-		resnicbonus = 7
-	elseif pcs_lashes = 4:
-		resnicbonus = 8
-	elseif pcs_lashes = 5:
-		resnicbonus = 10
-	else
-		resnicbonus = 0		
-	end
-	resnicbonus = FUNC('body_shape', 'bmiadjust', resnicbonus, pcs_bmi)
-
-	!!	Setting Eye Size bonus
-	if pcs_eyesize = 1:
-		glarazbonus = 1
-	elseif pcs_eyesize = 2:
-		glarazbonus = 3
-	elseif pcs_eyesize = 3:
-		glarazbonus = 2
-	else
-		glarazbonus = 0
-	end
-	glarazbonus = FUNC('body_shape', 'bmiadjust', glarazbonus, pcs_bmi)
-
-	!!	Setting the Lip size bonus
-	if pcs_lip = 0:
-		lipbonus = -2
-	elseif pcs_lip = 1:
-		lipbonus = 0
-	elseif pcs_lip = 2:
-		lipbonus = 3
-	elseif pcs_lip = 3:
-		lipbonus = 5
-	else
-		lipbonus = 3
-	end
-	lipbonus = FUNC('body_shape', 'bmiadjust', lipbonus, pcs_bmi)
-	
-	teethcalc = (5 * pcs_teeth)
-	if teethcalc < 0: teethcalc = FUNC('body_shape', 'bmiadjust', teethcalc, pcs_bmi)
-
-	result = resnicbonus + glarazbonus + lipbonus - teethcalc
-
-end
-
-if $ARGS[0] = 'calcAttributeBonus':
-	tempAttributeBonus = (pcs_agil / 10) + (pcs_vital / 10)
-
-	result = FUNC('body_shape', 'bmiadjust', tempAttributeBonus, pcs_bmi)
-	killvar 'tempAttributeBonus'
-end
-
-	!!This is the calculation for the base appearance if calling for testing always set ARGS[1] to 1
-if $args[0] = 'basebeautycalc2':
-	!!ARGS[1] reset pcs_apprncbase
-	!! result of pcs_HeadBonus
-	!! result of calcAttributeBonus
-
-
-	!!	Setting vidagebonus
-	vidagebonus = 100
-	if vidage < 20: vidagebonus = 60 + (2 * vidage)
-	if vidage > 30: vidagebonus = 160 - (2 * vidage)
-
-	!!	Preforming the calculation
-	skincalc = (pcs_skin * 2 / 5)
-	vneshtemp = vidagebonus * (skincalc + bodykoef + tempAttributeBonus + pcs_HeadBonus) / 100
-
-	!!	pcs_skin = skin condition, corrected to a 0 to 40 range; bodykoef set in main body_shape; pcs_teeth is missing teeth or cosmetically improved teeth (-1)
-
-	!!	This is the first limiter
-		!!if vneshtemp > 100: vneshtemp = 100
-
-	!!	This adds the supernatural pcs_apprnc bonus; currently Bimbo and Succubus
-	vneshtemp += supnatvnesh
-
-	!!	This is for use when a reset is called for by setting args[1] = 1
-	if args[1] = 1: pcs_apprncbase = vneshtemp & killvar 'vneshtemp'
-
-	result = pcs_apprncbase
-
-	!!	This is to clean up variables only used here
-		!!do not kill vneshtemp here it gets killed in basebeautycalc
-	killvar 'skincalc'
-	killvar 'vidagebonus'
-	killvar 'tempHeadBonus'
-	killvar 'tempAttributeBonus'
-
-	!!	This is to unload old variables
-	killvar 'CloNaturalBeauty'
-	killvar 'CloBaseBeauty'
-	killvar 'skin'
-	killvar 'bimbobeauty'
 end
 
 --- body_shape ---------------------------------
