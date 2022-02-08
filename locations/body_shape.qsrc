@@ -36,6 +36,36 @@ if $ARGS[0] = 'RegularUpdate':
 	end
 end
 
+if $ARGS[0] = 'DailyUpdate':
+	!{
+		Update once a day and called from cikl
+	}
+	if dounspell = 1:
+		if strenbuf > 90:
+			strenbuf -= 2
+		elseif strenbuf > 80:
+			strenbuf -= 1
+		end
+	
+		if vitalbuf > 90:
+			vitalbuf -= 2
+		elseif vitalbuf > 80:
+			vitalbuf -= 1
+		end
+	
+		if strenbuf > pcs_stren: strenbuf -= 1
+		if strenbuf < pcs_stren: strenbuf += 1
+		if vitalbuf > pcs_vital: vitalbuf -= 1
+		if vitalbuf < pcs_vital: vitalbuf += 1
+		if agilbuf > pcs_agil: agilbuf -= 1
+		if agilbuf < pcs_agil: agilbuf += 1
+	else
+		gs $this
+	end
+
+	gs $this, 'UpdateBodyImage'
+end
+
 if $ARGS[0] = '':
 	!!This controls the gradual change in stat to -buf
 	if strenbuf > pcs_stren: strenbuf -= 1
@@ -170,21 +200,6 @@ if $ARGS[0] = '':
 		salo += 3
 		salobustdo = 1
 		jump 'salocatloop'
-	end
-
-	!!This sets which image set is to be used when the override is not set
-	if bdsetlock = 0:
-		if (knowpreg = 1 or (preg = 1 and thinkpreg = 1) or (preg = 1 and PregChem > 3600)):
-			bodset = 3
-		elseif strenbuf >= 70:
-			bodset = 2
-		elseif strenbuf <= 40:
-			bodset = 0
-		else
-			bodset = 1
-		end
-	else
-		bodset = fixbodset
 	end
 
 	!!This is if a Succubus has salo < 1
@@ -327,6 +342,7 @@ if $ARGS[0] = 'CalcWeight':
 end
 
 if $ARGS[0] = 'UpdateBodyImage':
+	!Update body image set
 	if dounspell = 1:
 		salocatnow = (pcs_hips / 10) - 5
 		if bdsetlock = 0:
@@ -352,7 +368,22 @@ if $ARGS[0] = 'UpdateBodyImage':
 		else
 			bodset = 1
 		end
-	end 
+	end
+
+	! Update body description
+	if (knowpreg = 1 or (preg = 1 and thinkpreg = 1) or (preg = 1 and PregChem > 3600)) and bodset = 3:
+		if PregChem > 6216:
+			$body = $bodimgsets[((bodset * 10) + 8)]
+		elseif PregChem < 2688:
+			$body = $bodimgsets[(bodset * 10)]
+		else 
+			$body = $bodimgsets[((bodset * 10)+((PregChem - 2184)/504))]
+		end
+	elseif salocatnow <= 7:
+		$body = $bodimgsets[((bodset * 10) + salocatnow)]
+	else
+		$body = $bodimgsets[((bodset * 10) + 7)]
+	end
 end
 
 if $ARGS[0] = 'setbodykoef':
@@ -501,7 +532,7 @@ if $ARGS[0] = 'hardreset':
 		gs 'body_shape'
 		gs 'stat'
 	else
-		'If you''re seeing this, something odd happened. Please make a bug report that the body shape hard reset improperly fired and what you were doing.'
+		'If you''re seeing this, something odd happened. Please make a bug report that the body shape hard reset improperly triggered and what you were doing.'
 	end
 end
 
@@ -522,84 +553,10 @@ if $ARGS[0] = 'initial':
 	killvar 'gmstrtflag'
 	newbdsp = 1
 	!!	This does all the body shape setting before the first stat call
-	pcs_hips = (pcs_hgt * hratio) / 100 + vhips
-	pcs_waist = (pcs_hips * wratio) / 100 + vofat
-	pcs_band = (pcs_waist * bratio) / 100 + vofat
-	pcs_bust = (pcs_waist * bratio) / 100 + nbsize + magicf2b + silicone
-	pcs_cupsize = pcs_bust - pcs_band
-	if pcs_cupsize <= 5:
-		tits = 0
-		$titsize = 'AA cup'
-	elseif pcs_cupsize <= 10:
-		tits = 1
-		$titsize = 'A cup'
-	elseif pcs_cupsize <= 15:
-		tits = 2
-		$titsize = 'B cup'
-	elseif pcs_cupsize <= 20:
-		tits = 3
-		$titsize = 'C cup'
-	elseif pcs_cupsize <= 25:
-		tits = 4
-		$titsize = 'D cup'
-	elseif pcs_cupsize <= 30:
-		tits = 5
-		$titsize = 'E cup'
-	elseif pcs_cupsize <= 35:
-		tits = 6
-		$titsize = 'F cup'
-	elseif pcs_cupsize <= 40:
-		tits = 7
-		$titsize = 'G cup'
-	elseif pcs_cupsize <= 45:
-		tits = 8
-		$titsize = 'H cup'
-	elseif pcs_cupsize <= 50:
-		tits = 9
-		$titsize = 'I cup'
-	elseif pcs_cupsize <= 55:
-		tits = 10
-		$titsize = 'J cup'
-	else
-		tits = 11
-		$titsize = 'K cup'
-	end
-		
-	!!pcs_weight: Svetas weight in kg 
-	!!Optimal Weight for a 170cm sveta (BMI: 20.76): 60 salo / 60kg
-	!!This is an approximation, so that a sveta with a different height has the same BMI for the same salo values.
-	!!The default height of 170 cm is used as a starting point for the approximation. The BMI deviates by 0.06 for a deviation of 10cm and 0.4 for a deviation of 20cm. 
-	
-	pcs_weight = 30 + salo / 2 + (pcs_hgt - 170) * 7 / 10
-	
-	!!Do not remove (julzor)
-	!!This is the old more complex function, but it doesn''t work correctly.
-	!!This variable is actually only used ONCE (except for the BMI calculation), when stripping, to see if you fall off the pole from being too heavy. I am reluctant to touch it, since the math is not explained. Maybe later.
-	!!Weight = (height in cm x bottom of average weight in kilos for a 170cm female / 170cm + (hip modifier + 2 x overrun fat)/4 + cup size
-	
-	!!pcs_weight = (pcs_hgt * 62 / 170) + (vhips + (vofat * 2)) / 4 + tits
-	
-	!!BMI Calculation
-	pcs_bmi = FUNC('body_shape', 'CalcBMI')
-	
-	!!BMI Descriptions
-	if pcs_bmi < 16:
-		$bmi_desc = 'You are severely underweight.'
-	elseif pcs_bmi >= 16 and pcs_bmi < 19:
-		$bmi_desc = 'You are underweight'
-	elseif pcs_bmi >= 19 and pcs_bmi < 25:
-		$bmi_desc = 'You have a normal, healthy weight.'
-	elseif pcs_bmi >= 25 and pcs_bmi < 30:
-		$bmi_desc = 'You are overweight.'
-	elseif pcs_bmi >= 30 and pcs_bmi < 35:
-		$bmi_desc = 'You are moderately obese.'
-	elseif pcs_bmi >= 35 and pcs_bmi < 40:
-		$bmi_desc = 'You are severely obese.'
-	elseif pcs_bmi >= 40 and pcs_bmi < 45:
-		$bmi_desc = 'You are very severely obese.'
-	elseif pcs_bmi >= 45:
-		$bmi_desc = 'You are morbidly obese.'
-	end
+	gs $this, 'UpdateBodyMeasurement'
+	pcs_weight = func($this, 'CalcWeight')
+	pcs_bmi = func($this, 'CalcBMI')
+	gs 'body_desc', 'BMI'
 end
 
 if $args[0] = 'basebeautycalc':
