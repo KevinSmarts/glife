@@ -34,12 +34,9 @@ if $ARGS[0] = 'RegularUpdate':
 		pcs_weight = func($this, 'CalcWeight')
 		pcs_bmi = func($this, 'CalcBMI')
 	end
-
-	if pcs_skin > 100:
-		pcs_skin = 100
-	elseif pcs_skin < 0:
-		pcs_skin = 0
-	end
+	
+	!!Since "musle" is used all over the place
+	musle = strenbuf
 end
 
 if $ARGS[0] = 'DailyUpdate':
@@ -138,6 +135,23 @@ if $ARGS[0] = 'DailyUpdate':
 	end
 	
 	if age < 18 and rand (0,2) = 0 and pcs_leghair > 0: pcs_leghair -= 1
+
+	if pcs_skin <= 200:
+		pcs_skin += min(skinDailyGain * 2, 20) - skinDailyPenalty - 1
+	elseif pcs_skin <= 400:
+		pcs_skin += min(skinDailyGain, 10) - skinDailyPenalty - 1
+	elseif pcs_skin <= 600:
+		pcs_skin += min(skinDailyGain/2, 5) - skinDailyPenalty - 1
+	elseif pcs_skin <= 800:
+		pcs_skin += min(skinDailyGain/3, 3) - skinDailyPenalty - 1
+	elseif pcs_skin <= 900:
+		pcs_skin += min(skinDailyGain/5, 2) - skinDailyPenalty - 1
+	end
+
+	!skin variable reset
+	killvar 'moisturizerDailyCount'
+	killvar 'skinDailyGain'
+	killvar 'skinDailyPenalty'
 end
 
 if $ARGS[0] = '':
@@ -461,6 +475,30 @@ end
 
 if $ARGS[0] = 'CalcBMI':
 	result = 10000 * (30 + salo / 2 + (pcs_hgt - 170) * 7 / 10) / (pcs_hgt * pcs_hgt)
+end
+
+if $ARGS[0] = 'SkinGain':
+	if $ARGS[1] = 'CleanSelf' and lastShowerSkinGain ! daystart:
+		lastShowerSkinGain = daystart
+		skinDailyGain += 5
+		if bathLuffa = 1: skinDailyGain += 3
+	end
+
+	if $ARGS[1] = 'Moisturizer':
+		moisturizerDailyCount += 1
+		if moisturizerDailyCount <= 2: skinDailyGain += 3
+	end
+end
+
+if $ARGS[0] = 'SkinLoss':
+	if $ARGS[1] = 'Smoke' and lastSmokeSkinPenalty ! daystart:
+		lastSmokeSkinPenalty = daystart
+		skinDailyPenalty += 1
+	end
+
+	if $ARGs[1] = 'MakeUpSleep':
+		skinDailyPenalty += 10
+	end
 end
 
 if $ARGS[0] = 'softreset':
