@@ -86,7 +86,7 @@ if $ARGS[0] = 'start':
 	end
 
 	if stolmoney > 0:
-		act 'Take some money from the desk.':
+		act 'Take some money from the desk':
 			cla
 			stolOUT = input ("How much money do you want to put in your purse? (There is <<stolmoney>> <b>₽</b> here.)")
 
@@ -102,33 +102,34 @@ if $ARGS[0] = 'start':
 		end
 	end
 
-	if university['semester_week'] > 0:
-		i = 0
-		:study_loop
-		if $class_list_institution[i] = 'uni_<<$university[''enrolled_in'']>>_semester_<<university[''enrolled_in_semester'']>>':
-			if dyneval ('RESULT = class[''<<$class_list_institution[i]>>_<<$class_list_name[i]>>_optional_weekly_grade_gain'']') < dyneval ('RESULT = class[''<<$class_list_institution[i]>>_<<$class_list_name[i]>>_optional_weekly_max'']'):
-				dynamic '	act ''Study for your <<$class_list_name[i]>> class (30 minuts)'': gt ''stol'', ''studying'', ''<<$class_list_institution[i]>>'', ''<<$class_list_name[i]>>'', ''start'' '
-			else
-				*nl
-				'You don''t need to study more this week for you <<$class_list_name[i]>> class'
+	if university['enrolled_in_semester'] > university['semester_passed']:
+		if university['semester_week'] > 0:
+			i = 0
+			:study_loop
+			if $class_list_institution[i] = 'uni_<<$university[''enrolled_in'']>>_semester_<<university[''enrolled_in_semester'']>>':
+				if dyneval ('RESULT = class[''<<$class_list_institution[i]>>_<<$class_list_name[i]>>_optional_weekly_grade_gain'']') < dyneval ('RESULT = class[''<<$class_list_institution[i]>>_<<$class_list_name[i]>>_optional_weekly_max'']'):
+					dynamic '	act ''Study for your <<$class_list_name[i]>> class (30 minuts)'': gt ''stol'', ''studying'', ''<<$class_list_institution[i]>>'', ''<<$class_list_name[i]>>'', ''start'' '
+				else
+					*nl
+					'You don''t need to study more this week for you <<$class_list_name[i]>> class'
+				end
 			end
-		end
-		
-		i += 1
-		if ARRSIZE('class_list_institution') >= i: jump 'study_loop'
-		killvar 'i'
-	elseif university['exam_week'] > 0:
-		i = 0
-		:exam_loop
-		if $class_list_institution[i] = 'uni_<<$university[''enrolled_in'']>>_semester_<<university[''enrolled_in_semester'']>>' and func('uni_programs', 'exam', 'is_over', $class_list_name[i]) = 0:
-			dynamic '	act ''Study intensely for your <<$class_list_name[i]>> exam (30 minuts)'': gt ''stol'', ''studying_exam'', ''<<$class_list_institution[i]>>'', ''<<$class_list_name[i]>>'', ''start'' '
-		end
-		
-		i += 1
-		if ARRSIZE('class_list_institution') >= i: jump 'exam_loop'
-		killvar 'i'
-	end
 
+			i += 1
+			if ARRSIZE('class_list_institution') >= i: jump 'study_loop'
+			killvar 'i'
+		elseif university['exam_week'] > 0:
+			i = 0
+			:exam_loop
+			if $class_list_institution[i] = 'uni_<<$university[''enrolled_in'']>>_semester_<<university[''enrolled_in_semester'']>>' and func('uni_programs', 'exam', 'is_over', $class_list_name[i]) = 0:
+				dynamic '	act ''Study intensely for your <<$class_list_name[i]>> exam (30 minuts)'': gt ''stol'', ''studying_exam'', ''<<$class_list_institution[i]>>'', ''<<$class_list_name[i]>>'', ''start'' '
+			end
+
+			i += 1
+			if ARRSIZE('class_list_institution') >= i: jump 'exam_loop'
+			killvar 'i'
+		end
+	end
 end
 
 if $ARGS[0] = 'stolPar':
@@ -150,8 +151,8 @@ if $ARGS[0] = 'stolPar':
 	gs 'willpower', 'misc', 'self', iif(grupTipe = 4 and traits['nerd_status'] = 0, 'hard', iif(traits['nerd_status'] > 0, 'easy', 'medium'))
 	if traits['nerd_status'] = 2: will_cost = will_cost / 2
 	if lernHome > 0 and (will_cost <= pcs_willpwr or traits['nerd_status'] = 3):
-		'<br>You have to your homework. Finishing everything will take <<lernHome>> '+iif(lernHome = 1, 'hour.', 'hours.')
-		act 'Do your homework (1:00'+iif(traits['nerd_status'] = 3, '', ' and <<will_cost>> Willpower')+')':
+		'<br>You have homework to do. Finishing everything will take <<lernHome>> '+iif(lernHome = 1, 'hour.', 'hours.')
+		act 'Do some homework (1:00'+iif(traits['nerd_status'] = 3, '', ' and <<will_cost>> Willpower')+')':
 			cla & *clr
 			'<center><img <<$set_imgh>> src="images/locations/shared/apartment/homework.jpg"></center>'
 			minut += 60
@@ -163,15 +164,15 @@ if $ARGS[0] = 'stolPar':
 			gs'stat'
 			if komp = 1:
 				gs 'grades', 'homework', 'school', 'yes', 1, 0, 0
-				'It took you one hour to '+iif(lernHome = 0, 'complete', 'do a part of')+' your homework.'
+				'You spend an hour '+iif(lernHome = 0, 'completing', 'doing part of')+' your homework.'
 			else
 				gs 'grades', 'homework', 'school', 'no', 1, 0, 0
-				'It took you one hour to '+iif(lernHome = 0, 'complete', 'do a part of')+' your homework. The part for computer class is not as good as it could be since you don''t have a computer. You could do your homework at the library at the community center in the future since there is a computer available to use there.'
+				'You spend an hour '+iif(lernHome = 0, 'completing', 'doing part of')+' your homework. The part for computer class is not as good as it could be since you don''t have a computer. You could do your homework at the library at the community center in the future since there is a computer available to use there.'
 			end
 			act 'Continue':gt 'stol', 'stolPar'
 		end
 	elseif lernHome > 0 and will_cost > pcs_willpwr:
-		act 'Do your homework (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
+		act 'Do some homework (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
 	end
 	
 	will_cost = will_cost * lernHome
@@ -202,31 +203,33 @@ if $ARGS[0] = 'stolPar':
 		act 'Finish all of your homework (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
 	end
 
-	if university['semester_week'] > 0:
-		i = 0
-		:study_loop
-		if $class_list_institution[i] = 'uni_<<$university[''enrolled_in'']>>_semester_<<university[''enrolled_in_semester'']>>':
-			if dyneval ('RESULT = class[''<<$class_list_institution[i]>>_<<$class_list_name[i]>>_optional_weekly_grade_gain'']') < dyneval ('RESULT = class[''<<$class_list_institution[i]>>_<<$class_list_name[i]>>_optional_weekly_max'']'):
-				dynamic '	act ''Study for your <<$class_list_name[i]>> class (30 minuts)'': gt ''stol'', ''studying'', ''<<$class_list_institution[i]>>'', ''<<$class_list_name[i]>>'', ''stolPar'' '
-			else
-				*nl
-				'You don''t need to study more this week for you <<$class_list_name[i]>> class'
+	if university['enrolled_in_semester'] > university['semester_passed']:
+		if university['semester_week'] > 0:
+			i = 0
+			:study_loop
+			if $class_list_institution[i] = 'uni_<<$university[''enrolled_in'']>>_semester_<<university[''enrolled_in_semester'']>>':
+				if dyneval ('RESULT = class[''<<$class_list_institution[i]>>_<<$class_list_name[i]>>_optional_weekly_grade_gain'']') < dyneval ('RESULT = class[''<<$class_list_institution[i]>>_<<$class_list_name[i]>>_optional_weekly_max'']'):
+					dynamic '	act ''Study for your <<$class_list_name[i]>> class (30 minuts)'': gt ''stol'', ''studying'', ''<<$class_list_institution[i]>>'', ''<<$class_list_name[i]>>'', ''stolPar'' '
+				else
+					*nl
+					'You don''t need to study more this week for you <<$class_list_name[i]>> class'
+				end
 			end
+
+			i += 1
+			if ARRSIZE('class_list_institution') >= i: jump 'study_loop'
+			killvar 'i'
+		elseif university['exam_week'] > 0:
+			i = 0
+			:exam_loop
+			if $class_list_institution[i] = 'uni_<<$university[''enrolled_in'']>>_semester_<<university[''enrolled_in_semester'']>>' and func('uni_programs', 'exam', 'is_over', $class_list_name[i]) = 0:
+				dynamic '	act ''Study intensely for your <<$class_list_name[i]>> exam (30 minuts)'': gt ''stol'', ''studying_exam'', ''<<$class_list_institution[i]>>'', ''<<$class_list_name[i]>>'', ''stolPar'' '
+			end
+
+			i += 1
+			if ARRSIZE('class_list_institution') >= i: jump 'exam_loop'
+			killvar 'i'
 		end
-		
-		i += 1
-		if ARRSIZE('class_list_institution') >= i: jump 'study_loop'
-		killvar 'i'
-	elseif university['exam_week'] > 0:
-		i = 0
-		:exam_loop
-		if $class_list_institution[i] = 'uni_<<$university[''enrolled_in'']>>_semester_<<university[''enrolled_in_semester'']>>' and func('uni_programs', 'exam', 'is_over', $class_list_name[i]) = 0:
-			dynamic '	act ''Study intensely for your <<$class_list_name[i]>> exam (30 minuts)'': gt ''stol'', ''studying_exam'', ''<<$class_list_institution[i]>>'', ''<<$class_list_name[i]>>'', ''stolPar'' '
-		end
-		
-		i += 1
-		if ARRSIZE('class_list_institution') >= i: jump 'exam_loop'
-		killvar 'i'
 	end
 
 	killvar '$stol_loc_temp'
@@ -484,7 +487,7 @@ if $ARGS[0] = 'studying_exam':
 		else
 			'You study for half an hour, and think you are improving a lot.'
 		end		
-		gs 'grades', 'grade_award', '<<$ARGS[1]>>', '<<$ARGS[2]>>', 'yes', study_mod
+		gs 'grades', 'grade_award', '<<$ARGS[1]>>', '<<$ARGS[2]>>', study_mod
 	end
 	
 	gs 'stat'

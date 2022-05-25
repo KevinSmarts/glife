@@ -877,6 +877,17 @@ if $ARGS[0] = 'sports_entry_delete':
 end
 
 if $ARGS[0] = 'school_outfit':
+	! if they have worn a uniform recently we will use that rather than the one in the outfit
+	if schtype ! 0:	
+		clothingwornnumber = schtype
+		$clothingworntype = $schbrand
+		gs  'wardrobe', 'school_outfit_end'
+	else
+		gs  'wardrobe', 'school_outfit_loop'
+	end
+end
+
+if $ARGS[0] = 'school_outfit_loop':
 	! check to see if player has created a school uniform outfit
 	if ARRSIZE('defclothingnumber') > 0:
 		SchoolOutfitLoop = 0
@@ -884,31 +895,21 @@ if $ARGS[0] = 'school_outfit':
 		gs 'clothing_attributes', $defclothingtype[SchoolOutfitLoop], defclothingnumber[SchoolOutfitLoop]
 		! found an outfit that includes a school uniform
 		if CloStyle2 = 4:
-			tempSchtype = 0
-			! if they have worn a uniform recently we will use that rather than the one in the outfit
-			if schtype <> 0:	
-				tempSchtype = schtype
-				$tempSchbrand = $schbrand
-			end
 			! put the outfit on
 			gs 'wardrobe', 'default_entry_wear', SchoolOutfitLoop
-			!over ride the uniform with the most recent one used if there was one
-			if tempSchtype <> 0:
-				clothingwornnumber = tempSchtype
-				$clothingworntype = $tempSchbrand
-				schtype = clothingwornnumber
-				$schbrand = $clothingworntype
-			end
 			jump 'FoundSchoolOutfit'
 		end 
 		SchoolOutfitLoop += 1
 		if SchoolOutfitLoop < ARRSIZE('defclothingnumber'):jump 'FindSchoolOutfit'
 		:FoundSchoolOutfit
+		schtype = clothingwornnumber
+		$schbrand = $clothingworntype
 		killvar 'SchoolOutfitLoop'
-		killvar 'tempSchtype'
-		killvar '$tempSchbrand'
 	end
+	gs  'wardrobe', 'school_outfit_end'
+end
 
+if $ARGS[0] = 'school_outfit_end':
 	! if no uniform found or the one selected is worn out, use the default one
 	if schtype = 0 or dyneval('RESULT = <<$schbrand>>_h[<<schtype>>]') <= 0:
 		schtype = 6
