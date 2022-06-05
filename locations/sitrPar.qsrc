@@ -2,8 +2,6 @@
 
 if $ARGS[0] = '':
 	CLOSE ALL
-	act 'Leave the room':gt 'korrPar'
-
 	$loc_arg = ''
 	$loc = 'sitrPar'
 	$menu_loc = 'sitrPar'
@@ -11,32 +9,51 @@ if $ARGS[0] = '':
 	menu_off = 0
 	$location_type = 'private'
 	$locclass = 'livingr'
-	clr
+	locat['Fam_livingroom'] = 0
 	minut += 1
 	gs 'stat'
 	gs 'themes', 'indoors'
+	gs 'family_schedule'
+	gs 'sitrPar', 'occupied'
+	*clr & cla
 	'<center><b><font color="maroon">Living Room</font></b></center>'
-	if momloc = 19 and sdadloc = 10:
+	if locat['Mother'] = 19 and locat['Stepdad'] = 10:
 		'<center><img <<$set_imgh>> src="images/locations/pavlovsk/resident/apartment/home/momvladtv.jpg"></center>'
 	else
 		'<center><img <<$set_imgh>> src="images/locations/pavlovsk/resident/apartment/home/sitrpar.jpg"></center>'
 	end
+	act 'Leave the room':gt 'korrPar'
+	act 'Sit on the sofa':gt 'sitrPar', 'sofa'
 	''
-	'The living room has a <a href="exec:gt ''TV'',''pav''">TV</a>, which is near the window. In front of the TV is a <a href="exec:gt ''family'',''sofa''">sofa bed</a>, on which your brother sleeps at night. A large tapestry covers one wall, while the other wall has several shelves on it, stocked with books and other things.'
+	'The living room has a <a href="exec:gt ''TV'',''pav''">TV</a>, which is near the window. In front of the TV is a <a href="exec:gt ''sitrPar'',''sofa''">sofa bed</a>, on which your brother sleeps at night. A large tapestry covers one wall, while the other wall has several shelves on it, stocked with books and other things.'
 	*nl
-	gs 'family'
-	gs 'family_schedule'
-	*nl
-	gs 'subkid'
+	if locat['Fam_livingroom'] = 0 and locat['Mother'] ! 24 and locat['Mother'] ! 19:
+		'No one else is here right now, so you''re free to use the room how you like.'
+		gs 'exercise','start'
+	end
 
+	if locat['Kolka'] = 2 and brothermorningsex = daystart:
+		'Your younger brother <a href="exec:gt ''brother'', ''start''">Kolka</a> is getting ready for school.'
+	elseif locat['Kolka'] = 1:
+		'Your younger brother <a href="exec:gt ''brother'', ''start''">Kolka</a> is sleeping on the sofa.'
+	elseif locat['Kolka'] = 7:
+		'Your little brother <a href="exec:gt ''brother'', ''start''">Kolka</a> is sitting by the table and doing his homework.'
+	elseif locat['Kolka'] = 11:
+		if locat['Mother'] = 19 or locat['Stepdad'] = 10:
+			'Your younger brother <a href="exec:gt ''brother'', ''start''">Kolka</a> is sitting in the armchair, playing on his phone.'
+		else
+			'Your younger brother <a href="exec:gt ''brother'', ''start''">Kolka</a> is sitting on the sofa, playing video games.'
+		end
+	end
+	*nl
 	if month = 12 and day >= 20:'A Christmas tree stands next to the TV, decorated with tinsel garlands and other ornaments.'
 	if month = 12 and day = 31 and hour >= 20:
 		act 'Celebrate the New Year with your family.':
 			cls
-			npc_rel['A29'] += 10
-			npc_rel['A28'] += 10
-			npc_rel['A33'] += 10
-			npc_rel['A34'] += 10
+			gs 'npc_relationship', 'modify', 'A29', 10
+			gs 'npc_relationship', 'modify', 'A28', 10
+			gs 'npc_relationship', 'modify', 'A33', 10
+			gs 'npc_relationship', 'modify', 'A34', 10
 			money += 5000
 			hour = 23
 			minut = 0
@@ -47,31 +64,32 @@ if $ARGS[0] = '':
 			gs 'stat'
 			'You sit at the festive table laid in front of the TV and celebrate the New Year with your family, the TV providing some background noise. At the table, people strike up a conversation and common problems are forgotten for a while, everyone is having fun talking to each other. At midnight, everyone wishes one another a happy New Year and enjoys the champagne and fireworks outside. Your <<$npc_nickname[''A29'']>> gives you an envelope with a greeting card and 5000 <b>₽</b>. For a while, you continue to watch TV, enjoying the champagne and company of your family, but eventually, everyone is kind of tired and one by one they go to bed.'
 
-			act 'Leave':gt $loc, $loc_arg
+			act 'Leave': gt 'korrPar'
 		end
 	elseif month = 1 and day = 1:
 		act 'Eat some leftovers at the festive table.':
-			cla
-			*clr
 			frost = 0
-			minut += 15
+			minut += 10
 			pcs_health += 10
 			pcs_mood += 20
-			fat += 2
-			pcs_energy += 20
-			pcs_hydra += 20
+			fat += 8
+			pcs_energy += 60
+			if pcs_hydra >= 100:
+				pcs_hydra += 30
+			else
+				pcs_hydra += 60
+			end
 			cumspclnt = 2
 			gs 'cum_cleanup'
 			pcs_breath = 0
-
 			gs 'stat'
+			*clr & cla
 			'<center><img <<$set_imgh>> src="images/shared/food/leftovers.jpg"></center>'
 			'You finish the leftovers remaining on the table from the holidays.'
 
-		act 'Get up from the table':gt $loc, $loc_arg
-
+			act 'Get up from the table': gt 'sitrPar'
 		end
-	elseif momloc = 24:
+	elseif locat['Mother'] = 24:
 		'<center><img <<$set_imgh>> src="images/characters/pavlovsk/resident/mom/uborka1.jpg"></center>'
 		if kanikuli = 0 and mid($start_type,1,2) = 'sg' and SchoolAtestat = 0 and SchoolBlock = 0 and week < 6:
 			if CloStyle2 = 4:
@@ -87,7 +105,7 @@ if $ARGS[0] = '':
 			act 'leave': gt 'korrPar'
 		end
 		exit
-	elseif momloc = 19 and sdadloc = 10:
+	elseif locat['Mother'] = 19 and locat['Stepdad'] = 10:
 		!! Watches TV with Vladimir
 		!!'<center><img <<$set_imgh>> src="images/locations/pavlovsk/resident/apartment/home/momvladtv.jpg"></center>'
 		'As you walk into the living room, you see your <<$npc_nickname[''A29'']>> and Vladimir sitting on the couch watching TV.'
@@ -108,23 +126,72 @@ if $ARGS[0] = '':
 			act 'Keep watching':gt 'sitrPar', 'TVfam'
 			act 'Finish watching':gt 'sitrPar', 'TVend'
 		end
-	elseif momloc = 19:
+	elseif locat['Mother'] = 19:
 		!!Mom by herself watching TV
-		ocpd_room = 1
 		'As you walk into the living room, you see your <a href="exec:gt''mother''"><<$npc_nickname[''A29'']>></a> sitting on the couch watching TV.'
+	elseif locat['Stepdad'] = 10:
+		!!Dad watching TV by himself
+		'Your <a href="exec:gt ''father''">stepfather</a> is sitting on the sofa, watching TV.'
 	end
 
-	if ocpd_room = 0 and breastpump = 1 and bp_unbox <= 0:
-		'<a href="exec: gt ''lact_bp'', ''bp_unbox_event''">Unbox</a> your breast pump'
-	elseif kid >= 1 and breastpump = 1 and bp_unbox <= 0:
-		'<a href="exec: gt ''lact_bp'', ''bp_unbox_event''">Unbox</a> your breast pump'
-	elseif ocpd_room = 0 and breastpump = 1 and bp_unbox = 1 and pcs_inhib > 40:
-		'<a href="exec: gt ''lact_bp'', ''bp_unbox_event''">Try out</a> your breast pump'
-	elseif kid >= 1 and breastpump = 1 and bp_unbox = 1 and pcs_inhib > 30:
-		'<a href="exec: gt ''lact_bp'', ''bp_unbox_event''">Try out</a> your breast pump'
+	gs 'subkid'
+	if kid >= 1:
+		if breastpump = 1 and bp_unbox = 1 and pcs_inhib > 30:
+			'<a href="exec: gt ''lact_bp'', ''bp_unbox_event''">Try out</a> your breast pump'
+		elseif breastpump = 1 and bp_unbox <= 0:
+			'<a href="exec: gt ''lact_bp'', ''bp_unbox_event''">Unbox</a> your breast pump'
+		end
+	elseif locat['Fam_livingroom'] = 0:
+		if breastpump = 1 and bp_unbox = 1:
+			'<a href="exec: gt ''lact_bp'', ''bp_unbox_event''">Try out</a> your breast pump'
+		elseif breastpump = 1 and bp_unbox <= 0:
+			'<a href="exec: gt ''lact_bp'', ''bp_unbox_event''">Unbox</a> your breast pump'
+		end
 	end
 end
 
+if $ARGS[0]='sofa':
+	$menu_loc = 'sitrPar'
+	$menu_arg = 'sofa'
+	menu_off = 0
+	$loc_arg = 'sofa'
+	$loc = 'sitrPar'
+	gs 'family_schedule'
+	gs 'sitrPar', 'occupied'
+	*clr & cla
+	'<center><img <<$set_imgh>> src="images/locations/pavlovsk/resident/apartment/home/sofa.jpg"></center>'
+	*nl
+	'<center>A small sofa bed, when not folded out into a bed, is just big enough for you to curl up on and take a nap.</center>'
+
+	act 'Get up':gt 'sitrPar'
+	act 'Watch TV':gt 'TV','pav'
+
+	if locat['Fam_livingroom'] = 0 and pornMagazine > 0:
+		'<br>There is a porn magazine under the sofa cushions'
+		gs 'events', 'read_porn'
+		if pcs_horny >= 50:
+			act 'Masturbate':gt 'selfplay', 'start'
+		end
+	end
+
+	gs 'events', 'read'
+
+	if locat['Fam_livingroom'] = 0:
+		act 'Take a nap (1:00)':
+			if pcs_sleep < 90:
+				pcs_sleep += 10
+				pcs_health += 5
+				minut += 60
+				gs 'stat'
+				'You sleep about an hour.'
+			else
+				minut += 5
+				gs 'stat'
+				'You are not tired enough to sleep, even for a short nap.'
+			end
+		end
+	end
+end
 
 if $ARGS[0] = 'TVfam':
 	cla & *clr
@@ -134,16 +201,23 @@ if $ARGS[0] = 'TVfam':
 	gs 'stat'
 	'<center><img <<$set_imgh>> src="images/locations/pavlovsk/resident/apartment/home/familytv.jpg"></center>'
 	'You continue to watch TV with the family. Everyone seems very engrossed in the program and almost never says anything, though Kolka occasionally makes a crack about what is happening, often getting shushed by Vlad or <<$npc_nickname[''A29'']>>.'
-	if momloc = 19: act'Keep watching TV with your family': gt 'sitrPar', 'TVfam'
+	if locat['Mother'] = 19: act 'Keep watching TV with your family': gt 'sitrPar', 'TVfam'
 	act 'Finish watching':gt 'sitrPar', 'TVend'
 end
 
 if $ARGS[0] = 'TVend':
 	cla & *clr
+	gs 'family_schedule'
 	gs 'stat'
 	'<center><img <<$set_imgh>> src="images/locations/pavlovsk/resident/apartment/home/familytv.jpg"></center>'
 	'Once the show is over, Vladimir picks up the remote and turns the TV off. He gets up then stretches before he turns and walks out of the room, likely heading to bed. <<$npc_nickname[''A29'']>> gets up and says to you, "You should go to bed or at least go to your room so your brother can get his rest." She then turns to Kolka and says to him, "Don''t stay up, go to bed." With that, she also leaves after making sure you leave as well. As you walk out, you see Kolka putting his pillow and sheet on the couch.'
 	act 'leave':gt 'korrPar'
+end
+
+if $ARGS[0] = 'occupied':
+	if (locat['Kolka'] = 2 and brothermorningsex = daystart) or locat['Kolka'] = 1 or locat['Kolka'] = 7 or locat['Kolka'] = 11 or locat['Stepdad'] = 10 or locat['Mother'] = 19 or locat['Mother'] = 24:
+		locat['Fam_livingroom'] = 1
+	end
 end
 
 --- sitrPar ---------------------------------
