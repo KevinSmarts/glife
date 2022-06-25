@@ -1,0 +1,301 @@
+# underwear_bodysuits
+
+!!This is bodysuits file and that means underwear['type'] = 2
+!!bodysuits use the panty term in variables, this is intentional
+!!gs 'bodysuits', 'dispose'
+!!to remove bodysuits and destroy them
+!!gs 'bodysuits', 'remove'
+!!To remove bodysuits and store them
+!!gs 'bodysuits', 'wear'
+!!To wear bodysuits
+
+menu_off = 1
+
+if $ARGS[0] = 'view_bodysuit_list':
+	!! ARGS 0 - view_bodysuit_list
+	!! ARGS 1 - action type (clean, dirty, store, bathroom)
+	
+	if $pursepantytype ! '' or $pursebratype ! '':
+		'<center><b>You put the '+iif($pursepantytype ! '','bodysuits','')+iif($pursepantytype ! '' and $pursebratype ! '',' and ','')+iif($pursebratype ! '','bra','')+' from your purse back in the wardrobe.</b></center><br>'
+		killvar '$pursepantytype' & killvar 'pursepantynumber'
+		killvar '$pursebratype' & killvar 'pursebranumber'
+	end
+
+	if $ARGS[1] ! 'bathroom':
+		act 'Return': gt 'wardrobe', 'main'
+	else
+		act 'Return': gt $loc, $loc_arg
+	end
+
+	if $ARGS[1] = 'wardrobe':
+		metka_bodysuits = 0
+	end
+
+	if $ARGS[1] = 'store':
+		metka_bodysuits = 1
+	end
+
+	if $ARGS[1] = 'unwanted':
+		metka_bodysuits = 2
+	end
+
+	'<center><table border=1><TH><a href="exec:gt ''underwear_bodysuits'', ''view_bodysuit_list'', ''wardrobe''">Draw</a></TH><TH><a href="exec:gt ''underwear_bodysuits'', ''view_bodysuit_list'', ''store''">Storage</a></TH><TH><a href="exec:gt ''underwear_bodysuits'', ''view_bodysuit_list'', ''unwanted''">Unwanted</a></TH></table></center>'
+
+	if $pantyworntype ! 'none':act 'Remove bodysuits':gs 'underwear_bodysuits', 'remove' & gt 'underwear_bodysuits', 'view_bodysuit_list', $ARGS[1]
+	
+	if $ARGS[1] = 'store':
+		cloc = 1
+	end
+
+	'<center><img src="images/locations/city/citycenter/mall/Lusso.png"></center>'
+
+	i = 1
+	:looplussobodysuits 
+	if lusso_bodysuits_s[i] = metka_bodysuits and lusso_bodysuits[i] = 1:*p '<a href="exec:gt ''underwear_bodysuits'', ''view_bodysuit_item'', ''<<$ARGS[1]>>'', ''lusso'', <<i>>"><img src="images/pc/items/lusso/bodysuits/<<i>>.jpg" 	height="150" /></a>'
+	i += 1
+	if i <= ARRSIZE('lusso_bodysuits'):jump 'looplussobodysuits'
+end
+
+if $ARGS[0] = 'view_bodysuit_item':
+	!! ARGS 0 - view_bodysuit_item
+	!! ARGS 1 = action type (draw, shop)
+	!! ARGS 2 - bodysuit type
+	!! ARGS 3 - bodysuit index
+	!! ARGS 4 - price for shop
+	cla
+	'<center><img src="<<FUNC(''$pcs_outfit_image'', $ARGS[2]+''_bodysuits'', ARGS[3])>>"></center>'
+	gs 'underwear_attributes', $ARGS[2]+'_bodysuits', ARGS[3]
+	gs 'underwear_descriptions', 'bodysuit'
+
+	if $ARGS[1] = 'shop':
+		if dyneval('RESULT = <<$ARGS[2]>>_bodysuits[<<ARGS[3]>>]') = 1:
+			'You already own this item.'
+			act 'Leave': gt $loc, $loc_arg
+		else
+			price = ARGS[4]
+			'Price: <<ARGS[4]>> <b>₽</b>'
+			act 'Leave': gt $loc, $loc_arg
+			if money >= price:
+				act 'Buy (cash)':
+					money -= price
+					dynamic $ARGS[2] + '_bodysuits[<<ARGS[3]>>] = 1'
+					dynamic $ARGS[2] + '_bodysuits_s[<<ARGS[3]>>] = 0'
+					gt $loc, $loc_arg
+				end
+			else
+				'You do not have enough cash to buy this bodysuit.'
+			end
+			if karta + bankDebtLimit >= price:
+				act 'Buy (card)':
+					karta -= price
+					dynamic $ARGS[2] + '_bodysuits[<<ARGS[3]>>] = 1'
+					dynamic $ARGS[2] + '_bodysuits_s[<<ARGS[3]>>] = 0'
+					gt $loc, $loc_arg
+				end
+			else
+				'You do not have enough money in your bank to buy this bodysuit.'
+			end
+		end
+	else
+		if $ARGS[1] ! 'bathroom':
+			if metka_bodysuits ! 1:$RESULT += 'Move this bodysuit to <a href="exec:gt ''bodysuits'', ''dest1'', ''<<$ARGS[1]>>'', ''<<$ARGS[2]>>'', <<ARGS[3]>>">Storage</a><BR>'
+			if metka_bodysuits ! 0:$RESULT += 'Move this bodysuit to  <a href="exec:gt ''bodysuits'', ''dest0'', ''<<$ARGS[1]>>'', ''<<$ARGS[2]>>'', <<ARGS[3]>>">Wardrobe</a><BR>'
+			if metka_bodysuits ! 2:$RESULT += 'Move this bodysuit to  <a href="exec:gt ''bodysuits'', ''dest2'', ''<<$ARGS[1]>>'', ''<<$ARGS[2]>>'', <<ARGS[3]>>">Unwanted</a>'
+		end
+		
+		act 'Return':gt 'bodysuits', 'view_bodysuit_list', $ARGS[1]
+		
+		if $ARGS[1] = 'store':
+			'This bodysuit is in storage.'
+		elseif $ARGS[1] = 'unwanted':
+			'This bodysuit is unwanted.'
+		else
+			if $bodysuitworntype = $ARGS[2] and bodysuitwornnumber = ARGS[3]:
+				'You are wearing this bodysuit.'
+			else
+				if metka_bodysuits = 0:
+					act 'Wear':
+						if CloPanties = 1 and CloBra = 1:
+							msg'Your outfit is already replacing your underwear'
+						else
+							if hypnoPanty > 0:
+								cla
+								*clr
+								'You pick up the bodysuit and think about trying it on... but you don''t really like wearing bodysuits.'
+								gs 'willpower', 'misc', 'resist', 'easy'
+								will_cost += hypnoTime
+								if will_cost <= pcs_willpwr:
+									act 'Put it on anyways (<<will_cost>> Willpower)':
+										gs 'willpower', 'pay', 'resist'
+										gs 'stat'
+										gs 'underwear_bodysuits', 'wear2', $ARGS[2], ARGS[3]
+			
+										if $ARGS[1] = 'wardrobe':
+											gt 'wardrobe', 'main'
+										else
+											gt $loc, $loc_arg
+										end
+									end
+								else
+									act 'Put it on anyways (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
+								end
+								act 'Back':
+									gt 'wardrobe', 'main'
+								end
+							else
+								gs 'underwear_bodysuits', 'wear2', $ARGS[2], ARGS[3]
+
+								if $ARGS[1] = 'wardrobe':
+									gt 'wardrobe', 'main'
+								else
+									gt $loc, $loc_arg
+								end
+							end
+						end
+					end
+				end
+			end
+		end
+		if $ARGS[1] ! 'store':
+			act 'Move to storage': gt 'underwear_bodysuits', 'dest1', $ARGS[1], $ARGS[2], ARGS[3]
+		end
+		if $ARGS[1] ! 'unwanted':
+			act 'Move to unwanted': gt 'underwear_bodysuits', 'dest2', $ARGS[1], $ARGS[2], ARGS[3]
+		end
+		if $ARGS[1] ! 'wardrobe':
+			act 'Move to wardrobe': gt 'underwear_bodysuits', 'dest0', $ARGS[1], $ARGS[2], ARGS[3]
+		end
+	end
+end
+
+if $ARGS[0] = 'dest0':
+	*clr
+	dynamic '<<$ARGS[2]>>_bodysuits_s[<<ARGS[3]>>] = 0'
+	gt 'underwear_bodysuits', 'view_bodysuit_item', $ARGS[1], $ARGS[2], ARGS[3]
+end
+
+if $ARGS[0] = 'dest1':
+	*clr
+	dynamic '<<$ARGS[2]>>_bodysuits_s[<<ARGS[3]>>] = 1'
+	gt 'underwear_bodysuits', 'view_bodysuit_item', $ARGS[1], $ARGS[2], ARGS[3]
+end
+
+if $ARGS[0] = 'dest2':
+	*clr
+	dynamic '<<$ARGS[2]>>_bodysuits_s[<<ARGS[3]>>] = 2'
+	gt 'underwear_bodysuits', 'view_bodysuit_item', $ARGS[1], $ARGS[2], ARGS[3]
+end
+
+if $ARGS[0] = 'sum':
+	$t[0] = 'boutique'
+	$t[1] = 'cats'
+	$t[2] = 'exhibitionist'
+	$t[3] = 'fashionista'
+	$t[4] = 'cheap'
+	$t[5] = 'sexshop'
+	$t[6] = 'sport'
+	result = 0
+	i = 0
+	:loopsumbodysuits_i
+	$temp = $t[i]
+	j = 1
+	:loopsumbodysuits_j
+	$temp1 = '<<$temp>>_bodysuits[<<j>>]'
+	$temp2 = '<<$temp>>_bodysuits_s[<<j>>]'
+	dynamic 'if <<$temp1>> = 1 and <<$temp2>> = 0: result +=1'
+	j += 1
+	if j <= dyneval('result = arrsize(''<<$temp>>_bodysuits'')') : jump 'loopsumbodysuits_j'
+	i += 1
+	if i <= arrsize('$t'): jump 'loopsumbodysuits_i'
+	if $ARGS[1] = 'dresser': if $pantyworntype ! 'none' and result > 0: result -= 1
+	killvar('t')
+	killvar('temp')
+	killvar('temp1')
+	killvar('temp2')
+end
+
+if $ARGS[0] = 'dispose':
+	dynamic $pantyworntype + '_bodysuit[<<pantywornnumber>>] = 0'
+	$lastwornbodysuittype = 'none'
+	lastwornbodysuitnumber = 0
+	$bodysuitworntype = 'none'
+	bodysuitwornnumber = 0
+end
+
+if $ARGS[0] = 'remove':
+	$lastwornbodysuittype = $bodysuitworntype
+	lastwornbodysuitnumber = bodysuitwornnumber
+	$bodysuitworntype = 'none'
+	bodysuitwornnumber = 0
+	underwear['lastworntype'] = 2
+end
+
+if $ARGS[0] = 'wear':
+	if $ARGS[1] = '':
+		if dyneval('RESULT = <<$lastwornbodysuittype>>_bodysuits_s[<<lastwornbodysuitnumber>>]') = 0 and $lastwornbodysuittype ! '':
+			$bodysuitworntype = $lastwornbodysuittype
+			bodysuitwornnumber = lastwornbodysuitnumber
+			gs 'wear2', $lastwornpantytype, lastwornpantynumber
+		else
+			underwear['type'] = 0
+			$bodysuitworntype = 'none'
+			bodysuitwornnumber = 0
+		end
+	else
+		if dyneval('RESULT = <<$ARGS[1]>>_bodysuits_s[<<ARGS[2]>>]') = 0:
+			gs 'wear2', $ARGS[2], ARGS[3]
+		else
+			underwear['type'] = 0
+			$bodysuitworntype = 'none'
+			bodysuitwornnumber = 0
+		end
+	end
+end
+
+if $ARGS[0] = 'wear2':
+	!! ARGS 0 - action
+	!! ARGS 1 - bodysuits type name
+	!! ARGS 2 - bodysuits index
+
+
+	$bodysuitworntype = $ARGS[1]
+	bodysuitwornnumber = ARGS[2]
+
+!! Clearing unused panty variable if switching from bra and panties
+	if underwear['type'] = 0:
+		gs 'panties', 'remove'
+		gs 'bras', 'remove'
+		killvar 'PPanMaterial'
+		killvar 'PPantyFun'
+		killvar 'PPanQuality'
+	else
+		gs 'underwear_bodysuits', 'remove'
+	end
+	underwear['type'] = 2
+
+	dynamic $ARGS[1] + '_w[<<ARGS[2]>>] = 1'
+
+	gs 'underwear_attributes', $ARGS[1], ARGS[2]
+
+	dynamic '<<$ARGS[1]>>_s[<<ARGS[2]>>] = 0'
+
+	PBraQuality = BraQuality
+	PBraMaterial = BraMaterial
+	PBraType = BraType
+	PBraFun = BraFun
+	PPanThinness = PanThinness
+	PBraThinness = BraThinness
+	PPanExpose = PanExpose
+	PPanButt = PanButt
+	PBraExpose = BraExpose
+end
+
+if $ARGS[0] = 'wear_last_worn':
+	!!contingency
+	if $lastwornbodysuittype = '': $lastwornbodysuitnumber = 'none'
+	gs 'underwear_bodysuits', 'wear', $lastwornbodysuittype, lastwornbodysuitnumber
+end
+
+
+--- underwear_bodysuits ---------------------------------
+
