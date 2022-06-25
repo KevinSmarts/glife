@@ -1,44 +1,9 @@
 # bras
+!!This is separate bras file and that means underwear['type'] = 0
 !!2021/04/15
 !!gs 'bras', 'dispose'
 !!gs 'bras', 'remove'
 !!gs 'bras', 'wear'
-
-if $ARGS[0] = 'dispose':
-	dynamic $braworntype + '_bras[<<lastwornbranumber>>] = 0'
-	$lastwornbratype = 'none'
-	lastwornbranumber = 0
-	$braworntype = 'none'
-	brawornnumber = 0
-end
-
-if $ARGS[0] = 'remove':
-	$lastwornbratype = $braworntype
-	lastwornbranumber = brawornnumber
-	$braworntype = 'none'
-	brawornnumber = 0
-end
-
-if $ARGS[0] = 'wear':
-	if $ARGS[1] = '':
-		if dyneval('RESULT = <<$lastwornbratype>>_brasS[<<lastwornbranumber>>]') = 0 and $lastwornbratype ! '':
-			$braworntype = $lastwornbratype
-			brawornnumber = lastwornbranumber
-		else
-			$braworntype = 'none'
-			brawornnumber = 0
-		end
-	else
-		if dyneval('RESULT = <<$ARGS[1]>>_brasS[<<ARGS[2]>>]') = 0:
-			$braworntype = $ARGS[1]
-			brawornnumber = ARGS[2]
-		else
-			$braworntype = 'none'
-			brawornnumber = 0
-		end
-	end
-end
-
 
 if $ARGS[0] = 'view_bra_list':
 	!! ARGS 0 - view_bra_list
@@ -312,4 +277,86 @@ if $ARGS[0] = 'sum':
 	killvar('temp1')
 	killvar('temp2')
 end
+
+
+if $ARGS[0] = 'dispose':
+	if underwear['type'] = 2: gs 'underwear_bodysuits', 'dispose'
+	dynamic $braworntype + '_bras[<<lastwornbranumber>>] = 0'
+	$lastwornbratype = 'none'
+	lastwornbranumber = 0
+	$braworntype = 'none'
+	brawornnumber = 0
+end
+
+if $ARGS[0] = 'remove':
+	if underwear['type'] = 2: gs 'underwear_bodysuits', 'remove'
+	$lastwornbratype = $braworntype
+	lastwornbranumber = brawornnumber
+	$braworntype = 'none'
+	brawornnumber = 0
+	underwear['lastworntype'] = 0
+end
+
+if $ARGS[0] = 'wear':
+	if $ARGS[1] = '':
+		if dyneval('RESULT = <<$lastwornbratype>>_brasS[<<lastwornbranumber>>]') = 0 and $lastwornbratype ! '' and underwear['lastworntype'] ! 2:
+			gs 'bras', 'wear2', $lastwornbratype, lastwornbranumber
+		else
+			$braworntype = 'none'
+			brawornnumber = 0
+		end
+	else
+		if dyneval('RESULT = <<$ARGS[1]>>_brasS[<<ARGS[2]>>]') = 0:
+			gs 'bras', 'wear2', $ARGS[1], ARGS[2]
+		else
+			$braworntype = 'none'
+			brawornnumber = 0
+		end
+	end
+end
+
+if $ARGS[0] = 'wear2':
+	!! ARGS 0 - action
+	!! ARGS 1 - bras type name
+	!! ARGS 2 - bras index
+
+	$braworntype = $ARGS[1]
+	brawornnumber = ARGS[2]
+
+!! clearing worn panty variables if switching from bodysuit
+	if underwear['type'] = 2:
+		gs 'underwear_bodysuits', 'remove'
+		killvar 'PPanMaterial'
+		killvar 'PPantyFun'
+		killvar 'PPanQuality'
+		killvar 'PPanThinness'
+		killvar 'PPanExpose'
+		killvar 'PPanButt'
+	else
+		gs 'bras', 'remove'
+	end
+	underwear['type'] = 0
+
+	dynamic $ARGS[1] + '_w[<<ARGS[2]>>] = 1'
+
+	gs 'underwear_attributes', $ARGS[1], ARGS[2]
+
+	dynamic '<<$ARGS[1]>>_s[<<ARGS[2]>>] = 0'
+
+	PBraMaterial = BraMaterial
+	PBraType = BraType
+	PBraFun = BraFun
+	PBraQuality = BraQuality
+	PBraThinness = BraThinness
+	PBraExpose = BraExpose
+end
+
+if $ARGS[0] = 'wear_last_worn':
+	!!contingency
+	if $lastwornbratype = '': $lastwornbranumber = 'none'
+	gs 'bras', 'wear', $lastwornbratype, lastwornbranumber
+end
+
+
 --- bras ---------------------------------
+
