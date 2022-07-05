@@ -107,18 +107,15 @@ if $ARGS[0] = 'view_bra_item':
 
 	cla
 	'<center><img src="<<FUNC(''$bra_image'',  $ARGS[2], ARGS[3])>>"></center>'
-!!	gs 'bra_attributes', $ARGS[2], ARGS[3]
+	gs 'underwear_attributes', $ARGS[2]+'_bras', ARGS[3]
 !!	$RESULT = FUNC('$short_description', $ARGS[2], CloStyle2)
 !!	$RESULT += '<<ARGS[3]>>'
 !!	'<<$RESULT>>'
-	gs 'bras', 'descriptions', $ARGS[2]
-	if underwear['set'] ! 0:
-		'This bra forms a set with panty #<<underwear[''set'']>>.'
-		if dyneval('RESULT = <<$ARGS[2]>>_panties[<<underwear[''set'']>>]') = 1:
-			'You own these panties and can wear this set.'
-		else
-			'You do not own these panties so you cannot wear this set.'
-		end
+	if BraQuality > 0:
+		gs 'underwear_descriptions', 'bras'
+		'This bra forms a set with panty #<<underwear[''pair'']>>.'
+	else
+		gs 'bras', 'descriptions', $ARGS[2]
 	end
 
 	if $ARGS[1] = 'shop':
@@ -149,32 +146,37 @@ if $ARGS[0] = 'view_bra_item':
 			else
 				'You do not have enough money in your bank to buy this bra.'
 			end
-			if dyneval('RESULT = <<$ARGS[2]>>_panties[<<underwear[''set'']>>]') = 0:
-				price_set = ARGS[4]*10/9
-				'price for set: <<price_set>> <b>₽</b>'
-				if money >= price_set:
-					act 'Buy (cash)':
-						money -= price_set
-						dynamic $ARGS[2] + '_bras[<<ARGS[3]>>] = 1'
-						dynamic $ARGS[2] + '_brasS[<<ARGS[3]>>] = 0'
-						dynamic $ARGS[2] + '_panties[<<underwear[''set'']>>] = 1'
-						dynamic $ARGS[2] + '_pantiesS[<<underwear[''set'']>>] = 0'
-						gt $loc, $loc_arg
-					end
+			if underwear['pair'] > 0:
+				if dyneval('RESULT = <<$ARGS[2]>>_panties[<<underwear[''pair'']>>]') = 1:
+					'You own the matching panties buying this bra will complete the set.'
 				else
-					'You do not have enough cash to buy this set.'
-				end
-				if karta + bankDebtLimit >= price_set:
-					act 'Buy (card)':
-						karta -= price_set
-						dynamic $ARGS[2] + '_bras[<<ARGS[3]>>] = 1'
-						dynamic $ARGS[2] + '_brasS[<<ARGS[3]>>] = 0'
-						dynamic $ARGS[2] + '_panties[<<underwear[''set'']>>] = 1'
-						dynamic $ARGS[2] + '_pantiesS[<<underwear[''set'']>>] = 0'
-						gt $loc, $loc_arg
+					'You do not own the matching panties, you can buy this bra and them as a set.'
+					price_set = ARGS[4]*18/10
+					'Price for set: <<price_set>> <b>₽</b>'
+					if money >= price_set:
+						act 'Buy set (cash)':
+							money -= price_set
+							dynamic $ARGS[2] + '_bras[<<ARGS[3]>>] = 1'
+							dynamic $ARGS[2] + '_brasS[<<ARGS[3]>>] = 0'
+							dynamic $ARGS[2] + '_panties[<<underwear[''pair'']>>] = 1'
+							dynamic $ARGS[2] + '_pantiesS[<<underwear[''pair'']>>] = 0'
+							gt $loc, $loc_arg
+						end
+					else
+						'You do not have enough cash to buy this set.'
 					end
-				else
-					'You do not have enough money in your bank to buy this set.'
+					if karta + bankDebtLimit >= price_set:
+						act 'Buy set (card)':
+							karta -= price_set
+							dynamic $ARGS[2] + '_bras[<<ARGS[3]>>] = 1'
+							dynamic $ARGS[2] + '_brasS[<<ARGS[3]>>] = 0'
+							dynamic $ARGS[2] + '_panties[<<underwear[''pair'']>>] = 1'
+							dynamic $ARGS[2] + '_pantiesS[<<underwear[''pair'']>>] = 0'
+							gt $loc, $loc_arg
+						end
+					else
+						'You do not have enough money in your bank to buy this set.'
+					end
 				end
 			end
 		end
@@ -235,99 +237,104 @@ if $ARGS[0] = 'view_bra_item':
 							end
 						end
 					end
-				end
-				if underwear['set'] ! 0 and dyneval('RESULT = <<$ARGS[2]>>_panties[<<underwear[''set'']>>]') = 1:
-					act 'Wear set':
-						if CloBra = 1:
-							msg'You cannot wear a bra with this top'
-						elseif CloPanties = 1:
-							msg'You cannot wear a panties with this outfit'
-						else
-							if hypnoBra > 0 and hypnoPanty > 0:
-								cla
-								*clr
-								'You pick up the bra and panties and think about trying them on... but you don''t really like wearing underwear.'
-								gs 'willpower', 'misc', 'resist'
-								will_cost += hypnoTime
-								if will_cost <= pcs_willpwr:
-									act 'Wear it anyway anyways (<<will_cost>> Willpower)':
-										gs 'willpower', 'pay', 'resist'
-										gs 'stat'
-										gs 'panties', 'wear', $ARGS[2], underwear['set']
+					if underwear['pair'] > 0:
+						if dyneval('RESULT = <<$ARGS[2]>>_panties[<<underwear[''pair'']>>]') = 1:
+							'You own these panties and can wear this set.'
+							act 'Wear set':
+								if CloBra = 1:
+									msg'You cannot wear a bra with this top'
+								elseif CloPanties = 1:
+									msg'You cannot wear a panties with this outfit'
+								else
+									if hypnoBra > 0 and hypnoPanty > 0:
+										cla
+										*clr
+										'You pick up the bra and panties and think about trying them on... but you don''t really like wearing underwear.'
+										gs 'willpower', 'misc', 'resist'
+										will_cost += hypnoTime
+										if will_cost <= pcs_willpwr:
+											act 'Wear it anyway anyways (<<will_cost>> Willpower)':
+												gs 'willpower', 'pay', 'resist'
+												gs 'stat'
+												gs 'panties', 'wear', $ARGS[2], underwear['pair']
+												gs 'bras', 'wear', $ARGS[2], ARGS[3]
+				
+												if $ARGS[1] = 'wardrobe':
+													gt 'wardrobe', 'main'
+												else
+													gt $loc, $loc_arg
+												end
+											end
+										else
+											act 'Wear it anyway anyways (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
+										end
+										act 'Back':
+											gt 'wardrobe', 'main'
+										end
+									elseif hypnoBra > 0:
+										cla
+										*clr
+										'You pick up the bra and think about trying them on... but you don''t really like wearing bras.'
+										gs 'willpower', 'misc', 'resist', 'easy'
+										will_cost += hypnoTime
+										if will_cost <= pcs_willpwr:
+											act 'Put them on anyways (<<will_cost>> Willpower)':
+												gs 'willpower', 'pay', 'resist'
+												gs 'stat'
+												gs 'panties', 'wear', $ARGS[2], underwear['pair']
+												gs 'bras', 'wear', $ARGS[2], ARGS[3]
+				
+												if $ARGS[1] = 'wardrobe':
+													gt 'wardrobe', 'main'
+												else
+													gt $loc, $loc_arg
+												end
+											end
+										else
+											act 'Put them on anyways (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
+										end
+										act 'Back':
+											gt 'wardrobe', 'main'
+										end
+									elseif hypnoPanty > 0:
+										cla
+										*clr
+										'You pick up the panties and think about trying them on... but you don''t really like wearing panties.'
+										gs 'willpower', 'misc', 'resist', 'easy'
+										will_cost += hypnoTime
+										if will_cost <= pcs_willpwr:
+											act 'Put them on anyways (<<will_cost>> Willpower)':
+												gs 'willpower', 'pay', 'resist'
+												gs 'stat'
+												gs 'panties', 'wear', $ARGS[2], underwear['pair']
+												gs 'bras', 'wear', $ARGS[2], ARGS[3]
+					
+												if $ARGS[1] = 'wardrobe':
+													gt 'wardrobe', 'main'
+												else
+													gt $loc, $loc_arg
+												end
+											end
+										else
+											act 'Put them on anyways (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
+										end
+										act 'Back':
+											gt 'wardrobe', 'main'
+										end
+									else
+										gs 'panties', 'wear', $ARGS[2], underwear['pair']
 										gs 'bras', 'wear', $ARGS[2], ARGS[3]
-		
-										if $ARGS[1] = 'wardrobe':
-											gt 'wardrobe', 'main'
-										else
-											gt $loc, $loc_arg
-										end
-									end
-								else
-									act 'Wear it anyway anyways (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
-								end
-								act 'Back':
-									gt 'wardrobe', 'main'
-								end
-							elseif hypnoBra > 0:
-								cla
-								*clr
-								'You pick up the bra and think about trying them on... but you don''t really like wearing bras.'
-								gs 'willpower', 'misc', 'resist', 'easy'
-								will_cost += hypnoTime
-								if will_cost <= pcs_willpwr:
-									act 'Put them on anyways (<<will_cost>> Willpower)':
-										gs 'willpower', 'pay', 'resist'
-										gs 'stat'
-										gs 'panties', 'wear', $ARGS[2], underwear['set']
-										gs 'bras', 'wear', $ARGS[2], ARGS[3]
-		
-										if $ARGS[1] = 'wardrobe':
-											gt 'wardrobe', 'main'
-										else
-											gt $loc, $loc_arg
-										end
-									end
-								else
-									act 'Put them on anyways (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
-								end
-								act 'Back':
-									gt 'wardrobe', 'main'
-								end
-							elseif hypnoPanty > 0:
-								cla
-								*clr
-								'You pick up the panties and think about trying them on... but you don''t really like wearing panties.'
-								gs 'willpower', 'misc', 'resist', 'easy'
-								will_cost += hypnoTime
-								if will_cost <= pcs_willpwr:
-									act 'Put them on anyways (<<will_cost>> Willpower)':
-										gs 'willpower', 'pay', 'resist'
-										gs 'stat'
-										gs 'panties', 'wear', $ARGS[2], underwear['set']
-										gs 'panties', 'wear', $ARGS[2], ARGS[3]
-			
-										if $ARGS[1] = 'wardrobe':
-											gt 'wardrobe', 'main'
-										else
-											gt $loc, $loc_arg
-										end
-									end
-								else
-									act 'Put them on anyways (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
-								end
-								act 'Back':
-									gt 'wardrobe', 'main'
-								end
-							else
-								gs 'panties', 'wear', $ARGS[2], underwear['set']
-								gs 'bras', 'wear', $ARGS[2], ARGS[3]
 
-								if $ARGS[1] = 'wardrobe':
-									gt 'wardrobe', 'main'
-								else
-									gt $loc, $loc_arg
+										if $ARGS[1] = 'wardrobe':
+											gt 'wardrobe', 'main'
+										else
+											gt $loc, $loc_arg
+										end
+									end
 								end
 							end
+						else
+							'You do not own these panties so you cannot wear this set.'
 						end
 					end
 				end
