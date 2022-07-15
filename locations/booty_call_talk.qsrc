@@ -3,7 +3,7 @@
 !! ------------------- Sex Talk ---------------------------------------
 
 if $ARGS[0] = 'cum_react':
-	if booty_call['react'] = 0:
+	if booty_call['react'] = 0 and $booty_call['last_cum'] ! 'pullout':
 		act'React':
 			booty_call['react'] = 1
 			cla
@@ -565,17 +565,19 @@ if $ARGS[0] = 'thought_no_creampies':
 	end
 end
 if $ARGS[0] = 'cum_together_yeah':
-	act'Yeah':
-		cla & *nl
-		booty_call['react'] = 1
-		minut += rand(2,5)
-		gs'stat'
-		if booty_call['cum_together_fake'] = 0:
-			'"Yeah..." you smile back. You choose to let the moment speak for itself and don''t say anything more. It seems <<$npc_firstname[$boy]>> feels the same way as he rests with you, his cock still inside you but neither of you in a hurry to change it.'
-		else
-			'"Yeah..." you smile. You choose to keep your lies to a minimum and leave it at that. <<$npc_firstname[$boy]>> seems happy enough and smiles back at you, content with his cock resting inside you.'
+	if npc_know_love_creampie[$boy] ! 1:
+		act'Yeah':
+			cla & *nl
+			booty_call['react'] = 1
+			minut += rand(2,5)
+			gs'stat'
+			if booty_call['cum_together_fake'] = 0:
+				'"Yeah..." you smile back. You choose to let the moment speak for itself and don''t say anything more. It seems <<$npc_firstname[$boy]>> feels the same way as he rests with you, his cock still inside you but neither of you in a hurry to change it.'
+			else
+				'"Yeah..." you smile. You choose to keep your lies to a minimum and leave it at that. <<$npc_firstname[$boy]>> seems happy enough and smiles back at you, content with his cock resting inside you.'
+			end
+			gs 'booty_call_sex', 'sex_end'
 		end
-		gs 'booty_call_sex', 'sex_end'
 	end
 end
 
@@ -646,31 +648,33 @@ if $ARGS[0] = 'feel_full':
 end
 
 if $ARGS[0] = 'love_creampies':
-	act'I love creampies':
-		booty_call['react'] = 1
-		cla & *nl
-		minut += rand(2,5)
-		gs'stat'
-		if npc_know_love_creampie[$boy] = 1:
-			'"I love it when you come inside me," you smile.'
-			if $npc_cum_pref[$boy] = 'creampie':
-				'"I love coming inside you," he smiles back.'
+	if booty_call['first_creampie'] ! 1:
+		act'I love creampies':
+			booty_call['react'] = 1
+			cla & *nl
+			minut += rand(2,5)
+			gs'stat'
+			if npc_know_love_creampie[$boy] = 1:
+				'"I love it when you come inside me," you smile.'
+				if $npc_cum_pref[$boy] = 'creampie':
+					'"I love coming inside you," he smiles back.'
+				else
+					'"I know," he smirks back.'
+				end
 			else
-				'"I know," he smirks back.'
+				npc_know_love_creampie[$boy] = 1
+				'"I love it when guys come inside me," you sigh contently. "It always makes me come too."'
+				if $npc_cum_pref[$boy] = 'creampie':
+					npc_cum_pref_know[$boy] = npc_cum_pref[$boy]
+					'"Coming inside is always the best," he says, looking at you. "We must be made to match."'
+					'"Must be," you say back, giving him a smile.'		
+				else
+					'"Maybe I should come inside you more often then."'
+					'"Yes," you nod, smiling. "You definitely should."'
+				end
 			end
-		else
-			npc_know_love_creampie[$boy] = 1
-			'"I love it when guys come inside me," you sigh contently. "It always makes me come too."'
-			if $npc_cum_pref[$boy] = 'creampie':
-				npc_cum_pref_know[$boy] = npc_cum_pref[$boy]
-				'"Coming inside is always the best," he says, looking at you. "We must be made to match."'
-				'"Must be," you say back, giving him a smile.'		
-			else
-				'"Maybe I should come inside you more often then."'
-				'"Yes," you nod, smiling. "You definitely should."'
-			end
+			gs 'booty_call_sex', 'sex_end'
 		end
-		gs 'booty_call_sex', 'sex_end'
 	end
 end
 
@@ -1259,10 +1263,12 @@ if $ARGS[0] = 'pillow_talk_start':
 	'<center><img <<$set_imgh>> src="images/shared/sex/after/pillow_talk1.jpg"></center>'
 	booty_call['pillow_talk'] = 1
 	'You and <<$npc_firstname[$boy]>> relax on the bed together, basking in the afterglow as you idly chit chat about things.'
-
-	gs'booty_call_talk','pillow_talk_options'
+	if booty_call['virgin'] = 1 and booty_call['virgin_talk'] = 0:
+		gs'booty_call_virgin','first_time_talk'
+	else
+		gs'booty_call_talk','pillow_talk_options'
+	end
 end
-
 
 if $ARGS[0] = 'pillow_talk_options':
 	act'Stop talking':cla & gs'booty_call_after','after_sex2'
@@ -1287,38 +1293,46 @@ if $ARGS[0] = 'good_for_you':
 			cla & *clr
 			'<center><img <<$set_imgh>> src="images/shared/sex/after/pillow_talk1.jpg"></center>'
 			minut += 1
-			'"Was it good for you, too?" you ask pleasantly.'			
-			if booty_call['cum_count'] = npc_sexdrive[$boy]:
-				'"Yeah, you were great" he says. "You practically drained my balls. I might not be able to come again for a week. What about you?"'
-			elseif booty_call['cum_count'] < npc_sexdrive[$boy]/2:
-				'"I could''ve gone a few more times," he says. "But it wasn''t bad. How about you?"'
-			else
-				'"Yeah, it was," he says. "How about you?"'
-			end
-			
-			act'Satisfied':
-				cla & *nl
-				if booty_call['fuck_count'] > 0:
-					'"You gave me a good dicking," you say, smiling at <<$npc_firstname[$boy]>>. "So, I''m happy."'
+			'"Was it good for you, too?" you ask pleasantly.'	
+			if booty_call['virgin'] ! 1:
+				if booty_call['cum_count'] = npc_sexdrive[$boy]:
+					'"Yeah, you were great" he says. "You practically drained my balls. I might not be able to come again for a week. What about you?"'
+				elseif booty_call['cum_count'] < npc_sexdrive[$boy]/2:
+					'"I could''ve gone a few more times," he says. "But it wasn''t bad. How about you?"'
 				else
-					'"I had fun," you say, smiling at <<$npc_firstname[$boy]>>.'
+					'"Yeah, it was," he says. "How about you?"'
 				end
-				gs'booty_call_talk','pillow_talk_options'
-			end
-			
-			if booty_call['orgasm_count'] + booty_call['fake_orgasm_count'] > 3:
-				act'Lots of orgasms':
+				act'Satisfied':
 					cla & *nl
-					'"You made me come so many times," you say, smiling at <<$npc_firstname[$boy]>>. "It was more than good."'
+					if booty_call['fuck_count'] > 0:
+						'"You gave me a good dicking," you say, smiling at <<$npc_firstname[$boy]>>. "So, I''m happy."'
+					else
+						'"I had fun," you say, smiling at <<$npc_firstname[$boy]>>.'
+					end
 					gs'booty_call_talk','pillow_talk_options'
 				end
-			elseif booty_call['orgasm_count'] > 0:
-				act'You got me off':
-					cla & *nl
-					'"You made me come," you say, smiling at <<$npc_firstname[$boy]>>. "How could I complain?"'
-					gs'booty_call_talk','pillow_talk_options'
+				
+				if booty_call['orgasm_count'] + booty_call['fake_orgasm_count'] > 3:
+					act'Lots of orgasms':
+						cla & *nl
+						'"You made me come so many times," you say, smiling at <<$npc_firstname[$boy]>>. "It was more than good."'
+						gs'booty_call_talk','pillow_talk_options'
+					end
+				elseif booty_call['orgasm_count'] > 0:
+					act'You got me off':
+						cla & *nl
+						'"You made me come," you say, smiling at <<$npc_firstname[$boy]>>. "How could I complain?"'
+						gs'booty_call_talk','pillow_talk_options'
+					end
+				end
+			else
+				if booty_call['cum_count'] = npc_sexdrive[$boy]:
+					'"Yeah, you were great" he says. "You practically drained my balls. I might not be able to come again for a week."'
+				else
+					'"I could''ve gone a few more times," he says. "But it wasn''t bad."'
 				end
 			end
+			gs'booty_call_talk','pillow_talk_options'
 		end
 	end
 end
