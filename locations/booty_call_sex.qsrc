@@ -42,7 +42,7 @@ if $ARGS[0] = 'sex_pre':
 	end
 	booty_call['position_choose'] = 1
 	gs 'stat'
-	if npc_condom_conscious[$boy] = 1:
+	if npc_condom_conscious[$boy] > 0:
 		if booty_call['fuck_count'] > 1:
 			'<<$npc_firstname[$boy]>> grabs another condom.'
 		else
@@ -90,11 +90,85 @@ end
 if $ARGS[0] = 'condoms':
 	if booty_call['condom_count'] = 0 and booty_call['fuck_count'] = 0 and npc_no_condoms[$boy] ! 1:booty_call['condom_count'] = rand(1,5)
 	if booty_call['condom_count'] = 0 and npc_condom_conscious[$boy] = 1: booty_call['condom'] = 1 & booty_call['condom_count'] = 100
-	if booty_call['no_condom'] ! 1:
+	if npc_know_bc[$boy] = 1 and npc_condom_conscious[$boy] ! 2: booty_call['no_condom'] = 1
+	if booty_call['no_condom'] = 0:
 		if booty_call['condom'] = 1 and booty_call['out_of_condoms'] ! 1:
 			if booty_call['condom_count'] > 0:
-				'He fishes out another condom and puts it on.'
-				gs 'booty_call_sex', 'position_choose'
+				if booty_call['fuck_count'] > 1:
+					'<<$npc_firstname[$boy]>> swaps out his used condom for a new one.'
+					gs 'booty_call_sex', 'position_choose'
+				else
+					'<<$npc_firstname[$boy]>> reaches for a condom from his bedside table.'
+					gs 'booty_call_sex', 'position_choose'
+					act'We don''t need a condom (feel better)':
+						cla & *nl
+						'"Come on," you say, grabbing his arm. "Let''s skip the condom. It''ll feel better without one."'
+						if npc_condom_conscious[$boy] = 2 or (npc_condom_conscious[$boy] = 1 and npc_childfree[$boy] = 1):
+							'"Don''t want to risk it," <<$npc_firstname[$boy]>> says, shaking his head and opens the condom anyways, rolling it onto his cock.'
+						else
+							if rand(npc_willpwr[$boy],100) < pcs_persuas:
+								booty_call['no_condom'] = 1
+								'<<$npc_firstname[$boy]>> stops, looking back at you for a moment before smiling.'
+								'"Okay," he says and leaves the rubber where it is.'
+							else
+								'"Don''t want to risk it," <<$npc_firstname[$boy]>> says, shaking his head and opens the condom anyways, rolling it onto his cock.'
+							end
+						end
+						gs 'booty_call_sex', 'position_choose'
+					end
+					
+					if birth_control['think_safe'] = 1:
+						if tabletkishot > 0:
+							act'We don''t need a condom (on the shot)':
+								npc_know_bc[$boy] = 1
+								cla & *nl
+								'"Hey," you smile, grabbing his arm. "We don''t need condoms. I''m on the shot."'
+								if npc_condom_conscious[$boy] = 2:
+									'"I want to use one anyways," <<$npc_firstname[$boy]>> says, shaking his head and reaches back for the condom. "Better to be safe."'
+									'Your jaw drops.'
+									*nl
+									'<i>A free pass to skip a condom and he doesn''t take it? What''s with him??</i>'
+								else
+									booty_call['no_condom'] = 1
+									'<<$npc_firstname[$boy]>> stops reaching and turns to meet your gaze, eyes filled with desire, and your smile widens into a full blown grin.'
+								end
+								gs 'booty_call_sex', 'position_choose'
+							end
+						elseif pillcon2 > 0:
+							act'We don''t need a condom (on the pill)':
+								npc_know_bc[$boy] = 1
+								cla & *nl
+								'"Hey," you smile, grabbing his arm. "We don''t need condoms. I''m on the pill."'
+								if npc_condom_conscious[$boy] = 2:
+									'"I want to use one anyways," <<$npc_firstname[$boy]>> says, shaking his head and reaches back for the condom. "Better to be safe."'
+									'Your jaw drops.'
+									*nl
+									'<i>A free pass to skip a condom and he doesn''t take it? What''s with him??</i>'
+								else
+									booty_call['no_condom'] = 1
+									'<<$npc_firstname[$boy]>> stops reaching and turns to meet your gaze, eyes filled with desire, and your smile widens into a full blown grin.'
+								end
+								gs 'booty_call_sex', 'position_choose'
+							end
+						end
+					else
+						act'Lie about birth control':
+							npc_know_bc[$boy] = 1
+							cla & *nl
+							'"Hey," you smile, grabbing his arm. "We don''t need condoms. I''m on birth control."'
+							if npc_condom_conscious[$boy] = 2:
+								'"I want to use one anyways," <<$npc_firstname[$boy]>> says, shaking his head and reaches back for the condom. "Better to be safe."'
+								'Your jaw drops.'
+								*nl
+								'<i>Son of a bitch! Why is this guy so fucking careful?!</i>'
+							else
+								booty_call['no_condom'] = 1
+								'Upon hearing your barefaced lie, <<$npc_firstname[$boy]>> stops reaching and turns to meet your gaze, eyes filled with desire. Your smile widens into a full blown grin.'
+							end
+							gs 'booty_call_sex', 'position_choose'
+						end
+					end
+				end
 			elseif booty_call['out_of_condoms'] = 0:
 				booty_call['out_of_condoms'] = 1
 				'"We got a problem. I''m out of condoms."'
@@ -108,14 +182,18 @@ if $ARGS[0] = 'condoms':
 					'"Just this once," he smiles back.'
 					gs 'booty_call_sex', 'position_choose'
 				end
-				if prezikcount + prezik > 0:
+				if prezik > 0:
 					act'Use one of your condoms':
 						booty_call['out_of_condoms'] = 2
 						booty_call['condom'] = 1
 						cla & *clr
 						'<center><img <<$set_imgh>> src="images/shared/sex/misc/condom_put.jpg"></center>'
-						prezikcount -= 1
-						'"That''s okay, I''ve got some."'
+						prezik -= 1
+						if prezik > 1:
+							'"That''s okay, I''ve got some more."'
+						elseif prezik = 1:
+							'"That''s okay, I''ve got one more."'
+						end
 						'You reach into your bag and pull out a condom, rolling it onto his cock.'
 						gs 'booty_call_sex', 'position_choose'
 					end
@@ -125,7 +203,7 @@ if $ARGS[0] = 'condoms':
 						booty_call['condom'] = 1
 						cla & *clr
 						'<center><video autoplay loop src="images/shared/sex/misc/condom_mouth.mp4"></video></center>'
-						prezikcount -= 1
+						prezik -= 1
 						'"That''s okay, I''ve got some."'
 						'You reach into your bag and pull out a condom, rolling it onto his cock with your mouth.'
 						gs 'booty_call_sex', 'position_choose'
@@ -134,20 +212,9 @@ if $ARGS[0] = 'condoms':
 			elseif booty_call['out_of_condoms'] = 2:
 				'"Got anymore condoms?"'
 				!!act'I could give you head':
-
-				act'We could skip the condom':
-					cla & *clr
-					!! IMAGE HERE
-					$npc_apt_bedroom[$boy]
-					booty_call['out_of_condoms'] = 1
-					booty_call['condom'] = 2
-					'"We could... skip the condom? Just this once?"'
-					'"Just this once," he smiles back.'
-					gs 'booty_call_sex', 'position_choose'
-				end
-
-				if prezikcount + prezik = 0:
+				if prezik = 0:
 					'"I think that was my last one..."'
+					booty_call['out_of_condoms'] = 3
 					act'Guess that''s it':
 						cla & *clr
 						!! IMAGE HERE
@@ -155,6 +222,16 @@ if $ARGS[0] = 'condoms':
 						'"Guess that''s it?"'
 						'"Guess so."'
 						gs 'booty_call_after', 'after_sex1'
+					end
+					
+					act'We could skip the condom':
+						cla & *clr
+						!! IMAGE HERE
+						$npc_apt_bedroom[$boy]
+						booty_call['condom'] = 2
+						'"We could just... not use one..." you smile shyly. "Just this once?"'
+						'"Just this once," he smiles back.'
+						gs 'booty_call_sex', 'position_choose'
 					end
 				else
 					'"Yeah, I''ve got some."'
@@ -183,11 +260,11 @@ if $ARGS[0] = 'condoms':
 					gs 'booty_call_sex', 'position_choose'
 				end
 			end
-			if prezikcount + prezik > 0:
+			if prezik > 0:
 				act'Put a condom on him':
 					cla & *clr
 					'<center><img <<$set_imgh>> src="images/shared/sex/misc/condom_put.jpg"></center>'
-					prezikcount -= 1
+					prezik -= 1
 					booty_call['condom'] = 1
 					'You lean over the side of the bed and reach down to your purse. After fishing around for a few moments, you pull out a condom. You tear the packaging open and roll it onto his cock for him.'
 					'"Gotta practice safe sex," you wink.'
@@ -197,7 +274,7 @@ if $ARGS[0] = 'condoms':
 				act'Put a condom on him with your mouth':
 					cla & *clr
 					'<center><video autoplay loop src="images/shared/sex/misc/condom_mouth.mp4"></video></center>'
-					prezikcount -= 1
+					prezik -= 1
 					booty_call['condom'] = 1
 					'You lean over the side of the bed and reach down to your purse. After fishing around for a few moments, you pull out a condom. You tear the packaging open, and place the rubber onto the tip of his penis, kissing it through the rubber. Then, using your fingers, you unroll it smoothly over the length of his cock, your lips following all the way down. You bob your head up and down a few more times to make sure it''s all the way on before glancing up at him.'
 					'"Gotta practice safe sex," you smile.'
@@ -335,10 +412,10 @@ if $ARGS[0] = 'no_condom2':
 end
 
 if $ARGS[0] = 'no_condom2.1':
-	if prezikcount+prezik > 0:
+	if prezik > 0:
 		act'I''ve got some':
 			cla & *clr
-			prezikcount -= 1
+			prezik -= 1
 			booty_call['condom'] = 1
 			'<center><img <<$set_imgh>> src="images/shared/sex/misc/condom_put.jpg"></center>'
 			'"That''s okay, I''ve got some," you say, pulling a rubber from your bag and tearing it open.'
@@ -369,31 +446,16 @@ if $ARGS[0] = 'position_choose':
 		!! player wins initiative
 		if $booty_call['pos_speed'] = '':
 			act'Let him choose':
-				cla
-				if npc_fav_pos[$boy] = 1:
-					!! missionary
+				cla & *nl
+				'"Take me however you want," you smile.'
+				if $npc_fav_pos[$boy] = 'missionary':
 					gs 'booty_call_sex', 'missionary_start'
-				elseif npc_fav_pos[$boy] = 2:
-					!! doggy
+				elseif $npc_fav_pos[$boy] = 'doggy':
 					gs 'booty_call_sex', 'doggy_start'
-				elseif npc_fav_pos[$boy] = 3:
-					!! cowgirl
+				elseif $npc_fav_pos[$boy] = 'cowgirl':
 					gs 'booty_call_sex', 'cowgirl_start'
 				else
-					booty_call['position_rand'] = rand(1,3)
-					if booty_call['position_rand'] = 1:
-						!! missionary
-						gs 'booty_call_sex', 'missionary_start'
-					elseif booty_call['position_rand'] = 2:
-						!! doggy
-						gs 'booty_call_sex', 'doggy_start'
-					elseif booty_call['position_rand'] = 3:
-						!! cowgirl
-						gs 'booty_call_sex', 'cowgirl_start'
-					else
-						!! failsafe: default to missionary
-						gs 'booty_call_sex', 'missionary_start'
-					end
+					gs 'booty_call_sex', 'rand_position'
 				end
 !!				if npc_condom_conscious[$boy] = 1 or booty_call['condom'] = 1:
 			end
@@ -403,32 +465,63 @@ if $ARGS[0] = 'position_choose':
 		gs 'booty_call_sex', 'cowgirl_start'
 	else
 		!! boy wins initiative
-
-		if npc_fav_pos[$boy] = 1:
-			!! missionary
-			gs 'booty_call_sex', 'missionary_start'
-		elseif npc_fav_pos[$boy] = 2:
-			!! doggy
-			gs 'booty_call_sex', 'doggy_start'
-		elseif npc_fav_pos[$boy] = 3:
-			!! cowgirl
-			gs 'booty_call_sex', 'cowgirl_start'
-		else
-			booty_call['position_rand'] = rand(1,3)
-			if booty_call['position_rand'] = 1:
-				!! missionary
+		if rand(0,1) = 1:
+			if $npc_fav_pos[$boy] = 'missionary':
 				gs 'booty_call_sex', 'missionary_start'
-			elseif booty_call['position_rand'] = 2:
-				!! doggy
+			elseif $npc_fav_pos[$boy] = 'doggy':
 				gs 'booty_call_sex', 'doggy_start'
-			elseif booty_call['position_rand'] = 3:
-				!! cowgirl
+			elseif $npc_fav_pos[$boy] = 'cowgirl':
 				gs 'booty_call_sex', 'cowgirl_start'
 			else
-				!! failsafe: default to missionary
-				gs 'booty_call_sex', 'missionary_start'
+				gs 'booty_call_sex', 'rand_position'
 			end
+		else
+			gs 'booty_call_sex', 'rand_position'
 		end
+	end
+end
+
+if $ARGS[0] = 'he_choose_position':
+	*nl
+	if $npc_lovername[$boy] = '':
+		'"Do whatever you want to me babe," you smile.'
+	else
+		'"Do whatever you want to me <<$npc_lovername[$boy]>>," you smile.'
+	end
+	if rand(0,1) = 1:
+		if $npc_fav_pos[$boy] = 'missionary':
+			gs 'booty_call_sex', 'missionary_start'
+		elseif $npc_fav_pos[$boy] = 'doggy':
+			gs 'booty_call_sex', 'doggy_start'
+		elseif $npc_fav_pos[$boy] = 'cowgirl':
+			gs 'booty_call_sex', 'cowgirl_start'
+		elseif $npc_fav_pos[$boy] = 'blowjob':
+			gs 'booty_call_start', 'bj_ask'
+		else
+			gs 'booty_call_sex', 'rand_position'
+		end
+	else
+		gs 'booty_call_sex', 'rand_position'
+	end
+end
+
+if $ARGS[0] = 'rand_position':
+	booty_call['position_rand'] = rand(1,4)
+	if booty_call['position_rand'] = 1:
+		!! missionary
+		gs 'booty_call_sex', 'missionary_start'
+	elseif booty_call['position_rand'] = 2:
+		!! doggy
+		gs 'booty_call_sex', 'doggy_start'
+	elseif booty_call['position_rand'] = 3:
+		!! cowgirl
+		gs 'booty_call_sex', 'cowgirl_start'
+	elseif booty_call['position_rand'] = 4:
+		!! blowjob
+		gs 'booty_call_start', 'bj_ask'
+	else
+		!! failsafe: default to missionary
+		gs 'booty_call_sex', 'missionary_start'
 	end
 end
 
@@ -440,7 +533,6 @@ if $ARGS[0] = 'position_change':
 end
 
 if $ARGS[0] = 'missionary_start':
-	if booty_call['condom'] = 0: booty_call['no_condom'] = 1
 	if booty_call['change_pos'] = 1:
 		act'Switch to missionary':
 			cla & *clr
@@ -469,6 +561,7 @@ if $ARGS[0] = 'missionary_start':
 	elseif booty_call['initative'] ! 1:
 		gs 'booty_call_sex', 'speed_select'
 		act'Continue':
+			if booty_call['condom'] = 0: booty_call['no_condom'] = 1
 			cla & *clr
 			'<center><img <<$set_imgh>> src="images/shared/sex/foreplay/miss3.jpg"></center>'
 			if $booty_call['pos_speed'] = '':
@@ -479,12 +572,13 @@ if $ARGS[0] = 'missionary_start':
 				'<<$npc_firstname[$boy]>> pushes you down onto the bed and puts his hands on your knees, spreading your legs apart, and lines his cock up with your pussy.'
 				'"I get to be on top this time," he says, grinning.'
 			end
-			booty_call['speed'] = rand(1,3)
+			gs'booty_call_sex','speed_select'
 			act'Get fucked':gt 'booty_call_sex', 'miss<<booty_call[''speed'']>>'
 		end
 	else
 		gs 'booty_call_sex', 'speed_select'
 		act'Spread your legs':
+			if booty_call['condom'] = 0: booty_call['no_condom'] = 1
 			cla & *clr
 			'<center><img <<$set_imgh>> src="images/shared/sex/foreplay/miss2.jpg"></center>'
 			if $booty_call['pos_speed'] = '':
@@ -594,12 +688,44 @@ if $ARGS[0] = 'miss1.2':
 	gs 'stat'
 	cla & *clr
 	'<center><video autoplay loop src="images/shared/sex/vag/miss/slow2.mp4"></video></center>'
-	if booty_call['moan'] = 1:
-		'You moan softly as <<$npc_firstname[$boy]>> continues to make love to you. Slowly. Gently. His cock drives deep inside you, stretching your walls, <i>filling</i> you. Your breath hitches with every thrust, and it feels wonderful.'
+	if booty_call['virgin_enjoyment'] = -1:
+		if booty_call['virgin_pain'] = 1:
+			booty_call['virgin_pain'] = 0 & booty_call['virgin_enjoyment'] = 1
+			'You take deep breaths as <<$npc_firstname[$boy]>> keeps slowly fucking you. Finally, the stabbing pain between your legs is starting to go away. It seems your virgin pussy is starting to adjust to having a cock inside it.'
+		elseif booty_call['virgin_pain'] = 2:
+			'"<i>Nn-! Nngh-! Ngh-!</i>"'
+			*nl
+			'You squeeze your eyes tight as small squeaks of pain escape your lips in time with <<$npc_firstname[$boy]>>''s thrusts. It still hurts, but you''re determined not to let a little pain cause you to pussy out of your first time.'
+		elseif booty_call['virgin_pain'] = 3:
+			'You whimper softly, clenching your teeth as hard as you can, trying with all your might to prevent yourself from bursting into tears. It hurts <i>so much</i>, but you can''t bring yourself to tell him to stop.'
+		end
+	elseif booty_call['virgin_enjoyment'] = 1:
+		if booty_call['virgin_feel_good'] = 1:
+			booty_call['virgin_enjoyment'] = 2
+			'Your breath hitches as <<$npc_firstname[$boy]>> continues to slowly thrust into your pussy. You aren''t sure what changed, but it''s like your body is waking up from a deep sleep. His cock stretches your walls, every thrust <i>fills</i> you in a way you didn''t know you needed to be, and even now you can feel yourself get wetter and wetter, slicking up his cock and making it easier to reach the deepest parts of your pussy.'
+		elseif booty_call['moan'] = 1:
+			'"<i>Mm-! Mmm-! Mm-! Mmm-!</i>"'
+			*nl
+			'You grunt passively as <<$npc_firstname[$boy]>> continues to pump his cock between your legs. His manhood drives deep inside you, filling you with this weird sort of "pressure." This doesn''t feel "good" exactly, but it doesn''t feel bad either.'
+		elseif booty_call['moan'] = 2:
+			'"<i>Ah~! Ahh~! Ahhh~!</i>"'
+			*nl
+			'You moan softly as <<$npc_firstname[$boy]>> continues to pump his cock between your legs. It still basically feels numb to your pussy other than the occasional bump, but you don''t want him to feel bad about it either so you play along, trying to pretend it feels good.'
+		end
+	elseif booty_call['moan'] = 1:
+		'"<i>Mmm... Ah~! Ahhh...</i>"'
+		*nl
+		'You moan softly as <<$npc_firstname[$boy]>> continues to pump his cock between your legs. Slowly. Gently. His manhood drives deep inside you, stretching your walls, <i>filling</i> you. Your breath hitches with every thrust, and it feels wonderful.'
 	elseif booty_call['moan'] = 2:
 		'"<i>Ah~! Yes~! Mmm~!</i>"'
 		*nl
-		'You moan loudly as <<$npc_firstname[$boy]>> continues to make love to you. His cock drives deep inside you, stretching your walls, <i>filling</i> you, driving you crazy.'
+		'You moan loudly as <<$npc_firstname[$boy]>> continues to pump his cock between your legs. His manhood drives deep inside you, stretching your walls, <i>filling</i> you, driving you crazy.'
+	elseif booty_call['moan'] = 3:
+		'"<i>Ah~! Ahh~! Ahhh~!</i>"'
+		*nl
+		'You moan loudly as <<$npc_firstname[$boy]>> continues to pump his cock between your legs. His manhood drives deep inside you, stretching your walls, his movements leaving you <b>absolutely bored</b>.'
+		*nl
+		'<i>This is not as fun as I thought it would be...</i> you sigh internally.'
 	elseif booty_call['dirty_talk'] = 1:
 		'"Ah~! Yes~! Just like that~!" you moan, your voice a hoarse with arousal. "Your cock is amazing! It''s stretching me out. I''m <i>so</i> wet..."'
 	else
@@ -720,7 +846,31 @@ if $ARGS[0] = 'miss2.2':
 	gs 'stat'
 	cla & *clr
 	'<center><video autoplay loop src="images/shared/sex/vag/miss/med<<rand(1,3)>>.mp4"></video></center>'
-	if booty_call['moan'] = 1:
+	if booty_call['virgin_enjoyment'] = -1:
+		if booty_call['virgin_pain'] = 1:
+			booty_call['virgin_pain'] = 0 & booty_call['virgin_enjoyment'] = 1
+			'You take deep breaths as <<$npc_firstname[$boy]>> keeps steadily fucking you. Finally, the stabbing pain between your legs is starting to go away. It seems your virgin pussy is starting to adjust to having a cock inside it.'
+		elseif booty_call['virgin_pain'] = 2:
+			'"<i>Nn-! Nngh-! Ngh-!</i>"'
+			*nl
+			'You squeeze your eyes tight as small squeaks of pain escape your lips in time with <<$npc_firstname[$boy]>>''s thrusts. It still hurts, but you''re determined not to let a little pain cause you to pussy out of your first time.'
+		elseif booty_call['virgin_pain'] = 3:
+			'You whimper softly, clenching your teeth as hard as you can, trying with all your might to prevent yourself from bursting into tears. It hurts <i>so much</i>, but you can''t bring yourself to tell him to stop.'
+		end
+	elseif booty_call['virgin_enjoyment'] = 1:
+		if booty_call['virgin_feel_good'] = 1:
+			booty_call['virgin_enjoyment'] = 2
+			'Your breath hitches as <<$npc_firstname[$boy]>> continues to steadily thrust into your pussy. You aren''t sure what changed, but it''s like your body is waking up from a deep sleep. His cock stretches your walls, every thrust <i>fills</i> you in a way you didn''t know you needed to be, and even now you can feel yourself get wetter and wetter, slicking up his cock and making it slide in and out of you with much greater, and pleasurable, force.'
+		elseif booty_call['moan'] = 1:
+			'"<i>Mm-! Mmm-! Mm-! Mmm-!</i>"'
+			*nl
+			'You grunt passively as <<$npc_firstname[$boy]>> continues to pump his cock between your legs. His manhood hammers deep inside you, filling you with this weird sort of "pressure." This doesn''t feel "good" exactly, but it doesn''t feel bad either.'
+		elseif booty_call['moan'] = 2:
+			'"<i>Ah~! Ahh~! Ahhh~!</i>"'
+			*nl
+			'You moan softly as <<$npc_firstname[$boy]>> continues to pump his cock between your legs. It still basically feels numb to your pussy other than the slapping of his hips against yours, but you don''t want him to feel bad about it either so you play along, trying to pretend it feels good.'
+		end
+	elseif booty_call['moan'] = 1:
 		'"<i>Mmm... Ah~! Ahhh...</i>"'
 		*nl
 		'You moan softly as <<$npc_firstname[$boy]>> keeps fucking you. His cock pounds into with perfect pressure, like a massage for your pussy.'
@@ -850,8 +1000,7 @@ end
 if $ARGS[0] = 'miss3.1':
 	cla & *clr
 	$booty_call['pos_speed'] = 'miss3'
-	gs 'arousal', 'vaginal', rand(4,8),'no_orgasm_msg'
-	gs 'stat'
+	
 	cla & *clr
 	if npc_abusive[$boy] = 1:
 		'<center><video autoplay loop src="images/shared/sex/vag/miss/rough1.mp4"></video></center>'
@@ -860,6 +1009,8 @@ if $ARGS[0] = 'miss3.1':
 		'"Yeah <i>bitch?!</i>" he snarls. "You want me to fuck you harder? Well, then take it you fucking slut!" and he roughly starts to fuck you in a way completely unlike his previous mannerisms.'
 		act'Enjoy it':
 			cla & *nl
+			gs 'arousal', 'vaginal', rand(4,8),'no_orgasm_msg'
+			gs 'stat'
 			booty_call['rough_enjoy'] = 1
 			'Tears begin to well up in your eyes as you half whimper and half moan in half pain and half pleasure. He keeps a firm hold on your hair and pulls hard with every thrust, hurting in all the <i>best</i> ways.'
 			*nl
@@ -869,6 +1020,7 @@ if $ARGS[0] = 'miss3.1':
 
 		act'Suffer':
 			cla & *nl
+			$orgasm_or = 'no'
 			booty_call['rough_hurt'] = 1
 			'Tears begin to well up in your eyes as he keeps fucking you roughly. It''s all you can do not to sob, but <<$npc_firstname[$boy]>> is unrelenting. He keeps a firm hold on your hair and pulls hard with every thrust, forcing cries of pain from your lips.'
 			*nl
@@ -876,6 +1028,8 @@ if $ARGS[0] = 'miss3.1':
 			gs 'booty_call_cum', 'fuck_cum'
 		end
 	else
+		gs 'arousal', 'vaginal', rand(4,8),'no_orgasm_msg'
+		gs 'stat'
 		'<center><video autoplay loop src="images/shared/sex/vag/miss/hard3.mp4"></video></center>'
 		'The bed creaks underneath you and your breasts jiggle violently with every thrust. <<$npc_firstname[$boy]>>''s hips slam against your thighs and his fucking is so violent that you''re already starting to break out in a sweat.'
 		*nl
@@ -891,7 +1045,34 @@ if $ARGS[0] = 'miss3.2':
 	gs 'stat'
 	cla & *clr
 	'<center><video autoplay loop src="images/shared/sex/vag/miss/hard<<rand(1,3)>>.mp4"></video></center>'
-	if booty_call['moan'] = 1:
+	if booty_call['virgin_enjoyment'] = -1:
+		if booty_call['virgin_pain'] = 1:
+			booty_call['virgin_pain'] = 0 & booty_call['virgin_enjoyment'] = 1
+			'You take deep breaths as <<$npc_firstname[$boy]>> keeps pounding his cock into you. Somehow, the stabbing pain between your legs is starting to go away. It seems your virgin pussy is starting to adjust to getting jackhammered.'
+		elseif booty_call['virgin_pain'] = 2:
+			'"<i>Nn-! Nngh-! Ngh-!</i>"'
+			*nl
+			'You squeeze your eyes tight as small squeaks of pain escape your lips in time with <<$npc_firstname[$boy]>>''s hips colliding with yours. The agony induced by his rough fucking is nearly unbearable, but you''re pridefully determined not to let a little pain cause you to pussy out of your first time.'
+		elseif booty_call['virgin_pain'] = 3:
+			'You whimper pathetically as <<$npc_firstname[$boy]>> keeps slamming into you with his cock, clenching your teeth as hard as you can, trying with all your might to prevent yourself from bursting into tears. Despite your best efforts, the pain is too great and wet drops roll down your cheeks as <<$npc_firstname[$boy]>> continues to pound you.'
+		elseif booty_call['virgin_pain'] = 4:
+			'You sob openly as <<$npc_firstname[$boy]>> smashes his cock into you. It hurts so much you think you''re going to die, but you can''t manage to tell him to stop. The only thing you can do is cry wordlessly as he stabs into your pussy over and over again.'
+		end
+	elseif booty_call['virgin_enjoyment'] = 1:
+		if booty_call['virgin_feel_good'] = 1:
+			booty_call['virgin_enjoyment'] = 2
+			$orgasm_or = ''
+			'Your breath hitches as <<$npc_firstname[$boy]>> continues to pound your pussy. You aren''t sure what changed, but it''s like your body is coming alive. His cock stretches your walls, <i>filling</i> you in a way you didn''t know you needed to be, and even now you can feel yourself get wetter and wetter, slicking up his cock and making it slam harder into you with every thrust.'
+		elseif booty_call['moan'] = 1:
+			'"<i>Mm-! Mmm-! Mm-! Mmm-!</i>"'
+			*nl
+			'You grunt in time with <<$npc_firstname[$boy]>>''s thrusts as he continues to pound his cock between your legs. His manhood hammers deep inside you, slamming into you you in a way that doesn''t exactly feel "good", but it doesn''t feel bad either.'
+		elseif booty_call['moan'] = 2:
+			'"<i>Ah~! Ahh~! Ahhh~!</i>"'
+			*nl
+			'You moan loudly as <<$npc_firstname[$boy]>> continues to pound his cock between your legs. It still basically feels numb to your pussy other than the slamming of his hips against yours, but you don''t want him to feel bad about it either so you play along, trying to pretend it feels good.'
+		end
+	elseif booty_call['moan'] = 1:
 		'Only the softest moans are able to escape your lips as <<$npc_firstname[$boy]>> keeps pounding your pussy. His cock slams into you with such force that it leaves you breathless. And it feels <i>amazing</i>.'
 	elseif booty_call['moan'] = 2:
 		'"<i>Ah~! Yes~! Mmm~!</i>"'
@@ -913,7 +1094,7 @@ if $ARGS[0] = 'miss_kiss':
 		booty_call['kiss_skip'] = 1
 		if npc_no_kiss[$boy] = 2:
 			'You turn your head, shying away from his lips.'
-			'"Not today," you say, smiling apologetically.'
+			'"Not right now," you say, smiling apologetically.'
 		elseif npc_no_kiss[$boy] = 1:
 			'"Hey!" you say, annoyedly jerking your head away. "I told you! No kissing!"'
 		else
@@ -1104,12 +1285,36 @@ if $ARGS[0] = 'doggy1.2':
 	gs 'stat'
 	cla & *clr
 	'<center><video autoplay loop src="images/shared/sex/vag/doggy/slow<<rand(1,2)>>.mp4"></video></center>'
-	if booty_call['moan'] = 1:
+	if booty_call['virgin_enjoyment'] = -1:
+		if booty_call['virgin_pain'] = 1:
+			booty_call['virgin_pain'] = 0 & booty_call['virgin_enjoyment'] = 1
+			'You take deep breaths as <<$npc_firstname[$boy]>> keeps slowly fucking you from behind. Finally, the stabbing pain between your legs is starting to go away. It seems your virgin pussy is starting to adjust to having a cock inside it.'
+		elseif booty_call['virgin_pain'] = 2:
+			'"<i>Nn-! Nngh-! Ngh-!</i>"'
+			*nl
+			'You squeeze your eyes tight as small squeaks of pain escape your lips in time with <<$npc_firstname[$boy]>>''s thrusts. It still hurts, but you''re determined not to let a little pain cause you to pussy out of your first time.'
+		elseif booty_call['virgin_pain'] = 3:
+			'You whimper softly, clenching your teeth as hard as you can as <<$npc_firstname[$boy]>> continues to thrust into you from behind, trying with all your might to prevent yourself from bursting into tears. It hurts <i>so much</i>, but you can''t bring yourself to tell him to stop.'
+		end
+	elseif booty_call['virgin_enjoyment'] = 1:
+		if booty_call['virgin_feel_good'] = 1:
+			booty_call['virgin_enjoyment'] = 2
+			'Your breath hitches as <<$npc_firstname[$boy]>> continues to slowly thrust into your pussy from behind. You aren''t sure what changed, but it''s like your body is waking up from a deep sleep. His cock stretches your walls, every thrust <i>fills</i> you in a way you didn''t know you needed to be, and even now you can feel yourself get wetter and wetter, slicking up his cock and making it easier to reach the deepest parts of your pussy.'
+		elseif booty_call['moan'] = 1:
+			'"<i>Mm-! Mmm-! Mm-! Mmm-!</i>"'
+			*nl
+			'You grunt passively as <<$npc_firstname[$boy]>> continues to pump his cock into you from behind. His manhood drives deep inside you, filling you with this weird sort of "pressure." This doesn''t feel "good" exactly, but it doesn''t feel bad either.'
+		elseif booty_call['moan'] = 2:
+			'"<i>Ah~! Ahh~! Ahhh~!</i>"'
+			*nl
+			'You moan softly as <<$npc_firstname[$boy]>> continues to pump his cock into you from behind. It still basically feels numb to your pussy other than the occasional bump, but you don''t want him to feel bad about it either so you play along, trying to pretend it feels good.'
+		end
+	elseif booty_call['moan'] = 1:
 		'You mew softly as <<$npc_firstname[$boy]>> continues to fuck you. Slowly. Gently. His cock driving deep inside you, stretching your walls, <i>filling</i> you. It feels wonderful.'
 	elseif booty_call['moan'] = 2:
 		'"<i>Ah~! Yes~! Mmm~!</i>"'
 		*nl
-		'You moan loudly as <<$npc_firstname[$boy]>> continues to fuck you from behind. His cock drives deep inside you, stretching your walls, <i>filling</i> you, driving you crazy. You love every second of it.'
+		'You moan loudly as <<$npc_firstname[$boy]>> continues to fuck you from behind. His manhood drives deep inside you, stretching your walls, <i>filling</i> you, driving you crazy. You love every second of it.'
 	elseif booty_call['dirty_talk'] = 1:
 		'"Ah~! Yes~! Just like that~!" you moan, your voice a hoarse with arousal. "You''re so deep! I can feel you inside me..."'
 	else
@@ -1224,7 +1429,32 @@ if $ARGS[0] = 'doggy2.2':
 	gs 'stat'
 	cla & *clr
 	'<center><video autoplay loop src="images/shared/sex/vag/doggy/med<<rand(1,4)>>.mp4"></video></center>'
-	if booty_call['moan'] = 1:
+	if booty_call['virgin_enjoyment'] = -1:
+		if booty_call['virgin_pain'] = 1:
+			booty_call['virgin_pain'] = 0 & booty_call['virgin_enjoyment'] = 1
+			'You take deep breaths as <<$npc_firstname[$boy]>> keeps steadily fucking you from behind. Finally, the stabbing pain between your legs is starting to go away. It seems your virgin pussy is starting to adjust to having a cock inside it.'
+		elseif booty_call['virgin_pain'] = 2:
+			'"<i>Nn-! Nngh-! Ngh-!</i>"'
+			*nl
+			'You squeeze your eyes tight as small squeaks of pain escape your lips in time with <<$npc_firstname[$boy]>>''s hips colliding with your ass. It still hurts, but you''re determined not to let a little pain cause you to pussy out of your first time and you endure, clenching the bedsheets tight with both hands.'
+		elseif booty_call['virgin_pain'] = 3:
+			'You whimper softly, clenching your teeth as hard as you can, trying with all your might to prevent yourself from bursting into tears. It hurts <i>so much</i>, but you can''t bring yourself to tell him to stop.'
+		end
+	elseif booty_call['virgin_enjoyment'] = 1:
+		if booty_call['virgin_feel_good'] = 1:
+			booty_call['virgin_enjoyment'] = 2
+			$orgasm_or = ''
+			'Your breath hitches as <<$npc_firstname[$boy]>> continues to steadily fuck you from behind. You aren''t sure what changed, but it''s like your body is waking up from a deep sleep. His cock stretches your walls, every thrust <i>fills</i> you in a way you didn''t know you needed to be, and even now you can feel yourself get wetter and wetter, slicking up his cock and making it slide in and out of you with much greater, and pleasurable, force.'
+		elseif booty_call['moan'] = 1:
+			'"<i>Mm-! Mmm-! Mm-! Mmm-!</i>"'
+			*nl
+			'You grunt passively as <<$npc_firstname[$boy]>> continues to pump his cock into you from behind. His manhood hammers deep inside you, filling you with this weird sort of "pressure." This doesn''t feel "good" exactly, but it doesn''t feel bad either.'
+		elseif booty_call['moan'] = 2:
+			'"<i>Ah~! Ahh~! Ahhh~!</i>"'
+			*nl
+			'You moan loudly as <<$npc_firstname[$boy]>> continues to pump his cock into you from behind. It still basically feels numb to your pussy other than the slapping of his hips against yours, but you don''t want him to feel bad about it either so you play along, trying to pretend it feels good.'
+		end
+	elseif booty_call['moan'] = 1:
 		'You groan in pleasure as <<$npc_firstname[$boy]>> continues to fuck you.'
 	elseif booty_call['moan'] = 2:
 		'"<i>Ah~! Yes~! Mmm~!</i>"'
@@ -1310,7 +1540,7 @@ if $ARGS[0] = 'doggy3':
 				'But <<$npc_firstname[$boy]>> is unrelenting. He ignores your pleas for mercy and he keeps on like he''s intent on literally fucking you to death.'
 			else
 				booty_call['too_rough'] = 1
-				'"Oh! Sorry." He stops fucking you abruptly. "I thought you liked it rough. My bad, I''ll be more gentle."'
+				'"Oh!" He stops fucking you abruptly. "I thought you might''ve been in a mood for rough. Sorry, I''ll be more gentle."'
 				act'Yes, gentle please':
 					cla & *nl
 					'"Yes, gently please," you say, giving him a small smile. "Very gentle please..."'
@@ -1376,7 +1606,34 @@ if $ARGS[0] = 'doggy3.2':
 	gs 'stat'
 	cla & *clr
 	'<center><video autoplay loop src="images/shared/sex/vag/doggy/hard<<rand(1,3)>>.mp4"></video></center>'
-	if booty_call['moan'] = 1:
+	if booty_call['virgin_enjoyment'] = -1:
+		if booty_call['virgin_pain'] = 1:
+			booty_call['virgin_pain'] = 0 & booty_call['virgin_enjoyment'] = 1
+			'You take gasping breaths as <<$npc_firstname[$boy]>> keeps pounding his cock into you from behind. Somehow, the stabbing pain between your legs is starting to go away. It seems your virgin pussy is starting to adjust to getting jackhammered.'
+		elseif booty_call['virgin_pain'] = 2:
+			'"<i>Nn-! Nngh-! Ngh-!</i>"'
+			*nl
+			'You squeeze your eyes tight as small squeaks of pain escape your lips in time with <<$npc_firstname[$boy]>>''s hips colliding with your ass. The agony induced by his rough fucking is nearly unbearable, but you''re pridefully determined not to let a little pain cause you to pussy out of your first time and clench the bedsheets tight with both hands.'
+		elseif booty_call['virgin_pain'] = 3:
+			'You whimper pathetically as <<$npc_firstname[$boy]>> keeps slamming into you from behind, clenching your teeth as hard as you can, trying with all your might to prevent yourself from bursting into tears. Despite your best efforts, the pain is too great and wet drops roll down your cheeks and into the mattress as <<$npc_firstname[$boy]>> continues to pound you.'
+		elseif booty_call['virgin_pain'] = 4:
+			'You sob openly as <<$npc_firstname[$boy]>> smashes his cock into you from behind. It hurts so much you think you''re going to die, but you can''t manage to tell him to stop. The only thing you can do is cry wordlessly as he drives you straight into the bed with his thrusts.'
+		end
+	elseif booty_call['virgin_enjoyment'] = 1:
+		if booty_call['virgin_feel_good'] = 1:
+			booty_call['virgin_enjoyment'] = 2
+			$orgasm_or = ''
+			'Your breath hitches as <<$npc_firstname[$boy]>> continues to pound your pussy from behind. You aren''t sure what changed, but it''s like your body is coming alive. His cock stretches your walls, it''s so <i>deep</i> inside you, and even now you can feel yourself get wetter and wetter, slicking up his cock and making it hammer you harder and harder with greater satisfactino every time.'
+		elseif booty_call['moan'] = 1:
+			'"<i>Mm-! Mmm-! Mm-! Mmm-!</i>"'
+			*nl
+			'You grunt in time with <<$npc_firstname[$boy]>>''s thrusts as he continues to pound his cock into you from behind. His manhood hammers deep inside you, slamming into you you in a way that doesn''t exactly feel "good", but it doesn''t feel bad either.'
+		elseif booty_call['moan'] = 2:
+			'"<i>Ah~! Ahh~! Ahhh~!</i>"'
+			*nl
+			'You moan loudly as <<$npc_firstname[$boy]>> continues to pound his cock between your legs. It still basically feels numb to your pussy other than the slamming of his hips against yours, but you don''t want him to feel bad about it either so you play along, trying to pretend it feels good.'
+		end
+	elseif booty_call['moan'] = 1:
 		'You groan in pleasure as <<$npc_firstname[$boy]>> continues to pound you.'
 	elseif booty_call['moan'] = 2:
 		'"Oo<i>oo</i>o<i>oo</i>hh<i>hh</i> <i>yeaaahhhhhhhh</i>..."'
@@ -1409,7 +1666,7 @@ if $ARGS[0] = 'cowgirl_start':
 			act'Ride him hard':gt 'booty_call_sex', 'cowgirl3'
 		end
 	elseif booty_call['force_initiative'] = 2:
-		booty_call['speed'] = rand(1,3)
+		gs'booty_call_sex','speed_select'
 		'<center><video autoplay loop src="images/shared/sex/vag/cowgirl/slow1.mp4"></video></center>'
 		if $booty_call['position'] = 'miss':
 			!! IMAGE HERE
@@ -1812,7 +2069,9 @@ if $ARGS[0] = 'speed_select':
 	if booty_call['too_rough'] = 1:
 		booty_call['speed'] = rand(1,2)
 	else
-		booty_call['speed'] = rand(1,3)
+		booty_call['speed'] = npc_sex_speed[$boy] + rand(-1,1)
+		if booty_call['speed'] <= 0: booty_call['speed'] = 1
+		if booty_call['speed'] > 3: booty_call['speed'] = 3
 	end
 end
 if $ARGS[0] = 'reset':
