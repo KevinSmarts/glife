@@ -79,7 +79,7 @@
 !! grandpaQW['last_day_talked']					The most recent day Sveta chatted with Grandpa.
 !! grandpaQW['last_hour_talked']				The most recent hour Sveta chatted with Grandpa. Checked against hour, allows for several chats through the day.
 !! grandpaQW['talked_about_forest']				0/1 - has Sveta asked Grandpa about the forest? Makes the "Ask about forest" option a one-time thing.
-!! grandmaQW['disappointment']					0/1 - marks if you failed a chore and Grandpa is disappointed in you. Causes a lecture and -1 to help_amount
+!! grandmaQW['disappointment']					0/1/2 - marks if you failed a chore and Grandpa is disappointed in you. Causes a lecture and -1 to help_amount. 2 is time extension to next day for berry and mushroom collecting in the forest
 !!
 !! VARIABLE LIST FOR GRANDPARENTS AND THEIR CHORES - END
 
@@ -222,7 +222,7 @@ if $ARGS[0] = 'start':
 		'Grandma frowns at you as you walk by. "<<$pcs_nickname>>, you said you would help me yesterday, and you did not."'
 		'You cringe a little as you remember what you told her you would do. "I''m sorry Grandma, I forgot all about it..."'
 		'"I am an old woman, child. It is difficult for me to do many of the things I once could. But I can still do them if I know I have to."'
-		'You look at the ground, feeling guilty, as she continues: "But it is even harder for me if I expected help and did not receive it."'
+		'You look at the ground, feeling guilty, as she continues, "But it is even harder for me if I expected help and did not receive it."'
 		'"Sorry, Grandma," you mumble again.'
 		'She softens a little, finally. "It''s okay child," she says. "But it makes it harder for me to give you your allowance for sweets if you cannot follow through on your promises."'
 		'"Yes, ma''am," you nod.'
@@ -299,6 +299,7 @@ if $ARGS[0] = 'main':
 	$menu_arg = 'main'
 	menu_off = 0
 	*clr & cla
+	gs 'family_schedule'
 	gs 'stat'
 	'<center><H4>Your Grandparents'' Cottage</H4></center>'
 	'<center><img <<$set_imgh>> src="images/locations/gadukino/village/izba.jpg"></center>'
@@ -826,74 +827,154 @@ if $ARGS[0] = 'grandma':
 		end
 
 		if grandmaQW['chore_gather_mushrooms'] = 2 and boletus >= grandmaQW['chore_mushroom_quantity'] and hour >= 6 and hour < 20:
-			act 'Give Grandma the mushrooms she asked for':
-				*clr & cla
-				grandmaQW['help_amount'] += 3
-				boletus -= grandmaQW['chore_mushroom_quantity']
-				boletus_stored += grandmaQW['chore_mushroom_quantity']
-				minut += 5
-				grandmaQW['chore_gather_mushrooms'] = 0
-				gs 'stat'
+			if grandmaQW['disappointment'] = 2:
+				act 'Give Grandma the mushrooms she asked for':
+					*clr & cla
+					grandmaQW['help_amount'] += 1
+					boletus -= grandmaQW['chore_mushroom_quantity']
+					boletus_stored += grandmaQW['chore_mushroom_quantity']
+					grandmaQW['chore_gather_mushrooms'] = 0
+					grandmaQW['chore_mushroom_quantity'] = 0
+					grandmaQW['disappointment'] = 0
+					minut += 5
+					gs 'stat'
 
-				'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/grandma.jpg"></center>'
-				'You bring the basket of mushrooms to your grandmother and say, "Grandma, here are the mushrooms you wanted!"'
-				'She smiles and takes them from you. "Thank you my sweet girl. They will have to go down in the root cellar until we are ready to can them."'
-				'"Do you think that will be enough?"'
-				'She laughs. "Oh, with your grandfather around, it is never enough!"'
-				'"I can get more, if you want me to."'
-				'"No need for that, little one," she clucks. "You''ve done enough for one day."'
-				'You give her a quick hug in response, and carry on.'
+					'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/grandma.jpg"></center>'
+					'You bring the basket of mushrooms to your grandmother and say, "Grandma, here are the mushrooms you wanted!"'
+					'She takes them from you. "Thank you my sweet girl, better late than never. I hope you were OK in the forest. They will have to go down in the root cellar until we are ready to can them."'
+					'"Do you think that will be enough?"'
+					'She laughs. "Oh, with your grandfather around, it is never enough!"'
+					'"I can get more, if you want me to."'
+					'"No need for that, little one," she clucks. "You''ve done enough for now."'
+					'You give her a quick hug in response, and carry on.'
 
-				act 'Continue': grandmaQW['chore_mushroom_quantity'] = 0 & gt 'gadhouse', 'grandma'
+					act 'Continue': grandmaQW['chore_mushroom_quantity'] = 0 & gt 'gadhouse', 'grandma'
+				end
+			else
+				act 'Give Grandma the mushrooms she asked for':
+					*clr & cla
+					grandmaQW['help_amount'] += 3
+					boletus -= grandmaQW['chore_mushroom_quantity']
+					boletus_stored += grandmaQW['chore_mushroom_quantity']
+					grandmaQW['chore_gather_mushrooms'] = 0
+					minut += 5
+					gs 'stat'
+
+					'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/grandma.jpg"></center>'
+					'You bring the basket of mushrooms to your grandmother and say, "Grandma, here are the mushrooms you wanted!"'
+					'She smiles and takes them from you. "Thank you my sweet girl. They will have to go down in the root cellar until we are ready to can them."'
+					'"Do you think that will be enough?"'
+					'She laughs. "Oh, with your grandfather around, it is never enough!"'
+					'"I can get more, if you want me to."'
+					'"No need for that, little one," she clucks. "You''ve done enough for one day."'
+					'You give her a quick hug in response, and carry on.'
+
+					act 'Continue': grandmaQW['chore_mushroom_quantity'] = 0 & gt 'gadhouse', 'grandma'
+				end
 			end
 		end
 
 		if grandmaQW['chore_gather_berries'] = 2 and bilberry >= grandmaQW['chore_berry_quantity'] and hour >= 6 and hour < 20:
-			act 'Give Grandma the berries she asked for':
-				*clr & cla
-				grandmaQW['help_amount'] += 3
-				bilberry -= grandmaQW['chore_berry_quantity']
-				bilberry_stored += grandmaQW['chore_berry_quantity']
-				minut += 5
-				grandmaQW['chore_gather_berries'] = 0
-				gs 'stat'
+			if grandmaQW['disappointment'] = 2:
+				act 'Give Grandma the berries she asked for':
+					*clr & cla
+					grandmaQW['help_amount'] += 1
+					bilberry -= grandmaQW['chore_berry_quantity']
+					bilberry_stored += grandmaQW['chore_berry_quantity']
+					grandmaQW['chore_gather_berries'] = 0
+					grandmaQW['chore_berry_quantity'] = 0
+					grandmaQW['disappointment'] = 0
+					minut += 5
+					gs 'stat'
 
-				'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/grandma.jpg"></center>'
-				'You walk over to Grandma and set the heavy basket of berries on the ground next to her.'
-				'"Grandma, I got all the berries!"'
-				'"Oh, thank you, <<$pcs_nickname>>," Grandma replied. "Those look perfect. They will have to go down in the root cellar until we are ready to can them."'
-				'You heft the basket up and carry it in the kitchen. Walking back over to Grandma, you ask, "Do you think that will be enough for the winter?"'
-				'"Oh no dear," your Grandma says, "the winter is long and cold and you must gather as much as you can, while you can."'
-				'Seeing the dismayed look on your face, she adds, "But that is enough for today! I know it is harder work than it seems. You can rest now, child."'
-				'Relieved, you give your grandmother a peck on the cheek and move on.'
+					'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/grandma.jpg"></center>'
+					'You walk over to Grandma and set the heavy basket of berries on the ground next to her.'
+					'"Grandma, I got all the berries!"'
+					'"Oh, thank you, <<$pcs_nickname>>," Grandma replied. "Those look fine if a little late. They will have to go down in the root cellar until we are ready to can them."'
+					'You heft the basket up and carry it in the kitchen. Walking back over to Grandma, you ask, "Do you think that will be enough for the winter?"'
+					'"Oh no dear," your Grandma says, "the winter is long and cold and you must gather as much as you can, while you can."'
+					'Seeing the dismayed look on your face, she adds, "But that is enough for today! I know it is harder work than it seems. You can rest now, child."'
+					'Relieved, you give your grandmother a peck on the cheek and move on.'
 
-				act 'Continue': grandmaQW['chore_berry_quantity'] = 0 & gt 'gadhouse', 'grandma'
+					act 'Continue': grandmaQW['chore_berry_quantity'] = 0 & gt 'gadhouse', 'grandma'
+				end
+			else
+				act 'Give Grandma the berries she asked for':
+					*clr & cla
+					grandmaQW['help_amount'] += 3
+					bilberry -= grandmaQW['chore_berry_quantity']
+					bilberry_stored += grandmaQW['chore_berry_quantity']
+					grandmaQW['chore_gather_berries'] = 0
+					minut += 5
+					gs 'stat'
+
+					'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/grandma.jpg"></center>'
+					'You walk over to Grandma and set the heavy basket of berries on the ground next to her.'
+					'"Grandma, I got all the berries!"'
+					'"Oh, thank you, <<$pcs_nickname>>," Grandma replied. "Those look perfect. They will have to go down in the root cellar until we are ready to can them."'
+					'You heft the basket up and carry it in the kitchen. Walking back over to Grandma, you ask, "Do you think that will be enough for the winter?"'
+					'"Oh no dear," your Grandma says, "the winter is long and cold and you must gather as much as you can, while you can."'
+					'Seeing the dismayed look on your face, she adds, "But that is enough for today! I know it is harder work than it seems. You can rest now, child."'
+					'Relieved, you give your grandmother a peck on the cheek and move on.'
+
+					act 'Continue': grandmaQW['chore_berry_quantity'] = 0 & gt 'gadhouse', 'grandma'
+				end
 			end
 		end
 
 		if grandmaQW['chore_gather_both'] = 2 and boletus >= grandmaQW['chore_mushroom_quantity'] and bilberry >= grandmaQW['chore_berry_quantity'] and hour >= 6 and hour < 20:
-			act 'Give Grandma the mushrooms and berries she asked for':
-				*clr & cla
-				grandmaQW['help_amount'] += 3
-				boletus -= grandmaQW['chore_mushroom_quantity']
-				bilberry -= grandmaQW['chore_berry_quantity']
-				boletus_stored += grandmaQW['chore_mushroom_quantity']
-				bilberry_stored += grandmaQW['chore_berry_quantity']
-				minut += 5
-				grandmaQW['chore_gather_both'] = 0
-				gs 'stat'
+			if grandmaQW['disappointment'] = 2:
+				act 'Give Grandma the mushrooms and berries she asked for':
+					*clr & cla
+					grandmaQW['help_amount'] += 1
+					boletus -= grandmaQW['chore_mushroom_quantity']
+					bilberry -= grandmaQW['chore_berry_quantity']
+					boletus_stored += grandmaQW['chore_mushroom_quantity']
+					bilberry_stored += grandmaQW['chore_berry_quantity']
+					grandmaQW['chore_gather_berries'] = 0
+					grandmaQW['chore_berry_quantity'] = 0
+					grandmaQW['chore_gather_mushrooms'] = 0
+					grandmaQW['chore_mushroom_quantity'] = 0
+					grandmaQW['disappointment'] = 0
+					minut += 5
+					gs 'stat'
 
-				'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/grandma.jpg"></center>'
-				'You bring your basket, heavy with mushrooms and berries from the forest, over to your grandmother.'
-				'"Grandma, here are the mushrooms and berries, just like you asked!"'
-				'"Oh, thank you very much, <<$pcs_nickname>>, they will have to go down in the root cellar until we are ready to can them," your Grandma replied.'
-				'"Do I need to go out on another run, or do you think that''s enough?"'
-				'"Well, little one," your Grandma says, "There is a difference between enough, and enough for today."'
-				'"Oh..." you say, unsure of what to make of her response.'
-				'She smiles gently and pats your head. "You''ve done enough for today, child."'
-				'You smile back awkwardly, still a little unsure, but give your Grandma a smooch on the cheek and go on with your day.'
+					'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/grandma.jpg"></center>'
+					'You bring your basket, heavy with mushrooms and berries from the forest, over to your grandmother.'
+					'"Grandma, here are the mushrooms and berries, just like you asked!"'
+					'"Oh, thank you, <<$pcs_nickname>>. I was starting to think you had forgotten about me, they will have to go down in the root cellar until we are ready to can them," your Grandma replied.'
+					'"Do I need to go out on another run, or do you think that''s enough?"'
+					'"Well, little one," your Grandma says, "There is a difference between enough, and enough for today."'
+					'"Oh..." you say, unsure of what to make of her response.'
+					'She smiles gently and pats your head. "You''ve done enough for today, child."'
+					'You smile back awkwardly, still a little unsure, but give your Grandma a smooch on the cheek and go on with your day.'
 
-				act 'Continue': grandmaQW['chore_mushroom_quantity'] = 0 & grandmaQW['chore_berry_quantity'] = 0 & gt 'gadhouse', 'grandma'
+					act 'Continue': grandmaQW['chore_berry_quantity'] = 0 & gt 'gadhouse', 'grandma'
+				end
+			else
+				act 'Give Grandma the mushrooms and berries she asked for':
+					*clr & cla
+					grandmaQW['help_amount'] += 3
+					boletus -= grandmaQW['chore_mushroom_quantity']
+					bilberry -= grandmaQW['chore_berry_quantity']
+					boletus_stored += grandmaQW['chore_mushroom_quantity']
+					bilberry_stored += grandmaQW['chore_berry_quantity']
+					minut += 5
+					grandmaQW['chore_gather_both'] = 0
+					gs 'stat'
+
+					'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/grandma.jpg"></center>'
+					'You bring your basket, heavy with mushrooms and berries from the forest, over to your grandmother.'
+					'"Grandma, here are the mushrooms and berries, just like you asked!"'
+					'"Oh, thank you very much, <<$pcs_nickname>>, they will have to go down in the root cellar until we are ready to can them," your Grandma replied.'
+					'"Do I need to go out on another run, or do you think that''s enough?"'
+					'"Well, little one," your Grandma says, "There is a difference between enough, and enough for today."'
+					'"Oh..." you say, unsure of what to make of her response.'
+					'She smiles gently and pats your head. "You''ve done enough for today, child."'
+					'You smile back awkwardly, still a little unsure, but give your Grandma a smooch on the cheek and go on with your day.'
+
+					act 'Continue': grandmaQW['chore_mushroom_quantity'] = 0 & grandmaQW['chore_berry_quantity'] = 0 & gt 'gadhouse', 'grandma'
+				end
 			end
 		end
 
@@ -913,7 +994,7 @@ if $ARGS[0] = 'grandma':
 				'"The last time I visited here I was really young. I remember some of the houses, but the clearest memory I have is going swimming with Mitya." you reply.'
 				'"And look how big you''ve become! Just look at you." grandma smiled.'
 				'She begins telling you about the village.'
-				'"The village is small, as you know. You’’ll probably find Mitya by the river or the beach where you can go swimming and sunbathe. There are still some fishermen here in the village if you want to go fishing, ask around after Stepan, he’’ll lend you a fishing rod."'
+				'"The village is small, as you know. You''ll probably find Mitya by the river or the beach where you can go swimming and sunbathe. There are still some fishermen here in the village if you want to go fishing, ask around after Stepan, he''ll lend you a fishing rod."'
 				'"There is nothing interesting in the village itself. Oh yes... I just remembered... recently a new family moved in, a single parent with his daughter. Could you imagine that, someone new moving in? The girl is about your age. Her father works in the city and from the rumors I''ve heard he''s hardly here because his work forces him to stay in the city most of the time. You''ll probably meet her while you take a walk in the village."'
 				'"In the outskirts of the village is the field where the cattle graze and beyond the field is the forest. You''ll usually find our local hunter Andrew in the forest. He often brings along his friends to hunt, they often stay there for days. They say he built a hut somewhere in the forest. So, if you meet Andrew and his friends out there, don''t be afraid. If you want to go to the forest make sure to ask grandfather first."'
 				'"If you like running, you can take a run on the road leading into the forest. Or you can take a ride on our old bike. I''m pretty sure the bike is in the shed. Make sure to look for it if you''re interested. And if you want to watch your figure, then go to the garden, have some fruit, it''s as healthy as the diet meals you''re eating, if not more healthier."'
@@ -995,7 +1076,7 @@ if $ARGS[0] = 'grandma':
 				!Keep the word brigade if you want to change the text. It''s what the people working on the kolkhoz were called.
 				elseif temp = 7:
 					'"One day my mother, rest her soul, sent us four siblings out to the forest for berry gathering", your grandma begins. "We took our berry collectors and headed out. We reached the entrance of the forest pretty quickly and decided that it would be best to split up to complete the task faster. Since we were familiar with the area we all dispersed to our cherished spots and began gathering berries."'
-					'"My favorite spot was a plot surrounded by dense bushes and in the middle of the plot there was a huge stump. It’’s was really a great spot and as I approached I noticed very large number of ripe strawberries. I was rejoicing over the thought that I would gather more than my brothers, slowly gathering the berries and putting them in my berry collector. All of a sudden I hear some rustling behind the bushes. I turn towards the sound, but I''m met with silence. I didn''t notice anyone but I still couldn''t get rid of the eerie feeling."'
+					'"My favorite spot was a plot surrounded by dense bushes and in the middle of the plot there was a huge stump. It''s was really a great spot and as I approached I noticed very large number of ripe strawberries. I was rejoicing over the thought that I would gather more than my brothers, slowly gathering the berries and putting them in my berry collector. All of a sudden I hear some rustling behind the bushes. I turn towards the sound, but I''m met with silence. I didn''t notice anyone but I still couldn''t get rid of the eerie feeling."'
 					'"I shook off the eerie feeling and go back gathering strawberries again. All of a sudden I get this strange feeling... I look up and I see a person squatting on the stump. He''s completely still and just stares at me. I got really scared and ran away screaming and crying towards my brothers. They tried to stop and calm me down, but I just kept on running. My brothers started running after me, trying to keep up. I could hear my oldest brother shouting to run towards the kolkhoz. You see <<$pcs_nickname>> long time ago we had central collective farms that were called kolkhoz, your grandma explains."'
 					'"We were lucky that the farms were close to the forest and didn''t have to run through the woods for long. I kept looking back if this person was following us but there was no sign of him. We knew we were safe when we see the farmers belonging to the brigade. My brothers and I ran up to the foreman and explained to him what had happened. He immediately grabbed the phone and called someone. The other farmers reassured us that we were safe now. After we had calmed down we got sent home. Our mother met as at home, she fed us and comforted me."'
 					'"The following day we were informed that not far from the train station Ratomka some people found dismantled railroad rails. Apparently it was done by the same man that I came across in the forest. I didn''t know it then but before the war our area was prone to sabotage by infiltrators, and staying hidden was easy, as the territory is covered by forest, stretching all the way to the border."'
@@ -1215,70 +1296,145 @@ if $ARGS[0]='grandpa':
 		end
 
 		if grandpaQW['chore_gather_mushrooms'] = 2 and boletus >= grandpaQW['chore_mushroom_quantity'] and hour >= 6 and hour < 20:
-			act 'Give him the mushrooms he asked for':
-				*clr & cla
-				grandmaQW['help_amount'] += 3
-				boletus -= grandpaQW['chore_mushroom_quantity']
-				boletus_stored += grandpaQW['chore_mushroom_quantity']
-				minut += 5
-				grandpaQW['chore_gather_mushrooms'] = 0
-				gs 'stat'
+			if grandpaQW['disappointment'] = 2:
+				act 'Give him the mushrooms he asked for':
+					*clr & cla
+					grandmaQW['help_amount'] += 1
+					boletus -= grandpaQW['chore_mushroom_quantity']
+					boletus_stored += grandpaQW['chore_mushroom_quantity']
+					grandpaQW['disappointment'] = 0
+					minut += 5
+					grandpaQW['chore_mushroom_quantity'] = 0
+					grandpaQW['chore_gather_mushrooms'] = 0
+					gs 'stat'
 
-				'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/grandpa1.jpg"></center>'
-				'You walk up to Grandpa with your basket.'
-				'"Grandpa, here are the mushrooms!"'
-				'"Thank you <<$pcs_nickname>>, you''ve made an old man very happy," your grandfather replies with a smile. "The mushrooms are in a part of the forest that is difficult to reach."'
-				'"I can still go and gather more mushrooms, if you want?"'
-				'"There''s no need <<$pcs_nickname>>," said your grandfather. "But if I need some help, I''ll be sure to let you know. They will have to go down in the root cellar until your grandmother is ready to can them."'
-				'You kiss your grandfather on the cheek and get on with your day.'
+					'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/grandpa1.jpg"></center>'
+					'You walk up to Grandpa with your basket.'
+					'"Grandpa, here are the mushrooms!"'
+					'"Thank you <<$pcs_nickname>>, you''ve made an old man happy," your grandfather replies with a smile. "The mushrooms are in a part of the forest that is difficult to reach, so no wonder it took you so long."'
+					'"I can still go and gather more mushrooms, if you want?"'
+					'"There''s no need <<$pcs_nickname>>," said your grandfather. "But if I need some help, I''ll be sure to let you know. They will have to go down in the root cellar until your grandmother is ready to can them."'
+					'You kiss your grandfather on the cheek and get on with your day.'
 
-				act 'Continue': grandpaQW['chore_mushroom_quantity'] = 0 & gt 'gadhouse', 'start'
+					act 'Continue': grandpaQW['chore_mushroom_quantity'] = 0 & gt 'gadhouse', 'start'
+				end
+			else
+				act 'Give him the mushrooms he asked for':
+					*clr & cla
+					grandmaQW['help_amount'] += 3
+					boletus -= grandpaQW['chore_mushroom_quantity']
+					boletus_stored += grandpaQW['chore_mushroom_quantity']
+					minut += 5
+					grandpaQW['chore_gather_mushrooms'] = 0
+					gs 'stat'
+
+					'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/grandpa1.jpg"></center>'
+					'You walk up to Grandpa with your basket.'
+					'"Grandpa, here are the mushrooms!"'
+					'"Thank you <<$pcs_nickname>>, you''ve made an old man very happy," your grandfather replies with a smile. "The mushrooms are in a part of the forest that is difficult to reach."'
+					'"I can still go and gather more mushrooms, if you want?"'
+					'"There''s no need <<$pcs_nickname>>," said your grandfather. "But if I need some help, I''ll be sure to let you know. They will have to go down in the root cellar until your grandmother is ready to can them."'
+					'You kiss your grandfather on the cheek and get on with your day.'
+
+					act 'Continue': grandpaQW['chore_mushroom_quantity'] = 0 & gt 'gadhouse', 'start'
+				end
 			end
 		end
 
 		if grandpaQW['chore_gather_berries'] = 2 and bilberry >= grandpaQW['chore_berry_quantity'] and hour >= 6 and hour < 20:
-			act 'Give him the berries he asked for':
-				*clr & cla
-				grandmaQW['help_amount'] += 3
-				bilberry -= grandpaQW['chore_berry_quantity']
-				bilberry_stored += grandpaQW['chore_berry_quantity']
-				minut += 5
-				grandpaQW['chore_gather_berries'] = 0
-				gs 'stat'
+			if grandpaQW['disappointment'] = 2:
+				act 'Give him the berries he asked for':
+					*clr & cla
+					grandmaQW['help_amount'] += 1
+					bilberry -= grandpaQW['chore_berry_quantity']
+					bilberry_stored += grandpaQW['chore_berry_quantity']
+					grandpaQW['disappointment'] = 0
+					minut += 5
+					grandpaQW['chore_berry_quantity'] = 0
+					grandpaQW['chore_gather_berries'] = 0
+					gs 'stat'
 
-				'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/grandpa1.jpg"></center>'
-				'You walk up to Grandpa with your basket.'
-				'"Grandpa, here are the berries!"'
-				'"Oh, thank you, nicely done," Grandpa replied. "It''s hard for your grandmother to gather the berries, and she needs them so she can make jam for the winter."'
-				'"If you need some more berries I''ll be glad to go out and gather more."'
-				'"There''s no need <<$pcs_nickname>>," your grandfather said. "But if your grandma needs some more berries, I''ll let you know. They will have to go down in the root cellar until your grandmother is ready to can them."'
-				'You kiss your grandfather on the cheek, you go on with your business.'
+					'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/grandpa1.jpg"></center>'
+					'You walk up to Grandpa with your basket.'
+					'"Grandpa, here are the berries!"'
+					'"Oh, thank you, I thought I asked for these yesterday," Grandpa replied. "It''s hard to keep track of things as you get older, just as it is for your grandmother to gather the berries, and she needs them so she can make jam for the winter."'
+					'"If you need some more berries I''ll be glad to go out and gather more."'
+					'"There''s no need <<$pcs_nickname>>," your grandfather said. "But if your grandma needs some more berries, I''ll let you know. They will have to go down in the root cellar until your grandmother is ready to can them."'
+					'You kiss your grandfather on the cheek, you go on with your business.'
 
-				act 'Continue': grandpaQW['chore_berry_quantity'] = 0 & gt 'gadhouse', 'start'
+					act 'Continue': grandpaQW['chore_berry_quantity'] = 0 & gt 'gadhouse', 'start'
+				end
+			else
+				act 'Give him the berries he asked for':
+					*clr & cla
+					grandmaQW['help_amount'] += 3
+					bilberry -= grandpaQW['chore_berry_quantity']
+					bilberry_stored += grandpaQW['chore_berry_quantity']
+					minut += 5
+					grandpaQW['chore_gather_berries'] = 0
+					gs 'stat'
+
+					'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/grandpa1.jpg"></center>'
+					'You walk up to Grandpa with your basket.'
+					'"Grandpa, here are the berries!"'
+					'"Oh, thank you, nicely done," Grandpa replied. "It''s hard for your grandmother to gather the berries, and she needs them so she can make jam for the winter."'
+					'"If you need some more berries I''ll be glad to go out and gather more."'
+					'"There''s no need <<$pcs_nickname>>," your grandfather said. "But if your grandma needs some more berries, I''ll let you know. They will have to go down in the root cellar until your grandmother is ready to can them."'
+					'You kiss your grandfather on the cheek, you go on with your business.'
+
+					act 'Continue': grandpaQW['chore_berry_quantity'] = 0 & gt 'gadhouse', 'start'
+				end
 			end
 		end
 
 		if grandpaQW['chore_gather_both'] = 2 and boletus >= grandpaQW['chore_mushroom_quantity'] and bilberry >= grandpaQW['chore_berry_quantity'] and hour >= 6 and hour < 20:
-			act 'Give him the mushrooms and berries he asked for':
-				*clr & cla
-				grandmaQW['help_amount'] += 3
-				boletus -= grandpaQW['chore_mushroom_quantity']
-				bilberry -= grandpaQW['chore_berry_quantity']
-				boletus_stored += grandpaQW['chore_mushroom_quantity']
-				bilberry_stored += grandpaQW['chore_berry_quantity']
-				minut += 5
-				grandpaQW['chore_gather_both'] = 0
-				gs 'stat'
+			if grandpaQW['disappointment'] = 2:
+				act 'Give him the mushrooms and berries he asked for':
+					*clr & cla
+					grandmaQW['help_amount'] += 3
+					boletus -= grandpaQW['chore_mushroom_quantity']
+					bilberry -= grandpaQW['chore_berry_quantity']
+					boletus_stored += grandpaQW['chore_mushroom_quantity']
+					bilberry_stored += grandpaQW['chore_berry_quantity']
+					grandpaQW['disappointment'] = 0
+					minut += 5
+					grandpaQW['chore_berry_quantity'] = 0
+					grandpaQW['chore_mushroom_quantity'] = 0
+					grandpaQW['chore_gather_both'] = 0
+					gs 'stat'
 
-				'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/grandpa1.jpg"></center>'
-				'You walk up to Grandpa with your basket.'
-				'"Grandpa, here are the mushrooms and berries!"'
-				'"Oh, thank you <<$pcs_nickname>>," your grandfather replied.'
-				'"If you want, I can go out for another run."'
-				'"You don''t need to do that, <<$pcs_nickname>>," your grandfather said. "But I''ll be sure to let you know if something comes up. They will have to go down in the root cellar until your grandmother is ready to can them."'
-				'You give him a smooch on the cheek and go on with your day.'
+					'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/grandpa1.jpg"></center>'
+					'You walk up to Grandpa with your basket.'
+					'"Grandpa, here are the mushrooms and berries!"'
+					'"Oh, thank you <<$pcs_nickname>>, better late than never," your grandfather replied.'
+					'"If you want, I can go out for another run."'
+					'"You don''t need to do that, <<$pcs_nickname>>," your grandfather said. "But I''ll be sure to let you know if something comes up. They will have to go down in the root cellar until your grandmother is ready to can them."'
+					'You give him a smooch on the cheek and go on with your day.'
 
-				act 'Continue': grandpaQW['chore_mushroom_quantity'] = 0 & grandpaQW['chore_berry_quantity'] = 0 & gt 'gadhouse', 'start'
+					act 'Continue': grandpaQW['chore_mushroom_quantity'] = 0 & grandpaQW['chore_berry_quantity'] = 0 & gt 'gadhouse', 'start'
+				end
+			else
+				act 'Give him the mushrooms and berries he asked for':
+					*clr & cla
+					grandmaQW['help_amount'] += 3
+					boletus -= grandpaQW['chore_mushroom_quantity']
+					bilberry -= grandpaQW['chore_berry_quantity']
+					boletus_stored += grandpaQW['chore_mushroom_quantity']
+					bilberry_stored += grandpaQW['chore_berry_quantity']
+					minut += 5
+					grandpaQW['chore_gather_both'] = 0
+					gs 'stat'
+
+					'<center><img <<$set_imgh>> src="images/locations/gadukino/grandparents/grandpa1.jpg"></center>'
+					'You walk up to Grandpa with your basket.'
+					'"Grandpa, here are the mushrooms and berries!"'
+					'"Oh, thank you <<$pcs_nickname>>," your grandfather replied.'
+					'"If you want, I can go out for another run."'
+					'"You don''t need to do that, <<$pcs_nickname>>," your grandfather said. "But I''ll be sure to let you know if something comes up. They will have to go down in the root cellar until your grandmother is ready to can them."'
+					'You give him a smooch on the cheek and go on with your day.'
+
+					act 'Continue': grandpaQW['chore_mushroom_quantity'] = 0 & grandpaQW['chore_berry_quantity'] = 0 & gt 'gadhouse', 'start'
+				end
 			end
 		end
 
@@ -1430,9 +1586,9 @@ end
 
 if $ARGS[0] = 'family_trip':
 	! family comes to visit first weekend of each month from Saturday at 1200 to Sunday at 2100
-	if week = 6 and hour > 12 and family_trip_month ! month: indorf = 1
+	if week = 6 and hour > 12 and locat['Fam_month_inGad'] ! month: locat['Fam_inGad'] = 1
 
-	if indorf = 1:
+	if locat['Fam_inGad'] = 1:
 		'Your parents are relaxing inside.'
 
 		gs 'mother', 'check_workout'
@@ -1440,7 +1596,7 @@ if $ARGS[0] = 'family_trip':
 		if gadstay_day ! daystart and home_owned[2] = 1:
 			if week = 7:
 				if hour = 20:
-					family_trip_month = month
+					locat['Fam_month_inGad'] = month
 					if (kanikuli = 4 or kanikuli = 5) and ((month = 6 or month = 7) or (month = 8 and day <= 25)):
 						*clr & cla
 						menu_off = 1
@@ -1449,13 +1605,13 @@ if $ARGS[0] = 'family_trip':
 						*nl
 						'<<$npc_nickname[''A29'']>> asks you "Well, <<$pcs_nickname>>, are you coming home with us or are you going to stay in the village with your grandparents?"'
 
-						act 'Stay with your grandaparents':gadstay_day = daystart & gadstay = 1 & indorf = 0 & gt 'gadhouse', 'main'
+						act 'Stay with your grandaparents':gadstay_day = daystart & gadstay = 1 & locat['Fam_inGad'] = 0 & gt 'gadhouse', 'main'
 						act 'Go home to Pavlovsk': gt 'gadhouse', 'to_pavlovsk'
 					else
 						act 'Go home to Pavlovsk': gt 'gadhouse', 'to_pavlovsk'
 					end
 				elseif hour > 20:
-					family_trip_month = month
+					locat['Fam_month_inGad'] = month
 				end
 			end
 		end
@@ -1466,7 +1622,7 @@ if $ARGS[0] = 'to_pavlovsk':
 	menu_off = 1
 	*clr & cla
 	gadstay = 0
-	indorf = 0
+	locat['Fam_inGad'] = 0
 	minut += rand(15,25)
 	gs 'stat'
 
@@ -1483,7 +1639,7 @@ if $ARGS[0] = 'to_pavlovsk':
 		'Before leaving your grandma gives you a big hug goodbye.'
 	end
 
-	'You get into the Lada with the rest of your family and before you know it, you''ve arrived back in Pavlovsk.'
+	'You get into the Volga with the rest of your family and before you know it, you''ve arrived back in Pavlovsk.'
 
 	act 'Go to your room': gt 'bedrPar'
 end
@@ -1491,11 +1647,11 @@ end
 if $ARGS[0] = 'to_gadukino':
 	menu_off = 1
 	*clr & cla
-	indorf = 1
+	locat['Fam_inGad'] = 1
 	minut += rand(15,25)
 	gs 'stat'
 
-	'You get into the Lada with the rest of your family and before you know it, you''ve arrived in Gadukino.'
+	'You get into the Volga with the rest of your family and before you know it, you''ve arrived in Gadukino.'
 
 	act 'Go to your grandparents house': gt 'gadhouse', 'start'
 end

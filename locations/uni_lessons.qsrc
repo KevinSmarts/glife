@@ -1,63 +1,68 @@
 # uni_lessons
 close all
 !2021/22/12
-!! This file includes the code to amek sure that the player characters can go to class and and exams when they are enrolled in the university.
-!! The file does not includ the seleciton of classes depending upon which progem they are enrolled in only the part of the code that don''t depend on the progreamm.
-!! The code for the induvidual programs is in uni_programs
-
+!! This file includes the code to make sure that the player characters can go to class and and exams when they are enrolled in the university.
+!! The file does not include the selection of classes depending upon which program they are enrolled in only the part of the code that don''t depend on the program.
+!! The code for the individual programs is in uni_programs
 
 if $ARGS[0] = 'cikl':
-!! Setting the the weeks in the university semester and makeing sure that the gades are calculated at the right times
+!! Setting the the weeks in the university semester and making sure that the grades are calculated at the right times
 
-	if week = 1:
-		if university['semester_week'] = -1:
-			university['semester_week'] = 1
-		elseif university['semester_week'] > 0 and university['semester_week'] < 15: 
-			university['semester_week'] += 1
-			gs 'grades', 'calculate_grade', 'uni_<<$university[''enrolled_in'']>>_semester_<<university[''enrolled_in_semester'']>>'
-			gs 'grades', 'assing_grade_description', 'uni_<<$university[''enrolled_in'']>>_semester_<<university[''enrolled_in_semester'']>>'
-		elseif university['semester_week'] = 15:
-			university['semester_week'] = 0
-			university['exam_week'] = 1
-			gs 'grades', 'calculate_grade', 'uni_<<$university[''enrolled_in'']>>_semester_<<university[''enrolled_in_semester'']>>'
-			gs 'grades', 'assing_grade_description', 'uni_<<$university[''enrolled_in'']>>_semester_<<university[''enrolled_in_semester'']>>'
-		elseif university['exam_week'] = 1: 
-			university['exam_week'] = 2
-		elseif university['exam_week'] = 2: 
-			university['exam_week'] = 0
-			i = 0
-			passed_count = 0
-			class_count = 0
-			:passed_exams_loop
-			if $class_list_institution[i] = 'uni_<<$university[''enrolled_in'']>>_semester_<<university[''enrolled_in_semester'']>>':
-				class_count += 1
-				if dyneval ('RESULT = class[''<<$class_list_institution[i]>>_<<$class_list_name[i]>>_grade'']') > 40 and dyneval ('RESULT = class[''<<$class_list_institution[i]>>_<<$class_list_name[i]>>_exam_done'']') = 1:
-					passed_count += 1
-				elseif dyneval ('RESULT = class[''<<$class_list_institution[i]>>_<<$class_list_name[i]>>_exam_done'']') = 0:
-					dynamic 'class[''<<$class_list_institution[i]>>_<<$class_list_name[i]>>_grade''] = 0'
-					university['expelled_for_missing_exam'] = 1
+	if university['semester_week'] = 0 and (month = 8 or month = 1) and (day - week) >= 20:
+		university['semester_week'] = -1
+	else
+		if week = 1:
+			if university['semester_week'] = -1:
+				university['semester_week'] = 1
+			elseif university['semester_week'] > 0 and university['semester_week'] < 15: 
+				university['semester_week'] += 1
+				if university['enrolled_in_semester'] > university['semester_passed']:
+					gs 'grades', 'calculate_grade', 'uni_<<$university[''enrolled_in'']>>_semester_<<university[''enrolled_in_semester'']>>'
+					gs 'grades', 'assing_grade_description', 'uni_<<$university[''enrolled_in'']>>_semester_<<university[''enrolled_in_semester'']>>'
+				end
+			elseif university['semester_week'] = 15:
+				university['semester_week'] = 0
+				university['exam_week'] = 1
+				if university['enrolled_in_semester'] > university['semester_passed']:
+					gs 'grades', 'calculate_grade', 'uni_<<$university[''enrolled_in'']>>_semester_<<university[''enrolled_in_semester'']>>'
+					gs 'grades', 'assing_grade_description', 'uni_<<$university[''enrolled_in'']>>_semester_<<university[''enrolled_in_semester'']>>'
+				end
+			elseif university['exam_week'] = 1: 
+				university['exam_week'] = 2
+			elseif university['exam_week'] = 2: 
+				university['exam_week'] = 0
+				if university['enrolled_in_semester'] > university['semester_passed']:
+					i = 0
+					passed_count = 0
+					class_count = 0
+					:passed_exams_loop
+					if $class_list_institution[i] = 'uni_<<$university[''enrolled_in'']>>_semester_<<university[''enrolled_in_semester'']>>':
+						class_count += 1
+						if dyneval ('RESULT = class[''<<$class_list_institution[i]>>_<<$class_list_name[i]>>_grade'']') > 40 and dyneval ('RESULT = class[''<<$class_list_institution[i]>>_<<$class_list_name[i]>>_exam_done'']') = 1:
+							passed_count += 1
+						elseif dyneval ('RESULT = class[''<<$class_list_institution[i]>>_<<$class_list_name[i]>>_exam_done'']') = 0:
+							dynamic 'class[''<<$class_list_institution[i]>>_<<$class_list_name[i]>>_grade''] = 0'
+							university['expelled_for_missing_exam'] = 1
+						end
+					end
+					i += 1
+					if ARRSIZE('class_list_institution') >= i: jump 'passed_exams_loop'
+					killvar 'i'
+					if passed_count = class_count: 
+						university['semester_passed'] = university['enrolled_in_semester']
+					else
+						university['expelled'] = 1
+						university['student'] = 0
+					end
+					if university['semester_passed'] = 8:
+						university['diploma'] = 1
+						university['student'] = 0
+					end
+					killvar 'class_count'
+					killvar 'passed_count'
 				end
 			end
-			i += 1
-			if ARRSIZE('class_list_institution') >= i: jump 'passed_exams_loop'
-			killvar 'i'
-			if passed_count = class_count: 
-				university['semester_passed'] = university['enrolled_in_semester']
-			else
-				university['expelled'] = 1
-				university['student'] = 0
-			end
-			if university['semester_passed'] = 8:
-				university['diploma'] = 1
-				university['student'] = 0
-			end
-			killvar 'class_count'
-			killvar 'passed_count'
 		end
-	end
-
-	if university['enrolled_in_semester'] > university['semester_passed'] and university['semester_week'] = 0 and (month = 8 or month = 1) and (day - week) >= 20:
-		university['semester_week'] = -1
 	end
 end
 
@@ -70,6 +75,8 @@ if $ARGS[0] = 'short_break':
 	if hour = 13: minut += 105 - minut					
 	if hour = 14 and minut < 45: minut += 45 - minut
 	gs 'stat'
+	if  katjaQW['QWstage'] > 2 and hour > 14 and npc_rel['A14'] >= 70 and fame['city_slut'] < 150 and pcs_makupskl >= 40 and hotcat >= 6: gt 'katja_uni', 'dorm_room_invite'
+	if rand(0,19)= 0: gt 'uni_events', 'lecture_hall_events'
 	*clr & cla
 	'<center><b><font color="maroon">Lecture Building Hallway</font></b></center>'
 	'<center><img <<$set_imgh>> src="images/locations/city/island/university/lecture_hall/lecture_hall.jpg"></center>'

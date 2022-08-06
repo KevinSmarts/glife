@@ -1,6 +1,42 @@
 # natbelEv
+!!2022/06/19
 
 !! Events concerning Natasha Belova (and her mother)
+
+!!Natasha Schedule - a new one needed at a later time but for now this will work - Alaratt
+!!NatashaLoc tells us where Natasha is located
+!!----------------------------------------------
+!!NatashaLoc = 0 (Natasha not home)
+!!NatashaLoc = 1 (Natasha in the hallway)
+!!NatashaLoc = 2 (Natasha in her room)
+!!NatashaLoc = 3 (Natasha in the kitchen)
+!!NatashaLoc = 4 (Natasha in the livingroom)
+!!NatashaLoc = 5 (Natasha in her mother''s room)
+!!NatashaLoc = 6 (Natasha in the bathroom)
+!!NatashaLoc = 7 (Natasha in the laundry room)
+!!---------------------------------------------
+if $ARGS[0] = 'nat_schedule':
+	NatashaShower = 0
+	NatashaLoc = rand(0,7)
+	if NatashaLoc = 0:
+		$NatashaLocMsg = 'Natasha isn''t home right now.'
+	elseif NatashaLoc = 1:
+		$NatashaLocMsg = 'Oh, here''s Natasha. I''ll leave you two to it.'
+	elseif NatashaLoc = 2:
+		$NatashaLocMsg = 'Natasha is in her room. You know the way.'
+	elseif NatashaLoc = 3:
+		$NatashaLocMsg = 'Natasha is in the kitchen. You know the way.'
+	elseif NatashaLoc = 4:
+		$NatashaLocMsg = 'Natasha is in the living room. You know the way.'
+	elseif NatashaLoc = 5:
+		$NatashaLocMsg = 'Natasha was in her room just a little while ago. You''ll have to go and look for her.'
+	elseif NatashaLoc = 6:
+		NatashaShower = 1
+		$NatashaLocMsg = 'Natasha is busy taking a shower at the moment. You can wait in her room or come sit with me in the living room if you''d like.'
+	elseif NatashaLoc = 7:
+		$NatashaLocMsg = 'Natasha is doing some laundry. You know the way.'
+	end
+end
 
 !! Event handling for Natasha''s storyline
 if $ARGS[0] = 'natbelQuest':
@@ -68,6 +104,104 @@ if $ARGS[0] = 'natbelQuest':
 	end
 end
 
+if $ARGS[0] = 'natbel_go':
+	menu_off = 1
+	*clr & cla
+	'<center><img <<$set_imgh>> src="images/characters/shared/headshots_main/big16.jpg"></center>'
+	'You go up to Natasha and she asks you, "Will you come to my house to do our homework?"'
+
+	act 'Go with Natasha':
+		*clr & cla
+		minut += 10
+		if NatbelQW['VisitedHome'] = 0: NatbelQW['VisitedHome'] = 1
+		NatashaLoc = 2
+		gs 'stat'
+		'<center><b><font color="maroon"><<$npc_firstname[''A16'']>> <<$npc_lastname[''A16'']>></font></b></center>'
+		'<center><img <<$set_imgh>> src="images/characters/shared/headshots_main/big16.jpg"></center>'
+		'It takes you 10 minutes to walk to Natasha''s apartment. You discuss all the small stuff in your lives that amuse you.'
+
+		if NatbelQW['QWstage'] < 2:
+			act 'Go into the apartment': gt 'natbelEv', 'study_together'
+		else
+			act 'Study together': gt 'natbelEv', 'study_together'
+			if NatbelQW['FriendLover'] = 0: gs 'natbel_cp_1', 'make_her_do_homework'
+		end
+	end
+end
+
+if $ARGS[0] = 'study_together':
+	*clr & cla
+	menu_off = 1
+	minut += 60
+	gs 'npc_relationship', 'modify', 'A16', 'adore'
+	if lernHome > 1:
+		gs 'grades', 'homework', 'school', 'yes', 2, 1, 'A16'
+	else
+		gs 'grades', 'homework', 'school', 'yes', 1, 1, 'A16'
+	end
+	lern += rand(3, 6)
+	intel_exp += rand(1, 2)
+	if NatbelQW['QWstage'] = 0: NatbelQW['QWstage'] = 1
+	gs 'stat'
+	'<center><img <<$set_imgh>> src="images/characters/pavlovsk/school/girl/natasha/study.jpg"></center>'
+	'"Let''s do our homework." You tell Natasha as you start taking your things from your bag.'
+	'"Sure, let me grab an extra chair from the kitchen." She says as you sit down at her desk and open your textbook.'
+	'Moments later Natasha returns and places her chair next to yours before grabbing her own homework and sitting down next to you.'
+	*nl
+	'"Ok, let''s see..." She says as the two of you start on the first task.'
+	'You spend the better part of an hour working through all of your homework. Occasionally explaining things to each other when one of you doesn''t understand something.'
+	'Once you''ve finished, you''re confident you''ll get a good grade on your homework.'
+	act 'Finish homework': gt 'natbelapt','natroom'
+end
+
+if $ARGS[0] = 'snack':
+	menu_off = 1
+	cla
+	*nl
+	!!Snack + Water
+	minut += 15
+	if alko > 0: alko -= 1
+	pcs_health += 20
+	pcs_mood += 20
+	fat += 6
+	if pcs_energy >= 50:
+		pcs_energy += 25
+	else
+		pcs_energy += 40
+	end
+	if pcs_hydra >= 100:
+		pcs_hydra += 25
+	else
+		pcs_hydra += 50
+	end
+	cumspclnt = 2
+	gs 'cum_cleanup'
+	pcs_breath = 0
+	gs 'stat'
+	'"If you''re going that route, you might as well keep shopping around." You laugh together for a while before moving on to another topic.'
+	if rand(0,4) = 0:
+		if NatbelQW['MetMother'] = 0:
+			'As you walk into the kitchen, you see a woman sitting at the dining table having a cup of tea.'
+			'"Oh, I didn''t know we had company. Do you go to school with Natasha?"'
+			'"Yes, I''m <<$pcs_nickname>>. We''re in the same class."'
+			'"It''s nice to meet a friend of Natasha''s. I''m her mother <<$npc_firstname[''A191'']>>, but you can call me <<$npc_nickname[''A191'']>>."'
+			'"Pleased to meet you, <<$npc_nickname[''A191'']>>."'
+			act 'Back to her room': NatashaLoc = 2 & gt 'natbelapt', 'natroom'
+		else
+			'As you walk into the kitchen, you see <<$npc_nickname[''A191'']>> sitting at the dining table having a cup of tea.'
+			'"Oh, I didn''t know we had company. How are you <<$pcs_nickname>>?"'
+			'"Hi <<$npc_nickname[''A191'']>>, I''m doing well. How about you?"'
+			'"I can''t complain honey."'
+			'Natasha, holding some snacks and your drinks cuts in: "Well, we have to get back to our studies mom."'
+			act 'Back to her room': NatashaLoc = 2 & gt 'natbelapt', 'natroom'
+		end
+	else
+		'As you walk into the kitchen, Natasha points to a cabinet. "Grab some chips out of there."'
+		'While you are doing that, she grabs a couple of drinks from the fridge, and once you both have your spoils from your raid on the kitchen, you head back to her room.'
+		act 'Back to her room': NatashaLoc = 2 & gt 'natbelapt', 'natroom'
+	end
+end
+
 if $ARGS[0] = 'natcumresponse':
 	if NatbelQW['KolkaCP'] = 0:
 		'Natasha suddenly tries to pull away from Kolka, saying "Pull out, not inside! I don''t want to end up pregnant!"'
@@ -92,6 +226,73 @@ if $ARGS[0] = 'natmomhome':
 		NatbelQW['MotherHome'] = 0
 	end
 end
+
+if $ARGS[0] = 'nat_mother_state':
+	! Natasha''s mother''s state. If it''s 0 you get a random state.
+	if NatbelQW['MotherState'] = 0: NatbelQW['MotherState'] = rand(1,6)
+	if NatbelQW['MotherState'] = 1:
+		$NatbelQW['MotherStateMsg'] = 'tired'
+	elseif NatbelQW['MotherState'] = 2:
+		$NatbelQW['MotherStateMsg'] = 'happy'
+	elseif NatbelQW['MotherState'] = 3:
+		$NatbelQW['MotherStateMsg'] = 'dressed to go out on a date'
+	elseif NatbelQW['MotherState'] = 4:
+		$NatbelQW['MotherStateMsg'] = 'drunk'
+	elseif NatbelQW['MotherState'] = 5:
+		$NatbelQW['MotherStateMsg'] = 'like something''s bothering her'
+	elseif NatbelQW['MotherState'] = 6:
+		$NatbelQW['MotherStateMsg'] = 'angry'
+	end
+end
+
+
+if $ARGS[0] = 'ask_state':
+	menu_off = 1
+	'As you step into the apartment, you strike up a brief conversation with <<$npc_nickname[''A191'']>>.'
+	if NatbelQW['MotherState'] = 1:
+		'"You look a bit under the weather today <<$npc_nickname[''A191'']>>. Are you feeling ok?"'
+		'"I''ve had a migraine all day. I think I''ll go relax on the couch for now. Would you be a dear and keep the music down tonight?"'
+		'"Of course, we''ll be careful not to disturb your rest."'
+	elseif NatbelQW['MotherState'] = 2:
+		'"You look cheerful today <<$npc_nickname[''A191'']>>."'
+		'"Oh, it''s just a pleasant day today."'
+	elseif NatbelQW['MotherState'] = 3:
+		if rand(0,1) = 0:
+			'"Wow, <<$npc_nickname[''A191'']>>. Did you dress up just for me? Or is there a lucky guy involved?" You say with a wink.'
+			'"Thank you, <<$pcs_nickname>>. That''s the kind of reaction I''m hoping for." She says with a slight blush on her cheeks.'
+		else
+			'"Wow, <<$npc_nickname[''A191'']>>. That looks really good on you." You say after admiring her attire.'
+			'"Thank you <<$pcs_nickname>>. That''s the kind of reaction I''m hoping for."'
+		end
+	elseif NatbelQW['MotherState'] = 4:
+		'"Wow, <<$npc_nickname[''A191'']>>. Did you just come from a party? Or is the party in here?" You say with a wink.'
+		'"Well <<$pcs_nickname>>, just between you and me, sometimes a girl can use a drink."'
+	elseif NatbelQW['MotherState'] = 5:
+		'"<<$npc_nickname[''A191'']>>... You uhm... you look a bit upset, is something wrong?"'
+		if NatbelQW['pregday'] > 0 and (daystart-NatbelQW['pregday']) > 90:
+			'"Natasha''s been acting a bit strange lately." She suddenly looks at you intently. "Y-You''d tell me if something important is going on right?"'
+		else
+			'"Just one of those days <<$pcs_nickname>>. Just go on and hang out with Natasha. I''ll be fine."'
+		end
+	elseif NatbelQW['MotherState'] = 6:
+		'"<<$npc_nickname[''A191'']>>... You uhm... don''t look very pleased to see me. Did I... Is it something I did?"'
+		if NatbelQW['pregday'] > 0 and (daystart-NatbelQW['pregday']) > 120:
+			'"Well <<$pcs_nickname>>, I''m still trying to adjust to the fact that my daughter is pregnant. Excuse me if I haven''t embraced that little fact yet."'
+			if func('body_din','pregnancyVisibility') = 1:
+				'"I don''t know what you girls were thinking. The least you could have done was use protection. Getting pregnant when you''re <<age>>, you''re not ready to raise a baby!" She says angrily, looking at your obviously swollen belly.'
+				'You lower your head at the accusation in her tone and mumble "S-Sorry..." as you pass by her into the hallway.'
+			else
+				'"I-I''m sure Natasha is smart enough to do what''s right for the baby. She''s so kind and smart, she''ll definitely make a good mother."'
+				'<<$npc_nickname[''A191'']>> lowers her head and looks away from you as you pass by her into the hallway.'
+			end
+		else
+			'"Oh no, <<$pcs_nickname>>. It''s about work. Nothing for you to worry about."'
+		end
+	end
+	act 'Continue': gt 'natbelapt', 'hallway'
+end
+
+
 
 !! This is the book carrying event in Natasha''s questline -- needs a check to see if it isn''t a holiday
 !! if (hour >= 6 and hour < 8 and week < 6) and NatbelQW['QWstage'] > 4 and NatbelQW['Debt'] > 0 and ???: to be added from the hallway in Sveta''s home?
@@ -287,41 +488,37 @@ if $ARGS[0] = 'showerspy':
 	act 'Leave': gt 'natbelapt','hallway'
 end
 
-!! This is an event where Sveta wants to take a shower and strips down in Natasha''s mother''s room before taking a towel and heading to the bathroom
-if $ARGS[0] = 'Get_Towel':
+
+if $ARGS[0] = 'showerevent1':
 	menu_off = 1
-	CLOSE ALL
-	*clr & cla
-	minut += 1
-	gs 'stat'
-	'<center><img <<$set_imgh>> src="images/locations/pavlovsk/resident/apartment/natbelapt/undressinnatmomroom01.jpg"></center>'
-	'On your way to the bathroom you see a basket of freshly laundered towels in <<$npc_nickname[''A191'']>>''s room. "I might as well get one from here." You think to yourself as you step inside and start taking off your clothes.'
-	'Just as you take your top off <<$npc_nickname[''A191'']>> comes back with more laundry and freezes in the doorway. She gives you an appraising look and says: "What are you up to <<$pcs_nickname>>?"'
-	'"Oh, I was just about to take a shower. You don''t mind if I grab a towel from here do you?"'
+	inhib_exp += 1
+	'Despite the pattering noise of the running water, you hear the bathroom door open and look over to see <<$npc_nickname[''A191'']>> walking into the bathroom.'
+	'"Sorry dear, you didn''t answer my knock, and I have to go."'
+	if deodorant_on = 1: gs 'sweat', 'remove_deo' & '<br>Your deodorant gets washed away in the shower.'
+	act 'Let her':
+		*clr & cla
+		'<center><img <<$set_imgh>> src="images/locations/pavlovsk/resident/apartment/natbelapt/sex/shower01.jpg"></center>'
+		'You angle your body away from the door as you say: "Oh it''s no problem <<$npc_nickname[''A191'']>>. It''s your home."'
+		'You get back to showering with your back turned to <<$npc_nickname[''A191'']>> as you hear her pee. You feel a bit awkward while you listen to her urinate, flush, and then wash her hands before finally the door clicks shut again.'
+		act 'Get out of the shower': gt 'natbelapt','bathroom'
+	end
 	if pcs_inhib >= 50:
-		act 'Chat as you undress':
+		act 'Tease her a bit':
 			*clr & cla
-			'<center><img <<$set_imgh>> src="images/locations/pavlovsk/resident/apartment/natbelapt/undressinnatmomroom02.jpg"></center>'
-			'<<$npc_nickname[''A191'']>> eases up a bit as she realises you don''t intend to do anything weird and comes into the room to grab a few things she intends to wash.'
-			'You just keep stripping down until you''re completely naked while you ask her about her day.'
-			'"Just laundry day <<$pcs_nickname>>." She says a bit uncomfortably.'
-			'Since you don''t want to cause a scene by upsetting her you decide it''s best if you just go take a shower.'
-			act 'Grab a towel and go shower': gt 'natbelEv', 'Go_Shower'
+			inhib_exp += 3
+			'<center><img <<$set_imgh>> src="images/locations/pavlovsk/resident/apartment/natbelapt/sex/shower02.jpg"></center>'
+			'Looking straight at her you give her a smile, then put your leg up, giving her the perfect view of the front of your wet, naked body. "<<$npc_nickname[''A191'']>>", you begin immediately, "I wanted a woman''s opinion on this. Do you think my breasts are big enough?"'
+			'<<$npc_nickname[''A191'']>> looks at your exposed body for a few seconds with a slight blush on her cheeks.'
+			'"<<$pcs_nickname>>, there''s nothing wrong with the size of your breasts."'
+			'You get back to showering making sure to pay special attention to your breasts. <<$npc_nickname[''A191'']>> sits down on the toilet, and you can hear the sound of her peeing. You get turned on a bit, taking glances at her. Finally, she gets up, flushes and washes her hands before leaving you alone again in the bathroom.'
+			gs 'arousal', 'flash', 2
+			gs 'arousal', 'erotic_nudity', 3
+			gs 'arousal', 'end'
+			gs 'stat'
+			act 'Get out of the shower': gt 'natbelapt', 'bathroom'
 		end
-	else
-		act 'Grab a towel and go shower': gt 'natbelEv', 'Go_Shower'
 	end
 end
 
-if $ARGS[0] = 'Go_Shower':
-	menu_off = 1
-	CLOSE ALL
-	*clr & cla
-	minut += 1
-	gs 'stat'
-	'<center><img <<$set_imgh>> src="images/locations/pavlovsk/resident/apartment/natbelapt/undressinnatmomroom03.jpg"></center>'
-	'You pick up a clean towel and wrap it around yourself, wondering about what kind of impression you just made on <<$npc_nickname[''A191'']>>.'
-	act 'Go to the bathroom': gt 'natbelapt', 'bathroom'
-end
 
 --- natbelEv ---------------------------------
