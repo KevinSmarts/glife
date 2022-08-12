@@ -174,23 +174,39 @@ if $ARGS[0] = 'applyDamage':
 		!!If the target has clones, destroy one
 		if <<$fightAppDam['TargetType']>>_clone[<<fightAppDam['TargetNumber']>>] > 0:
 			<<$fightAppDam['TargetType']>>_clone[<<fightAppDam['TargetNumber']>>] -= 1
-			""<<$fightAppDam['TargetName']>> loses a clone.""
+			if $fightAppDam['TargetName'] = 'you':
+				""<<$fightAppDam['TargetName']>> lose a clone.""
+			else
+				""<<$fightAppDam['TargetName']>> loses a clone.""
+			end
 		!!if the target has enough shields to mitigate, remove some shields
 		elseif <<$fightAppDam['TargetType']>>_shield[<<fightAppDam['TargetNumber']>>] >= <<fightAppDam['Damage']>>:
 			<<$fightAppDam['TargetType']>>_shield[<<fightAppDam['TargetNumber']>>] -= <<fightAppDam['Damage']>>
-			""<<$fightAppDam['TargetName']>> loses <<fightAppDam['Damage']>> defense.""
+			if $fightAppDam['TargetName'] = 'you':
+				""<<$fightAppDam['TargetName']>> lose <<fightAppDam['Damage']>> defense.""
+			else
+				""<<$fightAppDam['TargetName']>> loses <<fightAppDam['Damage']>> defense.""
+			end
 		!!otherwise remove shields to 0 and the remainder comes from health
 		else
 			if <<$fightAppDam['TargetType']>>_shield[<<fightAppDam['TargetNumber']>>] > 0:
 				<<$fightAppDam['TargetType']>>_shield[<<fightAppDam['TargetNumber']>>] = 0
-				""<<$fightAppDam['TargetName']>> losses <<fightAppDam['Shield']>> defense.""
+				if $fightAppDam['TargetName'] = 'you':
+					""<<$fightAppDam['TargetName']>> losse <<fightAppDam['Shield']>> defense.""
+				else
+					""<<$fightAppDam['TargetName']>> losses <<fightAppDam['Shield']>> defense.""
+				end
 			end
 			if <<$fightAppDam['TargetType']>>_health[<<fightAppDam['TargetNumber']>>] > <<fightAppDam['OverShieldDamage']>>:
 				<<$fightAppDam['TargetType']>>_health[<<fightAppDam['TargetNumber']>>] -= <<fightAppDam['OverShieldDamage']>>
 			else
 				<<$fightAppDam['TargetType']>>_health[<<fightAppDam['TargetNumber']>>] = 0
 			end
-			""<<$fightAppDam['TargetName']>> loses <<fightAppDam['OverShieldDamage']>> health.""
+			if $fightAppDam['TargetName'] = 'you':
+				""<<$fightAppDam['TargetName']>> lose <<fightAppDam['OverShieldDamage']>> health.""
+			else
+				""<<$fightAppDam['TargetName']>> loses <<fightAppDam['OverShieldDamage']>> health.""
+			end
 		end
 	"
 	killvar '$fightAppDam'
@@ -239,7 +255,7 @@ if $ARGS[0] = 'start':
 	i=0
 	:PCSTimerInit
 	if i < arrsize('pcs_health'):
-		pcs_timer[i] = 100 - pcs_react[i]
+		pcs_timer[i] = 60 - (pcs_react[i]/2)
 		i +=1
 		jump 'PCSTimerInit'
 	end
@@ -247,7 +263,7 @@ if $ARGS[0] = 'start':
 	i=0
 	:OppTimerInit
 	if i < arrsize('opp_health'):
-		opp_timer[i] = 100 - opp_react[i]
+		opp_timer[i] = 60 - (opp_react[i]/2)
 		i +=1
 		jump 'OppTimerInit'
 	end
@@ -554,6 +570,16 @@ if $ARGS[0] = 'Attack':
 	dynamic "<<$fightAtk_AttackerType>>_timer[<<fightAtk_AttackerNumber>>] += AttackTime[<<fightAtk_Type>>]"
 	cla
 	act 'Next': gt 'fight', 'main'
+	
+!! clear attack values to prevent figures bleeding through
+	killvar 'fightAtk'
+	killvar '$fightAtk'
+	killvar 'fightAtk_Type'
+	killvar '$fightAtk_Type'
+	killvar 'fightAtk_TargetType'
+	killvar '$fightAtk_TargetType'
+	killvar 'fightAtk_TargetNumber'
+	killvar 'fightAtk_AttackerNumber'
 end
 
 !! Make a list of targets that still have health
@@ -670,7 +696,7 @@ if $ARGS[0] = 'player':
 
 	!! If this is the Player character
 	if ARGS[2] = 0:
-		if pcs_magik > 0:
+		if $start_type[1] ! 'nomagic':
 			act 'Cast a Spell': gs 'fight', 'spellcast'
 		end
 		if func('fight', 'AvailableTargets', 'opp') > 0:

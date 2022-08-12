@@ -1,4 +1,5 @@
 # panties
+!!This is separate panties file and that means underwear['type'] = 0
 !!2021/04/15
 !!gs 'panties', 'dispose'
 !!to remove panties and destroy them
@@ -8,42 +9,6 @@
 !!To wear panties
 
 menu_off = 1
-
-if $ARGS[0] = 'dispose':
-	dynamic $pantyworntype + '_panties[<<pantywornnumber>>] = 0'
-	$lastwornpantytype = 'none'
-	lastwornpantynumber = 0
-	$pantyworntype = 'none'
-	pantywornnumber = 0
-end
-
-if $ARGS[0] = 'remove':
-	$lastwornpantytype = $pantyworntype
-	lastwornpantynumber = pantywornnumber
-	$pantyworntype = 'none'
-	pantywornnumber = 0
-end
-
-if $ARGS[0] = 'wear':
-	panty_none = 0
-	if $ARGS[1] = '':
-		if dyneval('RESULT = <<$lastwornbratype>>_pantiesS[<<lastwornbranumber>>]') = 0 and $lastwornbratype ! '':
-			$pantyworntype = $lastwornpantytype
-			pantywornnumber = lastwornpantynumber
-		else
-			$pantyworntype = 'none'
-			pantywornnumber = 0
-		end
-	else
-		if dyneval('RESULT = <<$ARGS[1]>>_pantiesS[<<ARGS[2]>>]') = 0:
-			$pantyworntype = $ARGS[1]
-			pantywornnumber = ARGS[2]
-		else
-			$pantyworntype = 'none'
-			pantywornnumber = 0
-		end
-	end
-end
 
 if $ARGS[0] = 'view_panty_list':
 	!! ARGS 0 - view_panty_list
@@ -116,10 +81,10 @@ if $ARGS[0] = 'view_panty_list':
 	'<center><img src="images/locations/city/citycenter/mall/pussycat.png"></center>'
 
 	i = 1
-	:loopkatspanties 
-	if kats_pantiesS[i] = metka_panties and kats_panties[i] = 1:*p '<a href="exec:gt ''panties'', ''view_panty_item'', ''<<$ARGS[1]>>'', ''kats'', <<i>>"><img src="images/pc/panties/kats/<<i>>.jpg" 	height="150" /></a>'
+	:loopcatspanties 
+	if cats_pantiesS[i] = metka_panties and cats_panties[i] = 1:*p '<a href="exec:gt ''panties'', ''view_panty_item'', ''<<$ARGS[1]>>'', ''cats'', <<i>>"><img src="images/pc/panties/kats/<<i>>.jpg" 	height="150" /></a>'
 	i += 1
-	if i <= ARRSIZE('kats_panties'):jump 'loopkatspanties'
+	if i <= ARRSIZE('cats_panties'):jump 'loopcatspanties'
 
 	'<center><img src="images/locations/city/redlight/erotomaniac/shop_name.png"></center>'
 
@@ -146,11 +111,16 @@ if $ARGS[0] = 'view_panty_item':
 	!! ARGS 4 - price for shop
 	cla
 	'<center><img src="<<FUNC(''$panty_image'',  $ARGS[2], ARGS[3])>>"></center>'
-!!	gs 'panty_attributes', $ARGS[2], ARGS[3]
+	gs 'underwear_attributes', $ARGS[2]+'_panties', ARGS[3]
 !!	$RESULT = FUNC('$short_description', $ARGS[2], CloStyle2)
 !!	$RESULT += '<<ARGS[3]>>'
 !!	'<<$RESULT>>'
-	gs 'panties', 'descriptions', $ARGS[2]
+	if BraQuality > 0:
+		gs 'underwear_descriptions', 'panties'
+		'This bra forms a set with bra #<<underwear[''pair'']>>.'
+	else
+		gs 'panties', 'descriptions', $ARGS[2]
+	end
 
 	if $ARGS[1] = 'shop':
 		if dyneval('RESULT = <<$ARGS[2]>>_panties[<<ARGS[3]>>]') = 1:
@@ -180,20 +150,49 @@ if $ARGS[0] = 'view_panty_item':
 			else
 				'You do not have enough money in your bank to buy these panties.'
 			end
+			if underwear['pair'] > 0:
+				if dyneval('RESULT = <<$ARGS[2]>>_panties[<<underwear[''pair'']>>]') = 1:
+					'You own the matching bra buying these panties will complete the set.'
+				else
+					'You do not own the matching bra, you can buy it and these panties together as a set.'
+					price_set = ARGS[4]*18/10
+					'Price for set: <<price_set>> <b>₽</b>'
+					if money >= price_set:
+						act 'Buy set (cash)':
+							money -= price_set
+							dynamic $ARGS[2] + '_panties[<<ARGS[3]>>] = 1'
+							dynamic $ARGS[2] + '_pantiesS[<<ARGS[3]>>] = 0'
+							dynamic $ARGS[2] + '_bras[<<underwear[''pair'']>>] = 1'
+							dynamic $ARGS[2] + '_brasS[<<underwear[''pair'']>>] = 0'
+							gt $loc, $loc_arg
+						end
+					else
+						'You do not have enough cash to buy this set.'
+					end
+					if karta + bankDebtLimit >= price_set:
+						act 'Buy set (card)':
+							karta -= price_set
+							dynamic $ARGS[2] + '_panties[<<ARGS[3]>>] = 1'
+							dynamic $ARGS[2] + '_pantiesS[<<ARGS[3]>>] = 0'
+							dynamic $ARGS[2] + '_bras[<<underwear[''pair'']>>] = 1'
+							dynamic $ARGS[2] + '_brasS[<<underwear[''pair'']>>] = 0'
+							gt $loc, $loc_arg
+						end
+					else
+						'You do not have enough money in your bank to buy this set.'
+					end
+				end
+			end
 		end
 	else
-		if $ARGS[1] ! 'bathroom':
-			if metka_panties ! 1:$RESULT += 'Move these panties to <a href="exec:gt ''panties'', ''dest1'', ''<<$ARGS[1]>>'', ''<<$ARGS[2]>>'', <<ARGS[3]>>">Storage</a><BR>'
-			if metka_panties ! 0:$RESULT += 'Move these panties to  <a href="exec:gt ''panties'', ''dest0'', ''<<$ARGS[1]>>'', ''<<$ARGS[2]>>'', <<ARGS[3]>>">Wardrobe</a><BR>'
-			if metka_panties ! 2:$RESULT += 'Move these panties to  <a href="exec:gt ''panties'', ''dest2'', ''<<$ARGS[1]>>'', ''<<$ARGS[2]>>'', <<ARGS[3]>>">Unwanted</a>'
-		end
-		
 		act 'Return':gt 'panties', 'view_panty_list', $ARGS[1]
 		
 		if $ARGS[1] = 'store':
 			'These panties are in storage.'
+			gs 'panties', 'storage_options'
 		elseif $ARGS[1] = 'unwanted':
 			'These panties are unwanted.'
+			gs 'panties', 'storage_options'
 		else
 			if $pantyworntype = $ARGS[2] and pantywornnumber = ARGS[3]:
 				'You are wearing these panties.'
@@ -238,18 +237,126 @@ if $ARGS[0] = 'view_panty_item':
 							end
 						end
 					end
+					if underwear['pair'] > 0:
+						if dyneval('RESULT = <<$ARGS[2]>>_bras[<<underwear[''pair'']>>]') = 1:
+							'You own this bra and can wear this set.'
+							act 'Wear set':
+								if CloBra = 1:
+									msg'You cannot wear a bra with this top'
+								elseif CloPanties = 1:
+									msg'You cannot wear a panties with this outfit'
+								else
+									if hypnoBra > 0 and hypnoPanty > 0:
+										cla
+										*clr
+										'You pick up the bra and panties and think about trying them on... but you don''t really like wearing underwear.'
+										gs 'willpower', 'misc', 'resist'
+										will_cost += hypnoTime
+										if will_cost <= pcs_willpwr:
+											act 'Wear it anyway anyways (<<will_cost>> Willpower)':
+												gs 'willpower', 'pay', 'resist'
+												gs 'stat'
+												gs 'bras', 'wear', $ARGS[2], underwear['pair']
+												gs 'panties', 'wear', $ARGS[2], ARGS[3]
+				
+												if $ARGS[1] = 'wardrobe':
+													gt 'wardrobe', 'main'
+												else
+													gt $loc, $loc_arg
+												end
+											end
+										else
+											act 'Wear it anyway anyways (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
+										end
+										act 'Back':
+											gt 'wardrobe', 'main'
+										end
+									elseif hypnoBra > 0:
+										cla
+										*clr
+										'You pick up the bra and think about trying them on... but you don''t really like wearing bras.'
+										gs 'willpower', 'misc', 'resist', 'easy'
+										will_cost += hypnoTime
+										if will_cost <= pcs_willpwr:
+											act 'Put them on anyways (<<will_cost>> Willpower)':
+												gs 'willpower', 'pay', 'resist'
+												gs 'stat'
+												gs 'bras', 'wear', $ARGS[2], underwear['pair']
+												gs 'panties', 'wear', $ARGS[2], ARGS[3]
+				
+												if $ARGS[1] = 'wardrobe':
+													gt 'wardrobe', 'main'
+												else
+													gt $loc, $loc_arg
+												end
+											end
+										else
+											act 'Put them on anyways (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
+										end
+										act 'Back':
+											gt 'wardrobe', 'main'
+										end
+									elseif hypnoPanty > 0:
+										cla
+										*clr
+										'You pick up the panties and think about trying them on... but you don''t really like wearing panties.'
+										gs 'willpower', 'misc', 'resist', 'easy'
+										will_cost += hypnoTime
+										if will_cost <= pcs_willpwr:
+											act 'Put them on anyways (<<will_cost>> Willpower)':
+												gs 'willpower', 'pay', 'resist'
+												gs 'stat'
+												gs 'bras', 'wear', $ARGS[2], underwear['pair']
+												gs 'panties', 'wear', $ARGS[2], ARGS[3]
+					
+												if $ARGS[1] = 'wardrobe':
+													gt 'wardrobe', 'main'
+												else
+													gt $loc, $loc_arg
+												end
+											end
+										else
+											act 'Put them on anyways (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
+										end
+										act 'Back':
+											gt 'wardrobe', 'main'
+										end
+									else
+										gs 'bras', 'wear', $ARGS[2], underwear['pair']
+										gs 'panties', 'wear', $ARGS[2], ARGS[3]
+
+										if $ARGS[1] = 'wardrobe':
+											gt 'wardrobe', 'main'
+										else
+											gt $loc, $loc_arg
+										end
+									end
+								end
+							end
+						else
+							'You do not own the matching bra to make this set.'
+						end
+					end
 				end
 			end
+			gs 'panties', 'storage_options'
 		end
-		if $ARGS[1] ! 'store':
-			act 'Move to storage': gt 'panties', 'dest1', $ARGS[1], $ARGS[2], ARGS[3]
-		end
-		if $ARGS[1] ! 'unwanted':
-			act 'Move to unwanted': gt 'panties', 'dest2', $ARGS[1], $ARGS[2], ARGS[3]
-		end
-		if $ARGS[1] ! 'wardrobe':
-			act 'Move to wardrobe': gt 'panties', 'dest0', $ARGS[1], $ARGS[2], ARGS[3]
-		end
+	end
+end
+
+if $ARGS[0] = 'storage_options':
+	if $ARGS[1] ! 'store':
+		act 'Move to storage': gt 'panties', 'dest1', $ARGS[1], $ARGS[2], ARGS[3]
+	end
+	if $ARGS[1] ! 'unwanted':
+		act 'Move to unwanted': gt 'panties', 'dest2', $ARGS[1], $ARGS[2], ARGS[3]
+	end
+	if $ARGS[1] ! 'wardrobe':
+		act 'Move to wardrobe': gt 'panties', 'dest0', $ARGS[1], $ARGS[2], ARGS[3]
+	end
+	act '<font color="red">Throw these panties away</font>':
+		dynamic '<<$ARGS[2]>>_panties[<<ARGS[3]>>] = 0'
+		gt 'wardrobe', 'main'
 	end
 end
 
@@ -280,13 +387,114 @@ if $ARGS[0] = 'descriptions':
 		'These panties are so revealing that they are more exciting than not wearing any and you''ll always feel horny wearing them.'
 	elseif $ARGS[1] = 'fashionista':
 		'These panties are well made improving your posture and confidence and slightly boosting your appearance even when fully clothed.'
-	elseif $ARGS[1] = 'kats':
+	elseif $ARGS[1] = 'cats':
 		'These panties feel reassuring and wear them gives your mood a lift.'
 	elseif $ARGS[1] = 'sexshop':
 		'Tacky and cheap these panties make you look like a hooker, this could be a bonus if working as one.'
 	elseif $ARGS[1] = 'sport':
 		'These panties are designed for physical exercises to make them less tiring.'
 	end
+end
+
+if $ARGS[0] = 'sum':
+	$t[0] = 'boutique'
+	$t[1] = 'cats'
+	$t[2] = 'exhibitionist'
+	$t[3] = 'fashionista'
+	$t[4] = 'cheap'
+	$t[5] = 'sexshop'
+	$t[6] = 'sport'
+	result = 0
+	i = 0
+	:loopsumpanties_i
+	$temp = $t[i]
+	j = 1
+	:loopsumpanties_j
+	$temp1 = '<<$temp>>_panties[<<j>>]'
+	$temp2 = '<<$temp>>_pantiesS[<<j>>]'
+	dynamic 'if <<$temp1>> = 1 and <<$temp2>> = 0: result +=1'
+	j += 1
+	if j <= dyneval('result = arrsize(''<<$temp>>_panties'')') : jump 'loopsumpanties_j'
+	i += 1
+	if i <= arrsize('$t'): jump 'loopsumpanties_i'
+	if $ARGS[1] = 'dresser': if $pantyworntype ! 'none' and result > 0: result -= 1
+	killvar('t')
+	killvar('temp')
+	killvar('temp1')
+	killvar('temp2')
+end
+
+if $ARGS[0] = 'dispose':
+	if underwear['type'] = 2: gs 'underwear_bodysuits', 'dispose'
+	dynamic $pantyworntype + '_panties[<<pantywornnumber>>] = 0'
+	$lastwornpantytype = 'none'
+	lastwornpantynumber = 0
+	$pantyworntype = 'none'
+	pantywornnumber = 0
+end
+
+if $ARGS[0] = 'remove':
+	if underwear['type'] = 2: gs 'underwear_bodysuits', 'remove'
+	$lastwornpantytype = $pantyworntype
+	lastwornpantynumber = pantywornnumber
+	$pantyworntype = 'none'
+	pantywornnumber = 0
+	underwear['lastworntype'] = 0
+end
+
+if $ARGS[0] = 'wear':
+	if underwear['lastworntype'] = 2: gs 'underwear_bodysuits', 'wear'
+	if $ARGS[1] = '':
+		if dyneval('RESULT = <<$lastwornpantytype>>_pantiesS[<<lastwornpantynumber>>]') = 0 and $lastwornpantytype ! '':
+			gs 'panties', 'wear2', $lastwornpantytype, lastwornpantynumber
+		else
+			$pantyworntype = 'none'
+			pantywornnumber = 0
+		end
+	else
+		if dyneval('RESULT = <<$ARGS[1]>>_pantiesS[<<ARGS[2]>>]') = 0:
+			gs 'panties', 'wear2', $ARGS[1], ARGS[2]
+		else
+			$pantyworntype = 'none'
+			pantywornnumber = 0
+		end
+	end
+end
+
+if $ARGS[0] = 'wear2':
+	!! ARGS 0 - action
+	!! ARGS 1 - panties type name
+	!! ARGS 2 - panties index
+
+!! removing panties or bodysuit if worn
+	if underwear['type'] = 0:
+		gs 'panties', 'remove'
+	else
+		gs 'underwear_bodysuits', 'remove'
+	end
+	underwear['type'] = 0
+
+	$pantyworntype = $ARGS[1]
+	pantywornnumber = ARGS[2]
+
+	dynamic $ARGS[1] + '_w[<<ARGS[2]>>] = 1'
+
+	gs 'underwear_attributes', $ARGS[1], ARGS[2]
+
+	dynamic '<<$ARGS[1]>>_s[<<ARGS[2]>>] = 0'
+
+	PPanMaterial = PanMaterial
+	PPantyFun = PantyFun
+	PPanQuality = PanQuality
+	PPanThinness = PanThinness
+	PPanCoverFront = PanCoverFront
+	PPanCoverBack = PanCoverBack
+end
+
+if $ARGS[0] = 'wear_last_worn':
+	!!contingency
+	if $lastwornpantytype = '': $lastwornpantytype = 'none'
+	gs 'panties', 'wear', $lastwornpantytype, lastwornpantynumber
 end
 
 --- panties ---------------------------------
