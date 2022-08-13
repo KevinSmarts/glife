@@ -35,11 +35,8 @@ if $ARGS[0] = 'RegularUpdate':
 		pcs_bmi = func($this, 'CalcBMI')
 	end
 
-	if pcs_skin > 100:
-		pcs_skin = 100
-	elseif pcs_skin < 0:
-		pcs_skin = 0
-	end
+	if pcs_skin > 900: pcs_skin = 900
+	if pcs_skin < 0: pcs_skin = 0
 end
 
 if $ARGS[0] = 'DailyUpdate':
@@ -138,6 +135,23 @@ if $ARGS[0] = 'DailyUpdate':
 	end
 	
 	if age < 18 and rand (0,2) = 0 and pcs_leghair > 0: pcs_leghair -= 1
+
+	if pcs_skin <= 200:
+		pcs_skin += min(skinDailyGain * 2, 20) - skinDailyPenalty - 1
+	elseif pcs_skin <= 400:
+		pcs_skin += min(skinDailyGain, 10) - skinDailyPenalty - 1
+	elseif pcs_skin <= 600:
+		pcs_skin += min(skinDailyGain/2, 5) - skinDailyPenalty - 1
+	elseif pcs_skin <= 800:
+		pcs_skin += min(skinDailyGain/3, 3) - skinDailyPenalty - 1
+	elseif pcs_skin <= 900:
+		pcs_skin += min(skinDailyGain/5, 2) - skinDailyPenalty - 1
+	end
+
+	!skin variable reset
+	killvar 'moisturizerDailyCount'
+	killvar 'skinDailyGain'
+	killvar 'skinDailyPenalty'
 end
 
 if $ARGS[0] = '':
@@ -433,7 +447,7 @@ if $ARGS[0] = 'UpdateBodyImage':
 		end
 	elseif (knowpreg = 1 or (preg = 1 and thinkpreg = 1) or (preg = 1 and PregChem > 3600)) and bodet ! 3 and bdsetlock = 0:
 		bodset = 3
-	elseif preg = 0 and bodset = 3 and bdsetlock = 0:
+	elseif preg = 0 and bdsetlock = 0:
 		if strenbuf >= 70:
 			bodset = 2
 		elseif strenbuf <= 40:
@@ -461,6 +475,30 @@ end
 
 if $ARGS[0] = 'CalcBMI':
 	result = 10000 * (30 + salo / 2 + (pcs_hgt - 170) * 7 / 10) / (pcs_hgt * pcs_hgt)
+end
+
+if $ARGS[0] = 'SkinGain':
+	if $ARGS[1] = 'CleanSelf' and lastShowerSkinGain ! daystart:
+		lastShowerSkinGain = daystart
+		skinDailyGain += 5
+		if bathLuffa = 1: skinDailyGain += 3
+	end
+
+	if $ARGS[1] = 'Moisturizer':
+		moisturizerDailyCount += 1
+		if moisturizerDailyCount <= 2: skinDailyGain += 3
+	end
+end
+
+if $ARGS[0] = 'SkinLoss':
+	if $ARGS[1] = 'Smoke' and lastSmokeSkinPenalty ! daystart:
+		lastSmokeSkinPenalty = daystart
+		skinDailyPenalty += 1
+	end
+
+	if $ARGs[1] = 'MakeUpSleep':
+		skinDailyPenalty += 10
+	end
 end
 
 if $ARGS[0] = 'softreset':
@@ -536,9 +574,10 @@ if $ARGS[0] = 'initial':
 	killvar 'gmstrtflag'
 	newbdsp = 1
 	!!	This does all the body shape setting before the first stat call
-	gs $this, 'UpdateBodyMeasurement'
+	gs 'body', 'UpdateBodyMeasurement'
 	pcs_weight = func($this, 'CalcWeight')
 	pcs_bmi = func($this, 'CalcBMI')
+	gs 'body', 'UpdateBodyImage'
 	gs 'body_desc', 'BMI'
 end
 
