@@ -38,11 +38,18 @@ if $ARGS[0] = 'exit':
 end
 
 if $ARGS[0] = 'ending':
-	gs 'booty_call_stats', 'save'
+!!	gs 'booty_call_stats', 'save'
 	gs 'arousal', 'end'
-	if $clothingworntype = 'nude': gs'shortgs', 'dress'
+	if $clothingworntype = 'nude': gs'booty_call_after', 'dress'
 	if pcs_vag > 0 and booty_call['fuck'] > 0: know_virgin[$boy] = 0
 	killvar 'booty_call'
+end
+
+if $ARGS[0] = 'dress':
+	gs'clothing','wear_last_worn'
+	gs 'panties', 'wear', $lastwornpantytype['booty_call'], lastwornpantynumber['booty_call']
+	gs 'bras', 'wear', $lastwornbratype['booty_call'], lastwornbranumber['booty_call']
+	gs 'stat'
 end
 
 
@@ -70,35 +77,120 @@ end
 if $ARGS[0] = 'stop_here':
 	act'Finish here?':
 		cla & *clr
-		$npc_apt_bedroom[$boy]
-		'"I think I''m good here," you say. "How about you?"'
-		if booty_call['cum_count'] < npc_sexdrive[$boy] - 5:
+		if booty_call['blowjob_continue_ask'] = 1:
+			'<center><video autoplay loop src="images/shared/sex/blowjob/play1.mp4"></video></center>'
+			'"There, happy now?" you ask, playing with his cock.'
+		elseif booty_call['keep_going_continue'] > 0:
+			$npc_apt_bedroom[$boy]
+			'"Is that good enough for you now?" you ask.'
+		else
+			$npc_apt_bedroom[$boy]
+			'"I think I''m good here," you say. "How about you?"'
+		end
+		if booty_call['cum_count'] < npc_sexdrive[$boy] - rand(1,3) and booty_call['blowjob_continue_ask'] ! 1:
 			booty_call['blue_ball'] = 1
-			'"You''re seriously done already?" <<$npc_firstname[$boy]>> protests. "I still want to get off a few more times with you."'
-			act'I can''t keep going':
-				cla & *nl
-				'"I''m sorry <<$npc_firstname[$boy]>>," you say, rubbing his arm, genuinely apologetic. "But I just can''t keep up with your sex drive. I''m all tapped out. Maybe next time?"'
-				'<<$npc_firstname[$boy]>> seems really disappointed, almost upset.'
-				gs'booty_call_after', 'after_sex1'
+			if booty_call['keep_going_continue'] > 0 and npc_caretaker[$boy] = 1:
+				gs'booty_call_after', 'finish'
+			elseif booty_call['keep_going_continue'] > 0:
+				'"Just a couple more times?" <<$npc_firstname[$boy]>> begs. "I still want to get off a few more times with you."'
+				gs'booty_call_after', 'stop_here_options'
+			else
+				'"You''re done already?" <<$npc_firstname[$boy]>> complains. "I still want to get off a few more times with you."'
+				gs'booty_call_after', 'stop_here_options'
 			end
-
-			act'Well...':
-				cla & *nl
-				'"Well... I guess I might be able to keep going a <i>little</i> longer," you say with a soft smile.'
-				gs'booty_call_sex', 'reset'
-				act'Foreplay':cla & gs 'booty_call_start', 'foreplay_choose'
-				act'Sex':cla & gs'booty_call_sex', 'position_change' & gs 'booty_call_sex', 'condoms'
-			end
-
-			act'I don''t have time':
-				cla & *nl
-				'"I wish I could, but I don''t have time <<$npc_firstname[$boy]>>," you shake your head. "I really need to get going soon."'
-				'<<$npc_firstname[$boy]>> seems really disappointed, almost upset.'
-				gs'booty_call_after', 'after_sex1'
-			end
+			
 		else
 			gs'booty_call_after', 'finish'
 		end
+	end
+end
+
+if $ARGS[0] = 'stop_here_options':
+	act'I can''t keep going':
+		cla & *nl
+!!		if booty_call['fuck_count'] > 0:
+			'"I''m sorry <<$npc_firstname[$boy]>>," you say, rubbing his arm, genuinely apologetic. "But I just can''t keep up with your sex drive. I''m all tapped out. Maybe next time?"'
+		if npc_caretaker[$boy] = 1:
+			'<<$npc_firstname[$boy]>> smiles wistfully at you.'
+			'"I guess it''s okay then..."'
+			gs'booty_call_after', 'after_sex1'
+		else
+			if booty_call['cum_count'] < npc_sexdrive[$boy] - 5:
+				if rand(0,1) = 1:
+					'"Come on, please? Just a couple more times?"'
+					act'Not happening':
+						cla & *nl
+						'"Sorry," you shake your head. "But I just can''t."'
+						gs'booty_call_after', 'after_sex1'
+					end
+				else
+					'"Can I at least get a blowjob?"'
+					booty_call['blowjob_continue_ask'] = 1
+					act'Not happening':
+						cla & *nl
+						'"Sorry," you shake your head. "But I just can''t."'
+						gs'booty_call_after', 'after_sex1'
+					end
+					gs 'booty_call_start', 'bj_ask2'
+				end
+			else
+				'<<$npc_firstname[$boy]>> seems really disappointed, almost upset.'
+				gs'booty_call_after', 'after_sex1'
+			end
+		end
+	end
+	
+	gs'booty_call_after', 'well_continue'
+
+	act'I don''t have time':
+		cla & *nl
+		booty_call['no_time'] += 1
+		if booty_call['keep_going_continue'] >= 1:
+			'"Seriously <<$npc_firstname[$boy]>>," you say. "I can''t. You''re gonna make me late."'
+		else
+			'"I wish I could, but I don''t have time <<$npc_firstname[$boy]>>," you shake your head. "I really need to get going soon."'
+		end
+		if npc_caretaker[$boy] = 1:
+			'"Well, I don''t want to make you late," he says softly.'
+		else
+			if booty_call['cum_count'] < npc_sexdrive[$boy] - 5:
+				'"Come on, please? Just a couple more times?"'
+			else
+				'<<$npc_firstname[$boy]>> seems really disappointed, almost upset.'
+			end
+		end
+		gs'booty_call_after', 'after_sex1'
+		gs'booty_call_after', 'well_continue'
+	end
+	
+	if booty_call['fuck_count'] > 3:
+		act'Sore pussy':
+			cla & *nl
+			booty_call['sore_pussy'] = 1
+			'"You''ve ," you say, rubbing his arm, genuinely apologetic. "But I just can''t keep up with your sex drive. I''m all tapped out. Maybe next time?"'
+			if npc_caretaker[$boy] = 1:
+				'<<$npc_firstname[$boy]>> smiles apologetically at you.'
+				'"Oh. Sorry about that..."'
+			else
+				'<<$npc_firstname[$boy]>> seems really disappointed, almost upset.'
+			end
+			gs'booty_call_after', 'after_sex1'
+		end
+	end
+end
+
+if $ARGS[0] = 'well_continue':
+	act'Well...':
+		cla & *nl
+		if booty_call['no_time'] > 0:
+			'"Well... Maybe I could be a <i>little</i> late..." you say with a soft smile.'
+		else
+			'"Well... I guess I might be able to keep going a <i>little</i> longer," you say with a soft smile.'
+		end
+		booty_call['keep_going_continue'] += 1
+		gs'booty_call_sex', 'reset'
+		act'Foreplay':cla & gs 'booty_call_start', 'foreplay_choose'
+		act'Sex':cla & gs'booty_call_sex', 'position_change' & gs 'booty_call_condoms', 'condoms'
 	end
 end
 
@@ -117,7 +209,7 @@ if $ARGS[0] = 'keep_going':
 				gs'booty_call_sex', 'reset'
 				act'Let him lead':cla & gs 'booty_call_sex', 'he_choose_position'
 				act'Foreplay':cla & gs 'booty_call_start', 'foreplay_choose'
-				act'Sex':cla & gs'booty_call_sex', 'position_change' & gs 'booty_call_sex', 'condoms'
+				act'Sex':cla & gs'booty_call_sex', 'position_change' & gs 'booty_call_condoms', 'condoms'
 			else
 				cla & *nl
 				$booty_call['reset_pos'] = $booty_call['pos_speed']
@@ -126,7 +218,7 @@ if $ARGS[0] = 'keep_going':
 				gs'booty_call_sex', 'reset'
 				act'Let him lead':cla & gs 'booty_call_sex', 'he_choose_position'
 				act'Foreplay':cla & gs 'booty_call_start', 'foreplay_choose'
-				act'Keep fucking':gs'booty_call_sex', 'reset' & gs 'booty_call_sex', 'condoms' & gt'booty_call_sex',$booty_call['reset_pos']
+				act'Keep fucking':gs'booty_call_sex', 'reset' & gs 'booty_call_condoms', 'condoms' & gt'booty_call_sex',$booty_call['reset_pos']
 			end
 		else
 			cla & *clr
@@ -142,7 +234,7 @@ if $ARGS[0] = 'keep_going':
 			gs'booty_call_sex', 'reset'
 			act'Let him lead':cla & gs 'booty_call_sex', 'he_choose_position'
 			act'Foreplay':cla & gs 'booty_call_start', 'foreplay_choose'
-			act'Sex':cla & gs'booty_call_sex', 'position_change' & gs 'booty_call_sex', 'condoms'
+			act'Sex':cla & gs'booty_call_sex', 'position_change' & gs 'booty_call_condoms', 'condoms'
 		end
 	end
 end
@@ -201,6 +293,93 @@ if $ARGS[0] = 'fucked_out':
 		gs'booty_call_after', 'after_sex2'
 	end
 end
+
+if $ARGS[0] = 'wipes':
+	gs'stat'
+	if hypnoAddict > 0:
+		cumspclnt = 18
+	else
+		cumspclnt = 1
+	end
+	cla & *clr
+	if cumloc[11] > 0 or $booty_call['cum_choice'] = 'facial':
+		!! face
+		'<center><img <<$set_imgh>> src="images/shared/sex/cum/facial/facial36.jpg"></center>'
+		if booty_call['wipes'] = 2:
+			'"Hey, got anything I can use to clean up?" you trying not to smile under the spunk covering your face.'
+			'"Oh yeah, right here." <<$npc_firstname[$boy]>> reaches over to his nightstand, pulling a packet of tissues and tossing them over to you. Gratefully accepting them, you pull out a handful and get to work cleaning yourself up.'
+		else
+			'You reach up and poke at the sperm coating your face. Ew. You really need to clean that up before you do anything else. Reaching down to your purse, you pull some wipes out of your purse.'
+		end
+		*nl
+
+		if cumloc[16] > 0:
+			!! hair
+			'You carefully wipe the cum from your face, making sure to get every last drop, including getting the tangled web that <<$npc_firstname[$boy]>> managed to get in your hair. About a minute later, you can still feel a faintly sticky layer over the top of your skin, but at least nobody is going to give you funny looks walking down the street.'
+		else
+			'You carefully wipe the cum from your face, making sure to get every last drop. About a minute later, you can still feel a faintly sticky layer over the top of your skin, but at least nobody is going to give you funny looks walking down the street.'
+		end
+		booty_call['wipes'] = 0
+	elseif cumloc[12] > 0 or $booty_call['cum_choice'] = 'stomach':
+		!! stomach
+		'<center><img <<$set_imgh>> src="images/shared/sex/cum/stomach/bellycum3.jpg"></center>'
+		if booty_call['wipes'] = 2:
+			'"Hey, got anything I can use to clean up?" you ask, looking at your belly, cum still spattered over it.'
+			'"Oh yeah, right here." <<$npc_firstname[$boy]>> reaches over to his nightstand, pulling a packet of tissues and tossing them over to you. Gratefully accepting them, you pull out a handful and get to work cleaning yourself up.'
+		else
+			'You really need to clean yourself after up after that. Reaching down to your purse, you pull some wipes out of your purse.'
+		end
+		booty_call['wipes'] = 0
+	elseif cumloc[4] > 0 or $booty_call['cum_choice'] = 'ass' or $booty_call['cum_choice'] = 'back':
+		!! butt
+		'<center><img <<$set_imgh>> src="images/shared/sex/cum/back1.jpg"></center>'
+		if booty_call['wipes'] = 2:
+			'"Hey, got anything I can use to clean up?" you ask, looking over your shoulder and wiggling your ass to emphasize the cum resting on it.'
+			'"Oh yeah, right here." <<$npc_firstname[$boy]>> reaches over to his nightstand, pulling a packet of tissues and tossing them over to you. Gratefully accepting them, you pull out a handful and get to work awkwardly trying to wipe your ass and up your back.'
+		else
+			'You really need to clean yourself after up after that. Reaching down to your purse, you pull some wipes out of your purse, awkwardly wiping your ass and back with it.'
+		end
+		booty_call['wipes'] = 0
+	elseif cumloc[0] > 0 or $booty_call['cum_choice'] = 'creampie':
+		!! vagina
+		if hypnoAddict > 0:
+			'<center><b><font color="maroon"><<$npc_firstname[$boy]>>''s Bedroom</font></b></center>'
+			$npc_apt_bedroom[$boy]
+			if booty_call['wipes'] = 1:
+				'You reach down to your purse and pull out your bag of wipes before you stop, suddenly confused.'
+				'<i>Why did I get out my wipes?</i> you think to yourself. You frown at the packet, befuddled as to what you wanted to do with the,.'
+				'<i>Meh. If it''s important, it will come back to me later,</i> you think to yourself as you put it back into your purse, oblivious to the liquid dribbling down the inside of your thigh.'
+			elseif booty_call['wipes'] = 2:
+				'"Hey, do you-" you start and then suddenly lose track of what you were trying to say. You frown to yourself as <<$npc_firstname[$boy]>> looks at you quizically.'
+				'"Did you need something?"'
+				'"I uhh..." Your frown deepens. "I wanted to ask you something... but I forgot what it was... I guess it doesn''t really matter..."'
+				'<i>Meh. If it''s important, it will come back to me later,</i> you think to yourself, oblivious to the liquid dribbling down the inside of your thigh.'
+			end
+		else
+			if booty_call['wipes'] = 2:
+				'<center><video autoplay loop src="images/shared/sex/cum/vagcreampie/after1.mp4"></video></center>'
+				'"Hey, got anything I can use to clean up?" you say, holding your fingers over your pussy, trying to keep the cum from spilling out any further.'
+				'"Oh yeah, right here." <<$npc_firstname[$boy]>> reaches over to his nightstand, pulling a packet of tissues and tossing them over to you. Gratefully accepting them, you pull out a handful and get to work cleaning yourself up.'
+			else
+				'<center><img <<$set_imgh>> src="images/shared/sex/cum/cum111.jpg"></center>'
+				'You really need to clean yourself after up after that. Reaching down to your purse, you pull some wipes out of your purse before reaching between your legs to wipe yourself up.'
+				*nl
+				'It takes a few tries, more cum seemingly coming out with every next wipe, but eventually you feel like you got most of it out. At least enough that nothing is going to be running down your legs walking home.'
+			end
+		end
+	end
+
+	if cumloc[13] > 0:
+		*nl
+		!! hands
+		'Once you''re satisfied that the rest of your body is clean, you wipe your hands off and toss the wipes into the trash.'
+	end
+
+	booty_call['wipes'] = 0
+	gs'cum_cleanup'
+	gs'booty_call_after', 'after_sex2'
+end
+
 
 if $ARGS[0] = 'wipe_hands':
 	act'Wipe your hands':
@@ -367,6 +546,7 @@ end
 
 if $ARGS[0] = 'black_out':
 	cla & *clr
+	booty_call['pass_out'] = 1
 	if booty_call['cum_together'] > 0:
 		if $booty_call['position'] = 'miss':
 			'<center><img <<$set_imgh>> src="images/shared/sex/vag/miss/2.jpg"></center>'
@@ -789,7 +969,7 @@ if $ARGS[0] = 'after_sex2':
 		act'Pillow talk':gt'booty_call_pillow_talk', 'start'
 	end
 
-	if hour >= 20 and booty_call['spend_night'] = 0:
+	if (hour >= 20 or hour < 5) and booty_call['spend_night'] = 0:
 		act'Ask to spend the night':
 			booty_call['spend_night'] = 1
 			cla & *clr
@@ -806,11 +986,11 @@ if $ARGS[0] = 'after_sex2':
 				act'I''m sick of my mom':
 					cla & *clr
 					$npc_apt_bedroom[$boy]
-					'"Mind if I spend the night?" you ask. "My mom has been such a pain in the ass lately and I don''t want to see her."'
+					'"Mind if I spend the night?" you ask. "My mom has been such a bitch lately and I don''t want to see her."'
 					gs'booty_call_after', 'spend_night'
 				end
 			end
-			if pcs_boyfriend > 0:
+			if pcs_lovers - pcs_girlfriends > 0:
 				act'I don''t want to see my boyfriend(annoyed)':
 					cla & *clr
 					$npc_apt_bedroom[$boy]
@@ -1002,76 +1182,30 @@ if $ARGS[0] = 'dressing1':
 			gs'booty_call_after', 'after_sex_dressed'
 		end
 	end
-
-
-!!	act'Talk while you dress':
-!!		gs'booty_call_after', 'dress_talk'
-!!	end
-end
-
-!!{
-if $ARGS[0] = 'dress_talk':
-	if rand(0,1) = 1:
-		!! he initiates
-		if booty_call['dress_talk1'] = 0:
-			'"You busy tomorrow? Want to come by and do this again?"'
-
-		end
-
-		if booty_call['dress_talk2'] = 0:
-			'"What''re you up to later?"'
-			if date_variable > 0:
-				act'I have a date with my boyfriend':
-					cla & *clr
-					gs'booty_call_after', 'dress_image'
-					'"I have a date with my boyfriend later."'
-				end
+	if mid($start_type,1,2) = 'sg' and hour >= 20:
+		act'Mom will kill me':
+			booty_call['mom_kill'] = 1
+			cla & *nl
+			if hour < 3:
+				'"Yeah," you say, <<$booty_call[''dress_describe'']>>. "I''m already going to be in trouble as it is, but if I don''t come home at all tonight, my mom will kill me."'
+			else
+				'"Yeah," you say, <<$booty_call[''dress_describe'']>>. "My mom will kill me if I don''t come home before curfew."'
 			end
-		end
-
-		if booty_call['dress_talk3'] = 0:
-
-
-		end
-
-		if booty_call['dress_talk4'] = 0:
-
-
-		end
-
-		if booty_call['dress_talk5'] = 0:
-
-
-		end
-	else
-		!! player initiates
-		if booty_call['dress_talk1'] = 0:
-
-
-		end
-
-		if booty_call['dress_talk2'] = 0:
-
-
-		end
-
-		if booty_call['dress_talk3'] = 0:
-
-
-		end
-
-		if booty_call['dress_talk4'] = 0:
-
-
-		end
-
-		if booty_call['dress_talk5'] = 0:
-
-
+			act'Finish getting dressed':
+				gs'booty_call_after', 'dress_loop'
+				cla & *clr
+				$npc_apt_bedroom[$boy]
+				'You finish <<$booty_call[''dress_describe'']>>'
+				gs'booty_call_after', 'after_sex_dressed'
+			end
 		end
 	end
 
-end}
+
+!!	act'Talk while you dress':
+!!		gs'booty_call_after', 'dress_talk_start'
+!!	end
+end
 
 if $ARGS[0] = 'dress_image':
 	if booty_call['CloDress'] = 1:
@@ -1083,11 +1217,11 @@ end
 
 if $ARGS[0] = 'dress_loop':
 	:dress_loop_start
-	if $lastwornpantytype ! 'none' and $pantyworntype = 'none':
-		gs'panties', 'wear'
+	if $lastwornpantytype['booty_call'] ! 'none' and $pantyworntype = 'none':
+		gs 'panties', 'wear', $lastwornpantytype['booty_call'], lastwornpantynumber['booty_call']
 		$booty_call['dress_describe'] = 'pulling your panties up your legs'
-	elseif $lastwornbratype ! 'none' and $braworntype = 'none':
-		gs'bras', 'wear'
+	elseif $lastwornbratype['booty_call'] ! 'none' and $braworntype = 'none':
+		gs 'bras', 'wear', $lastwornbratype['booty_call'], lastwornbranumber['booty_call']
 		$booty_call['dress_describe'] = 'throwing your arms through the straps of your bra and clasping it behind your back.'
 	elseif $clothingworntype = 'nude':
 		gs'clothing', 'wear'
@@ -1123,12 +1257,14 @@ if $ARGS[0] = 'after_sex_dressed':
 		cla & *clr
 		$npc_apt_bedroom[$boy]
 		'"I can''t do this anymore," you say, stiffly.'
-		'"Huh?" <<$npc_firstname[$boy]>> sits up. "What are you talking about?"'
+		'"Huh?" <<$npc_firstname[$boy]>> looks at you oddly. "What are you talking about?"'
 		'"I can''t keep hooking up with you like this. Not anymore."'
 		'"Why not?" he asks.'
 		act'Don''t explain':
-			cla & *nl
+			cla & *clr
+			'<center><video autoplay loop src="images/shared/romance/misc/depart_annoyed1.mp4"></video></center>'
 			'"I just can''t," you say. "I''m sorry."'
+			'You grab your things and leave.'
 			gs 'lover', 'remove fuckbuddy', $boy
 			act'Leave':gt'booty_call_after', 'exit'
 		end
@@ -1136,29 +1272,94 @@ if $ARGS[0] = 'after_sex_dressed':
 		if pcs_lovers > 0:
 			act'I''ve started seeing somebody':
 				cla & *clr
+				npc_know_cheat[$boy] = 1
 				$npc_apt_bedroom[$boy]
-				'"The truth is, I''ve started seeing somebody. Sex with you has been good, but... I can''t keep doing this. I don''t want to fuck things up with them."'
-
-			end
-			act'I can''t keep cheating like this':
-				cla & *clr
-				$npc_apt_bedroom[$boy]
-				if npc_know_cheat[$boy] = 1:
-					'"I can''t keep cheating on my boyfriend like this," you say, hanging your head shamefully. "It''s wrong, and I just can''t do this anymore. I have to go."'
+				'"The truth is, I''ve started seeing somebody. The sex has been good, but..." You shake your head, grabbing your purse. "I can''t keep doing this. I don''t want to fuck things up."'
+				if npc_fidelity[$boy] < 7:
+					'"Come on," he says. "We''re just having fun. It''s not cheating if it''s just physical. When you masturbate in the shower, it''s not cheating hom him with your showerhead are you?"'
+					act'No means no':
+						cla & *clr
+						'<center><video autoplay loop src="images/shared/romance/misc/depart_annoyed1.mp4"></video></center>'
+						'"You''re not going to change my mind," you say. "We''re done."'
+						*nl
+						'And with that, you head out the door.'
+						gs 'lover', 'remove fuckbuddy', $boy
+						act'Leave':gt'booty_call_after', 'exit'
+					end
+					
+					act'Well...':
+						cla & *nl
+						'You pause, biting your lip in consideration.'
+						act'As long as it''s just phsyical':
+							cla & *clr
+							$npc_apt_bedroom[$boy]
+							'"Well..." you say slowly. "As long as it''s <i>just</i> physical..."'
+							'"Thatta girl," <<$npc_firstname[$boy]>> grins from bed.'
+							gs'booty_call_after', 'cheating_end'
+						end
+						
+						act'Set some rules':
+							cla & *nl
+							'"Okay..." you say. "But there have to be rules!"'
+							gs'booty_call_after', 'cheating_rules'
+						end
+					end
 				else
-					'"The truth is, I''m in a relationship with somebody," you say, hanging your head shamefully. "I''ve been cheating on them with you this whole time. It''s wrong, and I— I just can''t do this anymore!"'
+					gs 'lover', 'remove fuckbuddy', $boy
+					'"Oh." <<$npc_firstname[$npclastsaved]>> looks at you. "I guess that''s fair. So... I''ll see you around?"'
+					act'See you':
+						cla & *nl
+						'"Yeah," you mumble wistfully. "See you..."'
+						*nl
+						'And with that, you head out the door.'
+						act'Leave':gt'booty_call_after', 'exit'
+					end
+					
+					act'No I won''t':
+						cla & *clr
+						'<center><video autoplay loop src="images/shared/romance/misc/depart_annoyed1.mp4"></video></center>'
+						'"No, I won''t," you frown. "That''s the point."'
+						*nl
+						'And with that, you head out the door.'
+						act'Leave':gt'booty_call_after', 'exit'
+					end
 				end
-				'You grab your things and rush out the door.'
-				gs 'lover', 'remove fuckbuddy', $boy
-				act'Leave':gt'booty_call_after', 'exit'
+			end
+			
+			if pcs_lovers - pcs_girlfriends > 0:
+				act'I can''t keep cheating on my boyfriend':
+					cla & *clr
+					'<center><video autoplay loop src="images/shared/romance/misc/depart_annoyed1.mp4"></video></center>'
+					if npc_know_cheat[$boy] = 1:
+						'"I can''t keep cheating on my boyfriend like this," you say, hanging your head shamefully. "It''s wrong, and I just can''t do this anymore. I have to go."'
+					else
+						'"The truth is, I''m in a relationship with somebody," you say, hanging your head shamefully. "I''ve been cheating on them with you this whole time. It''s wrong, and I— I just can''t do this anymore!"'
+					end
+					'You grab your things and rush out the door.'
+					gs 'lover', 'remove fuckbuddy', $boy
+					act'Leave':gt'booty_call_after', 'exit'
+				end
+			end
+			if pcs_girlfriends > 0:
+				act'I can''t keep cheating on my girlfriend':
+					cla & *clr
+					'<center><video autoplay loop src="images/shared/romance/misc/depart_annoyed1.mp4"></video></center>'
+					if npc_know_cheat[$boy] = 1:
+						'"I can''t keep cheating on my girlfriend like this," you say, hanging your head shamefully. "It''s wrong, and I just can''t do this anymore. I have to go."'
+					else
+						'"The truth is, I''m in a relationship with somebody," you say, hanging your head shamefully. "I''ve been cheating on them with you this whole time. It''s wrong, and I— I just can''t do this anymore!"'
+					end
+					'You grab your things and rush out the door.'
+					gs 'lover', 'remove fuckbuddy', $boy
+					act'Leave':gt'booty_call_after', 'exit'
+				end
 			end
 		end
+!!		gs'booty_call_after', 'isnt_going_to_work'
+
 	end
 !!{
-		act'You don''t satisfy me anymore':
-
-
-		end
+	
 
 		act'This is getting too complicated':
 
@@ -1169,93 +1370,263 @@ if $ARGS[0] = 'after_sex_dressed':
 	}
 end
 
-if $ARGS[0] = 'wipes':
-	gs'stat'
-	if hypnoAddict > 0:
-		cumspclnt = 18
-	else
-		cumspclnt = 1
-	end
-	cla & *clr
-	if cumloc[11] > 0 or $booty_call['cum_choice'] = 'facial':
-		!! face
-		'<center><img <<$set_imgh>> src="images/shared/sex/cum/facial/facial36.jpg"></center>'
-		if booty_call['wipes'] = 2:
-			'"Hey, got anything I can use to clean up?" you trying not to smile under the spunk covering your face.'
-			'"Oh yeah, right here." <<$npc_firstname[$boy]>> reaches over to his nightstand, pulling a packet of tissues and tossing them over to you. Gratefully accepting them, you pull out a handful and get to work cleaning yourself up.'
-		else
-			'You reach up and poke at the sperm coating your face. Ew. You really need to clean that up before you do anything else. Reaching down to your purse, you pull some wipes out of your purse.'
+!!{
+if $ARGS[0] = 'isnt_going_to_work':
+	act'You don''t satisfy me':
+		cla & *clr
+		$npc_apt_bedroom[$boy]
+		'"You''re just not what I want out of a fuckbuddy," you say flatly.'
+		act'Sexually incompatible':
+			cla & *clr
+			'<center><video autoplay loop src="images/shared/romance/misc/depart_annoyed1.mp4"></video></center>'
+			'"You''re just not what I want out of a fuckbuddy," you say flatly. "I just don''t think we''re sexually compatible."'
+			*nl
+			'You shrug once, grab your things, and leave without another word.'
+			gs 'lover', 'remove fuckbuddy', $boy
+			act'Leave':gt'booty_call_after', 'exit'
 		end
-		*nl
-
-		if cumloc[16] > 0:
-			!! hair
-			'You carefully wipe the cum from your face, making sure to get every last drop, including getting the tangled web that <<$npc_firstname[$boy]>> managed to get in your hair. About a minute later, you can still feel a faintly sticky layer over the top of your skin, but at least nobody is going to give you funny looks walking down the street.'
-		else
-			'You carefully wipe the cum from your face, making sure to get every last drop. About a minute later, you can still feel a faintly sticky layer over the top of your skin, but at least nobody is going to give you funny looks walking down the street.'
-		end
-		booty_call['wipes'] = 0
-	elseif cumloc[12] > 0 or $booty_call['cum_choice'] = 'stomach':
-		!! stomach
-		'<center><img <<$set_imgh>> src="images/shared/sex/cum/stomach/bellycum3.jpg"></center>'
-		if booty_call['wipes'] = 2:
-			'"Hey, got anything I can use to clean up?" you ask, looking at your belly, cum still spattered over it.'
-			'"Oh yeah, right here." <<$npc_firstname[$boy]>> reaches over to his nightstand, pulling a packet of tissues and tossing them over to you. Gratefully accepting them, you pull out a handful and get to work cleaning yourself up.'
-		else
-			'You really need to clean yourself after up after that. Reaching down to your purse, you pull some wipes out of your purse.'
-		end
-		booty_call['wipes'] = 0
-	elseif cumloc[4] > 0 or $booty_call['cum_choice'] = 'ass' or $booty_call['cum_choice'] = 'back':
-		!! butt
-		'<center><img <<$set_imgh>> src="images/shared/sex/cum/back1.jpg"></center>'
-		if booty_call['wipes'] = 2:
-			'"Hey, got anything I can use to clean up?" you ask, looking over your shoulder and wiggling your ass to emphasize the cum resting on it.'
-			'"Oh yeah, right here." <<$npc_firstname[$boy]>> reaches over to his nightstand, pulling a packet of tissues and tossing them over to you. Gratefully accepting them, you pull out a handful and get to work awkwardly trying to wipe your ass and up your back.'
-		else
-			'You really need to clean yourself after up after that. Reaching down to your purse, you pull some wipes out of your purse, awkwardly wiping your ass and back with it.'
-		end
-		booty_call['wipes'] = 0
-	elseif cumloc[0] > 0 or $booty_call['cum_choice'] = 'creampie':
-		!! vagina
-		if hypnoAddict > 0:
-			'<center><b><font color="maroon"><<$npc_firstname[$boy]>>''s Bedroom</font></b></center>'
-			$npc_apt_bedroom[$boy]
-			if booty_call['wipes'] = 1:
-				'You reach down to your purse and pull out your bag of wipes before you stop, suddenly confused.'
-				'<i>Why did I get out my wipes?</i> you think to yourself. You frown at the packet, befuddled as to what you wanted to do with the,.'
-				'<i>Meh. If it''s important, it will come back to me later,</i> you think to yourself as you put it back into your purse, oblivious to the liquid dribbling down the inside of your thigh.'
-			elseif booty_call['wipes'] = 2:
-				'"Hey, do you-" you start and then suddenly lose track of what you were trying to say. You frown to yourself as <<$npc_firstname[$boy]>> looks at you quizically.'
-				'"Did you need something?"'
-				'"I uhh..." Your frown deepens. "I wanted to ask you something... but I forgot what it was... I guess it doesn''t really matter..."'
-				'<i>Meh. If it''s important, it will come back to me later,</i> you think to yourself, oblivious to the liquid dribbling down the inside of your thigh.'
-			end
-		else
-			if booty_call['wipes'] = 2:
-				'<center><video autoplay loop src="images/shared/sex/cum/vagcreampie/after1.mp4"></video></center>'
-				'"Hey, got anything I can use to clean up?" you say, holding your fingers over your pussy, trying to keep the cum from spilling out any further.'
-				'"Oh yeah, right here." <<$npc_firstname[$boy]>> reaches over to his nightstand, pulling a packet of tissues and tossing them over to you. Gratefully accepting them, you pull out a handful and get to work cleaning yourself up.'
-			else
-				'<center><img <<$set_imgh>> src="images/shared/sex/cum/cum111.jpg"></center>'
-				'You really need to clean yourself after up after that. Reaching down to your purse, you pull some wipes out of your purse before reaching between your legs to wipe yourself up.'
+		if npc_sexdrive[$boy] = 1 or npc_two_pump[$boy] = 1:
+			act'You''re a two pump chump':
+				cla & *clr
+				$npc_apt_bedroom[$boy]
+				'"You''re just not what I want out of a fuckbuddy," you say flatly. "You come too fast. I can''t trust you to get me off."'
 				*nl
-				'It takes a few tries, more cum seemingly coming out with every next wipe, but eventually you feel like you got most of it out. At least enough that nothing is going to be running down your legs walking home.'
+				'"Wait but-"'
+				gs'booty_call_after', 'isnt_going_to_work'
+			end
+		elseif npc_sexdrive[$boy] < 5:
+			act'You don''t last long enough for me':
+				cla & *clr
+				$npc_apt_bedroom[$boy]
+				'"You''re just not what I want out of a fuckbuddy," you say flatly. "You can''t keep it up and I can''t trust you to get me off."'
+				*nl
+				'"Wait but-"'
+				gs'booty_call_after', 'isnt_going_to_work'
+			end
+		else
+			act'You last too long':
+				cla & *clr
+				$npc_apt_bedroom[$boy]
+				'"You''re just not what I want out of a fuckbuddy," you say flatly. "Honestly, your sex drive is way too high. By the time you''re satisfied, my pussy is sore."'
+				*nl
+				'"Wait but-"'
+				gs'booty_call_after', 'isnt_going_to_work'
+			end
+		end
+		
+		act'You''re boring':
+	end
+end
+if $ARGS[0] = 'isnt_going_to_work':
+	act'Grab your things':
+		cla & *clr
+		'<center><video autoplay loop src="images/shared/romance/misc/depart_annoyed1.mp4"></video></center>'
+		'"This just isn''t going to work," you say, cutting him off. "We''re done."'
+		*nl
+		'And with that, you head out the door.'
+		gs 'lover', 'remove fuckbuddy', $boy
+		act'Leave':gt'booty_call_after', 'exit'
+	end
+end
+
+if $ARGS[0] = 'dress_talk_start':
+	act'Finish getting dressed':
+		gs'booty_call_after', 'dress_loop'
+		cla & *clr
+		$npc_apt_bedroom[$boy]
+		'You finish <<$booty_call[''dress_describe'']>>'
+		gs'booty_call_after', 'after_sex_dressed'
+	end
+	if booty_call['dress_end'] ! 1:
+		if rand(0,1) = 1:
+			!! he initiates
+			gs 'booty_call_after', 'dress_talk_him'
+		else
+			!! player initiates
+			gs 'booty_call_after', 'dress_talk_her'
+		end
+	else
+		gs 'booty_call_after', 'after_sex_dressed'
+	end
+end}
+
+if $ARGS[0] = 'dress_talk_him':
+	if booty_call['dress_talk1'] = 0:
+		'"You busy tomorrow? Want to come by and do this again?"'
+
+	end
+
+	if booty_call['dress_talk2'] = 0:
+		'"What''re you up to later?"'
+		if date_variable > 0:
+			!! CHANGE THIS PLACEHOLDER VARIABLE
+			act'I have a date with my boyfriend':
+				cla
+				act'Embarrassed':
+					gs'booty_call_after', 'dress_image'
+					'"I have a date with my boyfriend later," you say, blushing shyly.'
+					if npc_know_cheat[$boy] = 1:
+						if npc_fidelity[$boy] < 7:
+							'"You''re still with that stick in the mud?" <<$npc_firstname[$boy]>> scoffs.'
+						else
+						
+						end
+					else
+						'"Oh." <<$npc_firstname[$boy]>> looks away uncomfortably.'
+					end
+				end
+				
+				act'Casual':
+					gs'booty_call_after', 'dress_image'
+					'"I have a date with my boyfriend later,"'
+				end
+				
+				act'Exhasperated':
+					gs'booty_call_after', 'dress_image'
+					'"I have a date with my boyfriend later,"'
+				end
 			end
 		end
 	end
 
-	if cumloc[13] > 0:
-		*nl
-		!! hands
-		'Once you''re satisfied that the rest of your body is clean, you wipe your hands off and toss the wipes into the trash.'
+	if booty_call['dress_talk3'] = 0:
+
+
 	end
 
-	booty_call['wipes'] = 0
-	gs'cum_cleanup'
-	gs'booty_call_after', 'after_sex2'
+	if booty_call['dress_talk4'] = 0:
+
+
+	end
+
+	if booty_call['dress_talk5'] = 0:
+
+
+	end
+end
+
+if $ARGS[0] = 'dress_talk_her':
+	if booty_call['dress_talk1'] = 0:
+
+
+	end
+
+	if booty_call['dress_talk2'] = 0:
+
+
+	end
+
+	if booty_call['dress_talk3'] = 0:
+
+
+	end
+
+	if booty_call['dress_talk4'] = 0:
+
+
+	end
+
+	if booty_call['dress_talk5'] = 0:
+
+
+	end
 end
 
 
+if $ARGS[0] = 'cheating_end':
+	act'Smile back':
+		cla & *nl
+		pcs_horny += 10
+		gs'stat'
+		if $pantyworntype ! 'none':
+			'You return his smile, the prospect of future encounters already seeping into your panties as you head out the door.'
+		elseif CloSkirtShortness > 0:
+			'You return his smile, the prospect of future encounters already creating moisture between your thighs as you head out the door.'
+		else
+			'You return his smile, the prospect of future encounters already seeping into your pants as you head out the door.'
+		end
+		act'Leave':gt'booty_call_after', 'exit'
+	end
+	
+	act'Guilt':
+		cla & *nl
+		'You return the smile, but a stab of guilt pierces your chest anyways.'
+		*nl
+		'<i>Are you just rationalizing? Making excuses? Why aren''t you just ending things?</i>'
+		*nl
+		'But you just keep smiling all the way until you close the door behind you.'
+		act'Leave':gt'booty_call_after', 'exit'
+	end
+end
+
+if $ARGS[0] = 'cheating_rules':
+	act'Done':
+		cla & *clr
+		$npc_apt_bedroom[$boy]
+		'"Those are the rules," you say. "So..."'
+		'"See you next time," <<$npc_firstname[$boy]>> smiles.'
+		
+	end
+	if npc_no_kiss[$boy] ! 1:
+		act'No kissing':
+			npc_no_kiss[$boy] = 1
+			cla & *clr
+			$npc_apt_bedroom[$boy]
+			'"No kissing," you say.'
+			'"That''s fine," <<$npc_firstname[$boy]>> nods.'
+			gs'booty_call_after', 'cheating_rules'
+		end
+	end
+	
+	if npc_boyfriend_creampie_rule[$boy] ! 2:
+		act'No creampies':
+			npc_boyfriend_creampie_rule[$boy] = 2
+			cla & *clr
+			$npc_apt_bedroom[$boy]
+			'"You can''t come inside me," you say. "That''s too far."'
+			if npc_condom_conscious[$boy] < 1:
+				'"We always use condoms anyways," <<$npc_firstname[$boy]>> shrugs.'
+			elseif $npc_cum_pref[$npclastgenerated] = 'creampie':
+				'"But that''s the best part about fucking you," <<$npc_firstname[$boy]>> grins.'
+				'"I''m serious," you say sternly. "No creampies."'
+			elseif $npc_cum_pref[$npclastgenerated] = 'mouth':
+				'"So long as I can watch you swallow," <<$npc_firstname[$boy]>> grins.'
+			elseif $npc_cum_pref[$npclastgenerated] = 'facial':
+				'"So long as I can come all over your pretty face," <<$npc_firstname[$boy]>> grins.'
+			elseif $npc_cum_pref[$npclastgenerated] = 'tits':
+				'"So long as I can come all over your beautiful tits," <<$npc_firstname[$boy]>> grins.'
+			elseif $npc_cum_pref[$npclastgenerated] = 'pullout':
+				'"I prefer the pullout method anyways," <<$npc_firstname[$boy]>> grins.'
+			end
+			gs'booty_call_after', 'cheating_rules'
+		end
+	end
+	
+	if npc_condom_rule[$boy] ! 1:
+		act'Always condoms':
+			npc_condom_rule[$boy] = 1
+			cla & *clr
+			$npc_apt_bedroom[$boy]
+			'"We always have to use a condom," you say.'
+			if npc_no_condoms[$boy] > 0:
+				'"Oh, come on. We don-"'
+				'"I''m serious!" you say sternly. "No condoms, no deal."'
+			elseif npc_condom_conscious[$boy] > 0:
+				'"We already do," <<$npc_firstname[$boy]>> smiles.'
+			elseif npc_boyfriend_creampie_rule[$boy] > 0:
+				'"A little redundant, don''t you think?" <<$npc_firstname[$boy]>> smirks.'
+			else
+				'"I guess that''s fair," <<$npc_firstname[$boy]>> says.'
+			end
+			gs'booty_call_after', 'cheating_rules'
+		end
+	end
+end
+
+
+!!if $ARGS[0] = '':
+
+!!end
 
 if $ARGS[0] = 'bed':
 	minut += rand(1,2)
