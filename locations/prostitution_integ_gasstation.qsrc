@@ -1,0 +1,395 @@
+# prostitution_integ_gasstation
+
+!! NOTE: #mod_wlife_highway was the original file
+!! TODO: Transferring the gas station mechanism and location from WLife
+!! TODO Potentially turn it into a normal gas station and lock the prostitution content behind some 
+
+$loc = 'prostitution_integ_gasstation'
+$locM = 'prostitution_integ_gasstation'
+$menu_loc = 'prostitution_integ_gasstation'
+
+! [x] First check over
+if $ARGS[0] = 'outside':
+	!! TODO: this is called every time Sveta arrives at the location whether from somewhere else or back from a client.
+    gs 'prostitution_integ_gasstation', 'event_check'
+
+	CLOSE ALL
+	if sound = 0:PLAY 'sound/highway.mp3',20
+	$loc_arg = 'outside'
+	$menu_arg = 'outside'
+	menu_off = 0
+
+	$location_type = 'public_outdoors'
+
+	*clr & cla
+	'<center><img <<$set_imgh>> src="mod/wlife/images/locations/highway/gas_'+iif(month > 10 or month < 4, 'winter', '')+iif(daystage = 5, 'night', 'day')+'.jpg"></center>'
+	'The gas station is modern and clean in comparison to other gas stations in the area. To the south of the station is the highway M-10 that goes from St. Petersburg to Moscow. To the north there are small villages and towns similar to Pavlovsk which is even further south than the highway.'
+	*nl
+	'There is a small shop were you can buy something to eat or to drink and a public restroom is also nearby.'
+	*nl
+	if prostitute['earnings_day'] > 0: '<br>You have earned <<prostitute[''earnings_day'']>> <b>₽</b> today.'+iif(prostitute['payment_method'] = 0, ' Your share is <<prostitute[''earnings_day''] * prostitute[''share_player''] / 100>> <b>₽</b>'+iif(prostitute['debt_amount'] > 0, ', but your pimp will keep <<prostitute[''earnings_day''] * prostitute[''debt_payment_percent''] / 100>> <b>₽</b> to pay down your debt.', '.'), '')
+
+	if '<br>You can take a bus to the '+iif(money < 75, 'train station', '<a href="exec: gt ''prostitution_integ_gasstation'', ''bus_end''">train station</a>')+' in Pavlovsk. The bus ride and a short walk to the bus station will take 35 minutes and cost 75 <b>₽</b>.'+iif(money < 75, ' You don''t have enough money.', '')
+
+	gs 'stat'
+
+	act 'Go inside the gas station': minut += 1 & gt 'prostitution_integ_gasstation', 'shop'
+	act 'Go to the public restroom': minut += 1 & gt 'prostitution_integ_gasstation', 'restroom'
+	act 'Go to work': gt 'prostitution_integ_gasstation', 'work'
+	act 'Wait': gs 'obj_din', 'wait'
+end
+
+! [x] First check over
+if $ARGS[0] = 'shop' or $gas_shop_inside = 'yes':
+	CLOSE ALL
+	if sound = 0:PLAY 'sound/highway.mp3',5
+	$loc_arg = 'shop'
+	$menu_arg = 'shop'
+	menu_off = 0
+
+	$location_type = 'public_indoors'
+	$gas_shop_inside = 'yes'
+
+	*clr & cla
+	'<center><img <<$set_imgh>> src="mod/wlife/images/locations/highway/gas_interior.jpg"></center>'
+	'The shop is stacked with some magazines, cigarettes, different things to eat and drink.'
+	*nl
+	if prostitute['tomas_timer'] = daystart:
+		'Behind the counter stands Tomas. He''s talking to another customer right now.'
+	elseif week < 7:
+		'Behind the counter stands <a href="exec: minut += 1 & gt ''prostitution_integ_gasstation'',''tomas''">'+iif(prostitute['tomas'] = 0, 'a plump man', 'Tomas')+'</a>.'
+	elseif prostitute['tomas'] > 0 and week = 7:
+		'Tomas isn''t working on Sundays. Another guy you don''t know is standing behind the counter.'
+	end
+	*nl
+	$prostitute_shop_tab = '<center><table align="center">'
+	$prostitute_shop_tab += func ('$stock_item', 20, 'Cigarettes', 115, 'siga', $curloc)
+	$prostitute_shop_tab += func ('$single_stock_item', 1, 'Fashion magazine', 430, 'fashmag', $curloc)
+	$prostitute_shop_tab += func ('$single_stock_item', 1, 'Computer magazine', 430, 'compmag', $curloc)
+	$prostitute_shop_tab += func ('$single_stock_item', 1, 'Biographical magazine', 430, 'biomag', $curloc)
+	$prostitute_shop_tab += func ('$single_stock_item', 1, 'Cooking magazine', 430, 'cookmag', $curloc)
+	$prostitute_shop_tab += func ('$single_stock_item', 1, 'Knitting magazine', 430, 'knitmag', $curloc)
+	$prostitute_shop_tab += func ('$single_stock_item', 1, 'Fitness magazine', 430, 'fitmag', $curloc)
+	$prostitute_shop_tab += func ('$stock_item', 10, 'Wipes', 50, 'salfetka', $curloc, '', iif(bag > 0, 0, 1), 'You need a purse')
+	$prostitute_shop_tab += func ('$stock_item', 20, 'Tampons', 200, 'tampon', $curloc)
+	if umbrella = 0: $prostitute_shop_tab += func ('$single_stock_item', 1, 'Umbrella', 1000, 'umbrella', $curloc, '', iif(bag > 0, 0, 1), 'You need a purse')
+	$prostitute_shop_tab += '</table></center>'
+	*pl $prostitute_shop_tab
+	killvar '$prostitute_shop_tab'
+	gs 'stat'
+
+	act 'Go outside': $gas_shop_inside = 'no' & minut += 1 & gt 'prostitution_integ_gasstation', 'outside'
+
+	act 'Buy and eat a snack (100 <b>₽</b> and 0:05)':
+		*clr & cla
+		menu_off = 1
+		minut += 5
+		money -= 100
+		pcs_health += 5
+		pcs_mood += 40
+		fat += 6
+		pcs_energy += 60
+		if pcs_hydra >= 100:
+			pcs_hydra += 10
+		else
+			pcs_hydra += 20
+		end
+		cumspclnt = 2
+		gs 'cum_cleanup'
+		pcs_breath = 0
+		gs 'stat'
+		'<center><img <<$set_imgh>> src="mod/wlife/images/objects/food.jpg"></center>'
+		'You enjoy a tasty snack.'
+
+		act 'Continue': gt 'prostitution_integ_gasstation', 'shop'
+	end
+
+	act 'Buy and eat a healthy snack (100 <b>₽</b> and 0:05)':
+		*clr & cla
+		menu_off = 1
+		minut += 5
+		money -= 100
+		pcs_health += 40
+		pcs_mood += 10
+		fat += 2
+		pcs_energy += 60
+		if pcs_hydra >= 100:
+			pcs_hydra += 10
+		else
+			pcs_hydra += 20
+		end
+		pcs_breath = 0
+		cumspclnt = 2
+		gs 'cum_cleanup'
+		gs 'stat'
+		'<center><img <<$set_imgh>> src="mod/wlife/images/objects/food.jpg"></center>'
+		'You enjoy a healthy snack.'
+
+		act 'Continue': gt 'prostitution_integ_gasstation', 'shop'
+	end
+
+	act 'Buy and drink some water (40 <b>₽</b> and 0:05)':
+		*clr & cla
+		menu_off = 1
+		frost = 1
+		if alko > 0: alko -= 1
+		minut += 5
+		money -= 40
+		pcs_health += 10
+		pcs_energy += 4
+		if pcs_hydra >= 100:
+			pcs_hydra += 25
+		else
+			pcs_hydra += 75
+		end
+		pcs_breath = 0
+		cumspclnt = 2
+		gs 'cum_cleanup'
+		gs 'stat'
+		'<center><img <<$set_imgh>> src="mod/wlife/images/objects/water.jpg"></center>'
+		'You enjoy a drink of water'
+
+		act 'Continue': gt 'prostitution_integ_gasstation', 'shop'
+	end
+end
+
+! [x] First check over
+if $ARGS[0] = 'restroom':
+	CLOSE ALL
+	if sound = 0:PLAY 'sound/highway.mp3',10
+	$loc_arg = 'restroom'
+	$menu_arg = 'restroom'
+	menu_off = 0
+
+	$location_type = 'public_outdoors'
+
+	*clr & cla
+	'<center><img <<$set_imgh>> src="mod/wlife/images/locations/highway/restroom_'+iif(daystage = 5, 'night', 'day')+'.jpg"></center>'
+	'The gas station has a public bathroom. '+iif(prostitute_status['restroom_chip'] = 0, 'It costs 10 <b>₽</b> to use it.', 'You have an employee chip and can use it for free.')+' On the right side of the restroom is a <a href="exec: minut += 1 & gt ''prostitution_integ_gasstation'',''condom_dispenser''">condom dispenser</a>.'
+	gs 'stat'
+
+	act 'Go back': minut += 1 & gt 'prostitution_integ_gasstation', 'outside'
+
+	if money >= 10 and prostitute_status['restroom_chip'] = 0:
+		act 'Enter the female restroom': money -= 10 & minut += 1 & gt 'prostitution_integ_gasstation', 'restroom_female'
+		act 'Enter the male restroom': money -= 10 & minut += 1 & gt 'prostitution_integ_gasstation', 'restroom_male'
+!! [x] For now it's disabled, need to modify Tomas for it to work
+!!	elseif prostitute_status['restroom_chip'] = 1:
+!!		act 'Enter the male restroom': minut += 1 & gt 'prostitution_integ_gasstation', 'restroom_male'
+	else
+		'<br>You don''t have enough money to use the restroom.'
+	end
+
+	if joint > 0:
+		act 'Smoke a joint':
+			*clr & cla
+			menu_off = 1
+			minut += 5
+			'<center><img <<$set_imgh>> src="mod/wlife/images/player/joint_smoking.jpg"></center>'
+			'You go behind the restrooms and pull a joint out of your purse and light it up. Not before long you''re starting to feel the relaxing effects as you''re getting high.')
+			gs 'drugs', 'joint'
+			gs 'stat'
+			act 'Go back': gt 'prostitution_integ_gasstation', 'restroom'
+		end
+	end
+end
+
+! [x] First check over
+if $ARGS[0] = 'condom_dispenser':
+	CLOSE ALL
+	if sound = 0:PLAY 'sound/highway.mp3',10
+	$loc_arg = 'condom_dispenser'
+	$menu_arg = 'condom_dispenser'
+	menu_off = 0
+
+	*clr & cla
+	'<center><img <<$set_imgh>> src="mod/wlife/images/locations/highway/condoms.jpg"></center>'
+	'A condom costs 60 <b>₽</b> and you have <<prezikcount>> condoms.'
+	gs 'stat'
+
+	act 'Go back': minut += 1 & gt 'prostitution_integ_gasstation', 'restroom'
+
+	if money >= 60:
+		act 'Buy a condom (60 <b>₽</b>)':
+			minut += 1
+			money -= 60
+			if preziktype = 0: prezik += 1
+			if preziktype = 1 or preziktype = 2: prezikcount += 1
+			gt 'prostitution_integ_gasstation', 'condom_dispenser'
+		end
+	end
+
+	if money >= 300:
+		act 'Buy five condoms (300 <b>₽</b>)':
+			minut += 1
+			money -= 300
+			if preziktype = 0: prezik += 5
+			if preziktype = 1 or preziktype = 2: prezikcount += 5
+			gt 'prostitution_integ_gasstation', 'condom_dispenser'
+		end
+	end
+
+	if money >= 600:
+		act 'Buy ten condoms (600 <b>₽</b>)':
+			minut += 1
+			money -= 600
+			if preziktype = 0: prezik += 10
+			if preziktype = 1 or preziktype = 2: prezikcount += 10
+			gt 'prostitution_integ_gasstation', 'condom_dispenser'
+		end
+	end
+end
+
+! [x] First check over
+if $ARGS[0] = 'restroom_female':
+	CLOSE ALL
+	*clr & cla
+	if sound = 0:PLAY 'sound/highway.mp3',5
+	$loc_arg = 'restroom_female'
+	$locM_arg = 'restroom_female'
+	$menu_arg = 'restroom_female'
+	menu_off = 0
+	$location_type = 'bathroom'
+	gs 'stat'
+	'<center><img <<$set_imgh>> src="mod/wlife/images/locations/highway/restroom_female.jpg"></center>'
+	'The female restroom is relatively clean. It has has three bathroom stalls which over only a little privacy.'
+	*nl
+	'A <a href="exec:gt ''mirror'',''start''">mirror</a>, where you can ' + iif(pcs_hairbsh = 0,'<a href="exec: gt ''mirror'',''brush''">brush</a>','brush') + ' your hair hangs over each sink.'
+
+	act 'Go outside': minut += 1 & gt 'prostitution_integ_gasstation', 'restroom'
+
+	gs 'prostitution_integ_functions', 'cocaine'
+	dynamic $tampon
+	dynamic $quickwash
+	dynamic $basin
+	dynamic $publicpan
+end
+
+! [x]: First check over
+if $ARGS[0] = 'restroom_male':
+	CLOSE ALL
+	*clr & cla
+	if sound = 0:PLAY 'sound/highway.mp3',5
+	$loc_arg = 'restroom_male'
+	$locM_arg = 'restroom_male'
+	$menu_arg = 'restroom_male'
+	menu_off = 0
+	$location_type = 'bathroom'
+	gs 'stat'
+	'<center><img <<$set_imgh>> src="mod/wlife/images/locations/highway/restroom_male.jpg"></center>'
+	'The male restroom is dirty and smells like urine. It has has three bathroom stalls which over only a little privacy.'
+	*nl
+	'A <a href="exec:gt ''mirror'',''start''">mirror</a>, where you can ' + iif(pcs_hairbsh = 0,'<a href="exec: gt ''mirror'',''brush''">brush</a>','brush') + ' your hair hangs over each sink.'
+
+	act 'Go outside': minut += 1 & gt 'prostitution_integ_gasstation', 'restroom'
+
+	if dur > 0 and narkday ! daystart:
+		act 'Do a line of cocaine (0:05)':
+			*clr & cla
+			menu_off = 1
+			narkday = daystart
+			gs 'drugs', 'cocaine'
+			minut += 5
+			gs 'stat'
+			'<center><img <<$set_imgh>> src="mod/wlife/images/player/cocaine.jpg"></center>'
+			'You snort some cocaine, feeling dizzy for just a moment. After that you feel fantastic, horny and full of energy.'
+
+			act 'Continue': gt $loc, $loc_arg
+		end
+	end
+	
+	dynamic $tampon
+	dynamic $quickwash
+	dynamic $basin
+	dynamic $publicpan
+end
+
+! [x] First check over
+! NOTE: The functions relating to Tomas are removed for now, the attendant doesn't make seses at the moment. Not really integral to the WLife story, so could be 
+! scavenged and used later if needed.
+
+
+!!------ Prostitution ------
+
+! [x] First check over
+! NOTE: The first function - work - is location dependent, so this needs to be left here, and every location will need a similar one.
+if $ARGS[0] = 'work':
+	CLOSE ALL
+	if sound = 0:PLAY 'sound/highway.mp3',20
+
+	*clr & cla
+	$loc_arg = 'work'
+	$menu_arg = 'work'
+	menu_off = 0
+	gs 'stat'
+
+	gs 'prostitution_integ_functions', 'parameters'
+
+	if $prostitute_names['street'] = '':
+		'If you want, you can tell your clients a different name.'
+
+		$prostitute_names['street'] = input("What name do you want to tell your clients? (Leave blank for <<$pcs_nickname>>)")
+		if $prostitute_names['street'] = '': $prostitute_names['street'] = $pcs_nickname
+	end
+
+	'<center><video autoplay src="mod/wlife/images/prostitution/normal/negotiation/search.mp4"></video></center>'
+	'You are walking near the gas station waiting for a client. On a scale from 1 to 10 you look like a <<hotcat>>. A good looking girl will always earn more money.'+iif(pcs_makeup < 2, ' You should '+iif(pcs_makeup = 0, 'fix your make-up', 'wear make-up')+' to increase your earnings.', ' Wearing make-up is a good way to increase your earnings.')+iif(pirsA > 0 and pirsA < 10000, ' Your tongue piercing will make a blowjob more enjoyable for most men, that could bring in a small bonus.', '')+iif($pantyworntype = 'sexshop' and CloSkirtShortness > 4, ' Wearing such a short skirt reveals your slutty panties to your potential customers.', '')+iif(pcs_apprnc = -10, ' You don''t look healthy and should seek treatment for your STD. There is a high chance that a guy won''t touch you without a condom.', '')
+
+	if prostitute['enema'] = 0: '<br>Nearly all men won''t like dirty anal sex, even with a condom, and it''s probably a safe bet that they won''t pay a lot for it. You should start giving yourself an enema before going to work.'
+	if mesec > 0: '<br>You are having your period, most men will pay less for vaginal sex during that time of the month.'
+	if prostitute['cum_dressed'] = 1: '<br>You have visible cum stains on you. Most clients won''t like that and will offer less money.'
+
+	if prostitute['earnings_day'] > 0: 'You have earned <<prostitute[''earnings_day'']>> <b>₽</b> today.'+iif(prostitute['payment_method'] = 0, ' Your share is <<prostitute[''earnings_day''] * prostitute[''share_player''] / 100>> <b>₽</b>'+iif(prostitute['debt_amount'] > 0, ', but your pimp will keep <<prostitute[''earnings_day''] * prostitute[''debt_payment_percent''] / 100>> <b>₽</b> to pay down your debt.', '.'), '')
+
+	if prostitute['payment_method'] = 0: gs 'prostitution_integ_gasstation', 'event_check'
+
+	act 'Stop working': gt 'prostitution_integ_gasstation', 'outside'
+
+	gs 'willpower', 'prostitution', 'self', 'medium'
+	if will_cost <= pcs_willpwr:
+		act 'Look for a client (0:30 and <<will_cost>> Willpower)':
+			gs 'willpower', 'pay', 'self'
+			gt 'prostitution_integ_negotiation', 'look_client', $loc
+		end
+	elseif will_cost > pcs_willpwr:
+		act 'Look for a client (0:30 and <font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
+	end
+
+	if salfetka > 0 and (prostitute['cum_dressed'] = 1 or prostitute['cum_undressed'] = 1 or prostitute['cum_vaginal_mod'] = 1 or prostitute['cum_anal_mod'] = 1):
+		act 'Remove the cum from your body (0:02)':
+			minut += 2
+			salfetka -= 1
+			cumspclnt = 20
+			gs 'cum_cleanup'
+			gt 'prostitution_integ_gasstation', 'work'
+		end
+	elseif salfetka = 0:
+		'<br>You don''t have any tissues with you to remove cum from your body.'
+	end
+
+	!! NOTE:  This is where the working/negotiationg part begins in the original file. Moved to a separate file.
+	!! This call just displays the explanation and the "config" of the negotiations on the page.
+	gs 'prostitution_integ_negotiation', 'general_description'
+
+end 
+
+
+if $ARGS[0] = 'event_check':
+!! TODO: Originally this was checking for story events. Now it should check for police raid or just check, attack, or anything else. 
+!! If this is used in the city, then the initial pimp visits should be checked here too.
+!!		gt 'mod_wlife_story', 'police'
+end
+
+
+! [x] First check over
+if $ARGS[0] = 'bus_end':
+	minut += 35
+	money -= 75
+!!NOTE: Removed the checking for acceptance
+	prostitute['earnings_day'] = 0
+	prostitute['customer_day'] = 0
+	gt 'city_industrial_train', 'outside'
+end
+
+
+--- prostitution_integ_gasstation ---------------------------------
