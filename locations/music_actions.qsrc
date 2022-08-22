@@ -1,43 +1,170 @@
-# music_actions
+#music_actions
 
-if ARGS[0] = 'start': 
-
-    cla
-
+if $ARGS[0] = 'start': 
     if $location_type = 'private':
+        gs 'music_actions', 'put_down_pick_up'
+        if hour > 8 and hour < 22:
+            if ml_guitar['hasguitar'] = 1 and (ml_guitar['carried'] = 1 or $ml_guitar['location'] = $loc):
+                gs 'music_actions', 'play_something'
+                gs 'music_actions', 'practice_guitar'
 
-        if ml_guitar['carried'] = 1:
-            act 'Place the guitar next to your desk': 
-                ml_guitar['carried'] = 0
-                ml_guitar['location'] = $ARGS[0]
-            end
-        elseif ml_guitar['location'] = $ARGS[0]:
-            act 'Pick up the guitar':
-                ml_guitar['carried'] = 1
-                ml_guitar['location'] = 'carried'
+                if $loc = 'bedrPar' and locat['Anya_inroom'] = 0: 
+                    gs 'music_actions', 'stream_music'
+                    gs 'music_actions', 'record_music'
+                else 
+                    gs 'music_actions', 'stream_music'
+                    gs 'music_actions', 'record_music'
+                end
             end
         end
-        if $ARGS[0] = 'sitr':
-			gt 'sitr'
-        else
-			gt ARGS[0], 'start'
-		end
-    end
-
-	if ml_guitar['carried'] = 1:
-		act 'Play something on the guitar (10 minutes)':
-			pcs_mood += 10
-			minut += 10
-			gs 'stat'
-			'You pick up your guitar and start to play some songs you know, just for your own entertainment.'
-			'You hum along the tune, relaxing into the music, just enjoying it. When you look up a quarter of an hour passed and you are in a much better mood.'
-		end
+    else
+        !! TODO: What can be done publicly? I think streaming with a phone and recording music would fit here. Also just playing something on the guitar, but not busking.
+        !!       They will need some tweaking in the descriptions and photos, videos.
+        if ml_guitar['hasguitar'] = 1 and (ml_guitar['carried'] = 1 or $ml_guitar['location'] = $loc):
+            gs 'music_actions', 'play_something'
+        end
 	end
 
+    gs 'music_actions', 'set_up_account'
+    gs 'music_actions', 'upload_music'
+    gs 'music_actions', 'delete_music'
+
+end
+
+if $ARGS[0] = 'put_down_pick_up':
+    if ml_guitar['carried'] = 1:
+        act 'Place the guitar next to your desk': 
+            ml_guitar['carried'] = 0
+            $ml_guitar['location'] = $loc
+            gt $loc, $loc_arg
+        end
+    elseif $ml_guitar['location'] = $loc:
+        act 'Pick up the guitar':
+            ml_guitar['carried'] = 1
+            $ml_guitar['location'] = 'carried'
+            gt $loc, $loc_arg
+        end
+    end
+end
+
+if $ARGS[0] = 'play_something':
+    act 'Play something on the guitar':
+        !! TODO: This should be a new screen with some video or image or something
+        pcs_mood += 10
+        minut += 10
+        gs 'stat'
+        'You pick up your guitar and start to play some songs you know, just for your own entertainment.'
+        'You hum along to the tune, relaxing into the music and enjoying it. When you look up, 10 minutes has passed and you are in a much better mood.'
+        act 'Finish': gt $loc, $loc_arg
+    end
+end
+
+if $ARGS[0] = 'practice_guitar':
+    if (ml_guitar['chordbook'] = 1 or ml_guitarlesson['lessoncount'] > 0) and ml_performance['performed_minutes'] < ml_performance['max_perform_minutes'] and alko < 5:
+        if  $loc = 'bedrPar' and locat['Anya_inroom'] = 1 and pcs_inhib < 30:
+            if pcs_inhib < 10:
+                $diff = 'hard'
+            elseif pcs_inhib < 20:
+                $diff = 'medium'
+            else
+                $diff = 'easy'
+            end
+            gs 'willpower', 'skill', 'self', $diff
+            will_cost = (will_cost * 3) - (pcs_perform)
+            if will_cost <= pcs_willpwr:
+                act 'Practice guitar (<<will_cost>> Willpower)':
+                    inhib_exp += rand(1,2)
+                    gs 'willpower', 'pay', 'self'
+                    gs 'stat'
+                    gt 'music_bedroomPractice', 'guitar'
+                end
+            else
+                act 'Practice guitar (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You feel too embarrassed to pick up your guitar in front of people</font>'
+            end
+        else
+            act 'Practice guitar': gt 'music_bedroomPractice', 'guitar'
+        end
+    end
+end
+
+if $ARGS[0] = 'stream_music':
+    !! Streaming music
+    if ml_guitar['hasguitar'] = 1 and ml_online['account'] = 1 and internet > 0 and ml_performance['performed_minutes'] < ml_performance['max_perform_minutes'] and ml_performance['max_perform_minutes'] >= 15 and alko < 5 and ml_streaming['lastday'] ! daystart:
+        ml_streamtime =  min((ml_performance['max_perform_minutes']-ml_performance['performed_minutes']), 60)
+        if pcs_inhib < 30:
+            if pcs_inhib < 10:
+                $diff = 'hard'
+            elseif pcs_inhib < 20:
+                $diff = 'medium'
+            else
+                $diff = 'easy'
+            end
+            gs 'willpower', 'skill', 'self', $diff
+            will_cost = (will_cost * 3) - (pcs_perform)
+
+            if will_cost <= pcs_willpwr:
+                act 'Live stream (<<ml_streamtime>> minutes) (<<will_cost>> Willpower)':
+                    inhib_exp += rand(1,3)
+                    gs 'willpower', 'pay', 'self'
+                    gs 'stat'
+                    gt 'music_onlinemusic', 'liveStream'
+                end
+            else
+                act 'Live stream (<<ml_streamtime>> minutes) (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
+            end
+        else
+            act 'Live stream (<<ml_streamtime>> minutes)': gt 'music_onlinemusic', 'liveStream'
+        end
+    end
+end
+
+if $ARGS[0] = 'record_music':
+    !! Recording music
+    if ml_performance['performed_minutes'] < ml_performance['max_perform_minutes'] and alko < 5:
+        if pcs_inhib < 20:
+            if pcs_inhib < 10:
+                $diff = 'medium'
+            elseif pcs_inhib < 20:
+                $diff = 'easy'
+            end
+            gs 'willpower', 'skill', 'self', $diff
+
+            if will_cost <= pcs_willpwr:
+                act 'Record a song with your phone (<<will_cost>> Willpower)':
+                    inhib_exp += rand(1,2)
+                    gs 'willpower', 'pay', 'self'
+                    gs 'stat'
+                    gt 'music_onlinemusic', 'recordSong'
+                end
+                if komp = 1 and webcamera = 1 and ml_studio['scarlet-3rd-gen'] = 1:
+                    act 'Record and edit a song (<<will_cost>> Willpower)':
+                        inhib_exp += rand(1,2)
+                        gs 'willpower', 'pay', 'self'
+                        gs 'stat'
+                        gt 'music_onlinemusic', 'recordAndEditSong'
+                    end
+                end
+            else
+                act 'Record a song (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
+                act 'Record and edit a song (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
+            end
+        else
+            act 'Record a song with your phone': gt 'music_onlinemusic', 'recordSong'
+            if komp = 1 and webcamera = 1 and ml_studio['scarlet-3rd-gen'] = 1:
+                act 'Record and edit a song': gt 'music_onlinemusic', 'recordAndEditSong'
+            end
+        end
+    end
+end
+
+
+if $ARGS[0] = 'set_up_account':
     if ml_online['account'] = 0 and internet > 0: 
         act 'Set up an online music account (0:30)': gt 'music_onlinemusic', 'setupAccount'
     end
+end
 
+if $RGS[0] = 'upload_music':
     !!Uploading recorded music if there are any not uploaded yet
     if ml_uploadablemusic > 0 and internet > 0 and ml_online['account'] = 1:
         if pcs_inhib < 30:
@@ -59,11 +186,15 @@ if ARGS[0] = 'start':
         end
         act 'Upload music': gt 'music_onlinemusic', 'uploadallmusic'
     end
+end
 
+if $ARGS[0] = 'delete_music':
     if ml_uploadablemusic > 0:
         act 'Delete old recordings': gt 'music_onlinemusic', 'deleteoldmusic'
     end
-
 end
+
+
+
 
 --- music_actions ---------------------------------
