@@ -71,19 +71,24 @@ if $ARGS[0] = 'start':
 			'You really wish you had brought panties today...'
 		end
 		if mesec > 0 and isprok = 0: msg'As your panties come off you realize you''re going to have a problem when your pad goes with it and blood immediately starts running down your legs. Maybe you should switch to tampons...'
-		$lastwornpantytype['foto'] = $pantyworntype
-		lastwornpantynumber['foto'] = pantywornnumber
-		$lastwornbratype['foto'] = $braworntype
-		lastwornbranumber['foto'] = brawornnumber
-		gs 'clothing', 'strip_all'
+		if underwear['type'] = 2:
+			$lastwornbodysuittype['foto'] = $bodysuitworntype
+			lastwornbodysuitnumber['foto'] = bodysuitwornnumber
+		else
+			$lastwornpantytype['foto'] = $pantyworntype
+			lastwornpantynumber['foto'] = pantywornnumber
+			$lastwornbratype['foto'] = $braworntype
+			lastwornbranumber['foto'] = brawornnumber
+		end
+		if $clothingworntype ! 'nude': gs 'clothing', 'strip'
 		gs 'stat'
 		act'Go back to the main floor':gt'foto','studio'
 	end
 
-	if $pantyworntype ! 'none' and pcs_inhib < 60 and studio_strip < 5:
+	if $pantyworntype ! 'none' and pcs_inhib < 60 and studio_strip < 5 and underwear['type'] ! 2:
 		if studio_strip_talk < 3:
 			act'Just strip to your panties':
-				gs 'clothing', 'strip'
+				if $clothingworntype ! 'nude': gs 'clothing', 'strip'
 				$lastwornpantytype['foto'] = $pantyworntype
 				lastwornpantynumber['foto'] = pantywornnumber
 				$lastwornbratype['foto'] = $braworntype
@@ -94,7 +99,7 @@ if $ARGS[0] = 'start':
 				if studio_strip_talk = 0:
 					gt'foto_events','studio_strip_talk1'
 				elseif studio_underwear > 0:
-					gs 'bras', 'remove'
+					if $braworntype ! 'none':gs 'bras', 'remove'
 					'<center><video autoplay loop src="images/locations/city/citycenter/photo/strip1.mp4"></video></center>'
 					'As you drop your clothes into the locker, you can''t help but take small comfort in the warmth of the panties you still wear. It''s not much, but as long as you have time to put this off, you''ll take solace in what little coverage they provide.'
 					act'Go to the main floor':
@@ -110,13 +115,18 @@ if $ARGS[0] = 'start':
 			end
 		end
 
-		if studio_strip_talk < 2 and $braworntype ! 'none':
+		if studio_strip_talk < 2 and ($braworntype ! 'none' or underwear['type'] = 2):
 			act'Just strip to your underwear':
-				gs 'clothing', 'strip'
-				$lastwornpantytype['foto'] = $pantyworntype
-				lastwornpantynumber['foto'] = pantywornnumber
-				$lastwornbratype['foto'] = $braworntype
-				lastwornbranumber['foto'] = brawornnumber
+				if $clothingworntype ! 'nude': gs 'clothing', 'strip'
+				if underwear['type'] = 2:
+					$lastwornbodysuittype['foto'] = $bodysuitworntype
+					lastwornbodysuitnumber['foto'] = bodysuitwornnumber
+				else
+					$lastwornpantytype['foto'] = $pantyworntype
+					lastwornpantynumber['foto'] = pantywornnumber
+					$lastwornbratype['foto'] = $braworntype
+					lastwornbranumber['foto'] = brawornnumber
+				end
 				gs 'stat'
 				cla & *clr
 				menu_off = 1
@@ -125,7 +135,11 @@ if $ARGS[0] = 'start':
 				if studio_strip_talk = 0:
 					gt'foto_events','studio_strip_talk1'
 				else
-					'You strip down to your underwear, putting the rest of your belongings into your locker. You know that you need to get over this eventually but you''re still not confident enough yet.'
+					if underwear['type'] = 2:
+						'You just strip down to your bodysuit, putting the rest of your belongings into your locker. You know that you need to get over this eventually but you''re still not confident enough yet.'
+					else
+						'You just strip down to your underwear, putting the rest of your belongings into your locker. You know that you need to get over this eventually but you''re still not confident enough yet.'
+					end
 					*nl
 					'You bang your locker shut and go to get to work.'
 					act'Go to the main floor':
@@ -141,17 +155,19 @@ if $ARGS[0] = 'start':
 	end
 end
 
+if $ARGS[0] = 'studio_closing':
+	menu_off = 1
+	gs 'clothing', 'wear_last_worn'
+	gs 'foto', 'underwear'
+	gs 'stat'
+	'<center><b><font color="maroon">Photography studio</font></b></center>'
+	'<center><img <<$set_imgh>> src="images/locations/city/citycenter/photo/foto.jpg"></center>'
+	'It''s after midnight and the studio is closing down. You get dressed and leave before you get locked in.'
+	act'Leave':gt'city_center'
+end
+
 if $ARGS[0] = 'studio':
-	if hour < 2:
-		menu_off = 1
-		gs 'clothing', 'wear_last_worn'
-		gs 'foto', 'underwear'
-		gs 'stat'
-		'<center><b><font color="maroon">Photography studio</font></b></center>'
-		'<center><img <<$set_imgh>> src="images/locations/city/citycenter/photo/foto.jpg"></center>'
-		'It''s after midnight and the studio is closing down. You get dressed and leave before you get locked in.'
-		act'Leave':gt'city_center'
-	end
+	if hour < 3:gt'foto','studio_closing'
 	
 	$loc_arg = 'studio'
 	$menu_loc = 'foto'
@@ -1321,8 +1337,12 @@ end
 
 
 if $ARGS[0] = 'underwear':
-	gs 'panties', 'wear', $lastwornpantytype['foto'], lastwornpantynumber['foto']
-	gs 'bras', 'wear', $lastwornbratype['foto'], lastwornbranumber['foto']
+	if underwear['lastworntype'] = 2:
+		gs 'underwear_bodysuits', 'wear', $lastwornbodysuittype['foto'], lastwornbodysuitnumber['foto']
+	else
+		gs 'panties', 'wear', $lastwornpantytype['foto'], lastwornpantynumber['foto']
+		gs 'bras', 'wear', $lastwornbratype['foto'], lastwornbranumber['foto']
+	end
 end
 
 --- foto ---------------------------------
