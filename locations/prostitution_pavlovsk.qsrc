@@ -1,0 +1,1378 @@
+# prostitution_pavlovsk
+
+!!----- Random solicitation and active prostitution scenes in Pavlovsk -----------------------------------------------
+!!-- It can be used in other places too, potentially, at least the mechanics, but the scenese can be very Pavlovsk  --
+!!-- specific, referring to Pavlovsk characteristics: train, office building, etc.                                  --
+!!--                                                                                                                --
+!!-- Also the variables are still very Pavlovsk specific.                                                           --
+!!-- I think the way it is handled fits Pavlovsk, but not really anywhere else. St. Petersburg is too big,          --
+!!-- Gadukino is too small.                                                                                         --
+!!--------------------------------------------------------------------------------------------------------------------
+
+
+if $ARGS[0] = 'chance':
+	gs 'prostitution_pavlovsk', 'pav_rnd'
+	if hour > 6 and hour < 23 and prostitute['pav_daily_count'] < prostitute['pav_daily_max'] and rand(1,1000) < min(prostitute['pav_rnd'], 400):
+		gt 'prostitution_pavlovsk', 'rng'
+	end
+end
+
+if $ARGS[0] = 'pav_rnd':
+	if prostitute['pav_timer_day'] ! daystart:
+		prostitute['pav_daily_count'] = 0
+		prostitute['pav_timer_day'] = daystart
+	end
+
+	prostitute['pav_timer_hour'] = hour
+	prostitute['pav_daily_max'] = (fame['pav_prostitute'] / 100) + 2
+
+	prostitute['pav_rnd'] = fame['pav_prostitute'] + 50 + prostitute['pav_rnd_pity']
+	if PCloStyle = 4 and ShoHeels > 3: prostitute['pav_rnd'] += 100
+	if pcs_makeup = 4: prostitute['pav_rnd'] += 50
+	prostitute['pav_rnd'] -= (prostitute['pav_cooldown'] * 100)
+	if prostitute['pav_cooldown'] > 0: prostitute['pav_cooldown'] -= 1
+	prostitute['pav_rnd_pity'] += 20
+end
+
+if $ARGS[0] = 'rng':
+!!ToDo: has to be increased if more events are added AND the rands for abusive clients below
+	pro_rand = rand(0,7)
+!!ToDo: This has to be changed if more scenes are added
+	if pro_rand > 5: pro_rand += 2
+	gs 'prostitution_functions', 'pav_client'
+	gs 'prostitution_functions', 'payment', 'pav'
+	if prostitute['cum_dressed'] = 1 or prostitute['std_mod'] = 1:
+		gt $loc, $loc_arg
+	else
+		prostitute['pav_search'] = 0
+		prostitute['pav_rnd_pity'] = 0
+		gt 'prostitution_pavlovsk', 'start'
+	end
+end
+
+if $ARGS[0] = 'search':
+	*clr & cla
+!!ToDo: has to be increased if more events are added AND the rands for abusive clients below
+	pro_rand = rand(0,7)
+!!ToDo: This has to be changed if more scenes are added
+	if pro_rand > 5: pro_rand += 2
+	gs 'prostitution_functions', 'pav_client'
+	gs 'prostitution_functions', 'payment', 'pav'
+	gs 'stat'
+	'<center><video autoplay loop src="images/shared/prostitution/pavlovsk/street/search.mp4"></video></center>'
+	'You can walk around Pavlovsk to look for somebody that''s interested in buying your services. Since Pavlovsk isn''t a big city you expect that with your current fame you won''t find more than <<prostitute[''pav_daily_max'']>> guys per day and '+iif(prostitute['pav_daily_count'] >= prostitute['pav_daily_max'], 'you already had <<prostitute[''pav_daily_count'']>> customers.', 'you only had <<prostitute[''pav_daily_count'']>> customers today.')
+
+	if prostitute['cum_dressed'] = 1: 'People can see cum on you. You should clean it before searching for a client.'
+	if prostitute['std_mod'] = 1: 'Customers won''t approach you as long as you show signs of an STD.'
+
+	act 'Stop working': gt $loc, $loc_arg
+
+	if prostitute['cum_dressed'] = 0 and prostitute['std_mod'] = 0 and hour > 6 and hour < 23:
+		if will_cost <= pcs_willpwr and prostitute['pav_daily_count'] < prostitute['pav_daily_max']:
+			act 'Look for a customer (<<will_cost>> Willpower)':
+				gs 'willpower', 'pay', 'self'
+
+				gs 'prostitution_pavlovsk', 'pav_rnd'
+				prostitute['pav_rnd'] += 100
+
+				if rand(1,1000) < min(prostitute['pav_rnd'], 600):
+					minut += rand(5,40)
+					prostitute['pav_search'] = 1
+					prostitute['pav_rnd_pity'] = 0
+					gt 'prostitution_pavlovsk', 'start'
+				else
+					*clr & cla
+					minut += 40
+					gs 'stat'
+					'<center><video autoplay loop src="images/shared/prostitution/pavlovsk/street/search.mp4"></video></center>'
+					'You walked around Pavlovsk for an hour, but nobody was interested in you.'
+
+					act 'Continue': gt 'prostitution_pavlovsk', 'search'
+				end
+			end
+		elseif will_cost > pcs_willpwr and prostitute['pav_daily_count'] < prostitute['pav_daily_max'] and hour > 6 and hour < 23:
+			act 'Look for a customer (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
+		elseif prostitute['pav_daily_count'] >= prostitute['pav_daily_max']:
+			'<br>It''s probably not worthwhile to keep looking for clients. You can try again tomorrow.'
+		else
+			'<br>Pavlovsk is a small town and its streets are empty at this hour.'
+		end
+	end
+
+	if salfetka > 0 and (prostitute['cum_dressed'] = 1 or prostitute['cum_undressed'] = 1 or prostitute['cum_vaginal_mod'] = 1 or prostitute['cum_anal_mod'] = 1):
+		act 'Remove the cum from your body (0:02)':
+			minut += 2
+			salfetka -= 1
+			cumspclnt = 20
+			gs 'cum_cleanup'
+			gt 'prostitution_pavlovsk', 'search'
+		end
+	elseif salfetka = 0:
+		'<br>You don''t have any tissues with you to remove cum from your body.'
+	end
+
+	if joint > 0 and pro_drugs['status'] > 0 and pro_drugs['timer_pavlovsk'] ! daystart:
+		act 'Take a break and smoke a joint':
+			*clr & cla
+			menu_off = 1
+			minut += 5
+			pro_drugs['timer_pavlovsk'] = daystart
+			'<center><img <<$set_imgh>> src="images/shared/drugs/joint_smoking.jpg"></center>'
+			'You head into a nearby back alley and pull a joint out of your purse and light it up. Not before long you''re starting to feel the relaxing effects as you''re getting high.'
+			gs 'drugs', 'joint'
+	        gs 'stat'
+			act 'Go back': gt 'prostitution_pavlovsk', 'search'
+		end
+	end
+end
+
+if $ARGS[0] = 'start':
+	*clr & cla
+	minut += 4
+	menu_off = 1
+	prostitute['pav_daily_count'] += 1
+	gs 'willpower', 'prostitution', 'self', iif(prostitute['pav_regular'] = 1, 'easy', 'medium')
+    
+	gs 'stat'
+	'<center><video autoplay loop src="images/shared/prostitution/pavlovsk/street/set_'+iif(prostitute['pav_regular'] = 0, rand(0,3), pro_rand)+'/start.mp4"></video></center>'
+	if $prostitute['client_behavior'] = 'nice' and prostitute['pav_regular'] < 1:
+		'"Excuse me," an approaching man says. "I''m sorry to disturb you, but are you by any chance <<$pcs_nickname>>? A friend of mine showed me a photo of you and said you...," he hesitates and looks around to make sure that nobody is in earshot. "Could I buy your services?"'
+	elseif $prostitute['client_behavior'] = 'nice' and prostitute['pav_regular'] = 1:
+		'"Hello <<$pcs_nickname>>," one of your regulars says. "It''s a good to see you again. How are you?"'
+		'You smile. "Nice to see you again and I''m fine, thanks for asking."'
+		'He takes a look around to make sure that nobody is around to see you, before asking. "Could I buy your services again?"'
+	elseif $prostitute['client_behavior'] = 'abusive' and prostitute['pav_regular'] < 1:
+		if pro_rand < 2: gs 'fame', 'pav', 'prostitute', iif(PCloStyle = 4, 2, 1)
+		'"Hey!" a man shouts and waves towards you. "Aren''t you that teen whore <<$pcs_nickname>>?"'+iif(pro_rand < 4, ' He''s so loud that a few people turn around and stare at you disapprovingly.', ' To your relief nobody else is in earshot.')+' "Are you available? I always wanted to fuck a young slut like you."'
+	elseif $prostitute['client_behavior'] = 'abusive' and prostitute['pav_regular'] = 1:
+		if pro_rand < 2: gs 'fame', 'pav', 'prostitute', iif(PCloStyle = 4, 2, 1)
+		'"If that isn''t my favorite '+iif(rand(0,1) = 0, 'whore', 'fuckmeat')+'," one of your regulars says so loud that '+iif(pro_rand < 4, 'several people turn around to take a look at who he''s talking about.', 'people could have overheard that if somebody else would have been around.')+' "Are you up for some fun <<$pcs_nickname>>?"'
+	end
+	*nl
+	'He wants '+iif($prostitute['pav_scene'] = 'blowjob', 'you to give him a blowjob', 'to fuck your '+iif($prostitute['pav_scene'] = 'anal', 'ass', 'pussy'))+' and offers to pay <<prostitute[''payment'']>> <b>₽</b>. He wants to do it without a condom and it would take some convincing and a price reduction of '+iif($prostitute['pav_scene'] = 'blowjob', '75', '200')+' <b>₽</b> to change his mind.'
+
+	gs 'willpower', 'prostitution', 'resist', 'medium'
+	if $prostitute['client_behavior'] = 'nice': will_cost = (will_cost * 60) / 100
+	if will_cost <= pcs_willpwr:
+		act 'Decline and walk away (<<will_cost>> Willpower)':
+			gs 'willpower', 'prostitution', 'resist', 'medium'
+			if $prostitute['client_behavior'] = 'nice': will_cost = (will_cost * 60) / 100
+			gs 'willpower', 'pay', 'resist'
+			gt $loc, $loc_arg
+		end
+	else
+		act 'Decline and walk away (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
+	end
+
+	act 'Accept':
+		!!STDs are handled by the mod
+		cumnostd = 1
+		minut += 2
+		money += prostitute['payment']
+		pro_stats['unprotected'] += 1
+		prostitute['pav_condom'] = 0
+		prostitute['pav_total'] += 1
+		prostitute['pav_cooldown'] += 2
+		if pro_mother['knows'] = 0 and fame['pav_prostitute'] > rand(100,200) and prostitute['pav_total'] > 25 and (($prostitute['pav_location'] = 'public' and rand(0,1000) < fame['pav_prostitute']) or ($prostitute['pav_location'] = 'private' and rand(0,2000) < fame['pav_prostitute'])): pro_mother['knows'] = 1
+		gt 'prostitution_pavlovsk', iif(prostitute['pay_regular'] > -1, 'set_<<pro_rand>>', 'rape')
+	end
+
+	if prostitute['pav_condom_refusal'] = 1:
+		prostitute['pav_condom_refusal'] = 0
+		'<br>He''s one of those guys who always refuses to put on a condom. It makes no sense to ask him to use one.'
+	else
+		gs 'prostitution_functions', 'will_unprotected', 'resist', iif($prostitute['client_behavior'] = 'abusive', 'medium', 'easy')
+		if will_cost <= pcs_willpwr and pro_status['condoms'] > 0:
+			act 'Accept, but demand a condom (<<will_cost>> Willpower)':
+				!!STDs are handled by the mod
+				cumnostd = 1
+				minut += 5
+				prostitute['pav_payment'] -= iif($prostitute['pav_scene'] = 'pussy', -200, -75)
+				money += prostitute['payment']
+				prostitute['pav_condom'] = 1
+				prostitute['pav_total'] += 1
+				prostitute['pav_cooldown'] += 2
+				if (pro_rand ! 3 and pro_rand ! 8) or (pro_rand = 3 and $prostitute['pav_scene'] ! 'private'): gs 'prostitution_functions', 'remove_condom'
+				gs 'prostitution_functions', 'will_unprotected', 'resist', iif($prostitute['client_behavior'] = 'abusive', 'hard', 'easy')
+				gs 'willpower', 'pay', 'self'
+				if pro_mother['knows'] = 0 and fame['pav_prostitute'] > 200 and prostitute['pav_total'] > 25 and (($prostitute['pav_location'] = 'public' and rand(0,1000) > fame['pav_prostitute']) or ($prostitute['pav_location'] = 'private' and rand(0,2000) > fame['pav_prostitute'])): pro_mother['knows'] = 1
+				gt 'prostitution_pavlovsk', iif(prostitute['pay_regular'] > -1, 'set_<<pro_rand>>', 'rape')
+			end
+		elseif will_cost > pcs_willpwr and pro_status['condoms'] > 0:
+			act 'Accept, but demand a condom (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
+		elseif pro_status['condoms'] = 0:
+			'<br>You''re out of condoms.'
+		end
+	end
+
+	gs 'willpower', 'prostitution', 'resist', 'medium'
+	will_cost = (will_cost * iif($prostitute['client_behavior'] = 'abusive', 120, 80)) / 100
+	if will_cost <= pcs_willpwr and prostitute['pav_regular'] = 0 and prostitute['pav_search'] = 0:
+		act 'React angrily (<<will_cost>> Willpower)':
+			cla & *nl
+			gs 'fame', 'pav', 'prostitute', iif(PCloStyle = 4 and $prostitute['client_behavior'] = 'abusive', -1, -2)
+			gs 'willpower', 'prostitution', 'resist', 'medium'
+			will_cost = (will_cost * iif($prostitute['client_behavior'] = 'abusive', 120, 80)) / 100
+			gs 'willpower', 'pay', 'resist'
+			gs 'stat'
+			'"What? Did you just '+iif($prostitute['client_behavior'] = 'abusive', 'call me', 'imply that I''m')+' a whore?" you hiss angrily and take a step back from him.'
+			if $prostitute['client_behavior'] = 'abusive':
+				'"You aren''t? Damn babe... really? Sorry about that. I knew that he was lying to me, when my friend told me about you." He points at your clothes. '+iif(PCloStyle = 4, '"But could have fooled me in that outfit."', '"But I should have known that a whore wouldn''t wear something like that"'+' he adds before walking away.')
+			else
+				'"Uhm... I...," he stammers, turns around and quickly walks away without saying another word.'
+			end
+
+			act 'Continue': gt $loc, $loc_arg
+		end
+	elseif will_cost > pcs_willpwr and prostitute['pav_regular'] = 0 and prostitute['pav_search'] = 0:
+		act 'React angrily (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
+	end
+end
+
+!!------ set_0 ------
+
+if $ARGS[0] = 'set_0':
+	*clr & cla
+	minut += 15
+	if prostitute['pav_regular'] < 1: guy += 1
+	$prostitute['pav_walk'] = iif(rand(0,1) = 0, 'pav_residential', 'pav_complex')
+	gs 'prostitution_pavlovsk', 'travel', $prostitute['pav_walk']
+	'<center><video autoplay loop src="images/shared/prostitution/pavlovsk/street/set_<<pro_rand>>/private/bj_'+rand(0,3)+'.mp4"></video></center>'
+	if $prostitute['client_behavior'] = 'abusive':
+		gs 'pain', 8, 'head', 'slap'
+		gs 'fame', 'pav', 'prostitute', iif($prostitute['pav_scene'] = 'blowjob', rand(2,4), rand(3,6))
+		'You walk together to '+iif($prostitute['pav_walk'] = 'pav_residential', 'his apartment in the residential area', 'the Five Eight Estate')+'. The whole time he verbally abuses you by calling you whore, slut or something like fucktoy and loudly asks you embarrassing questions about your work and live as he grabs or slaps your ass from time to time.'
+		'He pushes you down to your knees, the second you are through the door. "Get to work whore," he commands and whips out his rock-hard cock. You take it into your mouth like the good whore that you are. "Yeah that''s it." He spits down on your face, before he continues. "Use that filthy mouth-pussy of yours." The verbally abuse continues until he pulls out a few minutes later and suddenly slaps your face hard. "You like that don''t you?" He slaps you again, before he grabs your head and rams his dick as deep as he can down your throat. "And don''t say no," he says with his cock buried balls deep into your mouth. "No self-respecting girl would whore herself out like this."'
+
+		gs 'arousal', 'bj', -9, 'prostitution', 'rough', 'deepthroat', 'sub'
+	else
+		gs 'fame', 'pav', 'prostitute', rand(1,2)
+		'You walk together to '+iif($prostitute['pav_walk'] = 'pav_residential', 'his apartment in the residential area', 'Five Eight Estate')+'. He always stays a few meters in front of you so that it doesn''t look like you two are walking together. It''s a nice gesture trying to make sure that it isn''t to obvious what you two are up to.'
+		*nl
+		'He isn''t much of a talker and leads you directly to the living room. "Here? Not the bedroom?" you ask as he takes of his jacket.'
+		'"Is that a problem for you?" You shake your head and follow his example. Taking of your clothes piece by piece. He intently watches you undress and compared with other clients he''s completely comfortable with you setting the pace. You take him by the hand, when he has taken off his clothes as well and walk him towards the couch. First you gently kiss the tip of his penis, before you swirl your tongue around it and softly suck on it. He never complains or tells you what to do. So you go through your routine which starts with a simple blowjob and ends with an impressive deepthroat.'
+
+		gs 'arousal', 'bj', -9, 'prostitution'
+	end
+
+	gs 'stat'
+
+	if $prostitute['pav_scene'] = 'pussy':
+		act 'Move on to the main course':
+			*clr & cla
+			minut += 12
+			gs 'arousal', 'auto_lube', 'vaginal', 'custom'
+			'<center><video autoplay loop src="images/shared/prostitution/pavlovsk/street/set_<<pro_rand>>/private/vag_'+rand(0,2)+'.mp4"></video></center>'
+			if $prostitute['client_behavior'] = 'abusive':
+				'"Move your ass to the couch," he shouts, but he doesn''t even wait for you to comply. His hands push you hard and you can feel his weight on you only two heartbeats after you have landed on the couch. "Gonna ruin that hole," he says and forces his cock completely inside you in one hard push. He laughs as he starts to fuck you hard. "Not much left for me to ruin."'
+				$orgasm_txt = 'It starts between your legs, wanders down your legs and up your spine until your pussy clamps down hard and you moan uncontrollably as your whole body vibrates from the orgasm. "Yeah, cum you filthy slut. I knew that you like it rough."'
+
+				gs 'arousal', 'vaginal', -9, 'prostitution'
+			else
+				'You lay back against the sofa and spread your legs wide revealing your inviting pussy. "Ready for more?" you ask teasingly and spread your pussy lips with your fingers. You move your hips towards him, when he''s to careful and takes too much time to enter you. "You don''t have to be careful," you assure him. "I won''t break." He nods, pulls out and forcefully shoves his cock back into you. "Yeah, like that," you moan, close your eyes and enjoy the fuck.'
+				$orgasm_txt = 'It starts between your legs, wanders down your legs and up your spine until your pussy clamps down hard and you moan uncontrollably as your whole body vibrates from the orgasm.'
+
+				gs 'arousal', 'vaginal', -9, 'prostitution', 'rough', 'sub'
+			end
+
+			gs 'stat'
+
+			if rand(0,1) = 0:
+				act 'Get on your knees':
+					if prostitute['pav_condom'] = 0: gs 'prostitution_functions', 'std_check'
+					gt 'prostitution_pavlovsk', 's0_facial'
+				end
+			elseif prostitute['pav_condom'] = 1:
+				act 'Let him cum inside the condom':
+					if $prostitute['client_behavior'] = 'abusive' and rand(1,100) > iif($pro_brand['text_pubic'] = 'cumslut', 84, 92): prostitute['pav_internal'] = 1
+					gt 'prostitution_pavlovsk', 's0_internal'
+				end
+			else
+				act 'Let him cum inside you': gt 'prostitution_pavlovsk', 's0_internal'
+
+				gs 'willpower', 'cum_inside', 'self', iif($prostitute['client_behavior'] = 'abusive', 'hard', 'easy')
+				if will_cost <= pcs_willpwr:
+					act 'Tell him to pull out (<<will_cost>> Willpower)':
+						gs 'willpower', 'pay', 'self'
+						if (rand(0,3) = 3 or (rand(0,1) = 1 and $pro_brand['text_pubic'] = 'cumslut')) and $prostitute['client_behavior'] = 'abusive':
+							prostitute['pav_internal'] = 1
+							gt 'prostitution_pavlovsk', 's0_internal'
+						else
+							gs 'prostitution_functions', 'std_check'
+							gt 'prostitution_pavlovsk', 's0_facial'
+						end
+					end
+				else
+					act 'Tell him to pull out (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
+				end
+			end
+		end
+	else
+		act 'Continue':
+			if prostitute['pav_condom'] = 0: gs 'prostitution_functions', 'std_check_oral'
+			gt 'prostitution_pavlovsk', 's0_facial'
+		end
+	end
+end
+
+if $ARGS[0] = 's0_facial':
+	*clr & cla
+	facial += 1
+	minut += 6
+	'<center><video autoplay loop src="images/shared/prostitution/pavlovsk/street/set_<<pro_rand>>/private/end_facial.mp4"></video></center>'
+	if $prostitute['client_behavior'] = 'abusive':
+		'It''s finally over, you think, when he forces you onto your knees and aims his dick at your face'+iif(prostitute['pav_condom'] = 1, ' and pulls the condom off.', '.')+'"Take it slut," he shouts as he furiously rubs his cock until he coats your entire face in cum. "Yeah bitch, that''s looks really nice on you," he looks at you like an artist who examines his latest masterpiece. Then he suddenly grabs you and pulls you towards the door. "Now get the fuck out," he shouts, opens the door and pushes you out of the apartment.'
+		'"Please, my clothes," you beg. He throws them onto the dirty floor and closes the door without saying another word. You quickly get dressed and ...'
+
+		gs 'arousal', 'bj', -6, 'prostitution', 'rough', 'deepthroat', 'sub'
+	else
+		'"Can I cum on your face?" He asks shyly. You pull your mouth away from his hard meat and submissively look up to him. "Of course you can, sweetie," you reply. '+iif(prostitute['pav_condom'] = 1, 'He takes the condom off and', 'He')+' doesn''t waste a second before he takes his cock into his hand and after a few furious strokes coats your entire face in a huge load. "Thanks <<$pcs_nickname>>, that was great. The bathroom is down the hall. You can clean up there before you leave."'
+
+		gs 'arousal', 'bj', -6, 'prostitution'
+	end
+
+	gs 'cum_call', 'face', 'a client'
+
+	gs 'arousal', 'end'
+	gs 'stat'
+
+	if $prostitute['client_behavior'] = 'abusive':
+		act '... leave with cum on your face': gt 'prostitution_pavlovsk', 'end'
+	else
+		act 'Clean up and leave': gt 'prostitution_pavlovsk', 'end', 'clean'
+	end
+end
+
+if $ARGS[0] = 's0_internal':
+	*clr & cla
+	minut += 6
+	'<center><video autoplay loop src="images/shared/prostitution/pavlovsk/street/set_<<pro_rand>>/private/end_vag.mp4"></video></center>'
+	gs 'arousal', 'vaginal', -6, 'prostitution', iif($prostitute['client_behavior'] = 'abusive', 'rough', '')
+	gs 'arousal', 'end'
+	if prostitute['pav_condom'] = 1:
+		if prostitute['pav_internal'] = 0 and rand(1,100) > 98:
+			prostitute['pav_internal'] = 1
+			'He stiffens and pushes his cock deeper inside your pussy and you can suddenly feel warmth flooding your insides. Your eyes grow wide, when you realize what''s happening. "What the fuck? Did you remove the condom?"'
+			if $prostitute['client_behavior'] = 'abusive':
+				'He looks confused for a second, pulls out and starts to laugh. "The condom broke you lucky bitch," he pulls it off and throws the wet broken condom on your stomach. "You should be grateful for receiving my cum'+iif($pro_brand['text_pubic'] = 'cumslut', ' aren''t you a cumslut anyway?" he grins and points at your pubic tat.', '."')
+			else
+				'He looks confused for a second and then a horrified expression takes shape on his face. "No, of course not," he pulls out and takes the condom off. "It broke," he holds the empty condom up. "See? I''m so sorry <<$pcs_nickname>>."'
+				'You sigh and stop him with one gesture of your hand. "It''s not your fault. Shit happens."'
+			end
+		elseif prostitute['pav_internal'] = 1:
+			gs 'pain', 8, 'head', 'slap'
+			'He stiffens and pushes his cock deeper inside your pussy and you can suddenly feel warmth flooding your insides. Your eyes grow wide, when you realize what''s happening. "What the fuck? Did you remove the condom?"'
+			'"Yeah I did you stupid cunt," he slaps your face hard. You let out a yelp while he continues, "and that''s no way to say thank you for receiving my seed you ungrateful whore."'
+			'"Thank you," you say rubbing your burning with your hand'+iif($pro_brand['text_pubic'] = 'cumslut', ' "Thank you for giving this cumslut what she needs," you say echoing what''s written on your pubic area.', '.')
+		else
+			'He stiffens and pushes his cock deeper inside your pussy, you can feel his meat pulsate inside you filling the condom.'
+		end
+	elseif prostitute['pav_internal'] = 1:
+		'He stiffens and pushes his cock deeper inside your pussy and you can suddenly feel warmth flooding your insides. Your eyes grow wide, when you realize what''s happening. "What the fuck? I told you to pull out."'
+		'He slaps your face hard. You let out a yelp while he says, "that''s no way to say thank you for receiving my seed you ungrateful whore'+iif($pro_brand['text_pubic'] = 'cumslut', ' and do you think I''m stupid? I can read you know." He slaps your ''cumslut'' tattoo once to underscore what he means.', '."')
+		'"Thank you," you say rubbing your burning with your hand."'
+	elseif prostitute['pav_internal'] = 0 and prostitute['pav_condom'] = 0:
+		'He stiffens and pushes his cock deeper inside your pussy and you can suddenly feel warmth flooding your inside. "Yes, fill me up baby," you moan as he coats your cervix in his potent seed.'+iif($pro_brand['text_pubic'] = 'cumslut', ' " Give this cumslut what she needs," softly slapping your pubic tat once to underscore what you''re saying.', '')
+	end
+
+	if $prostitute['client_behavior'] = 'abusive':
+		'Then he suddenly grabs you and pulls you towards the door. "Now get the fuck out," he shouts, opens the door and pushes you out of the apartment.'
+		'"Please, my clothes," you beg. He throws them onto the dirty floor and closes the door without saying another word. You quickly get dressed and ...'
+	else
+		'"Thanks <<$pcs_nickname>>, that was great. The bathroom is down the hall. You can clean up there before you leave."'
+	end
+
+	if prostitute['pav_condom'] = 0 or prostitute['pav_internal'] = 1:
+		gs 'prostitution_functions', 'std_check'
+		gs 'cum_call', 'vaginal', 'a client'
+	end
+
+	gs 'stat'
+
+	if $prostitute['client_behavior'] = 'abusive':
+		act '... leave': gt 'prostitution_pavlovsk', 'end'
+	else
+		act 'Clean up and leave': gt 'prostitution_pavlovsk', 'end', 'clean'
+	end
+end
+
+!!------ set_1 ------
+
+if $ARGS[0] = 'set_1':
+	*clr & cla
+	minut += 15
+	if prostitute['pav_regular'] < 1: guy += 1
+	$prostitute['pav_walk'] = iif($prostitute['pav_location'] = 'public', 'pav_industrial', 'pav_residential')
+	gs 'prostitution_pavlovsk', 'travel', $prostitute['pav_walk']
+	'<center><video autoplay loop src="images/shared/prostitution/pavlovsk/street/set_<<pro_rand>>/<<$prostitute[''pav_location'']>>/bj_'+rand(0,2)+'.mp4"></video></center>'
+	if $prostitute['pav_location'] = 'public':
+		gs 'fame', 'pav', 'prostitute', rand(2,4)
+		'"Come on slut, let''s go." After several minutes it''s become clear that you''re walking towards the outskirts of the industrial area, but he turns right into a small empty street before you can reach the warehouse. He abruptly turns around and points to the ground. "Get on your knees," he tells you unbuckling his belt at the same time. He opens his mouth again, when you didn''t comply with his wishes. "I paid, so do what I say you piece of shit," he growls and lifts his hand ready to strike. You quickly drop down kneeling on the hard uncomfortable asphalt and submissively open your mouth to not give him a reason to hit you. "Good slut, somebody trained you well." He aligns his cock with your mouth and slowly moves his hips forward until his pubic hairs tickle your nose. "I''ll fuck you so hard, that you''re going to puke," he predicts, grabs your head with both hands and uses your mouth like a pussy.'
+	else
+		gs 'fame', 'pav', 'prostitute', rand(1,2)
+		'It''s obvious that he''s a'+iif(prostitute['pav_regular'] = 1, ' still ', ' ')+'bit nervous as you walk to his home '+iif(prostitute['pav_regular'] = 1, 'even if it isn''t the first time that he bought your services', 'in the residential area')+'. He talks a lot, tells you about his life, his work and seems fine with you saying only the occasional ''yes'' and ''OK''. "Uhm...," he murmurs when the apartment door shuts behind the two of you and he looks to your for guidance for what to do next. You grab his arm and lead him to the bedroom at the end of the hallway, sit down on the bed, pull out his cock and suck the entire length of his cock into your mouth. He doesn''t say a word and you only stop your masterful blowjob to undress.'
+	end
+
+	gs 'arousal', 'bj', -9, 'prostitution', 'deepthroat', iif($prostitute['client_behavior'] = 'abusive', 'rough', ''), iif($prostitute['client_behavior'] = 'abusive', 'exhibitionism', '')
+	gs 'stat'
+
+	act 'Continue':
+		*clr & cla
+		minut += 12
+		gs 'arousal', 'auto_lube', 'vaginal', 'custom'
+		'<center><video autoplay loop src="images/shared/prostitution/pavlovsk/street/set_<<pro_rand>>/<<$prostitute[''pav_location'']>>/vag_'+iif($prostitute['pav_location'] = 'public', rand(0,3), rand(0,7))+'.mp4"></video></center>'
+		if $prostitute['pav_location'] = 'public':
+			gs 'pain', 10, 'asscheeks', 'slap'
+			'You suck in air, when he finally relents and pulls his cock far enough out of your mouth that you can take more than one quick breath which was all you could do in the last ten minutes. He grabs you by the hip, turns you around and slams your body on the hood of a nearby old car. "You should be glad that I pay you. Rapemeat like you doesn''t deserve to be treated this nicely." he tells you coldly before he forces his cock deep inside your cunt. His hand slaps your ass with all the strength he can muster as he brutally shoves his tool into your snatch. "Fuck that hurts," you say and in response he slaps your ass again. "What was that?"'
+			'"Thanks for fucking me," you lie and swallow a bunch of insults you wish you could say instead.'
+			$orgasm_txt = 'You don''t want to, but you can''t stop the orgasm that approaches quickly. It''s humiliating to cum like this pressed against an old rusty car in the middle of the street, but you uncontrollably moan like a bitch in heat, when wave after wave of pleasure floods every cell of your body.'
+
+			gs 'arousal', 'vaginal', -9, 'prostitution', 'rough', 'exhibitionism', 'sub'
+		else
+			'"Did anybody ever tell you how beautiful you are?" he says as he slowly eases his cock inside you while caressing your body with his hands. He moves a single finger over your lips, down your neck and between your breasts down to your '+iif($pro_brand['text_pubic'] = 'cumslut', 'cumslut tattoo', 'pussy')+'. "You aren''t ashamed of what you are." It isn''t a question, it''s a statement of fact. "I love that. Without girls like you men like me would be totally alone." You look around in the bedroom and can''t see any pictures of a wife, kids or any other family or friends. "Everybody needs somebody," you say smiling up at him, before he starts to move his hips. His movements are slow at first, but his confidence grows with every thrust until he fucks you like the whore that you are.'
+
+			gs 'arousal', 'vaginal', -9, 'prostitution'
+		end
+
+		gs 'stat'
+
+		if prostitute['pav_condom'] = 1:
+			act 'Let him cum inside the condom':
+				if $prostitute['client_behavior'] = 'abusive' and rand(1,100) > iif($pro_brand['text_pubic'] = 'cumslut', 84, 92): prostitute['pav_internal'] = 1
+				gt 'prostitution_pavlovsk', 's1_end'
+			end
+		else
+			act 'Don''t say anything': gt 'prostitution_pavlovsk', 's1_end'
+
+			gs 'willpower', 'cum_inside', 'self', iif($prostitute['client_behavior'] = 'abusive', 'hard', 'easy')
+			if will_cost <= pcs_willpwr:
+				act 'Tell him to pull out (<<will_cost>> Willpower)':
+					gs 'willpower', 'pay', 'self'
+					if (rand(0,3) = 3 or (rand(0,1) = 1 and $pro_brand['text_pubic'] = 'cumslut')) and $prostitute['client_behavior'] = 'abusive':
+						prostitute['pav_internal'] = 1
+						gt 'prostitution_pavlovsk', 's1_end'
+					else
+						prostitute['pav_internal'] = -1
+						gs 'prostitution_functions', 'std_check'
+						gt 'prostitution_pavlovsk', 's1_end'
+					end
+				end
+			else
+				act 'Tell him to pull out (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
+			end
+		end
+	end
+end
+
+if $ARGS[0] = 's1_end':
+	*clr & cla
+	minut += 6
+	'<center><video autoplay loop src="images/shared/prostitution/pavlovsk/street/set_<<pro_rand>>/<<$prostitute[''pav_location'']>>/end.mp4"></video></center>'
+	gs 'arousal', 'vaginal', -6, 'prostitution', iif($prostitute['client_behavior'] = 'abusive', 'rough', ''), iif($prostitute['client_behavior'] = 'abusive', 'exhibitionism', ''), iif($prostitute['client_behavior'] = 'abusive', 'sub', '')
+	gs 'arousal', 'end'
+
+	if $prostitute['pav_location'] = 'public':
+		'He roughly pushes your body against the car with every thrust and you know he''s close, when his movements become more erratic while he pants loudly. "Damn... take my cum bitch."'
+		if prostitute['pav_condom'] = 1:
+			if prostitute['pav_internal'] = 0 and rand(1,100) > 98:
+				prostitute['pav_internal'] = 1
+				'"Yes, fill me up," you encourage him, because you know he''s wearing a condom, but something doesn''t feel right. Is he still wearing a condom?'
+				'He laughs, when he pulls out his dick. "You should be careful what you wish for," he throws a broken condom on the car next to your head. "Your shitty condom broke.'+iif($pro_brand['text_pubic'] = 'cumslut', ' But maybe you already knew that... didn''t you cumdump?" He asks and shoves his hand between your the car and your belly. "You want to get pregnant, don''t you? I bet you manipulated it," he taunts you as he slowly caresses your ''cumslut'' tat until he ', '." He says and ')+'pulls up his jeans.'
+			elseif prostitute['pav_internal'] = 1:
+				'"Yes, fill me up," you encourage him knowing he''s wearing a condom. But he pulls out instead and you wait a few seconds expecting to feel his warm seed on your butt, when he without warning pushes back inside and you can feel his cock throb in your pussy. "I knew it, a filthy cumdump like you wants it inside. Why do you insist on the condom in the first place?" he taunts you, when his finished unloading into your unwilling cunt.'
+				'"What? Why did you cum inside me? Did you really believe I meant it?" you shout angrily, but he grabs you roughly by the shoulder and turns you around. '+iif($pro_brand['text_pubic'] = 'cumslut', '"Really? You''re going to complain, when you have a ''cumslut'' tat?"', '"Shut up I paid for it and you said I could. So stop complaining."')+' he says, before he takes a step back and pulls his jeans up.'
+			else
+				'"Yes, fill me up," you encourage him, because you know he''s wearing a condom.'
+				'"So you want me to take the condom off?" he taunts you and for a second you fear he would do that, but only two heartbeats later you can feel the condom expanding, when it fills with his seed. "Should have said something earlier, I would have paid more to fuck you raw," he says as he pulls up his jeans.'+iif($pro_brand['text_pubic'] = 'cumslut', '"Why did you ink ''cumslut'' on your body if you don''t want to be one?" he asks more to annoy than out of curiosity. "Just accept what you are."', '')
+			end
+		elseif prostitute['pav_internal'] = 1:
+			'"Please, don''t cum inside my," you plead as he presses your face with his hand against the cold metal of the car. He doesn''t show any sign of pulling out and a few seconds later you can feel his cock twitching in your pussy. "Yes, take it," he growls and forces his cock one last time inside you.'
+			'"Why did you do that?" you ask weakly when he takes a small step back.'
+			iif($pro_brand['text_pubic'] = 'cumslut', 'He points at your tattoo. "That''s why, we both know you want to be treated like as a cumdump."', '"I paid so I can do whatever you want."')+' he explains as he pulls up his pants.'
+		elseif prostitute['pav_internal'] = -1:
+			'"Please, don''t cum inside my," you plead as he presses your face with his hand against the cold metal of the car. To your surprise he actually listens to you. He let''s go, takes a step back and shots his load all over your naked ass. "What a waste," he says as he takes his dick and spreads the cum around on your ass.'
+		elseif prostitute['pav_internal'] = 0 and prostitute['pav_condom'] = 0:
+			'"Yes, fill me up," you encourage him. This takes him over the edge and his throbbing cock fills your pussy with his warm seed.'
+			iif($pro_brand['text_pubic'] = 'cumslut', '"You made a good choice with your tat. Maybe you should add some more. Worthless cunt or stupid whore would fit perfectly as well."', '')
+		end
+		'"See ya slut," is the last thing he says to you before he walks away.'
+
+		if prostitute['pav_condom'] = 0 or prostitute['pav_internal'] = 1:
+			gs 'prostitution_functions', 'std_check'
+			gs 'cum_call', iif(prostitute['pav_internal'] = -1, 'butt', 'vaginal'), 'a client'
+		end
+	else
+		'"Can I cum on you?" He asks shyly as his'+iif(prostitute['pav_condom'] = 1, ' condom covered ', ' ')+'cock moves rapidly in and out of your cunt. Most men wouldn''t ask, some would even cum inside you against your will. It''s sweet and a bit sad that not more men are like him. "Of course you can sweetie."'
+		'"Thanks...," he tries to say, but isn''t able to utter a whole sentence while his cum lands on your '+iif($pro_brand['text_pubic'] = 'cumslut', 'cumslut tattoo.', 'labia.')+' "Great," he murmurs as his body lands exhausted next to you on the bed. "That was really great."'
+		if prostitute['pav_condom'] = 1 and rand(1,100) > 98:
+			'"Yeah it was," you agree, but something catches your eye, when you sit up. The condom doesn''t look right. You pick it up and see that''s broken. Good thing he came outside, you think and hope that he was clean and didn''t infect you with a STD.'
+		elseif prostitute['pav_condom'] = 0:
+			gs 'prostitution_functions', 'std_check'
+		end
+		'He offers you to use the bathroom before you go and you gladly accept.'
+
+		gs 'cum_call', iif(prostitute['pav_internal'] = -1, 'labia', 'vaginal'), 'a client'
+	end
+
+	gs 'stat'
+
+	if $prostitute['client_behavior'] = 'abusive':
+		act 'Continue': gt 'prostitution_pavlovsk', 'end'
+	else
+		act 'Clean up and leave': gt 'prostitution_pavlovsk', 'end', 'clean'
+	end
+end
+
+!!------ set_2 ------
+
+if $ARGS[0] = 'set_2':
+	*clr & cla
+	minut += 15
+	if prostitute['pav_regular'] < 1: guy += 1
+	$prostitute['pav_walk'] = iif($prostitute['pav_location'] = 'public', 'pav_commercial', 'pav_complex')
+	gs 'prostitution_pavlovsk', 'travel', $prostitute['pav_walk']
+	'<center><video autoplay loop src="images/shared/prostitution/pavlovsk/street/set_<<pro_rand>>/<<$prostitute[''pav_location'']>>/bj_'+iif($prostitute['pav_location'] = 'public', rand(0,1), rand(0,3))+'.mp4"></video></center>'
+	gs 'fame', 'pav', 'prostitute', iif($prostitute['client_behavior'] = 'nice', rand(1,2), rand(2,4))
+	if $prostitute['pav_location'] = 'public':
+		if $prostitute['client_behavior'] = 'nice':
+			'"I don''t have much time," he explains as you walk next to him in Pavlovsk''s commercial area. "I need to get back to work in a few minutes," he adds as he pushes open a backdoor to one of the small office buildings.'
+			'"You want to do it here?" you ask skeptical. "Won''t we get caught?"'
+			'He shakes his head and walks through another door into an empty hallway. "Nobody comes here except for the clinic lady and she won''t be here until tomorrow," he explains while he unbuckles his belt and drops his pants. "Take of your shirt. I want to see your tits."'
+			'You take another look around, before you surrender to your fate, take of your top and get on your knees. "I don''t need some fancy shit, just get me off quickly, before my break ends."'
+			'"Roger that. One efficient blowjob coming right up," you say with a wink.'
+
+			gs 'arousal', 'bj', -9, 'prostitution', 'exhibitionism'
+		else
+			'"Move your ass slut. I don''t have much time," he says angrily as you follow him to the commercial district. "My fucking boss wants me back in the office in a few minutes. She''s such a retard. If the company goes to hell it''s her fault...," he rants. You stop listening after a few minutes and silently walk beside him as he goes on and on about his job, his boss, his colleagues and everything else that is getting on his nerves. He suddenly grabs your arm and pulls you through the back entrance into one of the small office buildings.'
+			'"Here?" you ask unsure, but nobody seems to be around.'
+			'"Of course here. I can hardly take you up to my office," he replies annoyed and pushes you down to your knees. "And now do what you''re told and get to it." You kneel down on the hard concrete floor and pull down his pants. "Take of your top, I want to see your tits," he commands and you obey just like he wants. You stroke his cock a few times to get it hard and lick the entire length while you submissively look into his eyes. "Why can''t '+iif(rand(0,1), 'my boss', 'stupid Masha in accounting')+' know her place like you do?" You don''t think, he really expects an answer from you. So, you continue to lavish his cock with in attention and tease the tip with your experienced tongue, when he adds. "I asked you a question..."'
+			'You look up and the serious expression on his face tells you, yes he seriously wants an answer. You let his cock slip out of your mouth with a naughty plop. "They probably never experienced how good it feels to be told what to do?" you say unsure if that''s what he wants to hear.'
+			'"Good answer slut." He wiggles his hips to make the cock dance in front of your face. "Get back to it."'
+
+			gs 'arousal', 'bj', -9, 'prostitution', 'exhibitionism', 'sub'
+		end
+
+		act 'Continue':
+			*clr & cla
+			minut += 3
+			'<center><video autoplay loop src="images/shared/prostitution/pavlovsk/street/set_<<pro_rand>>/<<$prostitute[''pav_location'']>>/end.mp4"></video></center>'
+			if $prostitute['client_behavior'] = 'nice':
+				'You lavish his dick in attention and give everything you got. Not to show of your skill, but to get him off as quickly as possible. And your treatment works. Only a few minutes later you can see the signs that he''s close to the edge. You pull your head back, take the cock in your hand and give it a few hard strokes. "Ready to cum?"'
+				'"Oh god yes," he says moaning like a girl. You close your lips around the sensitive tip and he cums. Hot seed floods '+iif(prostitute['pav_condom'] = 1, 'the condom', 'your mouth')+' with hot salty seed.'
+			else
+				'You softly massage his balls with your hand as your head bobs up and down on his shaft. Your other hand grabs the base of his cock as you pull your mouth away. "Give it to me, give me your cum," you say lasciviously. That takes him over the edge. You suck the head back into your mouth a second before he unloads his load into '+iif(prostitute['pav_condom'] = 1, 'the condom', 'your mouth')
+			end
+			'Satisfied he pulls up his pants. "Shit, I have to go," he says and hastily walks away after checking the time on his phone.'
+
+			if prostitute['pav_condom'] = 0:
+				swallow += 1
+				gs 'cum_call', 'mouth', 'a client'
+				gs 'prostitution_functions', 'std_check_oral'
+			end
+			gs 'arousal', 'bj', -6, 'prostitution', 'exhibitionism'
+			gs 'arousal', 'end'
+			gs 'stat'
+
+			act 'Leave': gt 'prostitution_pavlovsk', 'end'
+		end
+	else
+		'You hope nobody you know sees you, when you walk through the courtyard of the Five Eight Estate, where your parents live.'
+		if $prostitute['client_behavior'] = 'nice':
+			minut += 10
+			'"It''s right there," your client says, pointing at one of the apartment blocks at the other side of the courtyard. At least he doesn''t live in the same building as your parents.'
+			'"Do you want something to drink?" he asks you as he unlocks the door to his apartment.'
+			'"That''s very considerate of you to ask," you answer. '+iif(pcs_hydra < 60, '"Some water would be nice."', '"But no, I''m fine thanks."')+' He leads you down a small hallway into the kitchen, where he pulls a beer from the nearly empty fridge'+iif(pcs_hydra < 60, ' and hands you a glass of water.', '.')+' The furniture and kitchen appliances look old, even older than your parents and it''s painfully obvious that he lives alone and probably is unemployed. The two of you spend several minutes making small talk like talking about the weather and you get the feeling this is more important to him then what will follow in the bedroom. There are some guys like him who hire you just to have some form of human contact.'
+			if pcs_hydra < 60: pcs_hydra = 100
+			*nl
+			'But you didn''t get paid to have a conversation and after a few more minutes you move into the bedroom. "Can you do it slowly?" is the only thing he asks of you for the rest of the time and one sensual striptease later he lies down on the bed to indulge in your masterful blowjob.'
+		else
+			gs 'pain', 8, 'slap', 'head'
+			'"What''s wrong? Why are you so nervous?" he asks you annoyed.'
+			'"I''m not, everything is fine," you reply but immediately regret the answer, when he turns around and slaps you hard. Pain flares up on your cheek. You stumble and nearly fall to the ground.'
+			'"Stop lying to me bitch. I owe you for the next hour, remember that," he growls.'
+			'Owe you? That''s ludicrous. He only rented your services for a short time and doesn''t owe you. You''re not his slave. But you bite your tongue and swallow the truth. An honest responds would probably earn you another slap in the face. Even returning the money and walking away isn''t an option. The scene he would make would draw the attention of everyone in the area. "I''m sorry, I didn''t want to annoy you with my problems. They aren''t worthy of your attention," you reply meekly." He looks speechless for a moment. Did you say the wrong thing again?'
+			'"You''re right. You really aren''t worthy of my concern. Why should I give a shit about some fucked-up whore."'
+			*nl
+			'A few minutes later you''re already undressed, kneeling on his bed, his cock down your throat. "Suck it deeper bitch," he commands as you try your best to fulfill his wish. "Yes, just like that, good girl," he praises you as you manage to swallow it completely. "We finally found something that is worthy of somebodies attention. Didn''t we?"'
+			'You pull your head up, leaving a sloppy trail of saliva on his meat. "Yes, we did," you say with the best fake smile you can muster.'
+		end
+
+		gs 'arousal', 'bj', -9, 'prostitution', iif($prostitute['client_behavior'] = 'nice', '', 'deepthroat'), iif($prostitute['client_behavior'] = 'nice', '', 'sub')
+
+		act 'Continue':
+			*clr & cla
+			minut += 12
+			gs 'arousal', 'auto_lube', 'vaginal', 'custom'
+			'<center><video autoplay loop src="images/shared/prostitution/pavlovsk/street/set_<<pro_rand>>/<<$prostitute[''pav_location'']>>/vag_'+iif($prostitute['client_behavior'] = 'nice', rand(0,2), rand(3,5))+'.mp4"></video></center>'
+			if $prostitute['client_behavior'] = 'nice':
+				$orgasm_or = 'no'
+				'You position yourself on top of him and guide his'+iif(prostitute['pav_condom'] = 1, ' condom covered ', ' ')+'dick into your inviting sex. His hand moves up and tenderly caress your breasts. "Perfect," he whispers as his hands slowly wander down your sides.'
+				'You send him an honest smile and increase the pace, really jumping up and down on his cock. It''s so much easier to give it all you''ve got when they manage to behave like a normal human being. After a few more minutes of hard fucking your muscles get tired and you take a break for a moment only rotating your hips to keep his cock entertained. "How about we switch positions? Me on all fours?" He nods and you get on all fours presenting your ass.'
+				*nl
+				'He takes his time as explores your backside with his hands. "Even more perfect," he says and you unexpectedly feel wetness on your right ass-cheek. He placed a loud smacker on your ass.'
+				'"Did you just kiss my ass?" you ask and turn around to see him grinning like a little boy caught with his hand in the cookie jar. "I couldn''t help it. It''s just too cute."'
+				'You laugh and wiggle your ass. "It''s not often that somebody says my ass is cute."'
+				'"Then let me repeat that. It... is... cute," he emphasizes every word and kisses your ass again in the pauses between every word.'
+			else
+				gs 'pain', 10, 'asscheeks', 'slap'
+				gs 'pain', 10, 'asscheeks', 'slap'
+				gs 'pain', 10, 'asscheeks', 'slap'
+				'He quickly moved on from the blowjob. Demanding from you to get on all fours. "Yes, present me your fat ass," he berates you as you stick out your bum. He grabs your tender flesh with two rough hands and pulls you ass back to bury his meat into you. His hands violently knead your flesh. "I think we again found something worthy of attention," he says and withdraws one hand only to slap your ass hard. You yelp, but that only makes him laugh. "We both know that you deserve it bitch... And now start counting."'
+				'"What?" you shout not sure you heard him correctly.'
+				'"Count. I want to know how many slaps you took before I cum," he shouts and slaps your behind again.'
+				'"Three," you scream and wince, when his hand connects with your flesh again.'
+				'"Four...," you continue as he starts an unrelenting assault. But four isn''t enough. He smacks your ass hard again and again and again until your flesh turns blazing red.'
+
+				if rand(0,1) = 1:
+					*nl
+					if pcs_horny < 100: pcs_horny = 100
+					$orgasm_or = 'custom'
+					$orgasm_txt = '"Thirty-four...," you scream as he hits you again, but this time the result isn''t pain, but an explosion of pleasure, when his hard slap triggers an intense orgasm. Your eyes roll back and for a moment only his hard cock in your pussy and the pleasurable pain exist. The strength in your arms vanishes and your upper body falls down onto the bad and only his strong hands keep your ass aligned with his cock. "Fucking painslut. I knew it from the moment I saw you," he taunts you sounding immensely satisfied with himself.'
+				else
+					$orgasm_or = 'no'
+					pcs_horny = 0
+				end
+			end
+
+			gs 'arousal', 'vaginal', -9, 'prostitution', iif($prostitute['client_behavior'] = 'abusive', 'rough', ''), iif($prostitute['client_behavior'] = 'abusive', 'sub', '')
+			gs 'stat'
+
+			if prostitute['pav_condom'] = 1:
+				act 'Let him cum inside the condom': gt 'prostitution_pavlovsk', 's2_end'
+			else
+				act 'Don''t say anything': gt 'prostitution_pavlovsk', 's2_end'
+
+				gs 'willpower', 'cum_inside', 'self', iif($prostitute['client_behavior'] = 'abusive', 'hard', 'easy')
+				if will_cost <= pcs_willpwr:
+					act 'Tell him to pull out (<<will_cost>> Willpower)':
+						gs 'willpower', 'pay', 'self'
+						gt 'prostitution_pavlovsk', 's2_end'
+					end
+				else
+					act 'Tell him to pull out (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
+				end
+			end
+		end
+	end
+end
+
+if $ARGS[0] = 's2_end':
+	*clr & cla
+	minut += 6
+	'<center><video autoplay loop src="images/shared/prostitution/pavlovsk/street/set_<<pro_rand>>/<<$prostitute[''pav_location'']>>/end.mp4"></video></center>'
+	gs 'arousal', 'vaginal', -6, 'prostitution', iif($prostitute['client_behavior'] = 'abusive', 'rough', ''), iif($prostitute['client_behavior'] = 'abusive', 'sub', '')
+	gs 'arousal', 'end'
+
+	if $prostitute['client_behavior'] = 'nice':
+		'"Can I cum on your cute butt?" he asks as his movements become more erratic by the second.'
+		'"Of course," you reply immediately and not a second too soon. He withdraws his cock'+iif(prostitute['pav_condom'] = 1, ', takes the condom off ', ' ')+'and shoots his cum on your backside. "Thanks, I really needed that.'
+		'You look over your shoulder at the mess he made on your ass and say with a cute wink. "Your welcome."'
+		'"The bathroom is on the other end of the hallway, if you want to freshen up before you go," he says before getting of the bed to collect his clothes.'
+	else
+		gs 'pain', 10, 'asscheeks', 'slap'
+		gs 'pain', 10, 'asscheeks', 'slap'
+		gs 'pain', 10, 'asscheeks', 'slap'
+		'"'+iif(rand(0,1) = 1, 'Fifty-two', 'Forty-four')+'," you cry out. The pain is fucking unbearable.'
+		'"Had enough?" he asks and you can''t manage to lie to him. You need it to stop. "Yes," you sob. "Please, no more."'
+		'"Probably the first honest thing you said today," he says chuckling. "I bet it hurts. Let me put on some ointment. He pulls out'+iif(prostitute['pav_condom'] = 1, ', tears the condom off ', ' ')+'and sprays cum all over your butt. "Does this feel better?" he asks you as he distributes the cum with his cock all over your burning cheeks.'
+		'"No," you sob and crawl away from him. He doesn''t stop you, when you put your clothes back on and ...'
+	end
+
+	gs 'cum_call', 'butt', 'a client'
+	gs 'stat'
+
+	if $prostitute['client_behavior'] = 'abusive':
+		act '... flee out of the apartment': gt 'prostitution_pavlovsk', 'end'
+	else
+		act 'Clean up and leave': gt 'prostitution_pavlovsk', 'end', 'clean'
+	end
+end
+
+!!------ set_3 ------
+
+if $ARGS[0] = 'set_3':
+	*clr & cla
+	minut += 15
+	pro_temp = rand(0,2)
+	if prostitute['pav_regular'] < 1: guy += 1
+	$prostitute['pav_walk'] = 'pav_residential'
+	gs 'prostitution_pavlovsk', 'travel', $prostitute['pav_walk']
+	'<center><video autoplay loop src="images/shared/prostitution/pavlovsk/street/set_<<pro_rand>>/<<$prostitute[''pav_location'']>>/bj_<<pro_temp>>.mp4"></video></center>'
+	gs 'fame', 'pav', 'prostitute', iif($prostitute['client_behavior'] = 'nice', rand(2,4), rand(3,6))
+	if $prostitute['pav_location'] = 'public':
+		if pro_temp = 0: gs 'fame', 'pav', 'prostitute', iif(PCloStyle = 4, 2, 1)
+		if $prostitute['client_behavior'] = 'nice':
+			'"My car is right over there," he says pointing to a single car in an empty parking lot on the edge of the residential area. He opens the door on the '+iif(pro_temp = 0, 'driver', 'passenger')+' side, but he stops you from '+iif(pro_temp = 0, 'going around the car to the passenger side.', 'getting inside the car.')+' "No, we don''t need to drive anywhere. We can do it here."'
+			'"Here? In public?" you ask skeptical'+iif(pro_temp = 0, ', but go back to him.', '.')
+			'"Sure, why not?" He points to the door. With the door open nobody will see what''s going on."'
+			'You take a look around and shake your head. "But there''s a road behind us. We will be completely exposed."'
+			'"No, no." He pulls down his pants. "Nobody drives on that road," he tries to reassure you. "We can debate this the whole day if you want." He suddenly pulls down his pants in one quick move. "Or you can get down from your high horse and down to your knees and get it over with. The faster you get me off the faster you''re out of here."'
+			*nl
+			'You resign to your fate and squat down in front of him. He paid and you accepted. If he wants to get sucked of in public there''s nothing you can do about it. Judging by how hard he is, this turns him on immensely and it probably was his plan all along.'
+
+			if pro_temp = 0:
+				*nl
+				'"You need to stop," he says sounding anxious, but his warning comes too late, when a car honks behind you several times. "Shit, they saw us," he explains the obvious. Should you stop? You ask yourself for a moment, but make the decision not to. You can''t change what happened and stopping now won''t help anybody.'
+			end
+		else
+			'"My car is right over there," he says pointing to a single car in an empty parking lot on the edge of the residential area. But when you get there, he doesn''t open the door instead he pulls down his pants and reveals his hard cock to the world.'
+			'"Uhm... here?" you asks shocked and take a look around. There are houses and two streets. "I can''t do it here. Everybody can see us."'
+			'He rolls his eyes and opens the driver side door to grant you some cover. "Satisfied? Now we can''t be seen."'
+			'You sigh and look behind you to the other road. Nobody drives on that street, most take the one near the houses. "Fine," you tell him and squat down in front of him.'
+			*nl
+			'"Are you wet?" he asks with a smirk on his face as you lick the entire length of his dick. "Does it turn you on that someone could see what a slut you are?"'
+			'"No, of course not," you say'+iif(pcs_horny < 40, ' and your dry pussy agrees with you.', ', but your wet pussy disagrees with you.')+' Sucking his cock into your mouth shuts him up for now and he has to grab the passenger side door to steady himself, when your talented tongue works her magic.'
+
+			if pro_temp = 0:
+				*nl
+				'A car honks behind you several time and your client suddenly laughs. Your eyes shift upwards and you can see giving a thumps up to somebody. His cock slips out of your mouth. "What the fuck? Why didn''t you warn me?"'
+				'He grins. "Oh come on, they only saw your back. If somebody has a reason to complain, it would be me. They saw my face." You mull his words and respond with a shrug. He''s right. They only saw your back, you agree and suck his cock back into your hot wet hole.'
+			end
+		end
+
+		killvar 'pro_temp'
+
+		gs 'arousal', 'bj', -9, 'prostitution', 'exhibitionism'
+		gs 'stat'
+
+		act 'Continue':
+			*clr & cla
+			minut += 3
+			'<center><video autoplay loop src="images/shared/prostitution/pavlovsk/street/set_<<pro_rand>>/<<$prostitute[''pav_location'']>>/end.mp4"></video></center>'
+			'He draws in a sharp breath and his eyes close, when you sensually suck on the head out of his penis and rapidly stroke the base of his cock. '+iif($prostitute['client_behavior'] = 'nice', 'It''s as if you''re really sucking the cum directly out his body.', '"That''s it, suck me dry," he says.')+' His cock twitches and sprays a huge amount of cum '+iif(prostitute['pav_condom'] = 1, 'inside the condom.', 'into your willing mouth. You don''t want to risk running around with cum on your clothes. So you swallow it all down with one big gulp.')
+			iif($prostitute['client_behavior'] = 'nice', '"Thanks for doing this,"', '"Good job bitch. We need to do this again at some point,"')+' he says as he pulls up his pants. He get''s into his car and leaves you behind on the empty parking lot.'
+
+			if prostitute['pav_condom'] = 0:
+				swallow += 1
+				gs 'cum_call', 'mouth', 'a client'
+				gs 'prostitution_functions', 'std_check_oral'
+			end
+			gs 'arousal', 'bj', -6, 'prostitution', 'exhibitionism'
+			gs 'arousal', 'end'
+			gs 'stat'
+
+			act 'Leave': gt 'prostitution_pavlovsk', 'end'
+		end
+	else
+!!ToDo: Alternative scene with vag video 3-5
+		$orgasm_or = 'no'
+		'One of his strong arms grabs you the instant you walk into the door of his house in the residential area. You nearly stumble and fall as he roughly pulls you into the bedroom. "Undress and get on your knees," he tells you with a stern and commanding voice.'
+		if prostitute['pav_condom'] = 1:
+			money += 100 * rand(4,6)
+			'You obey, but when you pull out the condom, he shakes his head. "No condom, I need to feel you raw."'
+			'"No, no ... we agreed on a condom," you insist and try to get up, but he pushes you back down. "Stay there," he commands you as he picks up his pants and pulls out a few banknotes. "Is this enough?" he shouts angrily and throws them into your face, before grabbing your head and forces his dick between your lips. "I have paid, so do your job whore."'
+			'He shouldn''t be able to just throw money in your face and expect that it makes it OK, but what can you do except to do what he said... to do your job.'
+		else
+			'You paint a smile on your face and kneel in front of him, looking up at him like a submissive bitch. "Yeah, that''s a good look for you, now swallow my cock."'
+		end
+		'Opening your mouth wide to avoid scraping his shaft with your teeth, you shove your tongue under his cock and let inch after inch disappear down your throat. In the next minute you switch between different techniques to keep him happy. Sometimes you concentrate your effort on his balls, sucking softly on one of them while your hands stroke his cock or you lick the entire length of him.'
+
+		gs 'arousal', 'bj', -9, 'prostitution', 'rough', 'deepthroat'
+		gs 'stat'
+
+		act 'Follow his lead':
+			*clr & cla
+			minut += 20
+			$orgasm_or = 'custom'
+			if prostitute['pav_condom'] = 1: prostitute['pav_condom'] = 0
+			gs 'arousal', 'auto_lube', 'vaginal', 'custom'
+			'<center><video autoplay loop src="images/shared/prostitution/pavlovsk/street/set_<<pro_rand>>/<<$prostitute[''pav_location'']>>/vag_'+rand(0,1)+'.mp4"></video></center>'
+			'He suddenly rips his cock free from your hole, grabs you by the arms and pushes you onto the bed. You let out a yelp of surprise, but he doesn''t care and instead roughly spreads your legs and forces his member into you. "I will fuck a child into you," he says.'
+			'You want to say something, respond to what he said, but he never gives you a chance. It''s like his cock pierces through your whole body and fucks every thought out of your brain. His movements are an unending assault on your sanity as his rough but skillful thrusts trigger small explosions of pleasure inside your pussy. You can only hold on to your legs, enjoy the ride and moan like a bitch in heat ready to be bred.'
+			$orgasm_txt = 'Your eyes roll back into your head and you eyes flutter shut, when you finally orgasm. But he doesn''t seem to be close. His stamina is insane and the constant stimulation of your g-spot is already pushing you towards your next orgasm only seconds after your first one ended.'
+			gs 'arousal', 'vaginal', -20, 'prostitution'
+			gs 'stat'
+
+			act 'Let him do whatever he wants':
+				*clr & cla
+				minut += 10
+				$orgasm_or = 'custom'
+				'<center><video autoplay loop src="images/shared/prostitution/pavlovsk/street/set_<<pro_rand>>/<<$prostitute[''pav_location'']>>/end.mp4"></video></center>'
+				$orgasm_txt = 'The world doesn''t exist anymore. It has transformed into a unrecognizable red haze of lust, when he finally unloads his load into your young womb.'
+				gs 'arousal', 'vaginal', -6, 'prostitution', iif($prostitute['client_behavior'] = 'abusive', 'rough', '')
+				gs 'arousal', 'end'
+				'"Stay like this," he tells you as he pulls out and your orgasm finally ends and it''s like a floodgate has been opened and your consciousness flows back into your brain.'
+				'"What?" you ask still confused by your mind-blowing orgasm while his eyes are fixed on the cum leaking out of your hole.'
+				'"Somebody is responsive again," he say with a satisfied smirk. "When you feel up to it, you can get dressed and leave. Your job here is done," he leans closer and pushes some of the cum with his finger back inside. "And mine as well."'
+
+				gs 'cum_call', 'vaginal', 'a client'
+				gs 'prostitution_functions', 'std_check'
+				gs 'stat'
+
+				act 'Get dressed and leave': gt 'prostitution_pavlovsk', 'end'
+			end
+		end
+	end
+end
+
+!!------ set_4 ------
+
+if $ARGS[0] = 'set_4':
+	*clr & cla
+	minut += 6
+	if prostitute['pav_regular'] < 1: guy += 1
+	gs 'fame', 'pav', 'prostitute', iif($prostitute['client_behavior'] = 'nice', rand(1,2), rand(3,6))
+	if $loc = 'pav_commcenter' or $loc = 'pav_park': minut += 3 & $loc = 'pav_residential' & $loc_arg = ''
+	if $prostitute['pav_scene'] = 'blowjob':
+		'<center><video autoplay loop src="images/shared/prostitution/pavlovsk/street/set_<<pro_rand>>/public/bj_'+rand(0,2)+'.mp4"></video></center>'
+		'He turns into a small alley, but he doesn''t head towards one of the houses. Instead he pulls you through a huge gap in a chain-link fence and behind a huge dumpster. '+iif($prostitute['client_behavior'] = 'nice', '"Nobody will see us here."', '"Get on your knees."')
+		'"Really? Here? Behind a dumpster?" you ask wrinkling your nose. "Can''t we go anywhere else? Don''t you have a house or an apartment we could go to?"'
+		iif($prostitute['client_behavior'] = 'nice', 'He shakes his head. "My wife and kids are at home, we can''t go there," he explains', '"Why do you complain bitch? Trash like you belongs here," he insults you')+' as he pulls down his pants. You sigh and squat down in front of him. It''s not an ideal environment, but at least nobody can see you here. So you start to ...'
+
+		gs 'arousal', 'bj', -9, 'prostitution'
+
+		act '... suck him dry':
+			if prostitute['pav_condom'] = 0: gs 'prostitution_functions', 'std_check_oral'
+			gt 'prostitution_pavlovsk', 's4_swallow'
+		end
+	else
+!!ToDo: Video vag_0 is not used, does not fit the text
+		$orgasm_or = 'no'
+		'<center><video autoplay loop src="images/shared/prostitution/pavlovsk/street/set_<<pro_rand>>/public/vag_'+rand(1,2)+'.mp4"></video></center>'
+		gs 'arousal', 'auto_lube', 'vaginal', 'custom'
+		'He turns into a small alley, but he doesn''t head towards one of the houses. Instead he pulls you through a huge gap in a chain-link fence. "What are you doing?" You ask, when he pushes you against the wall and tugs on his pants to free his cock.'
+		'"I can''t wait anymore, you''re too fucking hot. We need to do it right here, right now," he hisses into your ear. '+iif($prostitute['client_behavior'] = 'abusive', '', 'His nice demeanor from a few minutes ago has completely changed.')
+		if prostitute['pav_condom'] = 1 and ($prostitute['client_behavior'] = 'nice' or rand(1,100) < iif($pro_brand['text_pubic'] = 'cumslut', 84, 92)):
+			'"Please, at least use the condom," you beg even if you''re sure that he has no self-control left. There''s nothing else you could do anyway. So you close your eyes resigning to your fate, when he suddenly stops his movements. "Fuck...," he swears loudly, but when his cock appears back between your legs it''s wearing the condom.'
+		else
+			'"Please, at least use the condom," you beg even if you''re sure that he has no self-control left. There''s nothing else you could do anyway. So you close your eyes resigning to your fate. He doesn''t care as you predicted. Instead his dick forces himself into your unprotected pussy.'
+			prostitute['pav_condom'] = 0
+		end
+		'His movements are rough, hectic and reminds you of an mindless animal in heat. He won''t last long and your ordeal will be over in a minute or two.'
+
+		gs 'arousal', 'vaginal', -1
+
+		if prostitute['pav_condom'] = 1:
+			act 'Let him cum inside the condom': gt 'prostitution_pavlovsk', 's4_internal'
+		else
+			act 'Don''t say anything': gt 'prostitution_pavlovsk', 's4_internal'
+
+			gs 'willpower', 'cum_inside', 'self', iif($prostitute['client_behavior'] = 'abusive', 'hard', 'easy')
+			if will_cost <= pcs_willpwr:
+				act 'Tell him to pull out (<<will_cost>> Willpower)':
+					gs 'willpower', 'pay', 'self'
+					if (rand(0,3) = 3 or (rand(0,1) = 1 and $pro_brand['text_pubic'] = 'cumslut')) and $prostitute['client_behavior'] = 'abusive':
+						prostitute['pav_internal'] = 1
+						gt 'prostitution_pavlovsk', 's4_internal'
+					else
+						gs 'prostitution_functions', 'std_check'
+						gt 'prostitution_pavlovsk', 's4_swallow'
+					end
+				end
+			else
+				act 'Tell him to pull out (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
+			end
+		end
+	end
+
+	gs 'stat'
+end
+
+if $ARGS[0] = 's4_swallow':
+	*clr & cla
+	minut += 4
+	'<center><video autoplay loop src="images/shared/prostitution/pavlovsk/street/set_<<pro_rand>>/public/end_bj.mp4"></video></center>'
+	'At least it''s over quickly. He '+iif($prostitute['pav_scene'] = 'pussy', 'only manages to fuck you for two minutes, before he pulls out and pushes you to the ground. "Suck, now!" he shouts. You close your lips around the red head of his penis and not a second to soon. He', 'only can resist your masterful tongue for two minutes, before he')+' sprays his cum inside '+iif(prostitute['pav_condom'] = 1, 'the condom', 'your mouth')
+	'The second he''s finished he rips his cock free and stuff it inside his pants '+iif(prostitute['pav_condom'] = 1, 'after taking the condom off and throwing it to the ground.', 'as you swallow his salty seed down.')
+
+	if prostitute['pav_condom'] = 0:
+		swallow += 1
+		gs 'cum_call', 'mouth', 'a client'
+	end
+
+	gs 'arousal', 'bj', -3, 'prostitution'
+	gs 'arousal', 'end'
+	gs 'stat'
+
+	act 'Leave': minut += 5 & gt $loc, $loc_arg
+end
+
+if $ARGS[0] = 's4_internal':
+	*clr & cla
+	minut += 4
+	'<center><video autoplay loop src="images/shared/prostitution/pavlovsk/street/set_<<pro_rand>>/public/end_vag.mp4"></video></center>'
+	gs 'arousal', 'vaginal', -1, 'prostitution', iif($prostitute['client_behavior'] = 'abusive', 'rough', '')
+	gs 'arousal', 'end'
+	'"That''s what I''m talking about," he says more to himself than to you while he buries his cock balls deep inside you.'
+	if prostitute['pav_condom'] = 1:
+		if prostitute['pav_internal'] = 0 and rand(1,100) > 98:
+			prostitute['pav_internal'] = 1
+			'You can feel his cock twitching inside your snatch as he unloads everything he has inside the condom... But something doesn''t feel right, when warmth floods your insides. He couldn''t have taken the condom of. He never had the time to do it.'
+			'"Did the condom break?" you ask him, but he either doesn''t listen or doesn''t care.'
+		else
+			'You can feel his cock twitching inside your snatch as he unloads everything he has inside the condom.'
+		end
+	else
+		'You can feel his cock twitching inside your snatch as he unloads everything he has inside you.'
+		if prostitute['pav_internal'] = 1: '"Why? I told you to cum outside," you hiss angrily, but he doesn''t seem to care. He doesn''t even bother with giving your an answer.'
+	end
+	'If there wasn''t a wall in front of you, you would have fallen face first to the ground when he pushes you away from him. "Hey," you shout protecting your face at the same time, when you crash against the wall. "What''s the matter with you?" But when you turn around he''s already stuffing his dick back inside his pants and runs away.'
+
+	if prostitute['pav_condom'] = 0 or prostitute['pav_internal'] = 1:
+		gs 'prostitution_functions', 'std_check'
+		gs 'cum_call', 'vaginal', 'a client'
+	end
+
+	gs 'stat'
+
+	act 'Continue': gt 'prostitution_pavlovsk', 'end'
+end
+
+!!------ set_5 ------
+
+if $ARGS[0] = 'set_5':
+	*clr & cla
+	minut += 15
+	if prostitute['pav_regular'] < 1: guy += 1
+	$prostitute['pav_walk'] = iif($prostitute['pav_location'] = 'private', 'pav_residential', 'pav_market')
+	gs 'prostitution_pavlovsk', 'travel', $prostitute['pav_walk']
+	if $prostitute['pav_scene'] = 'blowjob':
+		gs 'fame', 'pav', 'prostitute', rand(2,4)
+		'<center><video autoplay loop src="images/shared/prostitution/pavlovsk/street/set_<<pro_rand>>/<<$prostitute[''pav_location'']>>/bj_'+rand(0,3)+'.mp4"></video></center>'
+		'He walks with you to a parking lot at the outskirts of Pavlovsk. A single car stands as far away as possible from the road, but it''s clearly visible from the train tracks which lead to the nearby train station. He doesn''t open the car, when you reach it, he leads you instead behind a big dumpster next to it. "Can''t we use the car?" you ask and for a moment he looks at you completely confused. You point at it. "Oh, that''s not mine."'
+		*nl
+		'A minute later you''re squatting in front of him, cock in your mouth and you head bobbing up and down on his meat. You aren''t visible from the street. The car and the dumpster are shielding you from any wandering eyes, but you still have to suck him off quickly before a train comes by and hundreds of people see you like this.'
+
+		gs 'arousal', 'bj', -9, 'prostitution', 'exhibitionism'
+		gs 'stat'
+
+		act 'Make him cum':
+			*clr & cla
+			minut += 4
+			'<center><video autoplay loop src="images/shared/prostitution/pavlovsk/street/set_<<pro_rand>>/public/end_bj.mp4"></video></center>'
+			minut += 4
+			pro_temp = rand(-8,8)
+			gs 'fame', 'pav', 'prostitute', max(pro_temp,0)
+			'Too late... you can see a train approaching behind him at the same time as he unloads inside '+iif(prostitute['pav_condom'] = 1, 'the condom', 'your mouth')+'. '+iif(pro_temp > 0, 'The train isn''t passing by quickly. It''s slowly approaching the train station giving the passengers enough time to take a good look at you. "Shit," he murmurs and pulls the'+iif(prostitute['pav_condom'] = 1, ' condom covered ', ' ')+'dick out of your warm mouth. You stand up'+iif(prostitute['pav_condom'] = 1, ' ', ', swallow the cum down ')+'and walk away as quickly as you can. Hoping that not too many people saw you.', 'But it''s only an old freight train passing by quickly. "Seems we''re lucky today," he says with a boyish grin, before he walks away.')
+
+			if prostitute['pav_condom'] = 0:
+				swallow += 1
+				gs 'cum_call', 'mouth', 'a client'
+			end
+
+			gs 'arousal', 'bj', -3, 'prostitution', 'exhibitionism'
+			gs 'arousal', 'end'
+			gs 'stat'
+
+			killvar 'pro_temp'
+
+			act 'Leave': gt 'prostitution_pavlovsk', 'end'
+		end
+	else
+		gs 'fame', 'pav', 'prostitute', iif($prostitute['client_behavior'] = 'nice', rand(1,2), rand(2,4))
+
+		if $prostitute['pav_location'] = 'public':
+			'<center><video autoplay loop src="images/shared/prostitution/pavlovsk/street/set_5/public/vag_'+rand(0,1)+'.mp4"></video></center>'
+			'He suddenly pushes you against a big trash can. "Here is fine," he says as his hands pull '+iif(CloSkirtShortness > 0, 'up your skirt.', 'down your pants.')+iif(prostitute['pav_condom'] = 1, '"The condom," you say when you feel his cock touching your pussy lips. He groans annoyed, but he pulls away and puts it on.', ' ')+'Without further ado his rock hard cock moves into your cunt while you try to steady yourself without touching the dirty trash can in front of you. Your attempt not very successful. Every time he pushes into you he pushes you further and further towards it until your whole body is pressed against it. The lid stands half open, the trash nearly spills over the edge and you have to pull your head back so that your face isn''t pushed into the trash bags.'
+		else
+			$orgasm_or = 'no'
+			if rand(0,1) = 1:
+				pro_temp = func('shortgs', 'rand_pick', '', 0, 1, 6)
+			else
+				pro_temp = func('shortgs', 'rand_pick', '', 2, 4)
+			end
+			'<center><video autoplay loop src="images/shared/prostitution/pavlovsk/street/set_5/<<$prostitute[''pav_location'']>>/vag_<<pro_temp>>.mp4"></video></center>'
+			'He''s ogling your '+iif(pro_temp = 2 or pro_temp = 4, 'tits', 'ass')+' all the way to his apartment. There''s no small talk or any other conversation. He doesn''t speak another word after you have finished the deal. This doesn''t change even when you enter his apartment, but his hands are way more talkative than his mouth. The way he touches you communicates the raw lust seething inside him. Still you have to do most of the work from the moment your two naked bodies land in his bed. His attention is singularly focused on your '+iif(pro_temp = 2 or pro_temp = 4, 'tits', 'ass')+' and whatever you two do, he doesn''t let go of '+iif(pro_temp = 2 or pro_temp = 4, 'them', 'it')+'. He works your flesh like he''s kneading dough while you mostly '+iif(pro_temp = 2 or pro_temp = 4, 'ride him cowgirl style and do most of the work. Even when he takes over and fucks you his never lets go of your tits.', 'lie on your stomach and let him do all the work.')
+		end
+
+		gs 'arousal', 'vaginal', -3, 'prostitution', iif($prostitute['client_behavior'] = 'abusive', 'rough', ''), iif($prostitute['client_behavior'] = 'abusive', 'exhibitionism', ''), iif($prostitute['client_behavior'] = 'abusive', 'sub', '')
+		gs 'stat'
+
+		act 'Continue':
+			*clr & cla
+			minut += 12
+			gs 'arousal', 'auto_lube', 'vaginal', 'custom'
+			'<center><video autoplay loop src="images/shared/prostitution/pavlovsk/street/set_<<pro_rand>>/<<$prostitute[''pav_location'']>>/vag_'+iif($prostitute['pav_location'] = 'public', 2, 5)+'.mp4"></video></center>'
+			if $prostitute['pav_location'] = 'public':
+				'"The smell," you say trying not to breath through your nose. "It''s disgusting."'
+				'"Really? Human trash like you has a problem with it?" he taunts you, but quickly changes his mind when the smell almost makes you throw up. "Fine, let''s go over to that car."'
+				'Freed from the smell you chuckle as the two of you try to walk over to the car while keeping his cock buried in your snatch. "Stop laughing," he says and slaps your ass hard to make you stop. Afterwards it''s business as usual. He hammers into you until he starts to breath harder and you know he''ll be ready to shot his load in a second.'
+			else
+				$orgasm_or = 'custom'
+				'Finally playtime is over and the little boy inside him, that toyed with your '+iif(pro_temp = 2 or pro_temp = 4, 'tit', 'ass')+'-flesh as if he had touched a woman for the first time, has to take a backseat. He '+iif(pro_temp = 2 or pro_temp = 4, 'throws you onto the bed', 'turns you around')+' and shoves his cock deep inside your cunt. He takes to finger and rapidly rubs your sensitive clit as he talks for the first time. "What do you want me to do?"'
+				'"Me?" you moan not able to think clearly.'
+				'"Yes you," he says in such a serious tone that you blurt out what you want in this moment. "Fuck me hard, don''t hold back."'
+				'"As you wish."'
+				$orgasm_txt = 'Your whole body is on fire and you''re twisting and turning under him. You moan uncontrollably with your tongue sticking out of your mouth like a bitch in heat getting mounted by her man. Your orgasm is nearly over, when he''s getting close himself.'
+			end
+
+			killvar 'pro_temp'
+			gs 'arousal', 'vaginal', -12, 'prostitution', iif($prostitute['client_behavior'] = 'abusive', 'rough', ''), iif($prostitute['client_behavior'] = 'abusive', 'exhibitionism', ''), iif($prostitute['client_behavior'] = 'abusive', 'sub', '')
+			gs 'stat'
+
+			if prostitute['pav_condom'] = 1:
+				act 'Let him cum inside the condom': gt 'prostitution_pavlovsk', 's5_end'
+			else
+				act 'Don''t say anything': gt 'prostitution_pavlovsk', 's5_end'
+
+				gs 'willpower', 'cum_inside', 'self', iif($prostitute['client_behavior'] = 'abusive', 'hard', 'easy')
+				if will_cost <= pcs_willpwr:
+					act 'Tell him to pull out (<<will_cost>> Willpower)':
+						gs 'willpower', 'pay', 'self'
+						if (rand(0,3) = 3 or (rand(0,1) = 1 and $pro_brand['text_pubic'] = 'cumslut')) and $prostitute['client_behavior'] = 'abusive':
+							prostitute['pav_internal'] = 1
+						else
+							prostitute['pav_internal'] = -1
+						end
+						gt 'prostitution_pavlovsk', 's5_end'
+					end
+				else
+					act 'Tell him to pull out (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
+				end
+			end
+		end
+	end
+end
+
+if $ARGS[0] = 's5_end':
+	*clr & cla
+	minut += 6
+	'<center><video autoplay loop src="images/shared/prostitution/pavlovsk/street/set_<<pro_rand>>/<<$prostitute[''pav_location'']>>/end'+iif($prostitute['pav_location'] = 'public', '_vag', '')+'.mp4"></video></center>'
+	gs 'arousal', 'vaginal', -6, 'prostitution', iif($prostitute['client_behavior'] = 'abusive', 'rough', ''), iif($prostitute['client_behavior'] = 'abusive', 'exhibitionism', ''), iif($prostitute['client_behavior'] = 'abusive', 'sub', '')
+	gs 'arousal', 'end'
+
+	if $prostitute['pav_location'] = 'public':
+		if prostitute['pav_condom'] = 1:
+			if prostitute['pav_internal'] = 0 and rand(1,100) > 98:
+				prostitute['pav_internal'] = 1
+				'"Yes," he hisses as his hips jerk forward slamming you into the car as he fills his condom with his spunk. But something is wrong, you can feel his baby juice inside.'
+				'"What the fuck? Did you take the condom of?"'
+				'He takes a step back and immediately starts to laugh. He pulls the broken condom of his cock and throws it on the ground. "You fucking deserve it," he says between waves of laughter. You turn around and look down in disbelieve. '+iif($pro_brand['text_pubic'] = 'cumslut', ' "See," he points at your cumslut tattoo which he can now see for the first time. "You got what you wished for. ', ' "')+'If you get pregnant, tell your hooker child from me that mommy and daddy made him next to a trash can."'
+				*nl
+			else
+				'"Yes," he hisses as his hips jerk forward slamming you into the car as he fills the condom with his spunk.'
+			end
+		elseif prostitute['pav_internal'] = 1:
+			'"Yes," he hisses as his hips jerk forward slamming you into the car as he coats your insides with his baby juice.'
+			'"What the fuck? I told you not to cum inside me."'
+			'He takes a step back and immediately starts to laugh. "You fucking deserve it," he says between waves of laughter. You turn around and look at him in disbelieve.'+iif($pro_brand['text_pubic'] = 'cumslut', ' "See," he points at your cumslut tattoo which he can now see for the first time. "You got what you wished for. ', ' "')+'If you get pregnant, tell your hooker child from me that mommy and daddy made him next to a trash can."'
+		elseif prostitute['pav_internal'] = -1:
+			'"Yes," he hisses as he pulls back and shots his cum on the ground between your legs.'
+		elseif prostitute['pav_internal'] = 0 and prostitute['pav_condom'] = 0:
+			'"Yes," he hisses as his hips jerk forward slamming you into the car as he fills your willing pussy with his spunk.'
+		end
+		'"See ya trash," is the last thing he says to you before he walks away.'
+
+		if prostitute['pav_condom'] = 0 or prostitute['pav_internal'] = 1:
+			gs 'prostitution_functions', 'std_check'
+			if prostitute['pav_internal'] > -1: gs 'cum_call', 'vaginal', 'a client'
+		end
+	else
+		'He pulls out of your warm inviting body'+iif(prostitute['pav_condom'] = 1, ' and takes the condom off,', ',')+' before he flips you around while your body is still shaking from your orgasm. "If there ever was prove for god''s existence, it''s your perfect ass," he says after emptying his balls on it.'
+		'"But I guess he wouldn''t approve how I use his perfect creation," you joke and wiggle your ass playfully.'
+		'"No he won''t, but who cares," he says, bows down and plants a long loving kiss on your cum-free cheek. "The first door on the right is the bathroom. You can clean up in there before you go," he says before he gets up from the bed.'
+		gs 'cum_call', 'butt', 'a client'
+		if prostitute['pav_condom'] = 0: gs 'prostitution_functions', 'std_check'
+	end
+
+	gs 'stat'
+
+	if $prostitute['client_behavior'] = 'abusive':
+		act 'Continue': gt 'prostitution_pavlovsk', 'end'
+	else
+		act 'Clean up and leave': gt 'prostitution_pavlovsk', 'end', 'clean'
+	end
+end
+
+!!------ set_6 ------
+
+!!ToDo
+
+!!------ set_7 ------
+
+!!ToDo
+
+!!------ set_8 ------
+
+if $ARGS[0] = 'set_8':
+	*clr & cla
+	minut += 15
+	$orgasm_or = 'no'
+	if prostitute['pav_regular'] < 1:
+		guy += 1
+		prostitute['pav_regular_s8'] = 1
+	end
+	$prostitute['pav_walk'] = 'pav_residential'
+	'<center><video autoplay loop src="images/shared/prostitution/pavlovsk/street/set_8/private/anal_'+rand(0,1)+'.mp4"></video></center>'
+	gs 'fame', 'pav', 'prostitute', rand(1,2)
+	iif(rand(0,1) = 0, '"You have a nice ass,"', '"You have a really fuckable ass,"')+' he says loudly as you walk with him towards his house in the residential area. You try to look away, when he catches the attention of other pedestrians, but you''re sure they saw you and heard what he said. His hand roughly kneads your ass-cheek through your clothes as he continues, "I''m really looking forward to '+iif(rand(0,1) = 0, 'burying my cock deep inside your bowels."', 'filling your pretty little ass with my dick."')
+	*nl
+	'His not able to keep his desire in check as he nearly rips his clothes of the the second the apartment door shuts behind you. You don''t even make it to the bedroom. When you''re in your birthday suit as well, he pushes you into the kitchen, slams you against the kitchen table and forces his cock inside your dry asshole. "That''s what I''m talking about," he grunts as his cock sinks deeper and deeper into your ass. "Yeah, you filthy cunt, scream for me," he shouts not being able to contain his excitement as you let out a yelp.'+iif(prostitute['pav_condom'] = 1, ' He never put on the condom you two agreed on, but the pain is too much and you''re unable to remind him. He probably wouldn''t care anyway.', '')
+
+	gs 'arousal', 'anal', -9, 'prostitution', 'rough', 'sub'
+	gs 'stat'
+
+	act 'Get fucked':
+		*clr & cla
+		minut += 10
+		$orgasm_or = 'yes'
+		'<center><video autoplay loop src="images/shared/prostitution/pavlovsk/street/set_8/private/anal_2.mp4"></video></center>'
+		'He doesn''t give a single fuck about your well-being. Only one thing is on his mind, fucking your ass as hard and fast as possible.'+iif(prostitute['pav_regular'] = 1, ' You could have known, what would happen. But you went with him anyway. Maybe because you want to experience such an intense orgasm again.', ' ')+iif(rand(0,1) = 0, '"I''ll fuck you until your ass bleed,"', '"You won''t be able to sit for a week,"')+' he taunts you as his cock moves back and forth stretching your abused hole wide open.'
+		'He suddenly grabs your hair and pulls your head back as his other hand gripes your throat violently. He brutally chokes you and '+iif(prostitute['pav_regular'] = 1, 'only knowing he will stop prevents you from fearing for your life even as your lungs scream for air.', 'he doesn''t let go and when your lungs scream for air you realize that could be it. The end. Dying in some guys apartment while being brutally fucked in the ass.')
+		$orgasm_txt = 'And then he let''s go, your brain floods your body with endorphins as your breath in cool air and it''s'+iif(prostitute['pav_regular'] = 1, ' again ', ' ')+'like a trigger for the rest of your body to let go. Your eyes roll back and your tongue slips out of your mouth like a bitch in heat that get''s bred by her master as your anal orgasm blocks out the pain and turns this horrible moment into pure bliss.'
+
+		gs 'arousal', 'anal', -9, 'prostitution', 'rough', 'sub'
+		gs 'pain', 10, 'hair', 'pull'
+		gs 'pain', 10, 'throat', 'choke'
+		gs 'stat'
+
+		*nl
+
+		'Your pulled back to your painful reality, when he finally pulls out his dick. Your asshole spasms trying and failing to close. "Get down here slut," he says his voice filled with pent-up aggression. You somehow are able to kneel down while your twitching ass and quivering hole constantly remind you of how you shamefully came by getting your ass violated.'
+
+		if $pro_fetish['atm'] ! 'blocked':
+			'"It''s time to taste your ass, lick my cock clean and then I''ll let you have my cum as a reward," he proclaims as if he''s handing out water to somebody who''s dying of thirst.'
+			'You stare at the cock right in front of your eyes. It was in your ass just a second ago, rummaging around deep inside your bowels. He never wiped it clean and he didn''t put on a condom. '+iif($pro_fetish['atm'] = 'yes', 'You unconsciously lick your lips in anticipation. You can''t wait to taste your own ass.', 'You frown and you move your head back an inch as you stare at the disgusting thing in front of you.')
+
+			gs 'prostitution_functions', 'will_atm', 'resist', iif($pro_fetish['atm'] = 'yes', 'hard', 'easy')
+			if will_cost < pcs_willpwr:
+				act 'Don''t do it (<<will_cost>> Willpower)':
+					cla & *nl
+					minut += 1
+					pro_temp = 0
+					gs 'willpower', 'pay', 'resist'
+					gs 'stat'
+					'You shake your head and say and . "Sorry, that''s not something I do and you didn''t pay for it."'
+					'"Fine bitch," he growls, but does nothing to persuade you to change your mind. Instead he grabs your hand and places it on his ass-juice covered dick.'
+
+					act 'Make him cum': gt 'prostitution_pavlovsk', 's8_end'
+				end
+			else
+				act 'Don''t do it (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
+			end
+
+			if $pro_fetish['atm'] = '' or $pro_fetish['atm'] = 'undecided':
+				act 'Suck his cock and you''ll like it': $pro_fetish['atm'] = 'yes' & gt 'prostitution_pavlovsk', 's8_atm'
+				act 'Suck his cock and you''ll hate it': $pro_fetish['atm'] = 'no' & gt 'prostitution_pavlovsk', 's8_atm'
+			else
+				act 'Suck his cock': gt 'prostitution_pavlovsk', 's8_atm'
+			end
+
+			if $pro_fetish['atm'] = '':
+				'<br><font color="red">Content Warning: Ass-to-Mouth</font>'
+				act '<font color="red">Block this type of content</font>':
+					cla & *nl
+					minut += 1
+					$pro_fetish['atm'] = 'blocked'
+					gs 'stat'
+					'You shake your head and say and . "Sorry, that''s not something I do."'
+
+					act 'Continue': gt 'prostitution_pavlovsk', 's8_end'
+				end
+			end
+		else
+			'"It''s time to receive my cum," he proclaims as if he''s handing out water to somebody who''s dying of thirst. You deserve an Oscar for the smile you manage to fake as you thank him for his generosity.'
+
+			act 'Open your mouth': pro_temp = 0 & gt 'prostitution_pavlovsk', 's8_end'
+		end
+	end
+end
+
+if $ARGS[0] = 's8_atm':
+	*clr & cla
+	pro_temp = 1
+	pro_stats['atm'] += 1
+	pcs_mood = iif($pro_fetish['atm'] = 'yes', 100, 0)
+	minut += iif($pro_fetish['atm'] = 'yes', 10, 2)
+	'<center><video autoplay loop src="images/shared/prostitution/pavlovsk/street/set_8/private/anal_atm.mp4"></video></center>'
+	'You can''t resist the urge to sniff it, when you come closer. There is no ... stuff... on it. It looks perfectly fine and to your surprise it doesn''t even smell like you would have imagined something coming out of your ass. But it doesn''t smell like clean washed dick either. It''s '+iif($pro_fetish['atm'] = 'yes', 'strangely captivating and your pussy is getting wet only thinking about tasting your ass-juice.', 'disgusting. Utterly and completely disgusting, but you have no other choice than to go through with it.')
+	'After the first '+iif($pro_fetish['atm'] = 'yes', 'arousing', 'disgusting')+' taste you decide to '+iif($pro_fetish['atm'] = 'yes', 'take your time and clean his cock thoroughly. You let your tongue wander over his dick and lap every single drop of your enticing ass-juice. At the end you', 'get it done as quickly as possible. You only take the tip of his dick into your mouth,')+' grab the shaft with your hand and give him a handjob as you let your tongue wander around his sensitive flesh.'
+	'"I''m close," he moans, his eyes closed clearly enjoying what you''re doing. "Take it, swallow it all."'
+
+	gs 'arousal', 'bj', iif($pro_fetish['atm'] = 'yes', -8, -1), 'prostitution', 'humiliation'
+	gs 'stat'
+
+	act 'Open your mouth': gt 'prostitution_pavlovsk', 's8_end'
+end
+
+if $ARGS[0] = 's8_end':
+	*clr & cla
+	minut += 10
+	'<center><video autoplay loop src="images/shared/prostitution/pavlovsk/street/set_8/private/anal_atm.mp4"></video></center>'
+	'His cock twitches in your hand as his cum violently erupts from his meat and shoots into your mouth. "Fuck, take it bitch. Take my cum," he shouts loudly into the apartment as he throws his head back when the intensity of his orgasm takes hold of his body.'
+	*nl
+
+	swallow += 1
+	gs 'cum_call', 'mouth', 'a client'
+	gs 'arousal', 'hj', -2, 'prostitution'
+	gs 'stat'
+
+	if prostitute['pav_regular'] = 1:
+		minut += 10
+		pcs_mood += iif($pro_fetish['atm'] = 'yes', 20, 40)
+		gs 'drugs', 'alcohol', 'beer', 1
+
+		if prostitute['pav_regular_s8_end'] = 0:
+			prostitute['pav_regular_s8_end'] = 1
+			'He walks over to the fridge, after you have swallowed his spunk down, and pulls out two bottles of beer. "Do you want one as well? I bet my cum doesn''t taste that great'+iif(pro_temp = 1, ', but still better than your ass,"', ',"')+' he says and flashes you a boyish grin.'
+			'"Uhm... sure," you say a bit confused about the abrupt change in tone. One minute ago he nearly was choking you to death and now he''s offering you a beer as if you are a friend coming over to hang out.'
+			'"I really appreciate you sleeping with me again," he explains. "Most girls aren''t able to keep up with what I need from them and nobody went home with me twice."'
+			'"If you would be nicer, maybe more girls would return home with you." You take a big gulp and swirl it around to get the taste of cum'+iif(pro_temp = 1, ' and ass ', ' ')+'out of your mouth.'
+			'He shakes his head. "It''s not working for me if it''s all sweet and soft." He shrugs and takes a big gulp himself. "No idea why, but I need to take control and break the girl or I can''t get off. Maybe something is broken inside me. I don''t know. But you aren''t normal yourself, aren''t you?"'
+			'"What makes you say that?" you ask and wonder if it''s true. You were just a normal average schoolgirl a short while ago.'
+			'"You came both times. I never made a girl cum like this before." You blush. It''s nothing you have control over, but you hate that your cheeks turn red and you avert your gaze. He laughs and it''s sounds not at all like you would have expected. It''s soft, warm and understanding. "You liked it, didn''t you?"'
+			'Shit, he''s right. You did. You loved it. Should you tell him that? You ask yourself as your fingers nervously play with the label on the beer bottle. Finally, after at least a whole minute has passed, you nod. "Yeah I did."'
+			'He surprises you again with his reaction. "Thank god," he says relieved and his body visibly relaxes. "I always feel bad about what I do afterwards, but I can''t control myself. One reason I only use whores. At least they go with me willingly."'
+		else
+			'After you''re done, he offers you a beer again and the two of you chat for a few minutes about random stuff like the weather, before you get ready to leave.'
+		end
+		*nl
+
+		if pro_temp = 1:
+			*nl
+			money += 500
+			pcs_mood += 20
+			gs 'stat'
+			'"Before you go," he hands you 500 <b>₽</b>. "That''s for... you know... doing ass-to-mouth."'
+		end
+
+		killvar 'pro_temp'
+
+		act 'Get dressed and leave': gt 'prostitution_pavlovsk', 'end'
+	else
+		'"Wait," he says when you close your mouth to swallow his spunk down. "Savor it." You have no choice, but to do it, when you want to finally get out of here and so you swirl the cum around in your mouth until he signals you with a short nod it''s now OK to swallow it down. "And now get the fuck out of my house you disgusting slut."'
+
+		killvar 'pro_temp'
+
+		act 'Get dressed and leave': gt 'prostitution_pavlovsk', 'end'
+	end
+
+	gs 'stat'
+end
+
+!!------ set_9 ------
+
+if $ARGS[0] = 'set_9':
+	*clr & cla
+	minut += 15
+	$orgasm_or = 'no'
+	$prostitute['pav_walk'] = iif($prostitute['client_behavior'] = 'abusive', 'pav_residential', 'pav_complex')
+	gs 'prostitution_pavlovsk', 'travel', $prostitute['pav_walk']
+	'<center><video autoplay loop src="images/shared/prostitution/pavlovsk/street/set_9/private/anal_'+iif($prostitute['client_behavior'] = 'abusive', 1, 0)+'.mp4"></video></center>'
+	gs 'fame', 'pav', 'prostitute', iif($prostitute['client_behavior'] = 'abusive', rand(2,4), rand(1,2))
+	if $prostitute['client_behavior'] = 'abusive':
+		'"I''m going to rip open your asshole'+iif(prostitute['pav_regular'] = 1, ' again,', ',')+'" the man says loudly not caring that somebody could overhear his words. "You won''t be able to sit down for a week." You smile and keep any thoughts you have about his behavior to yourself as you follow him to his apartment in the residential district.'
+		if rand(0,2) = 2:
+			gs 'pain', 10, 'asscheeks', 'slap'
+			gs 'fame', 'pav', 'prostitute', rand(2,4)
+			'He suddenly slaps your ass when you pass by two old man sitting on a bench. He immediately has their attention. "Yo geezers," he shouts and slaps your ass again while you look away. "I''m going to fuck this whore until her ass bleeds. You can''t see their reaction and you quicken your step to get away from them while he laughs and gives your ass another playful slap.'
+		end
+		*nl
+		'"Get on the bed," is the only thing he says to you after entering his apartment. The two of you undress and he positions himself behind you. There''s no foreplay, no emotion just raw lust on his part. For him you are just a warm pile of flesh in which he can stick his cock. He fucks you roughly, ramming his cock hard and deep inside your hole, but every once in a while he pulls out completely, gives your ass a playful slap before brutally forcing his cock past your abused sphincter.'
+	else
+		minut += 20
+		'The walk towards his apartment is actually quite nice because he shows interest in more than your body. He asks some questions about your hobbies and not just to pass the time, but he seems interested even if you only give him vague answers.'
+		'"Thanks for doing it," he says when the apartment door closes behind you two. "My wife hates it and never let''s me... you know..." he blushes and looks away.'
+		'"Hey," you grab his hand and give it a tender squeeze to reassure him. "It''s nothing you have to be ashamed of. If your wife doesn''t like anal, it''s her loss." You pull him towards the open door of the bedroom.'
+		*nl
+		'During the next ten minutes he treats you like a goddess. He caresses you and kisses every inch of your body as he explores it. Finally he moves on to the main course and pushes his dick inside your ass after he took his time preparing your hole with his fingers and tongue. "So good," he moans like a woman and slowly starts to move in and out of you.'
+		'If he continues like this, you''ll be here for hours. Maybe some encouragement will help, you think and say. "You can do it harder if you want." You doesn''t have to tell him twice as your comment has the desired effect. He instantly speeds up and fucks like wholeheartedly.'
+	end
+
+	gs 'arousal', 'auto_lube', 'vaginal', 'custom'
+	if $prostitute['client_behavior'] = 'nice':
+		gs 'arousal', 'foreplay', -9, 'prostitution'
+		gs 'arousal', 'anal', -9, 'prostitution'
+	else
+		gs 'arousal', 'anal', -9, 'prostitution', 'rough', 'sub'
+	end
+	gs 'stat'
+
+	*nl
+	'After a few minutes he''s done. He pulls out of your ass for the last time'+iif(prostitute['pav_condom'] = 1, ', takes the condom off ', ' ')+'and points at the floor without telling you what he wants, but an experienced whore knows exactly what comes next.'
+
+	act 'Get on your knees':
+		*clr & cla
+		minut += 10
+		'<center><video autoplay loop src="images/shared/prostitution/pavlovsk/street/set_9/private/end.mp4"></video></center>'
+		if $prostitute['client_behavior'] = 'abusive':
+			'"Look at me," he growls like a dog as he furiously strokes his cock. He laughs when you follow his command and your gazes met. "I think this is the best part," he says as his cum coats your face. "Seeing how there is nothing left in the eyes of broken sluts.'
+			*nl
+			'"And now piss off," he says when he is done. "And keep my cum and your face to show everybody what kind of slut you are."'
+			act 'Leave with cum on your face': gt 'prostitution_pavlovsk', 'end'
+		else
+			'"Look at me." His voice is hoarse and sounds almost pleading. You tear your gaze away from his hard cock and look up directly into his eyes. For what feels like a whole minute there''s only silence in the room'
+			*nl
+			'"Thanks, I really appreciate you spending time with me," he says. "The bathroom is down the hall, you can fresh up in there."'
+			act 'Clean up and leave': gt 'prostitution_pavlovsk', 'end', 'clean'
+		end
+
+		facial += 1
+		gs 'cum_call', 'face', 'a client'
+		gs 'arousal', 'end'
+		gs 'stat'
+	end
+end
+
+!!------ rape ------
+
+if $ARGS[0] = 'rape':
+
+end
+
+!!------ End ------
+
+if $ARGS[0] = 'end':
+	minut += 5
+	prostitute['pav_timer_hour'] = hour
+	killvar 'pro_rand'
+	if $ARGS[1] = 'clean':
+		minut += 5
+		cumspclnt = 20
+		gs 'cum_cleanup'
+	end
+	gt $loc, $loc_arg
+end
+
+!!------ Travel times and return locations ------
+
+if $ARGS[0] = 'travel':
+	if $prostitute['pav_walk'] = 'pav_residential' or $prostitute['pav_walk'] = 'pav_complex':
+		if $loc = $loc = 'liam':
+			minut += 20
+		elseif $loc = 'pav_industrial' or $loc = 'pav_market':
+			minut += 15
+		elseif $loc = 'pav_park' or $loc = 'pav_commercial':
+			minut += 10
+		else
+			minut += 5
+		end
+		$loc_arg = iif($prostitute['pav_walk'] = 'pav_complex', 'start', '')
+	elseif $prostitute['pav_walk'] = 'pav_commercial':
+		if $loc = $loc = 'liam':
+			minut += 15
+		elseif $loc = 'pav_commercial':
+			minut += 5
+		else
+			minut += 10
+		end
+		$loc_arg = ''
+	elseif $prostitute['pav_walk'] = 'pav_market':
+		if $loc = 'liam' or $loc = 'pav_commercial':
+			minut += 10
+		elseif $loc = 'pav_market':
+			minut += 5
+		else
+			minut += 15
+		end
+		$loc_arg = ''
+	end
+
+	$loc = $prostitute['pav_walk']
+end
+
+
+!!{
+if $ARGS[0] = 'maybe_use_later':
+	'He pushes you down with one hand as he clumsily pulls his pants down with the other. "I will show the fat bastard who is the boss," he murmurs, grabbing your head at the same time. He them pushes his'+iif(prostitute['pav_condom'] = 1, ' condom covered ', ' ')+'cock down your throat without any regard for your well-being. You gag, tears well up in your eyes, but you get your throat under control thanks to your experience and let him abuse your face.'
+	'He isn''t fucking you. At least not in his mind. The whole time he fucks your face he complains about some bitch in accounting or his boss or secretary. The whole thing isn''t about sex, it''s about finding an outlet for his frustration and aggression. He doesn''t even stop his attack on your face, when he shoots his cum '+iif(prostitute['pav_condom'] = 1, 'into the condom', 'down your throat')
+	money += 100
+	if rand(0,1) = 1:
+		'He stops... finally... and it''s as if a spell has been lifted. He stares at the tears on your cheeks for what feels like an eternity, before he says. "Sorry about that... uhm...," he stammers as you wipe away the tears. "Could you clean my dick?" When he sees the hesitation in your eyes he adds. "I give you 100 <b>₽</b> extra."'
+		'You sigh. '+iif(prostitute['pav_condom'] = 1, 'A few drops probably can''t hurt,', 'Why no, you already swallowed his load')+' you think, grab his cock and give it a few soft strokes to push out the last drops of cum, before you take the head back into your mouth, swirl your tongue around it and like it clean.'
+		gs 'prostitution_functions', 'std_check_oral', 'low'
+	end
+end
+}
+
+--- prostitution_pavlovsk ---------------------------------
