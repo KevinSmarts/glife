@@ -12,8 +12,9 @@ $menu_loc = 'gas_station_gp_117'
 ! [x] First check over
 if $ARGS[0] = 'outside':
 	!! TODO: this is called every time Sveta arrives at the location whether from somewhere else or back from a client.
-    gs 'gas_station_gp_117', 'event_check'
-
+    gs 'prostitution_functions', 'dressed_as_a_prostitute'
+	gs 'gas_station_gp_117', 'event_check'
+	
 	CLOSE ALL
 	if sound = 0:PLAY 'sound/highway.mp3',20
 	$loc_arg = 'outside'
@@ -33,14 +34,15 @@ if $ARGS[0] = 'outside':
 
 	if prostitute['blocked'] = 0 and prostitute['gas_station'] = 1:
 		if prostitute['earnings_day'] > 0: 
-			*nl
 			'You have earned <<prostitute[''earnings_day'']>> <b>₽</b> today.'+iif(prostitute['payment_method'] = 0, ' Your share is <<prostitute[''earnings_day''] * prostitute[''share_player''] / 100>> <b>₽</b>'+iif(prostitute['debt_amount'] > 0, ', but your pimp will keep <<prostitute[''earnings_day''] * prostitute[''debt_payment_percent''] / 100>> <b>₽</b> to pay down your debt.', '.'), '')
 		end
-		*nl
-		if PCloStyle = 4:
-			'You are wearing the right outfit to work as a prostitute at the gas station.'
+		gs 'prostitution_functions', 'dressed_as_a_prostitute'
+		if dressed_as_a_prostitute and prostitute['changed_for_work']:
+			'You are wearing the right outfit to work as a prostitute at the gas station. You can ' + iif(car > 0 and cardrive = 29, '<a href="exec: gt ''gas_station_gp_117'', ''change_back'' ">change back into your regular clothes</a> in your car or', 'change back into your regular clothes') + ' in a restroom.'
+		elseif dressed_as_a_prostitute = 0 and prostitute['outfit_is_set']: 
+			'You could work as a prostitute, but first you have to ' + iif(car > 0 and cardrive = 29, '<a href="exec: gt ''gas_station_gp_117'', ''change'' ">change into a more appropriate outfit</a> in your car or ', 'change into a more appropriate outfit ')  + 'in a restroom.'
 		else 
-			'You could work as a prostitute, but you have to change first into some more appropriate clothes in the restroom'+iif(car > 0 and cardrive = 29, ' or in your car.', '.')
+			'You are wearing the right outfit to work as a prostitute at the gas station.'
 		end
 	end
 
@@ -50,13 +52,10 @@ if $ARGS[0] = 'outside':
 
 	act 'Go inside the gas station': minut += 1 & gt 'gas_station_gp_117', 'shop'
 	act 'Go to the public restroom': minut += 1 & gt 'gas_station_gp_117', 'restroom'
-	
-	if prostitute['blocked'] = 0 and prostitute['gas_station'] = 1 and car > 0 and cardrive = 29 and PCloStyle ! 4: 
-		act 'Change into your whoring outfit': gt 'gas_station_gp_117', 'change'
-	end
 
-	if prostitute['blocked'] = 0 and prostitute['gas_station'] = 1 and PCloStyle = 4: act 'Go to work': gt 'gas_station_gp_117', 'work'
+	if prostitute['blocked'] = 0 and prostitute['gas_station'] = 1 and dressed_as_a_prostitute: act 'Go to work': gt 'gas_station_gp_117', 'work'
 	act 'Wait': gs 'obj_din', 'wait'
+	killvar 'dressed_as_a_prostitute'
 end
 
 ! [x] First check over
@@ -295,10 +294,15 @@ if $ARGS[0] = 'restroom_women':
 	dynamic $basin
 	dynamic $publicpan
 
-	if prostitute['blocked'] = 0 and prostitute['gas_station'] = 1 and PCloStyle ! 4: 
-		act 'Change into your whoring outfit': gt 'gas_station_gp_117', 'change'
+	if prostitute['gas_station'] = 1 and prostitute['blocked'] = 0:
+		gs 'prostitution_functions', 'dressed_as_a_prostitute'
+		if  dressed_as_a_prostitute = 0 and prostitute['outfit_is_set']: 
+			act 'Change into prostitute outfit': gt 'gas_station_gp_117', 'change'
+		elseif dressed_as_a_prostitute and prostitute['changed_for_work']:
+			act 'Change into your regular clothes': gt 'gas_station_gp_117', 'change_back'
+		end
+		killvar 'dressed_as_a_prostitute'
 	end
-
 end
 
 ! [x]: First check over
@@ -338,10 +342,15 @@ if $ARGS[0] = 'restroom_men':
 	dynamic $basin
 	dynamic $publicpan
 
-	if prostitute['blocked'] = 0 and prostitute['gas_station'] = 1 and PCloStyle ! 4: 
-		act 'Change into your whoring outfit': gt 'gas_station_gp_117', 'change'
+	if prostitute['gas_station'] = 1 and prostitute['blocked'] = 0:
+		gs 'prostitution_functions', 'dressed_as_a_prostitute'
+		if  dressed_as_a_prostitute = 0 and prostitute['outfit_is_set']: 
+			act 'Change into prostitute outfit': gt 'gas_station_gp_117', 'change'
+		elseif dressed_as_a_prostitute and prostitute['changed_for_work']:
+			act 'Change into your regular clothes': gt 'gas_station_gp_117', 'change_back'
+		end
+		killvar 'dressed_as_a_prostitute'
 	end
-
 end
 
 
@@ -391,31 +400,55 @@ end
 ! scavenged and used later if needed.
 
 
-!!------ Prostitution ------
+!!------ Prostitution ------------------------------
 
+!!------ CHanging clothes --------------------------
 if $ARGS[0] = 'change':
 	cla
 	*clr
 	minut += 10
 	if $loc_arg = 'outside':
 		!! TODO: Video / image and some text describing the cloth change in the car
-		'You quickly change into your working outfit.'
-		act 'Leave': gt 'gas_station_gp_117', $loc_arg
+		'You quickly change into your working outfit in your car.'
 	end
 
 	if $loc_arg = 'restroom_men':
 		!! TODO: Video / image and some text describing the cloth change in the men''s restroom
-		'You quickly change into your working outfit.'
-		act 'Leave': gt 'gas_station_gp_117', $loc_arg
+		'You quickly change into your working in the men''s restroom..'
 	end
 
 	if $loc_arg = 'restroom_women':
 		!! TODO: Video / image and some text describing the cloth change in the women''s restroom
-		'You quickly change into your working outfit.'
-		act 'Leave': gt 'gas_station_gp_117', $loc_arg
+		'You quickly change into your working outfit in the women''s restroom.'
 	end
+	gs 'prostitution_functions', 'change_into_prostitute_outfit', 'work'
+	act 'Finish': gt $loc, $loc_arg
 end
 
+if $ARGS[0] = 'change_back':
+	cla
+	*clr
+	minut += 10
+	if $loc_arg = 'outside':
+		!! TODO: Video / image and some text describing the cloth change in the car
+		'You quickly change into your working outfit in your car.'
+	end
+
+	if $loc_arg = 'restroom_men':
+		!! TODO: Video / image and some text describing the cloth change in the men''s restroom
+		'You quickly change into your working in the men''s restroom..'
+	end
+
+	if $loc_arg = 'restroom_women':
+		!! TODO: Video / image and some text describing the cloth change in the women''s restroom
+		'You quickly change into your working outfit in the women''s restroom.'
+	end
+	gs 'prostitution_functions', 'change_back'
+	act 'Finish': gt $loc, $loc_arg
+end
+
+
+!!------ Working ----------------------------------------------------------------------------------
 
 ! [x] First check over
 ! NOTE: The first function - work - is location dependent, so this needs to be left here, and every location will need a similar one.
