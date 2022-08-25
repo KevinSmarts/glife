@@ -1,43 +1,181 @@
 # prostitution_functions
 
+!! ---- Variables -------------------------------------------------------------------------------------------------------
+!!
+!! prostitute['payment_method']: 1 - Sveta works for herself; 0 - Sveta works for someone else who will take a cut
+!! prostitute['blocked']: 1 - WLife is loaded which blocks some of the locations: Pavlovsk will rely on the WLife mod 
+!!							  and the Gas Station will be completely blocked
+!!						  0 - WLife is not loaded, everything works as normal.	
+!! prostitute[<<$location>>]: 1 - Sveta can work at the location.
+!!                            0 - Sveta can''t work at the location'
+!!     current locations: Pavlovsk - ''pavlovsk'', Gadukino - ''gadukino'', 
+!!                        Road between Pavlovsk and St Petersburg - ''road'', Gas Station ''gas_station''
+!! prostitute['active']: 1- Sveta ''unlocked'' prostitution somewhere. It is use for non-location specific checks, like
+!!							being able set a default prostitute outfit at home, or finding new places to work at.
+!! prostitute['work_clothes']: 1 - Sveta is wearing a prostitute outfit, i.e. clothes and shoes
+!! prostitute['outfit_is_set']: 1 - Sveta has a default outfit set up. Needed if she wants to change in restrooms 
+!!									or in the car on location, and not travel wearing that outfit
+!! prostitute['changed_for_work']: 1 - It measn that Sveta changed into her prostitute outfit on site from some regular
+!!                                     clothes. This enables the 'Change into regular clothes' action in the changing
+!!									   location. 
+!!								   0 - Sveta didn't change which means she can't change into regular clothing. 
 
 !!---------- Initial set up, enabling locations, etc. -------------------------------------------------------------------
 !!-----------------------------------------------------------------------------------------------------------------------
 
+!! This will run every time for now until I find out how to call this whenever Sveta changes clothes regardless of where and how. I don't want to put it in gs 'stat'
 
-if $ARGS[0] = 'block_internal_prostitution':
-    prostitute['blocked'] = 1
-end
 
-if $ARGS[0] = 'set_pav_prost':
-
+if $ARGS[0] = 'check_for_wlife':
     if mod_list > 0:
         mod_i=1
         :mod_exec
         if $mod_name[mod_i] = 'wlife':
-            gs 'prostitution_functions', 'block_internal_prostitution'
+            prostitute['blocked'] = 1
         end
         if mod_list > mod_i:
             mod_i+=1
             jump 'mod_exec'
         end
     end
-    
+end
+
+if $ARGS[0] = 'set_pavlovsk_prostitute':
     if fame['pav_prostitute'] > 250 or fame['pav_slut'] > 250 and prostitute['blocked'] = 0:
         prostitute['pavlovsk'] = 1
+		prostitute['active'] = 1
         prostitute['payment_method'] = 1
     else
         prostitute['pavlovsk'] = 0
     end
 end
+
+if $ARGS[0] = 'set_gadukion_prostitute':
+	if gadriver_gang = 2 and (mirapimp = 0 or mirapimp =2): 
+		prostitute['gadukino'] = 1
+		prostitute['active'] = 1
+		prostitute['payment_method'] = 1
+	else
+		prostitute['gadukino'] = 0
+	end
+end
+
 !!-----------------------------------------------------------------------------------------------------------------------
 !!-----------------------------------------------------------------------------------------------------------------------
 
+!!---------- Setting default working outfit -----------------------------------------------------------------------------
+!! When calling check if Sveta is at home (i.e. the wardrobe is in her current home)
 
-!!---------- Checking for events ------------------------------------------------------------------------------------
+if $ARGS[0] = 'prostitute_outfit_at_home':
+	gs 'prostitution_functions', 'work_clothes'
+	if prostitute['work_clothes']:
+		gs 'prostitution_functions', 'is_default'
+		if prostitute['outfit_is_set'] = 1 and is_default = 0:
+			act 'Replace your default prostitute outfit with the current outfit': 
+				gs 'prostitution_functions', 'set_default_outfit'
+				gt $loc, $loc_arg
+			end
+		elseif prostitute['outfit_is_set'] = 0:
+			act 'Set the current as your default prostitute outfit': 
+				gs 'prostitution_functions', 'set_default_outfit'	
+				gt $loc, $loc_arg
+			end
+		end
+		act 'Change into regular clothes': 
+			gs 'prostitution_functions', 'change_back'
+			gt $loc, $loc_arg
+		end
+	elseif prostitute['outfit_is_set']: 
+		act 'Change into prostitute outfit': 
+			gs 'prostitution_functions', 'change_into_prostitute_outfit'
+			gt $loc, $loc_arg
+		end
+	end
+	killvar 'is_default'
+end
+
+!!---- Outfit checks ---------------------------------------------------------------------------------  
+if $ARGS[0] = 'work_clothes':
+	prostitute['work_clothes'] = (PCloStyle = 4 and (PShoStyle = 1 or PShoStyle = 2 or PShoHeels >= 3))
+end
+
+if $ARGS[0] = 'is_default':
+	is_default = prostitute['clothingwornnumber'] = clothingwornnumber & prostitute['pantywornnumber'] = pantywornnumber & prostitute['brawornnumber'] = brawornnumber & prostitute['shoewornnumber'] = shoewornnumber
+end
+
+
+
+!!---- Setting, clearing and changing outfits ------------------------------------------------------------------
+if $ARGS[0] = 'set_default_outfit':
+	!!-- Clothing	
+	$prostitute['clothingworntype'] = $clothingworntype
+	prostitute['clothingwornnumber'] = clothingwornnumber
+
+	!!-- Underwear
+	$prostitute['pantyworntype'] = $pantyworntype
+	prostitute['pantywornnumber'] = pantywornnumber
+	$prostitute['braworntype'] = $braworntype
+	prostitute['brawornnumber'] = brawornnumber
+
+	!!-- Shoes
+	$prostitute['shoeworntype'] = $shoeworntype
+	prostitute['shoewornnumber'] = shoewornnumber
+
+	prostitute['outfit_is_set'] = 1
+end
+
+if $ARGS[0] = 'clearing_default_outfit':
+	!!-- Clothing	
+	$prostitute['clothingworntype'] = ''
+	prostitute['clothingwornnumber'] = 0
+
+	!!-- Underwear
+	$prostitute['pantyworntype'] = ''
+	prostitute['pantywornnumber'] = 0
+	$prostitute['braworntype'] = ''
+	prostitute['brawornnumber'] = 0
+
+	!!-- Shoes
+	$prostitute['shoeworntype'] = ''
+	prostitute['shoewornnumber'] = 0
+	
+	prostitute['outfit_is_set'] = 0
+end
+
+
+if $ARGS[0] = 'change_into_prostitute_outfit':	
+	gs 'clothing', 'wear', $prostitute['clothingworntype'], prostitute['clothingwornnumber']
+	gs 'panties', 'wear', $prostitute['pantyworntype'], prostitute['pantywornnumber']
+	gs 'bras', 'wear', $prostitute['braworntype'], prostitute['brawornnumber']
+	gs 'shoes', 'strip'
+	gs 'shoes', 'wear', $prostitute['shoeworntype'], prostitute['shoewornnumber']
+
+!	!! TODO: Check for worn out here?
+
+	!! CHeck if the change happened not at home and if yes, then store the fact of change.
+	gs 'prostitution_functions', 'work_clothes'
+	if $ARGS[1] = 'work': prostitute['changed_for_work'] = 1
+end
+
+if $ARGS[0] = 'change_back':
+	!!-- Clothing	
+	gs 'clothing', 'wear_last_worn'
+	!!-- Underwear
+	gs 'panties', 'wear_last_worn'
+	gs 'bras', 'wear_last_worn'
+
+	!!-- Shoes
+	gs 'shoes', 'wear', 'last_worn'
+	gs 'prostitution_functions', 'work_clothes'
+	if prostitute['changed_for_work']: prostitute['changed_for_work'] = 0
+end
+
+!!-----------------------------------------------------------------------------------------------------------------------
+!!---------- Checking for events ----------------------------------------------------------------------------------------
+!!-----------------------------------------------------------------------------------------------------------------------
 
 if $ARGS[0] = 'check_solicitation_event':
-
+	gs 'prostitution_functions', 'work_clothes'
     if prostitute['blocked'] = 0:
         if (($loc_arg = '' and ($loc = 'pav_commcenter' or $loc = 'pav_residential' or $loc = 'pav_industrial' or $loc = 'pav_commercial' or $loc = 'pav_market' or $loc = 'liam')) or ($loc_arg = 'start' and ($loc = 'pav_complex' or $loc = 'pav_park'))) and hour > 6 and hour < 23 and $curloc ! 'shop' and menu_off = 0 and $loc = $curloc:
 
@@ -45,7 +183,7 @@ if $ARGS[0] = 'check_solicitation_event':
                 gs 'prostitution_pavlovsk', 'chance'
             end
             
-            if prostitute['pavlovsk'] = 1 and PCloStyle = 4 and ShoHeels > 3 :
+            if prostitute['pavlovsk'] = 1 and prostitutep['work_clothes'] :
                 pl '<center><a href="exec: gt ''prostitution_pavlovsk'', ''search''"><img title="Click to start working in Pavlovsk." height = 80 src="images/system/icons/icon_prostitute.png"></a></center>'
             end
 
@@ -56,7 +194,9 @@ if $ARGS[0] = 'check_solicitation_event':
 end
 
 
-!!---------- Willpower checks ---------------------------------------------------------------------------------------
+!!-----------------------------------------------------------------------------------------------------------------------
+!!---------- Willpower checks -------------------------------------------------------------------------------------------
+!!-----------------------------------------------------------------------------------------------------------------------
 
 if $ARGS[0] = 'will_unprotected':
 	gs 'willpower', 'calc'
@@ -129,7 +269,10 @@ if $ARGS[0] = 'will_atm':
 end
 
 
-!!---------- Condoms & STDs--------------------------------------------------------------------------------------
+!!-----------------------------------------------------------------------------------------------------------------------
+!!---------- Condoms & STDs----------------------------------------------------------------------------------------------
+!!-----------------------------------------------------------------------------------------------------------------------
+
 
 if $ARGS[0] = 'std_check':
 	pro_std_check_rand = rand(0,10)
