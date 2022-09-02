@@ -42,6 +42,7 @@ if $ARGS[0] = 'ending':
 	gs 'arousal', 'end'
 	if $clothingworntype = 'nude': gs'booty_call_after', 'dress'
 	if pcs_vag > 0 and booty_call['fuck'] > 0: know_virgin[$boy] = 0
+	if booty_call['creampie_orgasm'] = 1: stat_memory['creampie_orgasm'] = daystart
 	killvar 'booty_call'
 end
 
@@ -266,7 +267,7 @@ if $ARGS[0] = 'keep_going':
 				gs'booty_call_sex', 'reset'
 				act'Let him lead':cla & gs 'booty_call_sex', 'he_choose_position'
 				act'Foreplay':cla & gs 'booty_call_start', 'foreplay_choose'
-				act'Keep fucking':gs'booty_call_sex', 'reset' & gs 'booty_call_condoms', 'condoms' & gt'booty_call_sex',$booty_call['reset_pos']
+				act'Keep fucking':cla & gs'booty_call_sex', 'reset' & gs'booty_call_sex', 'position_change' & gs 'booty_call_condoms', 'condoms'
 			end
 		else
 			cla & *clr
@@ -410,6 +411,34 @@ if $ARGS[0] = 'fucked_out':
 				'"Seriously?" you scoff. "You''re already done?"'
 			end
 			gs'booty_call_after', 'after_sex2'
+		end
+	end
+end
+
+if $ARGS[0] = 'no_condom_end':
+	act'End here?':
+		cla & *clr
+		$npc_apt_bedroom[$boy]
+		if booty_call['fuck_count'] = 0:
+			'"I guess we shouldn''t fuck today..."'
+		else
+			'"I guess that''s a sign we should stop..."'
+		end
+		if booty_call['cum_count'] < npc_sexdrive[$boy] - rand(1,3) and booty_call['condoms_used'] < booty_call['condom_count']:
+			'"I have a few," <<$npc_firstname[$boy]>> says, reaching for another one."'
+			gs'booty_call_condoms', 'npc_condom_use_stats'
+			gs'booty_call_sex', 'reset'
+			act'Let him lead':cla & gs 'booty_call_sex', 'he_choose_position'
+			act'Sex':cla & gs'booty_call_sex', 'position_change'
+		elseif booty_call['cum_count'] >= npc_sexdrive[$boy]:
+			'"I think I''m all fucked out anyways," <<$npc_firstname[$boy]>> sighs limply.'
+			gs'booty_call_after', 'after_sex1'
+		elseif booty_call['fuck_count'] = 0 and booty_call['cum_count'] < npc_sexdrive[$boy] - rand(1,3):
+			'"Well this was fucking bullshit," <<$npc_firstname[$boy]>> grumbles.'
+			gs'booty_call_after', 'after_sex1'
+		else
+			'"Yeah, I think so too," <<$npc_firstname[$boy]>> says.'
+			gs'booty_call_after', 'after_sex1'
 		end
 	end
 end
@@ -1148,51 +1177,130 @@ if $ARGS[0] = 'after_sex2':
 	if pcs_sleep < 30 and booty_call['get_up'] = 0:
 		act'Rest your eyes':gt'booty_call_after', 'bed'
 	end
-	if booty_call['creampie'] > 0 and morning_after_pill > 0 and booty_call['plan_b'] = 0 and birth_control['think_safe'] = 0:gs'booty_call_after', 'plan_b'
+	gs'booty_call_after', 'plan_b'
+	gs'booty_call_after', 'birth_control_pill_take'
 end
 
 if $ARGS[0] = 'plan_b':
-	act'Take a morning after pill':
-		booty_call['plan_b'] = 2
-		cla & *clr
-		$npc_apt_bedroom[$boy]
-		if cumloc[0] > 0:
-			if LudaQW['free_condoms'] = 1 and stat['morning_after_pill'] = 0:
-				'With <<$npc_firstname[$boy]>>''s cum still leaking from your pussy, you reach down to your purse and pull out the morning after pill Luda gave you.'
+	if booty_call['creampie'] > 0 and morning_after_pill > 0 and booty_call['plan_b'] = 0 and birth_control['think_safe'] = 0:
+		act'Take a morning after pill':
+			booty_call['plan_b'] = 2
+			cla & *clr
+			$npc_apt_bedroom[$boy]
+			if cumloc[0] > 0:
+				if LudaQW['free_condoms'] = 1 and stat['morning_after_pill'] = 0:
+					'With <<$npc_firstname[$boy]>>''s cum still leaking from your pussy, you reach down to your purse and pull out the morning after pill Luda gave you.'
+				else
+					'With <<$npc_firstname[$boy]>>''s cum still leaking from your pussy, you reach down to your purse and pull out the morning after pill you keep inside.'
+				end
 			else
-				'With <<$npc_firstname[$boy]>>''s cum still leaking from your pussy, you reach down to your purse and pull out the morning after pill you keep inside.'
+				if LudaQW['free_condoms'] = 1 and stat['morning_after_pill'] = 0:
+					'You reach down to your purse and pull out the morning after pill Luda gave you.'
+				else
+					'You reach down to your purse and pull out the morning after pill you keep inside.'
+				end
 			end
-		else
-			if LudaQW['free_condoms'] = 1 and stat['morning_after_pill'] = 0:
-				'You reach down to your purse and pull out the morning after pill Luda gave you.'
-			else
-				'You reach down to your purse and pull out the morning after pill you keep inside.'
+			act'Take it shyly':
+				cla & *nl
+				'<<$npc_firstname[$boy]>> watches you pop the pill out of it''s packaging and you can''t help but blush beneath his gaze.'
+				if LudaQW['free_condoms'] = 1 and stat['morning_after_pill'] = 0:
+					'"My aunt gave me this for emergencies," you say shyly, blush intensifying as you put it in your mouth and force it down with a dry swallow.'
+				else
+					'"The instructions say to take it as soon as possible for best effect," you smile shyly, blush intensifying as you put it in your mouth and force it down with a dry swallow.'
+				end
+				gs 'medical_din', 'morning_after_pill_function'
+				gs'booty_call_after', 'after_sex2'
+			end
+			
+			act'Take it sexily':
+				cla & *nl
+				'As <<$npc_firstname[$boy]>> watches you pull the pill from its packaging, you give him a smouldering look. Sticking out your tongue at him, you pop the pill onto your mouth, swallowing with a wide grin.'
+				if $booty_call['last_cum'] = 'swallow':
+					'"Chaser," you wink.'
+				elseif age < 20:
+					'"Not really looking to become a teen mom," you smirk.'
+				else
+					'"I''m not ready to be a mom," you smirk.'
+				end
+				gs 'medical_din', 'morning_after_pill_function'
+				gs'booty_call_after', 'after_sex2'
 			end
 		end
-		act'Take it shyly':
-			cla & *nl
-			'<<$npc_firstname[$boy]>> watches you pop the pill out of it''s packaging and you can''t help but blush beneath his gaze.'
-			if LudaQW['free_condoms'] = 1 and stat['morning_after_pill'] = 0:
-				'"My aunt gave me this for emergencies," you say shyly, blush intensifying as you put it in your mouth and force it down with a dry swallow.'
-			else
-				'"The instructions say to take it as soon as possible for best effect," you smile shyly, blush intensifying as you put it in your mouth and force it down with a dry swallow.'
+	end
+end
+
+if $ARGS[0] = 'birth_control_pill_take':
+	if birth_control['remind_hour'] > 0 and hour >= birth_control['remind_hour'] and hour <= birth_control['remind_hour'] + 1 and tabletkiday ! daystart:
+		act'Take your birth control':
+			birth_control['message_skip'] = daystart
+			gs'din_bad', 'quick_takepill'
+			cla & *clr
+			$npc_apt_bedroom[$boy]
+			'You notice your phone winking a calendar reminder at you:'
+			*nl
+			'<i><font color="pink"><b>Take your vitamins!</b></font></i>'
+			*nl
+			'Right, you need to take your birth control pill for the day.'
+			act'Take it shyly':
+				cla & *clr
+				$npc_apt_bedroom[$boy]
+				if cumloc[0] > 0:
+					'With <<$npc_firstname[$boy]>>''s cum still leaking from your pussy, you reach down to your purse and pull out your birth control.'
+					*nl
+					if booty_call['risky_creampie'] = 1:
+						'"Hopefully we won''t have to worry about this stuff soon," you smile, shyly placing the pill between your lips and swallowing.'
+					else
+						'"This is what the pill is for after all," you smile, shyly placing the pill between your lips and swallowing.'
+					end
+				else
+					'You reach down to your purse and pull out your birth control.'
+					*nl
+					if pillcon2 > 20000 and birth_control['think_safe'] ! 1:
+						npc_know_bc_not_effective[$boy] = 1
+						'"I think it''ll kick in soon," you smile, shyly placing the pill between your lips and swallowing.'
+					elseif pillcon2 > 10000 and birth_control['think_safe'] ! 1:
+						npc_know_bc_not_effective[$boy] = 1
+						'"It''s gonna be a while before it starts working," you smile, shyly placing the pill between your lips and swallowing.'
+					elseif pillcon2 > 0 and birth_control['think_safe'] ! 1:
+						npc_know_bc_not_effective[$boy] = 1
+						'"I only just started it," you smile, shyly placing the pill between your lips and swallowing.'
+					else
+						'"This is what the pill is for after all," you smile, shyly placing the pill between your lips and swallowing.'
+					end
+				end
+				gs'booty_call_after', 'after_sex2'
 			end
-			gs 'medical_din', 'morning_after_pill_function'
-			gs'booty_call_after', 'after_sex2'
-		end
-		
-		act'Take it sexily':
-			cla & *nl
-			'As <<$npc_firstname[$boy]>> watches you pull the pill from its packaging, you give him a smouldering look. Sticking out your tongue at him, you pop the pill onto your mouth, swallowing with a wide grin.'
-			if $booty_call['last_cum'] = 'swallow':
-				'"Chaser," you wink.'
-			elseif age < 20:
-				'"Not really looking to become a teen mom," you smirk.'
-			else
-				'"I''m not ready to be a mom," you smirk.'
+			
+			act'Take it sexily':
+				cla & *nl
+				if cumloc[0] > 0:
+					'With <<$npc_firstname[$boy]>>''s cum still leaking from your pussy, you reach down to your purse and pull out your birth control.'
+					*nl
+					if booty_call['risky_creampie'] = 1:
+						'"You better hope this stuff kicks in soon," you say, placing the pill between your lips and swallowing with a grin.'
+					elseif birth_control['think_safe'] = 1:
+						'"My baby police pill," you say, placing the pill between your lips and swallowing with a grin. "So you can keep coming inside me without worry."'
+					else
+						'"This is what the pill is for after all," you say, placing the pill between your lips and swallowing with a grin.'
+					end
+				else
+					'You reach down to your purse and pull out your birth control.'
+					*nl
+					if pillcon2 > 20000 and birth_control['think_safe'] ! 1:
+						npc_know_bc_not_effective[$boy] = 1
+						'"Just a few more days and we''ll never have to worry about condoms again," you say, placing the pill between your lips and swallowing with a grin.'
+					elseif pillcon2 > 10000 and birth_control['think_safe'] ! 1:
+						npc_know_bc_not_effective[$boy] = 1
+						'"It''ll take a little while, but then we''ll never have to worry about condoms again," you say, placing the pill between your lips and swallowing with a grin.'
+					elseif pillcon2 > 0 and birth_control['think_safe'] ! 1:
+						npc_know_bc_not_effective[$boy] = 1
+						'"I only just started," you say, placing the pill between your lips and swallowing with a grin. "But in about a few weeks, we''ll be able to go condom free."'
+					else
+						'"Nothing sexier than safe sex," you say, placing the pill between your lips and swallowing with a grin.'
+					end
+				end
+				gs'booty_call_after', 'after_sex2'
 			end
-			gs 'medical_din', 'morning_after_pill_function'
-			gs'booty_call_after', 'after_sex2'
 		end
 	end
 end
@@ -1408,8 +1516,7 @@ if $ARGS[0] = 'panty_gift2':
 			'"And what am I supposed to do with these when my girlfriend comes home?" he asks, looking at them amusedly.'
 			gs 'booty_call_after', 'panty_gift_girlfriend'
 		else
-			'"Ah yes, women''s underwear," <<$npc_firstname[$boy]>> says, looking at them dryly. "Just what I''ve always wanted."'
-			'But despite his sarcasm, he seems pretty pleased.'
+			'<<$npc_firstname[$boy]>> doesn''t reply, but his expression says that he isn''t displeased.'
 			gs 'booty_call_after', 'dressing2'
 		end
 	end
@@ -1441,8 +1548,24 @@ if $ARGS[0] = 'panty_gift2':
 			'"And what am I supposed to do with these when my girlfriend comes home?" he asks, looking at them amusedly.'
 			gs 'booty_call_after', 'panty_gift_girlfriend'
 		else
-			'<<$npc_firstname[$boy]>> doesn''t say anything in response, but given the lustful glint in his eyes, he seems pretty pleased.'
+			'<<$npc_firstname[$boy]>> doesn''t reply, but his expression says that he isn''t displeased.'
 			gs 'booty_call_after', 'dressing2'
+		end
+	end
+	
+	if booty_call['virgin'] = 1:
+		act'To remember my virginity':
+			cla & *clr
+			$npc_apt_bedroom[$boy]
+			'"To remember my virginity," you smile, <<$booty_call[''dress_describe'']>>. "And commemorate the moment you made me into a woman."'
+			if npc_girlfriend[$boy] = 1:
+				if pc_know_npc_has_girlfriend[$boy] = 0: pc_know_npc_has_girlfriend[$boy] = 1
+				'"And what am I supposed to do with these when my girlfriend comes home?" he asks, looking at them amusedly.'
+				gs 'booty_call_after', 'panty_gift_girlfriend'
+			else
+				'<<$npc_firstname[$boy]>> doesn''t reply, but his expression says that he isn''t displeased.'
+				gs 'booty_call_after', 'dressing2'
+			end
 		end
 	end
 end
@@ -1526,7 +1649,7 @@ if $ARGS[0] = 'dress_loop':
 		killvar 'lastwornbratype'
 		killvar 'lastwornbranumber'
 		booty_call['bra_wear'] = 1
-		$booty_call['dress_describe'] = 'throwing your arms through the straps of your bra and clasping it behind your back.'
+		$booty_call['dress_describe'] = 'throwing your arms through the straps of your bra and clasping it behind your back'
 	elseif $clothingworntype = 'nude':
 		gs'clothing', 'wear_last_worn'
 		jump 'dress_loop_start'
