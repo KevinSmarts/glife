@@ -1,20 +1,22 @@
 # booty_call_sex
 
 if $ARGS[0] = 'sex_start':
-	if stat['think_virgin'] = 1 and booty_call['virgin'] = 0 and booty_call['fuck_count'] = 0: 
-		act'Give him your virginity':gt'booty_call_virgin','start1'
-	elseif booty_call['fuck_count'] = 0:
-		act'Let''s fuck':booty_call['must_fuck'] = 1 & booty_call['fuck_now'] = 1 & gs 'booty_call_sex','sex_pre'
-	else
-		act'Let''s fuck again':
-			if booty_call['cum_count'] >= npc_sexdrive[$boy]:
-				booty_call['fuck_again'] = 1
-				gs 'booty_call_after', 'fucked_out'
-			else
-				cla
-				gs 'booty_call_sex', 'reset'
-				gs 'booty_call_condoms', 'condoms'
-				gs 'booty_call_sex', 'position_change'
+	if booty_call['no_sex'] = 0:
+		if stat['think_virgin'] = 1 and booty_call['virgin'] = 0 and booty_call['fuck_count'] = 0: 
+			act'Give him your virginity':gt'booty_call_virgin','start1'
+		elseif booty_call['fuck_count'] = 0:
+			act'Fuck <<$npc_firstname[$boy]>>':booty_call['must_fuck'] = 1 & booty_call['fuck_now'] = 1 & gs 'booty_call_sex','sex_pre'
+		else
+			act'Fuck again':
+				if booty_call['cum_count'] >= npc_sexdrive[$boy] + booty_call['force_harden']:
+					booty_call['fuck_again'] = 1
+					gs 'booty_call_after', 'fucked_out'
+				else
+					cla
+					gs 'booty_call_sex', 'reset'
+					gs 'booty_call_condoms', 'condoms'
+					gs 'booty_call_sex', 'position_change'
+				end
 			end
 		end
 	end
@@ -61,15 +63,36 @@ end
 
 
 if $ARGS[0] = 'position_choose':
+	if booty_call['virgin'] = 1: 
+		gs 'booty_call_virgin', 'start_options'
 	!! initiative roll
-	booty_call['initative'] = rand(0,1)
-	if (booty_call['initative'] = 1 and booty_call['force_initiative'] ! 2) or booty_call['force_initiative'] = 1:
-		!! player wins initiative
-		if $booty_call['pos_speed'] = '':
-			act'Let him choose':
-				cla & *nl
-				'"Take me however you want," you smile.'
-				booty_call['must_fuck'] = 1
+	elseif booty_call['no_sex'] = 0:
+		booty_call['initative'] = rand(0,1)
+		if (booty_call['initative'] = 1 and booty_call['force_initiative'] ! 2) or booty_call['force_initiative'] = 1:
+			!! player wins initiative
+			if $booty_call['pos_speed'] = '':
+				act'Let him choose':
+					cla & *nl
+					'"Take me however you want," you smile.'
+					booty_call['must_fuck'] = 1
+					if $npc_fav_pos[$boy] = 'missionary':
+						gs 'booty_call_miss', 'missionary_start'
+					elseif $npc_fav_pos[$boy] = 'doggy':
+						gs 'booty_call_doggy', 'doggy_start'
+					elseif $npc_fav_pos[$boy] = 'cowgirl':
+						gs 'booty_call_cowgirl', 'cowgirl_start'
+					else
+						gs 'booty_call_sex', 'rand_position'
+					end
+	!!				if npc_condom_conscious[$boy] = 1 or booty_call['condom'] = 1:
+				end
+			end
+			gs 'booty_call_miss', 'missionary_start'
+			gs 'booty_call_doggy', 'doggy_start'
+			gs 'booty_call_cowgirl', 'cowgirl_start'
+		else
+			!! boy wins initiative
+			if rand(0,1) = 1:
 				if $npc_fav_pos[$boy] = 'missionary':
 					gs 'booty_call_miss', 'missionary_start'
 				elseif $npc_fav_pos[$boy] = 'doggy':
@@ -79,26 +102,9 @@ if $ARGS[0] = 'position_choose':
 				else
 					gs 'booty_call_sex', 'rand_position'
 				end
-!!				if npc_condom_conscious[$boy] = 1 or booty_call['condom'] = 1:
-			end
-		end
-		gs 'booty_call_miss', 'missionary_start'
-		gs 'booty_call_doggy', 'doggy_start'
-		gs 'booty_call_cowgirl', 'cowgirl_start'
-	else
-		!! boy wins initiative
-		if rand(0,1) = 1:
-			if $npc_fav_pos[$boy] = 'missionary':
-				gs 'booty_call_miss', 'missionary_start'
-			elseif $npc_fav_pos[$boy] = 'doggy':
-				gs 'booty_call_doggy', 'doggy_start'
-			elseif $npc_fav_pos[$boy] = 'cowgirl':
-				gs 'booty_call_cowgirl', 'cowgirl_start'
 			else
 				gs 'booty_call_sex', 'rand_position'
 			end
-		else
-			gs 'booty_call_sex', 'rand_position'
 		end
 	end
 end
@@ -219,7 +225,11 @@ if $ARGS[0] = 'reset':
 	$booty_call['position'] = ''
 !!	$booty_call['pos_speed'] = ''
 	booty_call['cleanup'] = 0
-	booty_call['cum_together'] = 0
+	if booty_call['cum_together'] > 0:
+		booty_call['cum_together'] = 0
+		booty_call['creampie_orgasm'] = 1
+		
+	end
 	booty_call['cum_together_fake'] = 0
 	booty_call['cum_react'] = 0
 	if booty_call['mad'] = 1:booty_call['mad'] = 2
@@ -330,6 +340,113 @@ if $ARGS[0] = 'harden_mouth':
 				else
 					act'Have sex':gs'booty_call_sex','sex_start'
 				end
+			end
+		end
+	end
+end
+
+if $ARGS[0] = 'no_sex_only':
+	if booty_call['no_sex'] = 0:
+		act'We could do other stuff':
+			booty_call['no_sex'] = 1
+			cla & *clr
+			$npc_apt_bedroom[$boy]
+			'"We could do other stuff?" you suggest.'
+			if npc_no_kiss[$boy] ! 1:
+				act'We could make out':
+					cla & *clr
+					$npc_apt_bedroom[$boy]
+					'"We could do other stuff?" you suggest. "We could just make out?"'
+					'"Okay," <<$npc_firstname[$boy]>> nods and you happily move to kiss him.'
+					gs 'booty_call_start', 'makeout_dom1'
+				end
+			end
+			
+			act'I could blow you':
+				cla & *clr
+				$npc_apt_bedroom[$boy]
+				'"We could do other stuff?" you suggest. "I could just blow you?"'
+				if $npc_fav_pos[$npclastgenerated] = 'blowjob':
+					'"I would love that," <<$npc_firstname[$boy]>> grins.'
+				else
+					'"I could get behind that..." <<$npc_firstname[$boy]>> smiles.'
+				end
+				act'Blow him':gt 'booty_call_start', 'bj_dom2'
+			end
+			
+			if booty_call['cuni_orgasm'] < 5:
+				act'You could eat me out':
+					cla & *clr
+					$npc_apt_bedroom[$boy]
+					'"We could do other stuff?" you suggest. "I wouldn''t mind if you ate my pussy for a little while..."'
+					if npc_pussyeater[$boy] = 1:
+						'"I think I''d like that too," <<$npc_firstname[$boy]>> says with a dangerous glint in his eye.'
+						act'Get eaten out':gs 'booty_call_start', 'pussy_lick'
+					elseif npc_selfish[$boy] = 1:
+						'"How about you blow me instead?" he asks.'
+						act'That sounds fun':
+							cla & *nl
+							'"That sounds fun," you smile, moving down between his legs.'
+							act'Blow him':gt 'booty_call_start', 'bj_sub1'
+						end
+						
+						act'I guess I could':
+							cla & *nl
+							'"I guess I could do that," you say reluctantly, moving down between his legs.'
+							act'Blow him':gt 'booty_call_start', 'bj_sub1'
+						end
+					end
+				end
+			end
+		end
+	end
+end
+
+if $ARGS[0] = 'pain':
+	if booty_call['speed'] ! 3:
+		if $npc_dick_desc[$boy] = 'lengthy':
+			if pcs_vag <= 20:
+				gs 'pain', 2, 'cervix', 'hit'
+			else
+				gs 'pain', 1, 'cervix', 'hit'
+			end
+		elseif $npc_dick_desc[$boy] = 'gigantic':
+			if pcs_vag <= 20:
+				gs 'pain', 2, 'cervix', 'hit'
+				gs 'pain', 1, 'vaginal', 'stretch'
+			else
+				gs 'pain', 1, 'cervix', 'hit'
+			end
+		elseif $npc_dick_desc[$boy] = 'monster':
+			if pcs_vag <= 20:
+				gs 'pain', 2, 'cervix', 'hit'
+				gs 'pain', 2, 'vaginal', 'stretch'
+			else
+				gs 'pain', 1, 'cervix', 'hit'
+				gs 'pain', 1, 'vaginal', 'stretch'
+			end
+		end
+	else
+		if $npc_dick_desc[$boy] = 'lengthy':
+			if pcs_vag <= 20:
+				gs 'pain', 3, 'cervix', 'hit'
+			else
+				gs 'pain', 2, 'cervix', 'hit'
+			end
+		elseif $npc_dick_desc[$boy] = 'gigantic':
+			if pcs_vag <= 20:
+				gs 'pain', 3, 'cervix', 'hit'
+				gs 'pain', 2, 'vaginal', 'stretch'
+			else
+				gs 'pain', 2, 'cervix', 'hit'
+			end
+		elseif $npc_dick_desc[$boy] = 'monster':
+			if pcs_vag <= 20:
+				gs 'pain', 3, 'cervix', 'hit'
+				gs 'pain', 2, 'vaginal', 'stretch'
+			else
+				gs 'pain', 2, 'cervix', 'hit'
+				gs 'pain', 2, 'vaginal', 'stretch'
 			end
 		end
 	end
