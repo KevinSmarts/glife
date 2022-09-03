@@ -24,7 +24,7 @@ if $ARGS[0] = 'start':
 	if gabotsmlday ! daystart: gap_botsml_count = 0
 	if gabotmedday ! daystart: gap_botmed_count = 0
 
-	if (hour >= 9 and hour < 13) or (hour >= 14 and hour <= 18) and week < 6:
+	if ((hour >= 9 and hour < 13) or (hour >= 14 and hour <= 18)) and week < 6:
 		LudaQW['work_hours'] = 1
 	else
 		LudaQW['work_hours'] = 0
@@ -34,6 +34,7 @@ if $ARGS[0] = 'start':
 	if LudaQW['work_hours'] = 1:
 		if LudaQW['free_condoms'] = 0 and $message = '':gt'pav_pharmacy','luda_free_condoms'
 		'<center><img <<$set_imgh>> src="images/locations/pavlovsk/pharmacy/apteka_aunt_1.jpg"></center>'
+		if pharmacy_timers['birth_control'] > 0 and pharmacy_timers['birth_control'] < daystart - 30 and LudaQW['birth_control_worry'] = 0 and LudaQW['bc_shot_know'] = 0:gt'pav_pharmacy','luda_birth_control_worry'
 	else
 		if pav_pharma_day ! daystart: pav_pharma_day = daystart & pav_pharma_picrand = rand(1,4)
 		'<center><img <<$set_imgh>> src="images/locations/pavlovsk/pharmacy/apteka_worker_'+pav_pharma_picrand+'.jpg"></center>'
@@ -132,7 +133,7 @@ if $ARGS[0] = 'buy_condoms':
 	menu_off = 1
 	minut += 2
 	*clr & cla
-	if pharmacy_timers['condom_timer'] = daystart:
+	if pharmacy_timers['condom_timer'] = daystart or LudaQW['birth_control_timer'] = daystart:
 		gt 'pav_pharmacy', 'start'
 	else
 		pharmacy_timers['condom_timer'] = daystart
@@ -333,11 +334,13 @@ end
 if $ARGS[0] = 'buy_birth_control':
 	menu_off = 1
 	*clr & cla
-	if pharmacy_timers['birth_control'] = daystart:
+	if pharmacy_timers['birth_control'] = daystart or LudaQW['birth_control_timer'] = daystart:
 		gt 'pav_pharmacy', 'start'
 	else
 		pharmacy_timers['birth_control'] = daystart
 	end
+	if LudaQW['birth_control_worry'] >= 2:gt 'pav_pharmacy', 'luda_birth_control_start_again_meek'
+	if LudaQW['birth_control_worry'] = 1: LudaQW['birth_control_worry'] = 0
 	gs 'stat'
 	'<center><B><font color="maroon">Pharmacy</font></B></center>'
 	'<center><img <<$set_imgh>> src="images/locations/pavlovsk/pharmacy/apteka_aunt_1.jpg"></center>'
@@ -420,6 +423,17 @@ if $ARGS[0] = 'buy_birth_control':
 					'<center><img <<$set_imgh>> src="images/locations/pavlovsk/pharmacy/apteka_aunt_1.jpg"></center>'
 					'"I don''t like using condoms," you blush. "They''re kind of a hassle."'
 					'"Maybe I should''ve given you pills from the start," she chuckles, ringing up your purchase. "I know you don''t like them, but can I interest you in some more condoms while you''re here? It takes a few weeks for the pill to become effective."'
+					act 'No thanks':gt 'pav_pharmacy', 'start'
+					gs 'pav_pharmacy', 'condom_addon'
+					gs 'pav_pharmacy', 'dont_tell'
+				end
+				
+				act'Want to try bareback':
+					LudaQW['knows_sex'] = 1
+					cla & *clr
+					'<center><img <<$set_imgh>> src="images/locations/pavlovsk/pharmacy/apteka_aunt_1.jpg"></center>'
+					'"I want to see what it''s like without a rubber," you admit, blushing. "But I don''t want to get pregnant either."'
+					'"Oh, it''s <i>wonderful</i> darling," Luda gushes and your blush deepens. "If you''re anything like the other women in our family,  you''ll love it. Did you want some more condoms while you''re here? It takes a few weeks for the pill to become effective."'
 					act 'No thanks':gt 'pav_pharmacy', 'start'
 					gs 'pav_pharmacy', 'condom_addon'
 					gs 'pav_pharmacy', 'dont_tell'
@@ -551,6 +565,17 @@ if $ARGS[0] = 'buy_birth_control':
 					'"I suppose that would have been a little easier," she chuckles, ringing up your purchase. "I know you don''t like them, but can I interest you in some more condoms while you''re here? It takes a few weeks for the pill to become effective."'
 					act 'No thanks':gt 'pav_pharmacy', 'start'
 					gs 'pav_pharmacy', 'condom_addon'
+				end
+				
+				act'Want to try bareback':
+					LudaQW['knows_sex'] = 1
+					cla & *clr
+					'<center><img <<$set_imgh>> src="images/locations/pavlovsk/pharmacy/apteka_aunt_1.jpg"></center>'
+					'"I want to see what it''s like without a rubber," you admit, smiling. "But I don''t want the risk that comes with it. Not without birth control at least."'
+					'"Oh, it''s <i>wonderful</i> darling," Luda gushes. "If you''re anything like the other women in our family,  you''ll love it. Did you want some more condoms while you''re here? It takes a few weeks for the pill to become effective."'
+					act 'No thanks':gt 'pav_pharmacy', 'start'
+					gs 'pav_pharmacy', 'condom_addon'
+					gs 'pav_pharmacy', 'dont_tell'
 				end
 				
 				act'Prefer bareback':
@@ -1260,8 +1285,36 @@ if $ARGS[0] = 'luda_free_condoms':
 			'"So I wanted to give you something ahead of time," Luda continues. "Make sure you stay safe. If I became a grandaunt at my age, I would feel positively ancient!"'
 			'She hands you the bag and you look inside, revealing a box containing 10 condoms and a morning after pill.'
 			'"Just in case," she winks.'
+!!{			act'Tell her you don''t need them':
+				cla & *nl
+				'"I appreciate the thought Aunt Luda, but I don''t need these," you say, pushing them back towards her.'
+				'"I know that''s what they say, <<$pcs_nickname>>," she says shaking her head. "But no matter how much boys insist that they''re going to pull out in time, they never-"'
+				act'Saving yourself for marriage':
+					cla & *clr
+					'<center><img <<$set_imgh>> src="images/locations/pavlovsk/pharmacy/apteka_aunt_1.jpg"></center>'
+					'"No! That''s not what I meant!" you interrupt her, cringing in disgust. "I''m not going to have sex Aunt Luda. I''m going to save my virginity for marriage."'
+					'"Oh, darling..." She smiles sadly at you. "You say that now, but... Not everything goes to plan. I''m afraid you''re living proof of that dear."'
+					act'Insist you don''t need them':
+						LudaQW['free_condoms'] = 2
+						cla & *nl
+						'"I''m not going to be like my mother," you shake your head. "I appreciate your thought Aunt Luda, but I don''t need your present."'
+						'She sighs, but gives you another small smile and takes the bag back from you.'
+						'"Well, if you insist. But if you ever change your mind, these will be right here waiting for you."'
+					end
+					
+					act'Just in case...':
+					
+					end
+				end
+				
+				act'':
+				
+				end
+				act 'Continue':gt 'pav_pharmacy', 'start'
+			end}
 			act 'Continue':gt 'pav_pharmacy', 'start'
-		end
+		end		
+		
 		if stat['think_virgin'] ! 1:
 			act'Admit you''ve been having sex':
 				LudaQW['knows_sex'] = 1
@@ -1286,5 +1339,285 @@ if $ARGS[0] = 'luda_free_condoms_give':
 	morning_after_pill += 1
 end
 
+if $ARGS[0] = 'luda_change_mind':
+	if LudaQW['free_condoms'] = 2:
+		act'Ask your Aunt for her present':
+			cla & *clr
+			'<center><img <<$set_imgh>> src="images/locations/pavlovsk/pharmacy/apteka_aunt_1.jpg"></center>'
+			LudaQW['free_condoms'] = 1
+			'"Aunt Luda..." you say.'
+			'"Yes, darling?"'
+			act'Embarrassed':
+				cla
+				'"I... I need your present after all..." you stammer.'
+				'Luda gives you a gleaming smile in return as she reaches under the counter and produces the same paper bag you gave back to her.'
+				'"What made you change your mind?"'
+				act'There''s this boy...':
+				
+				end
+				
+				act'':
+				
+				end
+			end
+			
+			act'Open':
+			
+			end
+		end
+	end
+end
+
+if $ARGS[0] = 'luda_birth_control_worry':
+	LudaQW['birth_control_timer'] = daystart
+	LudaQW['birth_control_worry'] = 1
+	cla & *clr
+	'<center><img <<$set_imgh>> src="images/locations/pavlovsk/pharmacy/apteka_aunt_1.jpg"></center>'
+	'As you enter the pharmacy, your Aunt Luda glances up from the register, looking at you with concern. Puzzled, you walk up to her as she waves you over.'
+	'"<<$pcs_nickname>>! I''m glad I saw you. You haven''t bought any birth control pills from me in over a month! Is everything alright? Did you forget to keep taking them?"'
+	act'Oh shit!':
+		cla & *clr
+		'<center><img <<$set_imgh>> src="images/locations/pavlovsk/pharmacy/apteka_aunt_1.jpg"></center>'
+		'The color drains from your face as you gasp, covering your mouth with your hand in shock.'
+		'"Oh shit! I totally forgot!"'
+		'"<<$pcs_firstname>>!" Luda scolds you. "This is very important! You buy some more right now! And get some condoms too, so you don''t get pregnant while the hormones build back up!"'
+		act'Continue':gt'pav_pharmacy', 'start'
+	end
+	
+	act'I have a stockpile':
+		cla & *nl
+		'"Don''t worry Aunt Luda," you laugh. "Just have a big stockpile. I haven''t needed to buy any in a while and I''ve still got more."'
+		'Relief floods through your aunt''s face and she presses her hand to her breast as she takes deep breaths.'
+		'"Oh! I nearly had a heart attack!" she says, grinning back at you.'
+		'"Sorry," you smile back apologetically.'
+		LudaQW['birth_control_worry'] = 1
+		act'Continue':gt'pav_pharmacy', 'start'
+	end
+	
+	act'Buying elsewhere':
+		cla & *nl
+		'"Don''t worry Aunt Luda," you laugh. "I''m still on the pill, I''ve just been shopping elsewhere."'
+		'Relief floods through your aunt''s face and she presses her hand to her breast as she takes deep breaths.'
+		'"Oh! I nearly had a heart attack!" she says, grinning back at you. "Where are you buying these days?"'
+		act'The city':
+			cla & *nl
+			'"I''ve been in the city a lot lately," you tell her. "I shop at the pharmacy there sometimes."'
+			'"Ahh," Luda nods. "That explains it."'
+			LudaQW['birth_control_worry'] = 1
+			act'Continue':gt'pav_pharmacy', 'start'
+		end
+		
+		act'The market':
+			cla & *nl
+			'"I''ve been buying them from the market," you tell her. "It''s really easy to find a discount there!"'
+			'"Hmm," Luda frowns. "You really shouldn''t buy medicine off the street, darling. You never know if you''re getting some kind of cheap knock off, or worse, something completely different than what they''re advertising."'
+			LudaQW['birth_control_worry'] = 1
+			act'Continue':gt'pav_pharmacy', 'start'
+		end
+		act'Continue':gt'pav_pharmacy', 'start'
+	end
+	
+	act'I stopped on purpose':
+		LudaQW['birth_control_worry'] = 1
+		cla & *clr
+		'<center><img <<$set_imgh>> src="images/locations/pavlovsk/pharmacy/apteka_aunt_1.jpg"></center>'
+		'"I didn''t forget Aunt," you say, shaking your head. "I stopped on purpose."'
+		'"Why would you do that?" Luda asks, looking worried.'
+		*nl
+		act'Messing with my hormones':
+			cla
+			'"I don''t like that it messes with my hormones," you explain. "I don''t think it''s smart to screw around with my body like that."'
+			'"I understand <<$pcs_firstname>>, but it''s better than being pregnant! Especially at your age."'
+			*nl
+			gs'pav_pharmacy', 'luda_birth_control_worry2'
+		end
+		
+		act'Killing my sex drive':
+			cla
+			'"It''s totally killing my sex drive!" you moan loudly. "The whole reason I started it was so I could have sex without worry but it''s messing my hormones up so badly that I don''t even want to have sex anymore!"'
+			'"Oh dear!" Luda looks taken aback, but nods understandingly right after. "That is a common problem with women who use this kind of birth control. I suppose I understand if you don''t want to use the pill anymore. But you''re still being safe, right? No unprotected sex?"'
+			*nl
+			gs'pav_pharmacy', 'luda_birth_control_worry2'
+		end
+		
+		if pcs_lovers - pcs_girlfriends > 0:
+			act'Trying for a baby with my boyfriend':
+				LudaQW['birth_control_worry'] = 3
+				cla
+				'"I''m trying for a baby with my boyfriend," you smile, unable to contain your overwhelming desire for motherhood. Luda goes pale instead.'
+				if age < 20:
+					'"<<$pcs_firstname>>! You''re still a teenager! That can''t be wise! You still have your whole life ahead of you! It''s too early to make this kind of decision!"'
+				else
+					'"<<$pcs_firstname>>! That can''t be wise at your age! You still have your whole life ahead of you!  It''s too early to make this kind of decision!"'
+				end
+				'"He loves me!" you snap back at her. "He''s going to make a great father and I want to have his baby!"'
+				'"<<$pcs_firstname>>!"'
+				act'You can''t tell my mother':
+					cla & *nl
+					'"Don''t even think about running off to tell my mother about this," you say, pointing accusingly at her. "This is between me and my boyfriend, it''s our decision!"'
+					'"<<$pcs_firstname>>..." Luda says again, looking pleadingly at you.'
+					'"I mean it!" you snarl.'
+					'"I... I won''t..." your aunt reluctantly agrees. "But please, I hope you''ll see reason soon... Before it''s too late..."'
+					act'Continue':gt'pav_pharmacy', 'start'
+				end
+			end
+		else
+			act'Trying for a baby':
+				LudaQW['birth_control_worry'] = 2
+				cla
+				'"I want to have a baby," you smile, unable to contain your overwhelming desire for motherhood. Luda goes pale instead.'
+				if age < 20:
+					'"<<$pcs_firstname>>! You''re still a teenager! That can''t be wise! You still have your whole life ahead of you! Do you even have someone to take care of it with you?"'
+				else
+					'"<<$pcs_firstname>>! That can''t be wise at your age! You still have your whole life ahead of you! Do you even have someone to take care of it with you?"'
+				end
+				'"No," you say stubbornly. "I don''t need someone else, I want to be a mother and I''m not going to wait!"'
+				'"<<$pcs_firstname>>!"'
+				act'You can''t tell my mother':
+					cla & *nl
+					'"Don''t even think about running off to tell my mother about this," you say, pointing accusingly at her. "This is my decision and my body, I can do what I want."'
+					'"<<$pcs_firstname>>..." Luda says again, looking pleadingly at you.'
+					'"I mean it!" you snarl.'
+					'"I... I won''t..." your aunt reluctantly agrees. "But please, I hope you''ll see reason soon... Before it''s too late..."'
+					act'Continue':gt'pav_pharmacy', 'start'
+				end
+			end
+		end
+	end
+	if tabletkishot > 0:
+		act'I switched to the shot':
+			cla & *nl
+			'"Don''t worry Aunt Luda," you laugh. "I just switched to the shot. It''s easier and more reliable than the pill."'
+			'Relief floods through your aunt''s face and she presses her hand to her breast as she takes deep breaths.'
+			'"Oh! I nearly had a heart attack!" she says, grinning back at you.'
+			'"Sorry," you smile back apologetically.'
+			LudaQW['bc_shot_know'] = 1
+			act'Continue':gt'pav_pharmacy', 'start'
+		end
+	end
+end
+
+if $ARGS[0] = 'luda_birth_control_worry2':
+	act'Still using condoms':
+		cla
+		'"Don''t worry Aunt Luda," you smile. "I''m still using condoms."'
+		'"Well, as long as you''re doing that much..." she says with clear relief.'
+		act'Continue':gt'pav_pharmacy', 'start'
+	end
+	
+	act'Switching to the calendar method':
+		cla
+		'"I''m switching to the calendar method," you smile. "I''ve already started keeping track of my cycle."'
+		'"Trying to track your cycle is very unreliable as birth control," Luda frets insistently. "Please, won''t you at least use condoms?"'
+		'"I''ll be careful Aunt Luda, I promise."'
+		'"But even the most careful of us still make mistakes," she says with obvious concern.'
+		act'Continue':gt'pav_pharmacy', 'start'
+	end
+	
+	act'I''m being careful':
+		cla
+		'"Don''t worry Aunt Luda," you smile. "I''m being careful."'
+		'"Careful with a condom?" Luda asks insistently.'
+		'"Just careful. I''ll be fine, I promise."'
+		'"But even the most careful of us still make mistakes," she says with obvious concern.'
+		act'Continue':gt'pav_pharmacy', 'start'
+	end
+end
+
+if $ARGS[0] = 'luda_birth_control_start_again_meek':
+	'<center><B><font color="maroon">Pharmacy</font></B></center>'
+	'<center><img <<$set_imgh>> src="images/locations/pavlovsk/pharmacy/apteka_aunt_1.jpg"></center>'
+	'You hesitantly approach the counter, feeling incredibly embarrassed by your past actions and what you have to do next.'
+	'Luda can see it on your face and looks at you with concern.'
+	'"Yes, <<$pcs_firstname>>? Is everything all right?"'
+	'You take a deep breath.'
+	*nl
+	'"Aunt Luda, I... need some birth control pills."'
+	'Her eyes go wide with shock and she rushes to grab them as if worried that if she isn''t fast enough you''ll change your mind.'
+	if LudaQW['birth_control_worry'] = 2:
+		'"What happened to your... plans...?" she asks hesitantly.'
+		'"I thought better of it," you mumble back, unable to look her in the eye after what you said before.'
+		*nl
+		'When you finally turn your gaze back towards her, Luda is looking at you with love and compassion.'
+		'"It''s okay, darling," she smiles. "We all make mistakes. As long as you''ve learned from this one."'
+		'You nod back gratefully, taking the box of pills from her."'
+		act'Continue':gt'pav_pharmacy', 'start'
+	elseif LudaQW['birth_control_worry'] = 3:
+		'"What happened to you and your... boyfriend...?" she asks hesitantly.'
+		act'Changed my mind':
+			'"I thought better of it," you mumble back, unable to look her in the eye after what you said before.'
+			*nl
+			'When you finally turn your gaze back towards her, Luda is looking at you with love and compassion.'
+			'"It''s okay, darling," she smiles. "We all make mistakes. As long as you''ve learned from this one."'
+			'You nod back gratefully, taking the box of pills from her."'
+			act'Continue':gt'pav_pharmacy', 'start'
+		end
+		
+		act'We broke up':
+			'"We broke up," you mumble back, blinking back tears, unable to look her in the eye after what you said before.'
+			*nl
+			'When you finally turn your gaze back towards her, Luda is looking at you with love and compassion.'
+			'"I really thought he loved me," you sniff. "I thought he was the one."'
+			'"It''s okay, darling," she smiles. "We all make mistakes. As long as you''ve learned from this one."'
+			'You nod back gratefully, taking the box of pills from her."'
+			act'Continue':gt'pav_pharmacy', 'start'
+		end
+	end
+	LudaQW['birth_control_worry'] = 0
+end
+
+if $ARGS[0] = 'luda_birth_control_start_again_open':
+	'<center><B><font color="maroon">Pharmacy</font></B></center>'
+	'<center><img <<$set_imgh>> src="images/locations/pavlovsk/pharmacy/apteka_aunt_1.jpg"></center>'
+	'You take a deep breath and woman up, approaching the counter without hesitation but feeling incredibly embarrassed by your past actions and what you have to do next.'
+	'Luda can see it on your face and looks at you with concern.'
+	'"Yes, <<$pcs_firstname>>? Is everything all right?"'
+	*nl
+	'"Aunt Luda," you say firmly. "I would like some birth control pills."'
+	'Her eyes go wide with shock and relief and she rushes to grab them as if worried that if she isn''t fast enough you''ll change your mind.'
+	if LudaQW['birth_control_worry'] = 2:
+		'"What happened to your... plans...?" she asks hesitantly.'
+		'"I realized I was being stupid," you reply, sighing. "You were right Aunt Luda. I wasn''t ready."'
+		*nl
+		'Luda smiles back at you with compassion.'
+		'"It''s okay, darling," she smiles. "We all make mistakes. As long as you''ve learned from this one."'
+		'You nod back gratefully, taking the box of pills from her."'
+		act'Continue':gt'pav_pharmacy', 'start'
+	elseif LudaQW['birth_control_worry'] = 3:
+		'"What happened to you and your... boyfriend...?" she asks hesitantly.'
+		act'I was being dumb':
+			'"I realized I was being stupid," you reply, sighing. "You were right Aunt Luda. I wasn''t ready."'
+			*nl
+			'Luda smiles back at you with compassion.'
+			'"It''s okay, darling," she smiles. "We all make mistakes. As long as you''ve learned from this one."'
+			'You nod back gratefully, taking the box of pills from her."'
+		end
+		
+		act'We broke up':
+			'"We broke up," you say. Your face goes rigid, trying your best not to let the pain show, but Luda gives you a soft, knowing look.'
+			*nl
+			act'He was an asshole':
+				cla & *clr
+				'<center><B><font color="maroon">Pharmacy</font></B></center>'
+				'<center><img <<$set_imgh>> src="images/locations/pavlovsk/pharmacy/apteka_aunt_1.jpg"></center>'
+				'"He was an asshole," you grumble, your expression finally breaking into a twist of in pain and anger. "I can''t believe I thought I wanted him to be the father of my child."'
+				'"It''s okay, darling," she smiles. "We all make mistakes. As long as you''ve learned from this one."'
+				'You nod back gratefully, taking the box of pills from her."'
+				act'Continue':gt'pav_pharmacy', 'start'
+			end
+			
+			act'I thought he loved me':
+				cla & *clr
+				'<center><B><font color="maroon">Pharmacy</font></B></center>'
+				'<center><img <<$set_imgh>> src="images/locations/pavlovsk/pharmacy/apteka_aunt_1.jpg"></center>'
+				'"I really thought he loved me," you say, voice warbling as you struggle to hold back tears. "I thought he was the one."'
+				'"It''s okay, darling," she smiles. "We all make mistakes. As long as you''ve learned from this one."'
+				'You nod back gratefully, taking the box of pills from her."'
+				act'Continue':gt'pav_pharmacy', 'start'
+			end
+		end
+	end
+	LudaQW['birth_control_worry'] = 0
+end
 --- pav_pharmacy ---------------------------------
 
