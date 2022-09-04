@@ -32,15 +32,16 @@ if $args[0] = 'UpdateBaseAppearnce':
 	!{
 		Base Appearance is updated once a day at midnight and called from cikl
 		Base Appearance is calculated from:
-			vidage, skin, body shape (fat and strength), face (lip size, eyes size, and eyelashes)
-			attributes (endurance and agility)
+			vidage, skin, body shape (fat and strength), attributes (endurance and agility)
 	}
 	attributeBonus = func($this, 'CalcAttributeBonus')
 	skinBonus = pcs_skin / 10
 	bodyShapeBonus = func($this, 'SetBodyShapeBonus')
+	visibleAgePenalty = func($this, 'CalcVisibleAgePenalty')
+	teethPenalty = func($this, 'CalcTeethPenalty')
 
 	! Calculte base appearance
-	pcs_apprncbase = skinBonus + bodyShapeBonus + attributeBonus + supnatvnesh
+	pcs_apprncbase = skinBonus + bodyShapeBonus + attributeBonus - visibleAgePenalty - teethPenalty + supnatvnesh
 
 end 
 
@@ -94,10 +95,38 @@ if $ARGS[0] = 'CalcFaceBonus':
 end
 
 if $ARGS[0] = 'CalcAttributeBonus':
-	tempAttributeBonus = (pcs_agil / 10) + (pcs_vital / 10)
+	tempAttributeBonus = (pcs_agil / 4) + (pcs_vital / 4)
 
 	result = func($this, 'AdjustFromBMI', tempAttributeBonus)
 	killvar 'tempAttributeBonus'
+end
+
+if $ARGS[0] = 'CalcVisibleAgePenalty':
+	if vidag < 20:
+		tempAttributePenelty =  5*(20 - vidage)
+	else
+		tempAttributePenelty = 0
+	end
+
+	result = func($this, 'AdjustFromBMI', tempAttributePenelty)
+	killvar 'tempAttributePenelty'
+end
+
+if $ARGS[0] = 'CalcTeethPenalty':
+	if pcs_teeth > 0:
+		tempAttributePenelty =  10 * pcs_teeth
+	elseif pcs_teeth = 0:
+		tempAttributePenelty = 5
+	else
+		tempAttributePenelty = 0
+	end
+
+	if pcs_missing_teeth > 0:
+		tempAttributePenelty +=  10 * pcs_missing_teeth
+	end
+
+	result = func($this, 'AdjustFromBMI', tempAttributePenelty)
+	killvar 'tempAttributePenelty'
 end
 
 if $ARGS[0] = 'SetBodyShapeBonus':
@@ -118,36 +147,44 @@ if $ARGS[0] = 'SetBodyShapeBonus':
 	else
 		if pcs_bmi < 16:
 			!! severely underweight
-			tempBodyShapeBonus = 30
+			tempBodyShapeBonus = -5
 		elseif pcs_bmi < 19:
 			!! underweight
-			tempBodyShapeBonus = 65
+			tempBodyShapeBonus = 25
 		elseif pcs_bmi < 25:
 			!! healthy weight
-			tempBodyShapeBonus = 85
+			tempBodyShapeBonus = 40
 		elseif pcs_bmi < 30:
 			!! overweight
-			tempBodyShapeBonus = 75
+			tempBodyShapeBonus = 25
 		elseif pcs_bmi < 35:
 			!! moderately obese
-			tempBodyShapeBonus = 45
+			tempBodyShapeBonus = 10
 		elseif pcs_bmi < 40:
 			!! severely obese
-			tempBodyShapeBonus = 25
+			tempBodyShapeBonus = -10
 		elseif pcs_bmi < 45:
 			!! very severely obese
-			tempBodyShapeBonus = 5
+			tempBodyShapeBonus = -40
 		else
 			!! morbidly obese
-			tempBodyShapeBonus = 0
+			tempBodyShapeBonus = -45
 		end
 
-		if (strenbuf >= 40 and strenbuf < 60) or strenbuf >= 80:
-			tempBodyShapeBonus += 8
-		elseif strenbuf >= 60:
-			tempBodyShapeBonus += 10
-		elseif strenbuf >= 20:
+		if strenbuf <= 5 or strenbuf > 95:
+			tempBodyShapeBonus -= 20
+		elseif strenbuf <= 10 or strenbuf > 90:
+			tempBodyShapeBonus -= 15
+		elseif strenbuf <= 15 or strenbuf > 85:
+			tempBodyShapeBonus -= 10
+		elseif strenbuf <= 25 or strenbuf > 75:
+			tempBodyShapeBonus -= 5
+		elseif strenbuf <= 35 or strenbuf > 65:
+			tempBodyShapeBonus += 0
+		elseif strenbuf <= 45 or strenbuf > 60:
 			tempBodyShapeBonus += 5
+		else
+			tempBodyShapeBonus += 10
 		end
 
 		!!This modifies bodykoef for high or low salo values
@@ -212,28 +249,22 @@ if $ARGS[0] = 'CalcAccessoriesBonus':
 
 	result = coatQualityBonus + shoesQualityBonus + pantyBonus + braBonus
 
+	killvar 'coatQualityBonus'
+	killvar 'shoesQualityBonus'
+	killvar 'pantyBonus'
+	killvar 'braBonus'
 end
 
 if $ARGS[0] = 'CalcGroomingBonus':
-	if pcs_lipbalm > 0:
-		lipBalmBonus = 5
-	else
-		lipBalmBonus = 0
-	end
 
-	makeupBonus = pcs_makupskl / 5
+	makeupBonus = pcs_makupskl/4 - 5
 	if pcs_makeup = 0: makeupBonus = -5
 	if pcs_makeup = 1: makeupBonus = 0
 	if pcs_makeup = 5: makeupBonus = 30
 
-	hairBonus = pcs_hairbsh * 10
-
 	breathBonus = pcs_breath * 5
 
-	tempGroomingBonus = makeupBonus + hairBonus + lipBalmBonus + breathBonus
-
-	!!Small bonus for wearing deodorant, if pcs_sweat is low enough
-	if deodorant_on = 1 and pcs_sweat < 20: tempGroomingBonus += 5
+	tempGroomingBonus = makeupBonus + breathBonus
 
 	!result = tempGroomingBonus
 	result = func($this, 'AdjustFromBMI', tempGroomingBonus)
@@ -241,12 +272,23 @@ if $ARGS[0] = 'CalcGroomingBonus':
 end
 
 if $ARGS[0] = 'CalcGroomingPenalty':
+	if pcs_lipbalm > 0:
+		lipBalmPenalty = 0
+	else
+		lipBalmPenalty = 5
+	end
+
+	hairPenalty = (1 - pcs_hairbsh) * 10
+
 	!! buzzcut penalty to pcs_apprnc
 	if pcs_hairlng < 10:
 		buzzCutPenalty = 10
 	else
 		buzzCutPenalty = 0
 	end
+
+	!!Small penalty for not wearing deodorant, if pcs_sweat is low enough
+	if deodorant_on = 0 or pcs_sweat < 20: deodorantPenalty = 5
 
 	if pcs_sweat < 22:
 		sweatPenalty = 0
@@ -282,7 +324,7 @@ if $ARGS[0] = 'CalcGroomingPenalty':
 		legPenalty = 9 
 	end
 
-	result = sweatPenalty + glassesPenalty + hairDyePenalty + buzzCutPenalty + legPenalty
+	result = sweatPenalty + glassesPenalty + hairDyePenalty + buzzCutPenalty + legPenalty + lipBalmPenalty + hairPenalty + deodorantPenalty
 
 end
 
@@ -301,8 +343,24 @@ if $ARGS[0] = 'CalcAppearance':
 end
 
 if $ARGS[0] = 'ConvertToHotcat':
-	if pcs_apprnc <= 200:
-		result = pcs_apprnc / 20
+	if pcs_apprnc <= 60:
+		result = 1
+	elseif pcs_apprnc <= 80:
+		result = 2
+	elseif pcs_apprnc <= 100:
+		result = 3
+	elseif pcs_apprnc <= 120:
+		result = 4
+	elseif pcs_apprnc <= 140:
+		result = 5
+	elseif pcs_apprnc <= 155:
+		result = 6
+	elseif pcs_apprnc <= 170:
+		result = 7
+	elseif pcs_apprnc <= 185:
+		result = 8
+	elseif pcs_apprnc <= 199:
+		result = 9
 	else
 		result = 10
 	end
