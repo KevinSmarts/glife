@@ -1,0 +1,93 @@
+# internet_mobile
+
+!! {  Plans and Subscriptions
+
+subscription_date[<plan name>]      The day the subscription was bought for the home (or mobile), this will be the renewal day.
+                                    automatically set to `day`.
+                                    Possible values 0-31, 1-31 are renewal days, 0 means the plan never expires.
+
+subscription[<plan name>]           The subscription itself that will be checked to see if Sveta can access the internet
+                                    Possible values:
+                                        Monthly subscriptions:
+                                            1: subscription is active
+                                            0: subscription is inactive, either never bought or expired.
+                                        
+                                        Metered plans:
+                                            Any integer number, which means the available minutes left within the plan.
+                                            This is how the old mobile minutes and internet time worked, but tracked in minutes,
+                                            not hours for the internet.
+
+Plan Names
+
+free:           A subscription that is freely available, libraries, friends and lovers apartment, etc. that has a computer.
+                The value of this plan is always 1 and the subscription_date is 0.
+
+mobile:         Mobile telephone (only internet or calls too?) and laptop if taken somewhere else. 
+                If at a location where subscription['free'] is used, she has to ask first to be able to use her own laptop
+                with the local internet, otherwise it will still use the mobile subscription - if there is none, it won''t work. 
+
+metered_mobile  Cheaper option for broke Svetas. When subscription['mobile'] = 0 check for this and if
+                `subscription['metered_mobile'] > 0` then use it.
+
+$home_name      This is a monthly subscription that can be used in a specific home owned/rented by Sveta.
+                This is tracking the internet subscription per home. So if Sveta owns several places, she has a separate
+                subscription for each of them.
+                For allowed values see `homes_properties`.
+
+monthly_calls   A monthly mobile subscription giving unlimited call minutes and text message
+
+metered_calls   A mobile plan that gives a set amount of minutes that can be used.
+
+}
+
+!! Used for metered calls/texts/internet.
+!! $ARGS[1] = subscription name, i.e., 'metered_mobile' for mobile net or 'metered_calls' for phone calls and text messages
+!! ARGS[2]  = the number of units purchased (minutes, calls, etc.) right now relevant for metered mobile internet 
+!! NOTE: Putting this on top so if we decide not to use it, it is easy to find and delete
+if $ARGS[0] = 'top_up_metered':
+    subscription[$ARGS[1]] += ARGS[2]
+    gs 'stat'
+end
+
+!! In case we decide that internet prices are different for different homes (mobile definitely should be)
+!! $ARGS[1] = The plan name - see on top, generally the name of a property or a mobile plan. 
+!!            See valid values in set_home.qsrc
+if $ARGS[0] = 'buy_subscription':
+    subscription[$ARGS[1]] = 1
+    subscription_date[$ARGS[1]] = day
+    gs 'stat'
+end
+
+!! Subscriptions last a month, check on an agree upon date - do we want fixed date or depending on when Sveta bought the subscription?
+if $ARGS[0] = 'subscription_expired':
+    subscription[$ARGS[1]] = 0
+    gs 'stat'
+end
+
+!! Transfer existing subscription from one home to another if Sveta is moving.
+if $ARGS[0] = 'transfer_subscription':
+    gs 'internet_mobile', 'check_allowed_location', $ARGS[1], $ARGS[2]
+    if allowed:
+        subscription[$ARGS[2]] = subscription[$ARGS[1]]
+        subscription_date[$ARGS[2]] = subscription_date[$ARGS[1]]
+        subscription[$ARGS[1]] = 0
+        subscription_date[$ARGS[1]] = 0
+    end
+end
+
+!! This is a separate "function" because the check is a bit long, and can change if we realise it isn't the best way to do it.
+!! Spoiler alert: It is not, I'm pretty sure.  
+if $ARGS[0] = 'check_allowed_location':
+    gs 'homes_properties', 'get_propery_attr', $ARGS[1]
+    $property1 = $property
+    gs 'homes_properties', 'get_propery_attr', $ARGS[1]
+    $property2 = $property
+    allowed = $ARGS[1] ! 'parents_home' and $ARGS[1] ! 'parents_home' and $property1 ! 'none' and $property2 ! 'none' and $property1['type'] ! 'temporary_residence' and $property2['type'] ! 'temporary_residence'
+    
+    killvar 'property'
+    killvar '$property'
+    killvar '$property1'
+    killvar '$property2'
+end
+
+--- internet_mobile ---------------------------------
