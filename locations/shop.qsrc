@@ -266,7 +266,7 @@ if $ARGS[0] = 'dog_items':
 	
 	act 'Leave': gt 'shop', 'start'
 	
-	if home['current'] ! home['parents_home']:
+	if $home['current'] ! 'parents_home':
 		act 'Buy dog food':
 			*clr & cla
 			minut += 1
@@ -596,67 +596,129 @@ if $shoplocation = 'megafon':
 	'<center><b><font color = maroon>MegaFon shop</font></B></center>'
 	'<center><img src="images/system/phone/megafon2.jpg" ></center>'
 
-	*pl '<center><table align="center">'
-
-	:loopcard
-
-	if i = 0:
-		n = 5
-		price = 60
-		$buy_link = '<a' + iif(money >= 60, ' href="exec: gs ''$buy_item'', <<n>>, ''hours of internet access'', <<price>>, ''internet'', ''shop''">buy ','>buy ') +'</a>'
-	elseif i = 1:
-		n = 10
-		price = 115
-		$buy_link = '<a' + iif(money >= 115, ' href="exec: gs ''$buy_item'', <<n>>, ''hours of internet access'', <<price>>, ''internet'', ''shop''">buy ','>buy ') +'</a>'
-	elseif i = 2:
-		n = 20
-		price = 220
-		$buy_link = '<a' + iif(money >= 220, ' href="exec: gs ''$buy_item'', <<n>>, ''hours of internet access'', <<price>>, ''internet'', ''shop''">buy ','>buy ') +'</a>'
-	elseif i = 3:
-		n = 50
-		price = 520
-		$buy_link = '<a' + iif(money >= 520, ' href="exec: gs ''$buy_item'', <<n>>, ''hours of internet access'', <<price>>, ''internet'', ''shop''">buy ','>buy ') +'</a>'
+	*pl '<center><table style="align: center;">'
+	'<tr><td align="center"><b>Home Internet Subscription</b></td></tr>'
+	price = 900
+	if $home['current'] = 'parents_home':
+		'<tr><td> </td></tr>'
+		'<tr><td align="center">Your parents are paying for the internet home, and you can''t take out a second internet subscriptions for the same address</td></tr>'
+		'<tr><td> </td></tr>'
+	elseif home['internet_enabled'] = 0:
+		'<tr><td> </td></tr>'
+		'<tr><td align="center">You can''t buy an internet subscription for <<$home[''display_name'']>></td></tr>'
+		'<tr><td> </td></tr>'
+	elseif subscription[$home['current']] = 1:
+		'<tr><td> </td></tr>'
+		'<tr><td align="center">You have an active internet subscription at <<$home[''display_name'']>> that will renew next month on day <<subscription_date[$home[''current'']]>> for <<price>> <b>₽</b></td></tr>'
+		'<tr><td> </td></tr>'
+	else
+		if money >= price: '<tr><td align="left"><a href="exec: gs ''internet_mobile'', ''buy_subscription'', ''<<$home[''current'']>>'' & minut += 30 & money -= <<price>> & gt ''shop'' ">Monthly internet subscription for <<price>> <b>₽</b> Automatically renews every month - Pay with cash</a></td></tr>'
+		if karta >= price: '<tr><td align="left"><a href="exec: gs ''internet_mobile'', ''buy_subscription'', ''<<$home[''current'']>>'' & minut += 30 & karta -= <<price>> & gt ''shop'' ">Monthly internet subscription for <<price>> <b>₽</b> Automatically renews every month - Pay with cash</a></td></tr>'
+		if money < price and karta < price: '<tr><td align="left">Monthly mobile internet subscription for <<price>> <b>₽</b> Automatically renews every month</td></tr>'
+		if money < price and karta < price: '<tr><td align="left">Monthly internet subscription for <<price>> <b>₽</b> Automatically renews every month</td></tr>'
+		'<tr><td> </td></tr>'
+	end
+	'<tr><td> </td></tr>'
+	'<tr><td align="center"><b>Mobile Internet Subscription</b></td></tr>'
+	'<tr><td> </td></tr>'
+	price = 900
+	if subscription['mobile'] = 1:
+		'<tr><td> </td></tr>'
+		'<tr><td align="center">You have an active mobile internet subscription that will renew next month on day <<subscription_date[''mobile'']>> for <<price>><b>₽</b></td></tr>'
+		'<tr><td> </td></tr>'
+	else 
+		if subscription['metered_mobile'] > 0:
+			!! Every 12 minutes gives back 1 ₽  
+			discount = subscription['metered_mobile'] / 12 
+			'<tr><td align="center">You still a have <b><<subscription[''metered_mobile'']>> ₽</b> balance for your metered mobile internet which gives you a <<discount>> <b>₽</b> discount</td></tr>'
+			'<tr><td> </td></tr>'
+		end
+		if money >= (price-discount): '<tr><td align="left"><a href="exec: gs ''internet_mobile'', ''buy_subscription'', ''mobile'' & minut += 30 & money -= <<price-discount>> & gt ''shop'' ">Monthly mobile internet subscription for'+iif(discount > 0, ' <s><<price>></s><<price-discount>>', ' <<price>>')+' <b>₽</b> Automatically renews every month - Pay with cash</a></td></tr>'
+		if karta >= (price-discount): '<tr><td align="left"><a href="exec: gs ''internet_mobile'', ''buy_subscription'', ''mobile'' & minut += 30 & karta -= <<price-discount>> & gt ''shop'' ">Monthly mobile internet subscription for'+iif(discount > 0, ' <s><<price>></s><<price-discount>>', ' <<price>>')+' <b>₽</b> Automatically renews every month - Pay with cash</a></td></tr>'
+		if money < (price-discount) and karta < (price-discount): '<tr><td align="left">Monthly mobile internet subscription for'+iif(discount > 0, ' <s><<price>></s><<price-discount>>', ' <<price>>')+' <b>₽</b> Automatically renews every month</td></tr>'
+		'<tr><td> </td></tr>'			
 	end
 
-	i += 1
-
-	'<tr><td align="center"><<n>> hour internet card </td><td align="right">(you have <<internet>> hours of internet access) </td><td align="right"><<$buy_link>> </td><td align="left">for <<price>> <b>₽</b></td></tr>'
-
-	if i < 4:
-		jump 'loopcard'
+	'<tr><td> </td></tr>'
+	'<tr><td align="center"><b>Metered Internet</b></td></tr>'
+	'<tr><td></td></tr>'
+	if  subscription['mobile'] = 1:
+		'<tr><td align="center">You have an active mobile internet subscription for unlimited use, you can''t buy extra minutes </td></tr>'
+		'<tr><td> </td></tr>'
+		'tr><td align="left"><b>300 minutes</b> (5 hours) of mobile internet for 60 <b>₽</b></td></tr>'
+		'<tr><td align="left"><b>600 minutes</b> (10 hours) of mobile internet for 115 <b>₽</b></td></tr>'
+		'<tr><td align="left"><b>1200 minutes</b> (20 hours) of mobile internet for 220 <b>₽</b></td></tr>'
+		'<tr><td align="left"><b>3000 minutes</b> (50 hours) of mobile internet for 520 <b>₽</b></td></tr>'
+	else
+		if money >= 60:  '<tr><td align="left"><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_mobile'', 300 & money -= 60 & minut += 10 & gt ''shop'' "><b>300 minutes</b> (5 hours) of mobile internet for 60 <b>₽</b> - Pay with cash</a></td></tr>'
+		if karta >= 60:  '<tr><td align="left"><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_mobile'', 300 & karta -= 60 & minut += 10 & gt ''shop'' "><b>300 minutes</b> (5 hours) of mobile internet for 60 <b>₽</b> - Pay with card</a></td></tr>'
+		if money >= 115: '<tr><td align="left"><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_mobile'', 600 & money -= 115 & minut += 10 & gt ''shop'' "><b>600 minutes</b> (10 hours) of mobile internet for 115 <b>₽</b> - Pay with cash</a></td></tr>'
+		if karta >= 115: '<tr><td align="left"><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_mobile'', 600 & karta -= 115 & minut += 10 & gt ''shop'' "><b>600 minutes</b> (10 hours) of mobile internet for 115 <b>₽</b> - Pay with card</a></td></tr>'
+		if money >= 220: '<tr><td align="left"><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_mobile'', 1200 & money -= 220 & minut += 10 & gt ''shop'' "><b>1200 minutes</b> (20 hours) of mobile internet for 220 <b>₽</b> - Pay with cash</a></td></tr>'
+		if karta >= 220: '<tr><td align="left"><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_mobile'', 1200 & karta -= 220 & minut += 10 & gt ''shop'' "><b>1200 minutes</b> (20 hours) of mobile internet for 220 <b>₽</b> - Pay with card</a></td></tr>'
+		if money >= 520: '<tr><td align="left"><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_mobile'', 3000 & money -= 520 & minut += 10 & gt ''shop'' "><b>3000 minutes</b> (50 hours) of mobile internet for 520 <b>₽</b> - Pay with cash</a></td></tr>'
+		if karta >= 520: '<tr><td align="left"><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_mobile'', 3000 & karta -= 520 & minut += 10 & gt ''shop'' "><b>3000 minutes</b> (50 hours) of mobile internet for 520 <b>₽</b> - Pay with card</a></td></tr>'
+		if money < 60 and karta < 60:  '<tr><td align="left"><b>300 minutes</b> (5 hours) of mobile internet for 60 <b>₽</b></td></tr>'
+		if money < 115 and karta < 115: '<tr><td align="left"><b>600 minutes</b> (10 hours) of mobile internet for 115 <b>₽</b></td></tr>'
+		if money < 220 and karta < 220: '<tr><td align="left"><b>1200 minutes</b> (20 hours) of mobile internet for 220 <b>₽</b></td></tr>'
+		if money < 520 and karta < 220: '<tr><td align="left"><b>3000 minutes</b> (50 hours) of mobile internet for 520 <b>₽</b></td></tr>'
+		'<tr><td> </td></tr>'
+		'<tr><td align="center">You have <<subscription[''metered_mobile'']>> minutes for mobile internet use</td></tr>'
 	end
+	killvar 'discount'
 
+	'<tr><td> </td></tr>' 
+	'<tr><td align="center"><b>Mobile Calls and Texts</b></td></tr>'
+	'<tr><td> </td></tr>'
+	price = 800
+	if subscription['monthly_calls'] = 1:
+		'<tr><td align="center">You have an active mobile subscription that will renew next month on day <<subscription_date[''monthly_calls'']>> for <<price>> <b>₽</b></td></tr>'
+		'<tr><td> </td></tr>'
+	else
+		if subscription['metered_calls'] > 0:			
+			discount = subscription['metered_calls'] / 2 
+			'<tr><td align="center">You have <b><<subscription[''metered_calls'']>> ₽</b> for mobile calls and text messages which gives you a <<discount>> <b>₽</b> discount</td></tr>'
+			'<tr><td> </td></tr>'
+		end
+		if money >= (price-discount): '<tr><td align="left"><a href="exec: gs ''internet_mobile'', ''buy_subscription'', ''monthly_calls'' & minut += 30 & money -= <<price>> & gt ''shop'' ">Monthly mobile subscription that allows you to make calls and send text messages for'+iif(discount > 0, ' <s><<price>></s><<price-discount>>', ' <<price>>')+' <b>₽</b> Automatically renews every month - Pay with cash</a></td></tr>'
+		if karta >= (price-discount): '<tr><td align="left"><a href="exec: gs ''internet_mobile'', ''buy_subscription'', ''monthly_calls'' & minut += 30 & karta -= <<price>> & gt ''shop'' ">Monthly mobile subscription that allows you to make calls and send text messages for'+iif(discount > 0, ' <s><<price>></s><<price-discount>>', ' <<price>>')+' <b>₽</b> Automatically renews every month - Pay with card</a></td></tr>'
+		if money < (price-discount) and karta < (price-discount): '<tr><td align="left">Monthly mobile subscription with unlimited minutes text messages for'+iif(discount > 0, ' <s><<price>></s><<price-discount>>', ' <<price>>')+' <b>₽</b> Automatically renews every month</td></tr>'
+		'<tr><td> </td></tr>'
+	end
+	killvar 'discount'
+
+	'<tr><td> </td></tr>'
+ 	'<tr><td align="center"><b>Metered Calls and Texts</b></td></tr>'
+	if subscription['monthly_calls'] = 1:
+		'<tr><td align="center">You have an active mobile subscription with unlimited minutes and texts, you can''t buy extra minutes</td></tr>'
+		'<tr><td> </td></tr>'
+		'<tr><td align="left">60 minutes call pack for 60 <b>₽</b></td></tr>'
+		'<tr><td align="left">120 minutes call pack for 115<b>₽</b></td></tr>'
+		'<tr><td align="left">180 minutes call pack for 170<b>₽</b></td></tr>'
+		'<tr><td align="left">240 minutes call pack for 225<b>₽</b></td></tr>'
+	else
+		'<tr><td>1<b>₽</b> gives your 1 minute of calltime or 1 text message</td></tr>'
+		'<tr><td> </td></tr>'
+		if money >= 60:  '<tr><td align="left"><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_calls'', 60 & money -= 60 & minut += 10 & gt ''shop'' ">60<b>₽</b> call pack for your mobile phone that gives you 60 minutes of calltime - Pay with cash</a></td></tr>'
+		if karta >= 60:  '<tr><td align="left"><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_calls'', 60 & karta -= 60 & minut += 10 & gt ''shop'' ">60<b>₽</b> call pack for your mobile phone that gives you 60 minutes of calltime - Pay with card</a></td></tr>'
+		if money >= 115: '<tr><td align="left"><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_calls'', 120 & money -= 115 & minut += 10& gt ''shop'' ">115<b>₽</b> call pack for your mobile phone that gives you 120 minutes of calltime - Pay with cash</a></td></tr>'
+		if karta >= 115: '<tr><td align="left"><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_calls'', 120 & karta -= 115 & minut += 10& gt ''shop'' ">115<b>₽</b> call pack for your mobile phone that gives you 120 minutes of calltime - Pay with card</a></td></tr>'
+		if money >= 170: '<tr><td align="left"><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_calls'', 180 & money -= 170 & minut += 10& gt ''shop'' ">170<b>₽</b> call pack for your mobile phone that gives you 180 minutes of calltime - Pay with cash</a></td></tr>'
+		if karta >= 170: '<tr><td align="left"><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_calls'', 180 & karta -= 170 & minut += 10& gt ''shop'' ">170<b>₽</b> call pack for your mobile phone that gives you 180 minutes of calltime - Pay with card</a></td></tr>'
+		if money >= 225: '<tr><td align="left"><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_calls'', 240 & money -= 225 & minut += 10& gt ''shop'' ">225<b>₽</b> call pack for your mobile phone that gives you 240 minutes of calltime - Pay with cash</a></td></tr>'
+		if karta >= 225: '<tr><td align="left"><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_calls'', 240 & karta -= 225 & minut += 10& gt ''shop'' ">224<b>₽</b> call pack for your mobile phone that gives you 240 minutes of calltime - Pay with card</a></td></tr>'
+		if money < 60 and karta < 60:   '<tr><td align="left">60 minutes call pack for 60 <b>₽</b></td></tr>'
+		if money < 115 and karta < 115: '<tr><td align="left">120 minutes call pack for 115<b>₽</b></td></tr>'
+		if money < 170 and karta < 170: '<tr><td align="left">180 minutes call pack for 170<b>₽</b></td></tr>'
+		if money < 225 and karta < 225: '<tr><td align="left">240 minutes call pack for 225<b>₽</b></td></tr>'
+		'<tr><td> </td></tr>'
+		'<tr><td align="center">You have <b><<subscription[''metered_calls'']>>₽</b> for mobile calls and text messages</td></tr>' 
+	end
 	'</table></center>'
 
-
 	act 'Return to the supermarket':gt'shop','start'
-
-	if money > 0:
-		act 'Put credit in your phone':
-			cla
-			set minut = minut + 5
-			obmennik = input ("How much <b>₽</b> do you want to add?")
-
-			if obmennik <= 0:
-				'<center><br><b>Invalid amount.</b></center>'
-				act 'Leave':gt'shop','start'
-			else
-				if money < obmennik:
-					'<center><br>You do not have <b><<obmennik>></b> <b>₽</b>.</center>'
-					act 'Leave':gt'shop','start'
-				end
-
-				if money >= obmennik:
-					set balans = balans + obmennik
-					set money = money - obmennik
-					clr
-					gs'stat'
-					'<center><br>You add <b><<obmennik>></b> <b>₽</b> worth of credit to your phone account.</center>'
-					act 'Leave':gt'shop','start'
-				end
-			end
-		end
-	end
+	killvar 'price'
+	killvar 'discount'
 end
 
 if $shoplocation = 'Anya':
