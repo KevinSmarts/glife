@@ -2,20 +2,34 @@
 
 !! {  Plans and Subscriptions
 
-subscription_date[<plan name>]      The day the subscription was bought for the home (or mobile), this will be the renewal day.
-                                    automatically set to `day`.
-                                    Possible values 0-31, 1-31 are renewal days, 0 means the plan never expires.
-
 subscription[<plan name>]           The subscription itself that will be checked to see if Sveta can access the internet
                                     Possible values:
                                         Monthly subscriptions:
-                                            1: subscription is active
                                             0: subscription is inactive, either never bought or expired.
-                                        
+                                            1: subscription is active
+                                                                                    
                                         Metered plans:
                                             Any integer number, which means the available minutes left within the plan.
                                             This is how the old mobile minutes and internet time worked, but tracked in minutes,
                                             not hours for the internet.
+
+subscription[<plan name>-date]      The day the subscription was bought for the home (or mobile), this will be the renewal day.
+                                    automatically set to `day`.
+                                    Possible values 0-31, 1-31 are renewal days, 0 means the plan never expires.
+
+
+subscription[<plan name>-price]     The monthly fee of the subscription.
+
+subscription[<plan name>-discount]  The discount on the plan - relevant if the original discount was greater than the monthly
+                                    fee. If the value is higher than 0, payments come from this first until the value gets to
+                                    0.
+
+subscription[<plan nam>-type]       The type of the subscription. 
+                                    Possible values:
+                                        1: Monthly subscription
+                                        2: Metered plan
+                                        
+                                        
 
 Plan Names
 
@@ -46,15 +60,21 @@ metered_calls   A mobile plan that gives a set amount of minutes that can be use
 !! NOTE: Putting this on top so if we decide not to use it, it is easy to find and delete
 if $ARGS[0] = 'top_up_metered':
     subscription[$ARGS[1]] += ARGS[2]
+    if subscription[$ARGS[1]+'-type'] = 0:  subscription[$ARGS[1]+'-type'] = 2
     gs 'stat'
 end
 
 !! In case we decide that internet prices are different for different homes (mobile definitely should be)
 !! $ARGS[1] = The plan name - see on top, generally the name of a property or a mobile plan. 
+!! ARGS[2]  = Subscription fee - the price to be paid every month
+!! ARGS[3]  = The remaining amount from the discount when it was more than the monthly fee
 !!            See valid values in set_home.qsrc
 if $ARGS[0] = 'buy_subscription':
     subscription[$ARGS[1]] = 1
-    subscription_date[$ARGS[1]] = day
+    subscription[$ARGS[1]+'-date'] = day
+    subscription[$ARGS[1]+'-price'] = ARGS[2] 
+    subscription[$ARGS[1]+'-discount'] = ARGS[3] 
+    subscription[$ARGS[1]+'-type'] = 1
     gs 'stat'
 end
 
@@ -66,12 +86,17 @@ end
 
 !! Transfer existing subscription from one home to another if Sveta is moving.
 if $ARGS[0] = 'transfer_subscription':
-    gs 'internet_mobile', 'check_allowed_location', $ARGS[1], $ARGS[2]
+    allowed = func('internet_mobile', 'check_allowed_location', $ARGS[1])
+    allowed = allowed and func('internet_mobile', 'check_allowed_location', $ARGS[2])
     if allowed:
         subscription[$ARGS[2]] = subscription[$ARGS[1]]
-        subscription_date[$ARGS[2]] = subscription_date[$ARGS[1]]
-        subscription[$ARGS[1]] = 0
-        subscription_date[$ARGS[1]] = 0
+        subscription_date[$ARGS[2]+'-date'] = subscription[$ARGS[1]+'-date']
+        subscription[$ARGS[2]+'-price'] = subscription[$ARGS[1]+'-price']
+        subscription[$ARGS[2]+'-discount'] = subscription[$ARGS[1]+'-discount']
+        !! This one is always 1 because only type 1 subscriptions can be transferred, but making it "future proof"
+        subscription[$ARGS[2]+'-type'] = subscription[$ARGS[1]+'-type']
+        killvar 'subscription', '<<$ARGS[1]>>-price'
+        killvar 'allowed'
     end
 end
 
@@ -79,15 +104,8 @@ end
 !! Spoiler alert: It is not, I'm pretty sure.  
 if $ARGS[0] = 'check_allowed_location':
     gs 'homes_properties', 'get_propery_attr', $ARGS[1]
-    $property1 = $property
-    gs 'homes_properties', 'get_propery_attr', $ARGS[1]
-    $property2 = $property
-    allowed = $ARGS[1] ! 'parents_home' and $ARGS[1] ! 'parents_home' and $property1 ! 'none' and $property2 ! 'none' and $property1['type'] ! 'temporary_residence' and $property2['type'] ! 'temporary_residence'
-    
+    result = $property ! 'none' and $property['internet_enabled'] 
     killvar 'property'
-    killvar '$property'
-    killvar '$property1'
-    killvar '$property2'
 end
 
 --- internet_mobile ---------------------------------
