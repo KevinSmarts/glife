@@ -40,6 +40,7 @@ if $ARGS[0] = 'main':
 	PShoHeels = ShoHeels
 	PShoCut = ShoCut
 	PShoStyle = ShoStyle
+	default_sport_number[1] = 0
 	menu_off = 1
 	gs 'stat'
 	if CloBra = 1: gs 'bras', 'remove'
@@ -155,6 +156,7 @@ if $ARGS[0] = 'main':
 	*nl
 	'<center><font color="grey">Save/load outfits with "Managed saved clothing sets".</font></center>'
 	'<TD></center></TD></table></center>'
+	
 	act 'Close wardrobe': gt $loc, $loc_arg
 
 	act 'Strip all clothing':
@@ -267,7 +269,15 @@ $default_clothing_line = {
 	$RESULT +='<TD><a href="exec:gs ''wardrobe'', ''default_entry_wear'', <<default_entry>>"><img src="images/system/icons/clothing/wear.png"></a></TD>'
 	$RESULT +='<TD><a href="exec:gs ''wardrobe'', ''default_entry_set'', <<default_entry>>"><img src="images/system/icons/clothing/overwrite.png"></a></TD>'
 	$RESULT +='<TD><a href="exec:gs ''wardrobe'', ''default_entry_rename'', <<default_entry>>"><img src="images/system/icons/clothing/rename.png"></a></TD>'
-	$RESULT +='<TD><a href="exec:gs ''wardrobe'', ''default_entry_delete'', <<default_entry>>"><img src="images/system/icons/clothing/delete_on.png"></a></TD><TR>'
+	$RESULT +='<TD><a href="exec:gs ''wardrobe'', ''default_entry_delete'', <<default_entry>>"><img src="images/system/icons/clothing/delete_on.png"></a></TD>'
+	if $shoeworntype = 'danilovich' and $clothingworntype = 'danilovich':
+		if default_sport_number ! default_entry:
+			$RESULT += '<TD><a href="exec:gs ''wardrobe'', ''default_sport_set'', <<default_entry>>"><img src="images/system/icons/clothing/sport_off.png"></a></TD><TR>'
+		else
+			$RESULT += '<TD><img src="images/system/icons/clothing/sport.png"></TD><TR>'
+	else
+		$RESULT += '<TD></TD><TR>'
+	end
 }
 
 
@@ -302,7 +312,7 @@ if $ARGS[0] = 'default_template':
 	'<center><<$wardrobeSetDefault>></center>'
     killvar '$wardrobeSetDefault'
 
-    '<center><table><TH>Name</TH><TH>Outfit</TH><TH>Bra/Bodysuit</TH><TH>Panties</TH><TH>Shoes</TH><TH>Coat</TH><TH>Purse</TH><TH></TH><TH></TH><TH></TH><TH></TH><TR>'
+    '<center><table><TH>Name</TH><TH>Outfit</TH><TH>Bra/Bodysuit</TH><TH>Panties</TH><TH>Shoes</TH><TH>Coat</TH><TH>Purse</TH><TH></TH><TH></TH><TH></TH><TH></TH><TH></TH><TR>'
 
 	temp = default_entry
 	:loopdefault_entry_set
@@ -788,8 +798,8 @@ if $ARGS[0] = 'default_entry_delete':
 	$defclothingtype[i] = ''
 	defclothingnumber[i] = ''
 	defunderwear[i] = ''
-	$defbodysuittype = ''
-	defbodysuitnumber = ''
+	$defbodysuittype[i] = ''
+	defbodysuitnumber[i] = ''
 	$defbratype[i] = ''
 	defbranumber[i] = ''
 	$defpantytype[i] = ''
@@ -801,6 +811,12 @@ if $ARGS[0] = 'default_entry_delete':
 	$defcoattype[i] = ''
 	defcoatnumber[i] = ''
 	$def_clothing_name[i] = ''
+	gt 'wardrobe', $wloc
+end
+
+if $ARGS[0] = 'default_sport_set':
+	gs 'stat'
+	default_sport_number = ARGS[1]
 	gt 'wardrobe', $wloc
 end
 
@@ -845,6 +861,51 @@ if $ARGS[0] = 'school_outfit_end':
 	end
 	gs 'clothing', 'wear', $schbrand, schtype
 end
+
+if $ARGS[0] = 'default_sport_options':
+	if default_sport_number = 0:
+		'We have no default sports clothing set, you can set this in your wardrobe.'
+	else
+		if default_sport_number[1] = 0:
+			act'Put on your sports clothes':
+				$lastwornclothingtype['sport'] = $clothingworntype
+				lastwornclothingnumber['sport'] = clothingwornnumber
+				lastwornunderwear['sport'] = underwear['type']
+				if defunderwear[default_sport_number] = 2:
+					$defbodysuittype['sport'] = $bodysuitworntype
+					defbodysuitnumber['sport'] = bodysuitwornnumber
+				else
+					$lastwornpantytype['sport'] = $pantyworntype
+					lastwornpantynumber['sport'] = pantywornnumber
+					$lastwornbratype['sport'] = $braworntype
+					lastwornbranumber['sport'] = brawornnumber
+				end
+				$shoelastworntype['sport'] = $shoeworntype
+				shoelastwornnumber['sport'] = shoewornnumber
+				$lastwornpursetype['sport'] = $currentpursetype
+				lastworndefpursenumber['sport'] = currentpursenumber
+				$lastworncoattype['sport'] = $coatworntype
+				lastworndefcoatnumber['sport'] = coatwornnumber
+				gs 'wardrobe', 'default_entry_wear', default_sport_number
+			end
+		else
+			act'Put your regular clothes back on':
+				gs 'clothing', 'wear', $lastwornclothingtype['sport'], lastwornclothingnumber['sport']
+
+				if lastwornunderwear['sport'] = 2:
+					gs 'underwear_bodysuits', 'wear', $defbodysuittype['sport'], defbodysuitnumber['sport']
+				else
+					gs 'panties', 'wear', $lastwornpantytype['sport'], lastwornpantynumber['sport']
+					gs 'bras', 'wear', $lastwornbratype['sport'], lastwornbranumber['sport']
+				end
+				gs 'shoes', 'wear', $shoelastworntype['sport'], shoelastwornnumber['sport']
+				gs 'purses', 'wear', $shoelastworntype['sport'], shoelastwornnumber['sport']
+				gs 'coats', 'wear', $shoelastworntype['sport'], shoelastwornnumber['sport']
+			end
+		end
+	end
+end
+
 
 --- wardrobe ---------------------------------
 
