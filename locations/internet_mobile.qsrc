@@ -54,6 +54,8 @@ metered_calls   A mobile plan that gives a set amount of minutes that can be use
 
 }
 
+if subscription['free'] = 0: subscription['free'] = 1
+
 !! Used for metered calls/texts/internet.
 !! $ARGS[1] = subscription name, i.e., 'metered_mobile' for mobile net or 'metered_calls' for phone calls and text messages
 !! ARGS[2]  = the number of units purchased (minutes, calls, etc.) right now relevant for metered mobile internet 
@@ -74,7 +76,7 @@ if $ARGS[0] = 'buy_subscription':
     subscription[$ARGS[1]+'-date'] = day
     subscription[$ARGS[1]+'-price'] = ARGS[2] 
     subscription[$ARGS[1]+'-discount'] = ARGS[3] 
-    subscription[$ARGS[1]+'-type'] = 1
+    if subscription[$ARGS[1]+'-type'] = 0: subscription[$ARGS[1]+'-type'] = 1
     gs 'stat'
 end
 
@@ -95,7 +97,7 @@ if $ARGS[0] = 'transfer_subscription':
         subscription[$ARGS[2]+'-discount'] = subscription[$ARGS[1]+'-discount']
         !! This one is always 1 because only type 1 subscriptions can be transferred, but making it "future proof"
         subscription[$ARGS[2]+'-type'] = subscription[$ARGS[1]+'-type']
-        killvar 'subscription', '<<$ARGS[1]>>-price'
+        subscription[$ARGS[0]] = 0
         killvar 'allowed'
     end
 end
@@ -106,6 +108,28 @@ if $ARGS[0] = 'check_allowed_location':
     gs 'homes_properties', 'get_propery_attr', $ARGS[1]
     result = $property ! 'none' and $property['internet_enabled'] 
     killvar 'property'
+end
+
+!! $ARGS[1] - this is expected only if the location allows the use of subscription['free']
+if $ARGS[0] = 'set_access':
+    if $ARGS[1] = 'free':
+        $access['subscription'] = 'free'
+    elseif subscription[$home_name] = 1:
+        $access['subscription'] = $home_name
+    elseif $subscription['mobile'] = 1:
+        $access['subscription'] = 'mobile'
+    elseif $subscription['metered_mobile'] = 1:
+        $access['subscription'] = 'metered_mobile'
+    end
+    
+    if subscription[$access['subscription']+'-type'] = 2: access['metered'] = 1
+    if $ARGS[2] = 'noporn': access['noporn'] = 1
+    if $ARGS[2] = 'nocamshow': access['nocamshow'] = 1
+    if $ARGS[3] = 'noporn': access['noporn'] = 1
+    if $ARGS[3] = 'nocamshow': access['nocamshow'] = 1
+    
+    if access['noporn'] = 1: $access['noporn-text'] = 'You can''t search for porn on this computer'
+    if access['nocamshow'] = 1: $access['nocamshow-text'] = 'You can''t do a cam show in this place'
 end
 
 --- internet_mobile ---------------------------------
