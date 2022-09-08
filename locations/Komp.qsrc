@@ -2,7 +2,9 @@
 !2021/04/26
 if $ARGS[0] = 'start':
 	*clr & cla
-	elektro += 5
+	killvar '$account_used'
+	!! This is stupid, if Sveta uses the library computer or Artem's computer, her electricity bill won't go up
+	!!elektro += 5
 	gs 'stat'
 	'<center><img <<$set_imgh>> src="images/pc/items/accessories/computer/komp.jpg"></center>'
 	'Your computer boots up, and soon you''re looking at your operating system''s main screen.'
@@ -21,18 +23,33 @@ if $ARGS[0] = 'start':
 
 	!!act 'SunReview of the Dead':gt 'KGZstart'
 
-	if internet_free = 2:
-		'There is no internet access here.'
-	else
-		if internet_free = 1:
-			'You have free internet access here.'
+	!! If the access uses one of the home connections (i.e. Sveta is at home, or in a location that she owns)
+	!! and the 'internet_enabled' value is 1, the Sveta is paying utlities.
+	!! Now electricity can go up - but by 5???
+	gs 'homes_properties', 'get_property_attr', $access['subscription']
+	if property['internet_enabled'] = 1: elektro += 5
+	killvar 'property'
+
+	!! Only because subscription[$subs] is easier to type than subscription[$access[''subscription']]
+	$subs = $access['subscription']
+
+	!! Any location that calls 'komp', 'start' has to set up $access.
+	!! $access includes the subscription/conection used, and limitations like 'noporn' and 'nocamshow'
+	!! arrived here from mobile net.
+	!! Sveta can access the internet if > 0
+	elseif subscription[$subs] > 0:
+		if access['metered'] = 0: 
+			act 'Browse the internet':gt 'komp', 'brows'
 		else
-			'You have <<internet>> hours of prepaid internet access remaining.'
+			act 'Browse the internet - You have <<subscription[$subs]>> minutes of access left':gt 'komp', 'brows'
 		end
-		if internet > 0 or internet_free = 1: act 'Browse the internet':gt 'komp', 'brows'
+	else
+		'You don''t have internet access here, and you don''t even have mobile internet.'
 	end
 
 	act 'Shut your computer down': 
+		killvar '$subs'
+		killvar 'access'
 		gt 'komp', 'fin'
 	end
 end
@@ -46,11 +63,21 @@ if $ARGS[0] = 'brows':
 		gt 'komp','start'
 	end
 	
-	if internet <= 0 and internet_free = 0:
+	!! TODO: Update
+	!! check if the original account still valid?
+	!! if account_used > 0
+	!! There are 3 ways this can happen during the use of the inernet:
+	!!  1. Sveta is using a minute based internet and ran out of minutes.
+	!!  2. Sveta is using a subscription, she didn't have enough money to pay the monthly fee, grace period expired and 
+	!!		the interned service has been cut off
+	!!  3. Sveta is using a free internet and something went really, really wrong that set subscription['free'] to 0.
+	if subscription[$subs] < 1:
 		'<center><b>Browser</b></center>'
 		'<center><img <<$set_imgh>> src="images/pc/items/accessories/computer/eror.jpg"></center>'
-		'You have no prepaid internet access remaining. You need to buy more, before you can go online again.'
-		if camwhore = 1 and $loc ! 'shulga_room' and $loc ! 'anushapt' and $loc ! 'artemhome' and $loc ! 'albinahome' and $loc ! 'pav_library':
+		'You have no internet access, '+iif(access['metered'], ' you have to buy more minutes.', ' maybe you forgot to pay the internet bill?')
+		
+		!!if camwhore = 1 and $loc ! 'shulga_room' and $loc ! 'anushapt' and $loc ! 'artemhome' and $loc ! 'albinahome' and $loc ! 'pav_library':
+		if  camwhore = 1 and access['nocamshow'] = 0: 
 			'Since MyFreeCams will cover the cost, you can still log on to do a cam show.'
 			act 'Go to MyFreeCams.org':gt 'komp', 'mfc'
 		end
@@ -62,7 +89,9 @@ if $ARGS[0] = 'brows':
 
 		if home_owned[1] = 2 and husband = 0:act 'Rent your apartment out':gt 'komp', 'sale'
 
-		if $loc ! 'anushapt' and $loc ! 'albinahome' and $loc ! 'pav_library': act 'Search for porn (1:00)':gt 'komp', 'porno'
+		!!if $loc ! 'anushapt' and $loc ! 'albinahome' and $loc ! 'pav_library': act 'Search for porn (0:10)':gt 'komp', 'porno'
+		if access['noporn'] = 0: gt 'komp', 'porno'
+
 		act 'Browse a dating website (1:00)':gt 'komp', 'znak'
 
 		if hour < 20 and hour > 7:
@@ -80,7 +109,8 @@ if $ARGS[0] = 'brows':
 		if bankAccount > 0: act 'Visit your bank, maybe to purchase more online time': gt 'komp', 'bank'
 		if shantfoto > 0:act 'Find the girl you took photos of in the park on "Assbook"':gt 'komp', 'foto'
 		if gor_dorm = 7:act 'Read letter from Eugene':gt 'etoexhib', 'pos91'
-		if camwhore = 1 and $loc ! 'shulga_room' and $loc ! 'anushapt' and $loc ! 'artemhome' and $loc ! 'albinahome' and $loc ! 'pav_library':act 'Go to MyFreeCams.org':gt 'komp', 'mfc'
+		!!if camwhore = 1 and $loc ! 'shulga_room' and $loc ! 'anushapt' and $loc ! 'artemhome' and $loc ! 'albinahome' and $loc ! 'pav_library':act 'Go to MyFreeCams.org':gt 'komp', 'mfc'
+		if camhwore = 1 and access['nocamshow'] = 0: act 'Go to MyFreeCams.org': gt 'komp', 'mfc'
 		if (mid($start_type,1,2) = 'sg' and SchoolAtestat = 0) or func('uniutil', 'student', 'enrolled'):act 'Spend time studying':gt 'komp', 'study'
 		if sucpcinfo = 0 and succubxp > 0: act 'Research the strange feelings you''ve been having': gt 'succubus', 'kompresearch'
 	end
@@ -88,44 +118,50 @@ end
 
 if $ARGS[0] = 'sale':
 	*clr & cla	
-	minut += 60
-	elektro += 3
-	if internet_free = 0: internet -= 1
+	!! TODO: Update time and internet
+	
+	!! IMPORTANT: What happens if an activity takes more time than the minutes Sveta has? We just say "You tried, but could not finish"?
+	if access['metered'] and subscription[$subs] < 15:
+		'You check the website, but realise that <<subscription[$subs]>> minutes won''t be enough to fill out all the forms.'
+	else
+		minut += 30
+		elektro += 3
+		if access['metered']: subscription[$subs] -= minut
 
-	gs 'stat'
-	'<center><img <<$set_imgh>> src="images/pc/items/accessories/computer/komp.jpg"></center>'
-	'You go to a popular website where people can post advertisements for free. You could post an advertisement here.'
-	if obkvsdam >= 1 and home_owned[1] = 2: 'You placed an advertisement to rent out your apartment. You should probably check every once in a while to see if anyone responded.'
+		gs 'stat'
+		'<center><img <<$set_imgh>> src="images/pc/items/accessories/computer/komp.jpg"></center>'
+		'You go to a popular website where people can post advertisements for free. You could post an advertisement here.'
+		if obkvsdam >= 1 and home_owned[1] = 2: 'You placed an advertisement to rent out your apartment. You should probably check every once in a while to see if anyone responded.'
 
-	if obkvsdam = 0 and home_owned[1] = 2:
-		act 'Rent out your city residential apartment':obkvsdam = 1 & gt 'komp', 'sale'
-	elseif obkvsdam > 0:
-		act 'Check if you got any replies':
-			cla
-			if obkvsdam = 1:
-				'No one has responded to your offer to rent out your apartment just yet.'
-			elseif obkvsdam > 1:
-				if obkvsdam = 2:predsumm = 16000
-				if obkvsdam = 3:predsumm = 17000
-				if obkvsdam = 4:predsumm = 18000
-				if obkvsdam = 5:predsumm = 19000
-				'Someone wants to stay in your apartment for a month! They''re offering you <<predsumm>> <b>₽</b> in cash.'
+		if obkvsdam = 0 and home_owned[1] = 2:
+			act 'Rent out your city residential apartment':obkvsdam = 1 & gt 'komp', 'sale'
+		elseif obkvsdam > 0:
+			act 'Check if you got any replies':
+				cla
+				if obkvsdam = 1:
+					'No one has responded to your offer to rent out your apartment just yet.'
+				elseif obkvsdam > 1:
+					if obkvsdam = 2:predsumm = 16000
+					if obkvsdam = 3:predsumm = 17000
+					if obkvsdam = 4:predsumm = 18000
+					if obkvsdam = 5:predsumm = 19000
+					'Someone wants to stay in your apartment for a month! They''re offering you <<predsumm>> <b>₽</b> in cash.'
 
-				act 'Accept the offer':
-					sdaday = day
-					sdamonth = month + 1
-					if sdamonth > 12:sdamonth = 1
-					if sdaday > monthsEnd[sdamonth]:sdaday = monthsEnd[sdamonth]
-					home_owned[1] = 3
-					karta += predsumm
-					gt 'komp', 'start'
+					act 'Accept the offer':
+						sdaday = day
+						sdamonth = month + 1
+						if sdamonth > 12:sdamonth = 1
+						if sdaday > monthsEnd[sdamonth]:sdaday = monthsEnd[sdamonth]
+						home_owned[1] = 3
+						karta += predsumm
+						gt 'komp', 'start'
+					end
 				end
-			end
 
-			act 'Leave this website':gt 'komp', 'brows'
+				act 'Leave this website':gt 'komp', 'brows'
+			end
 		end
 	end
-
 	act 'Leave this website':gt 'komp', 'brows'
 end
 
@@ -133,20 +169,27 @@ if $ARGS[0] = 'porno':
 	*clr & cla
 	gs 'stat'
 
-	if internet <= 0 and internet_free = 0:
+	if subscription[$subs] < 1:
 		'<center><b>Browser</b></center>'
 		'<center><img <<$set_imgh>> src="images/pc/items/accessories/computer/eror.jpg"></center>'
-		'You have no prepaid internet access remaining. You need to buy more, before you can go online again.'
+		'You have no internet access, '+iif(access['metered'], ' you have to buy more minutes.', ' maybe you forgot to pay the internet bill?')
 
 		act '<B>Close the browser</B>':gt 'komp','start'
-	elseif locat['Anya_inroom'] = 1 and sisboytrio = 0 and $loc = 'bedrPar':
+	!! TODO: This should be set in the actual location where Sveta is using the computer.
+	!! Set access[''noporn''] to 1 and give the custom message for the reason in $access[''noporn-message''] 
+	!!elseif locat['Anya_inroom'] = 1 and sisboytrio = 0 and $loc = 'bedrPar':
+	elseif access['noporn'] = 1:
 		'<center><img <<$set_imgh>> src="images/pc/items/accessories/computer/komp.jpg"></center>'
-		'You shouldn''t watch porn with your sister in the room, she would notice for sure!'
+		'<<$access[''noporn-message'']>>'
+!!		'You shouldn''t watch porn with your sister in the room, she would notice for sure!'
 
 		act 'Leave this website':gt 'komp', 'brows'
-	elseif $loc = 'artemhome':
+! {	!! This can''t happen, there is a check earlier for this that won'lt allow Svet a to watch porn at Artem''s home.'
+	!!elseif $loc = 'artemhome':
+	But with the change to the previous elseif, this oen is covered too.
+	elseif access['noporn'] = 1:
 		'<center><img <<$set_imgh>> src="images/pc/items/accessories/computer/komp.jpg"></center>'
-		'You shouldn''t watch porn on Artem''s computer!'
+		'You shouldn''t watch porn on Artem''s computer!' }
 	else
 		'<center><img <<$set_imgh>> src="images/pc/items/accessories/computer/komp.jpg"></center>'
 		'You go to a porn site and browse for a few minutes, trying to find a hot video.'
@@ -174,37 +217,43 @@ end
 
 if $ARGS[0] = 'masturbate':
 	*clr & cla
-	if internet_free = 0: internet -= 1
-	elektro += 1
-	gs 'sweat', 'add', 10
+	
+	!! needs this because can arrive here from this code block and time can be gone
+	if subscription[$subs] < 1:
+		'You have no internet access, '+iif(access['metered'], ' you have to buy more minutes.', ' maybe you forgot to pay the internet bill?')
+	else
+		if access['metered']: subscription[$account_used] -= 15
+		elektro += 1
+		gs 'sweat', 'add', 10
 
-	if divanmastr = 0:
-		divanmastr = 1
-		stat['mast'] += 1
-		if pcs_inhib < 30:inhib_exp += rand(1,3)
-	end
+		if divanmastr = 0:
+			divanmastr = 1
+			stat['mast'] += 1
+			if pcs_inhib < 30:inhib_exp += rand(1,3)
+		end
 
-	gs 'stat'
-	'<center><img <<$set_imgh>> src="images/pc/items/accessories/computer/kompmas.jpg"></center>'
-	'You get comfortable in front of your computer and with one hand begin to fondle your breasts, while you click on a link to something really dirty.'
-	'You let go of the mouse and start rubbing your pussy, imagining you''re the woman in the video. The fantasy and your touching are getting you all hot and bothered.'
-
-	gs 'arousal', 'clit_finger', 15, 'masturbate'
-	gs 'stat'
-
-	if pcs_horny >= 100:
-		$orgasm_or = 'yes'
-		$orgasm_txt = 'Suddenly your muscles tighten and you cum powerfully, while you stifle your moans so your neighbours won''t find out. Afterwards, you have goosebumps all over your skin. That was just what you needed!'
-		gs 'arousal', 'clit_finger', -1, 'masturbate'
 		gs 'stat'
+		'<center><img <<$set_imgh>> src="images/pc/items/accessories/computer/kompmas.jpg"></center>'
+		'You get comfortable in front of your computer and with one hand begin to fondle your breasts, while you click on a link to something really dirty.'
+		'You let go of the mouse and start rubbing your pussy, imagining you''re the woman in the video. The fantasy and your touching are getting you all hot and bothered.'
+
+		gs 'arousal', 'clit_finger', 15, 'masturbate'
+		gs 'stat'
+
+		if pcs_horny >= 100:
+			$orgasm_or = 'yes'
+			$orgasm_txt = 'Suddenly your muscles tighten and you cum powerfully, while you stifle your moans so your neighbours won''t find out. Afterwards, you have goosebumps all over your skin. That was just what you needed!'
+			gs 'arousal', 'clit_finger', -1, 'masturbate'
+			gs 'stat'
+		end
+
+		act 'Stop masturbating':divanmastr = 0 & gt 'komp', 'porno'
+
+		gs 'arousal', 'end'
+		gs 'stat'
+
+		if pcs_horny >= 50:act 'Masturbate some more (0:15)':gt 'komp', 'masturbate'
 	end
-
-	act 'Stop masturbating':divanmastr = 0 & gt 'komp', 'porno'
-
-	gs 'arousal', 'end'
-	gs 'stat'
-
-	if pcs_horny >= 50:act 'Masturbate some more (0:15)':gt 'komp', 'masturbate'
 end
 
 if $ARGS[0] = 'pasians':
@@ -223,10 +272,10 @@ end
 
 if $ARGS[0] = 'znak':
 	*clr & cla
-	minut += 60
+	minut += 30
 	pcs_mood += 5
 	elektro += 3
-	if internet_free = 0: internet -= 1
+	if access['metered']: subscription[$subs] -= minut
 	gs 'stat'
 	'<center><img <<$set_imgh>> src="images/pc/items/accessories/computer/komp.jpg"></center>'
 	'You enter a dating site, and immediately see all sorts of profiles of both men and women.'
@@ -285,9 +334,9 @@ end
 
 if $ARGS[0] = 'kabtv':
 	*clr & cla
-	minut += 60
+	minut += 20
 	elektro += 3
-	if internet_free = 0: internet -= 1
+	if access['metered']: subscription[$subs] -= minut
 	gs 'stat'
 	'<center><img <<$set_imgh>> src="images/pc/items/accessories/computer/komp.jpg"></center>'
 	'You check out the website of the local cable TV provider. A subscription for cable TV costs 300 <b>₽</b> per month, payable on the 25th.'
@@ -331,15 +380,12 @@ if $ARGS[0] = 'foto':
 	*clr & cla
 	gs 'stat'
 
-	if internet <= 0 and internet_free = 0:
+	if subscription[$subs] < 1:
 		'<center><b>Browser</b></center>'
 		'<center><img <<$set_imgh>> src="images/pc/items/accessories/computer/eror.jpg"></center>'
-		'You have no prepaid internet access remaining. You need to buy more, before you can go online again.'
-
+		'You have no internet access, '+iif(access['metered'], ' you have to buy more minutes.', ' maybe you forgot to pay the internet bill?')
 		act '<B>Close the browser</B>':gt 'komp','start'
-
 	else
-
 		'<center><img <<$set_imgh>> src="images/pc/items/accessories/computer/komp.jpg"></center>'
 		'You''re currently on Russia''s biggest social network site, "Assbook". Almost everyone has an account here, probably including the girl you took that photo of the other day!'
 		'"Maybe if I can find her, I can blackmail her", you think to yourself. "This photo is very raunchy, after all... I bet she would hate to see it published, if she''s important!"'
@@ -348,9 +394,9 @@ if $ARGS[0] = 'foto':
 		if shantfoto > 0:
 			act 'Try to find out who she is (1:00)':
 				cla
-				minut += 60
+				minut += 30
 				elektro += 3
-				if internet_free = 0: internet -= 1
+				if access['metered']: subscription[$subs] -= minut
 				fotsearchrand = rand(0,10)
 
 				if fotsearchrand <= 7:
@@ -396,12 +442,12 @@ end
 
 if $ARGS[0] = 'rabota':
 	*clr & cla
-	if internet <= 0 and internet_free = 0:
+	if subscription[$subs] < 1:
 		'<center><b>Browser</b></center>'
 		'<center><img <<$set_imgh>> src="images/pc/items/accessories/computer/eror.jpg"></center>'
-		'You have no prepaid internet access remaining. You need to buy more, before you can go online again.'
+		'You have no internet access, '+iif(access['metered'], ' you have to buy more minutes.', ' maybe you forgot to pay the internet bill?')
 
-		act 'Close the browser':gt 'komp','brows'
+		act '<B>Close the browser</B>':gt 'komp','start'
 	else
 		minut += 60
 		if internet_free = 0: internet -= 1
@@ -507,9 +553,9 @@ end
 
 if $ARGS[0] = 'study':
 	*clr & cla
-	minut = minut + 60
+	minut = minut + 30
 	elektro = elektro + 3
-	if internet_free = 0: internet -= 1
+	if access['metered']: subscription[$subs] -= minut
 	gs 'exp_gain', 'intel', 1 + (mentats_dose - rand(0,mentats_dose))
 	gs 'exp_gain', 'compskl', 1
 	'<center><b>The Institute for Education Measurement</b></center>'
@@ -521,9 +567,9 @@ end
 
 if $ARGS[0] = 'agent':
 	*clr & cla
-	minut += 60
+	minut += 30
 	elektro += 3
-	if internet_free = 0: internet -= 1
+	if access['metered']: subscription[$subs] -= minut
 	gs 'stat'
 	gs 'housing', 'rent'
 	gs 'housing', 'sale'
@@ -598,7 +644,18 @@ if $ARGS[0] = 'mfc':
 		'<center><img <<$set_imgh>> src="images/pc/items/accessories/computer/camwhore2.jpg"></center>'
 		'It''s that time of the month! You feel sick to your stomach and the cramps hurt pretty badly from time to time... you''re in no condition to earn money showing off your body.'
 		act 'Leave this website':gt 'komp','brows'
-	elseif locat['Anya_inroom'] = 0 or $loc ! 'bedrPar':
+	elseif access['nocamshow'] = 1:
+		*clr & cla
+		minut += 2
+		topmfc = 1
+		backmfc = 1
+		tokens = 0
+		camclients = 0
+		gs 'stat'
+		'<center><img <<$set_imgh>> src="images/pc/items/accessories/computer/camwhore2.jpg"></center>'
+		'<<$access[''nocamshow-message'']>>'
+		act 'Leave this website':gt 'komp','brows'
+	else
 		act 'Go to your MFC homepage':
 			*clr & cla
 			minut += 2
@@ -617,18 +674,7 @@ if $ARGS[0] = 'mfc':
 			camclients = 0
 			gs 'stat'
 			gt 'komp','brows'
-		end
-	elseif locat['Anya_inroom'] = 1 and $loc = 'bedrPar':
-		*clr & cla
-		minut += 2
-		topmfc = 1
-		backmfc = 1
-		tokens = 0
-		camclients = 0
-		gs 'stat'
-		'<center><img <<$set_imgh>> src="images/pc/items/accessories/computer/camwhore2.jpg"></center>'
-		'You can''t do any webcam activities with your sister in the room!'
-		act 'Leave this website':gt 'komp','brows'
+		end	
 	end
 end
 
