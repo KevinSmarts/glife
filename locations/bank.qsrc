@@ -499,7 +499,7 @@ if $ARGS[0] = 'cikl':
 		end
 
 		! Utilities for all apartments.
-		if (home_owned[1] = 1 or home_owned[1] = 2 or home_owned[4] > 0 or home_owned[5] = 2) and electroday = 0:
+		if (owned_property['city_apartment'] = 1 or owned_property['city_apartment'] = 2 or owned_property['old_town_apartment'] > 0 or owned_property['matryona_mansion'] = 2 or owned_property['city_house']) and electroday = 0:
 			gs 'housing', 'util'
 			if bankAccount = 1 and karta >= elektro:
 				'<b><font color="green"><<elektro>> <b>₽</b> for utilities, has been automatically deducted from your bank account.</font></b>'
@@ -552,9 +552,10 @@ if $ARGS[0] = 'cikl':
 		if paydayHusb = 1:paydayHusb = 0
 		if workKafe['job'] = 1 and paydayKafe = 1:paydayKafe = 0
 		if workSec = 1 and paydaySec = 1:paydaySec = 0
-		if (home_owned[1] = 1 or home_owned[4] > 0) and haday = 1:haday = 0
-		if (home_owned[1] > 0 or home_owned[4] > 0 or home_owned[5] = 2) and electroday = 1:electroday = 0
-		if (home_owned[1] > 0 or home_owned[4] > 0 or home_owned[5] = 3) and kabel > 0 and kabelday = 1:kabelday = 0
+		!! No idea what haday is, it does not show up anywhere else beyond this one line
+		if (owned_property['city_apartment'] = 1 or owned_property['old_town_apartment'] > 0) and haday = 1:haday = 0
+		if (owned_property['city_apartment'] > 0 or owned_property['old_town_apartment'] > 0 or owned_property['matryona_mansion'] = 2 or owned_property['city_house']) and electroday = 1:electroday = 0
+		if (owned_property['city_apartment'] > 0 or owned_property['old_town_apartment'] > 0 or owned_property['matryona_mansion'] = 2 or owned_property['city_house']) and kabel > 0 and kabelday = 1:kabelday = 0
 		if scholarshipday = 1:scholarshipday = 0
 		if nopaytanwork = 1:nopaytanwork = 0
 		if nopaypoly = 1:nopaypoly = 0
@@ -562,8 +563,8 @@ if $ARGS[0] = 'cikl':
 		if paydaybistrosec = 1:paydaybistrosec = 0
 	end
 
-	if sdaday = day and sdamonth = month and home_owned[1] = 3:
-		home_owned[1] = 2
+	if sdaday = day and sdamonth = month and owned_property['city_apartment'] = 3:
+		gs 'homes_properties', 'set_ownership', 'city_apartment', 2
 		'<b><font color="red">Your tenants have moved out and your apartment is now vacant.</font></b>'
 		!msg 'Your tenants have moved out and your apartment is now vacant.'
 	end
@@ -572,56 +573,56 @@ if $ARGS[0] = 'cikl':
 	!! Rent
 	!!----------------------------------------
 
-	if home_owned[1] = 1 or home_owned[4] > 0:
-		gs 'housing', 'rent'
+	if owned_property['city_apartment'] = 1 or owned_property['old_town_apartment'] > 0:
 		! Rent for the city apartment
-		if home_owned[1] = 1:
-			if ArendHouseSL <= 2:
+		if owned_property['city_apartment'] = 1:
+			if func('homes_properties', 'get_rent_days', 'city_apartment') <= 2:
 				!From bank
-				if bankAccount = 1 and karta >= home_rent[1]:
-					'<b><font color="green">Your rent payment of <<home_rent[1]>> <b>₽</b> for your city apartment, has automatically been deducted from your bank account.</font></b>'
-					karta -= home_rent[1]
-					ArendHouseSL += ArendHouseSL_due
-				elseif bankAccount = 1 and karta + bankDebtLimit >= home_rent[1]:
-					'<b><font color="green">Your rent payment of <<home_rent[1]>> <b>₽</b> for your city apartment, has automatically been deducted from your bank account and overdraw facility. Please contact your bank regarding your overdraw repayment.</font></b>'
-					karta -= home_rent[1]
-					ArendHouseSL += ArendHouseSL_due
+				if bankAccount = 1 and karta >= prop_rent['city_apartment']:
+					'<b><font color="green">Your rent payment of <<prop_rent[''city_apartment'']>> <b>₽</b> for your city apartment, has automatically been deducted from your bank account.</font></b>'
+					karta -= prop_rent['city_apartment']
+					gs 'homes_properties', 'add_rent_days', 'city_apartment'
+				elseif bankAccount = 1 and karta + bankDebtLimit >= prop_rent['city_apartment']:
+					'<b><font color="green">Your rent payment of <<prop_rent[''city_apartment'']>> <b>₽</b> for your city apartment, has automatically been deducted from your bank account and overdraw facility. Please contact your bank regarding your overdraw repayment.</font></b>'
+					karta -= prop_rent['city_apartment']
+					gs 'homes_properties', 'add_rent_days', 'city_apartment'
 				elseif bankAccount = 0:
-					'<b><font color="red">You currently do not have a bank account setup for automatic rent deduction of <<home_rent[1]>> <b>₽</b> for your city apartment. To avoid eviction, please make manual payment as soon as possible.</font></b>'
+					'<b><font color="red">You currently do not have a bank account setup for automatic rent deduction of <<prop_rent[''city_apartment'']>> <b>₽</b> for your city apartment. To avoid eviction, please make manual payment as soon as possible.</font></b>'
 				else
 					nl
-					'<b><b><font color="red">Your card was declined during automatic rent deduction of <<home_rent[1]>> <b>₽</b> for your city apartment. To avoid eviction, please rectify as soon as possible.</font></b>'
+					'<b><b><font color="red">Your card was declined during automatic rent deduction of <<prop_rent[''city_apartment'']>> <b>₽</b> for your city apartment. To avoid eviction, please rectify as soon as possible.</font></b>'
 				end
 			end
 		end
 
+old_town_apartment
 		! Rent for the Pushkin apartment
-		if home_owned[4] > 0:
-			if ArendHouseSL4 <= 2:
+		if owned_property['old_town_apartment'] > 0:
+			if func('homes_properties', 'get_rent_days', 'old_town_apartment') <= 2:
 				!From bank
-				if bankAccount = 1 and karta >= home_rent[4]:
-					'<b><font color="green">Your rent payment of <<home_rent[4]>> <b>₽</b> for your Pushkin apartment, has automatically been deducted from your bank account.</font></b>'
-					karta -= home_rent[4]
-					ArendHouseSL4 += ArendHouseSL_due
-				elseif bankAccount = 1 and karta + bankDebtLimit >= home_rent[4]:
-					'<b><font color="green">Your rent payment of <<home_rent[4]>> <b>₽</b> for your Pushkin apartment, has automatically been deducted from your bank account and overdraw facility. Please contact your bank regarding your overdraw repayment.</font></b>'
-					karta -= home_rent[4]
-					ArendHouseSL4 += ArendHouseSL_due
+				if bankAccount = 1 and karta >= prop_rent['old_town_apartment']:
+					'<b><font color="green">Your rent payment of <<prop_rent[''old_town_apartment'']>> <b>₽</b> for your Pushkin apartment, has automatically been deducted from your bank account.</font></b>'
+					karta -= prop_rent['old_town_apartment']
+					gs 'homes_properties', 'add_rent_days', 'old_town_apartment'
+				elseif bankAccount = 1 and karta + bankDebtLimit >= prop_rent['old_town_apartment']:
+					'<b><font color="green">Your rent payment of <<prop_rent[''old_town_apartment'']>> <b>₽</b> for your Pushkin apartment, has automatically been deducted from your bank account and overdraw facility. Please contact your bank regarding your overdraw repayment.</font></b>'
+					karta -= prop_rent['old_town_apartment']
+					gs 'homes_properties', 'add_rent_days', 'old_town_apartment'
 				elseif bankAccount = 0:
-					'<b><font color="red">You currently do not have a bank account setup for automatic rent deduction of <<home_rent[4]>> <b>₽</b> for your Pushkin apartment. To avoid eviction, please make manual payment as soon as possible.</font></b>'
+					'<b><font color="red">You currently do not have a bank account setup for automatic rent deduction of <<prop_rent[''old_town_apartment'']>> <b>₽</b> for your Pushkin apartment. To avoid eviction, please make manual payment as soon as possible.</font></b>'
 				else
 					nl
-					'<b><b><font color="red">Your card was declined during automatic rent deduction of <<home_rent[4]>> <b>₽</b> for your Pushkin apartment. To avoid eviction, please rectify as soon as possible.</font></b>'
+					'<b><b><font color="red">Your card was declined during automatic rent deduction of <<prop_rent[''old_town_apartment'']>> <b>₽</b> for your Pushkin apartment. To avoid eviction, please rectify as soon as possible.</font></b>'
 				end
 			end
 		end
 	end
 
-	if home_owned[1] = 1 and ArendHouseSL <= 0: ArendHouseSL = 0 & home_owned[1] = 0
-	if home_owned[4] > 0 and ArendHouseSL4 <= 0: ArendHouseSL4 = 0 & home_owned[4] = 0
+	if owned_property['city_apartment'] = 1 and func('homes_properties', 'get_rent_days', 'old_town_apartment') <= 0: gs 'homes_properties', 'set_ownership', 'city_apartment', 0
+	if owned_property['old_town_apartment'] > 0 and func('homes_properties', 'get_rent_days', 'old_town_apartment') <= 0: gs 'homes_properties', 'set_ownership', 'old_town_apartment', 0
 
-	if home_owned[1] = 1: ArendHouseSL -= 1
-	if home_owned[4] > 0: ArendHouseSL4 -= 1
+	if owned_property['city_apartment'] = 1: gs 'homes_properties', 'add_rent_days', 'city_apartment', -1
+	if owned_property['old_town_apartment'] > 0: gs 'homes_properties', 'add_rent_days', 'old_town_apartment', -1
 
 	!!------------------------------------------------------------------------------------------------------------
 

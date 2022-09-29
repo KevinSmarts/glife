@@ -26,10 +26,10 @@
 }
 
 if ARRSIZE('rent') < 2:
-	propr_rent['city_apartment'] = 15000
-	$propr_rent['city_apartment'] = '15,000'
-	propr_rent['old_town_apartment'] = 10000
-	$propr_rent['old_town_apartment'] = '10,000'
+	prop_rent['city_apartment'] = 15000
+	$prop_rent['city_apartment'] = '15,000'
+	prop_rent['old_town_apartment'] = 10000
+	$prop_rent['old_town_apartment'] = '10,000'
 end
 
 if ARRSIZE('price')  < 4:
@@ -47,7 +47,8 @@ end
 if $ARGS[0] = 'get_property_attr':
 	if $ARGS[1] = 'city_apartment':
 		$property['name'] = 'City residential apartment'
-		$property['display'] = 'your city residential apartment'
+		$property['display'] = 'apartment in St. Petersburg''s residential area'
+		$property['agency_display'] = 'An apartment in St. Petersburg''s residential area'
 		$property['town'] = 'city'
 		$property['location'] = 'city_residential'
 		$property['entrance'] = 'korr'
@@ -68,8 +69,9 @@ if $ARGS[0] = 'get_property_attr':
 		$property['type'] = 'permanent_residence'
 		property['id'] = 2
 	elseif $ARGS[1] = 'village_cottage':
-		$property['name'] = 'My cottage in the cooperative farm'
-		$property['display'] = 'your cottage in the cooperative farm'
+		$property['name'] = 'My cottage in the cooperative village'
+		$property['display'] = 'cottage in the cooperative village'
+		$property['agency_display'] = 'A cottage located in the cooperative village'
 		$property['town'] = 'city'
 		$property['location'] = 'dachamy'
 		$property['entrance'] = 'dachamy'
@@ -80,7 +82,8 @@ if $ARGS[0] = 'get_property_attr':
 		property['internet_enabled'] = 1
 	elseif $ARGS[1] = 'old_town_apartment':
 		$property['name'] = 'Old town apartment'
-		$property['display'] = 'your old town apartment'
+		$property['display'] = 'old town apartment'
+		$property['angecy-display'] = 'An apartment in the old town of Puskin.'
 		$property['town'] = 'oldtown'
 		$property['location'] = 'liames'
 		$property['entrance'] = 'korr2x'
@@ -93,6 +96,7 @@ if $ARGS[0] = 'get_property_attr':
 	elseif $ARGS[1] = 'matryona_mansion':
 		$property['name'] = 'Matryona mansion'
 		$property['display'] = 'the Matryona mansion'
+		$property['agency_display'] = 'A plot of land in the St. Petersburg''s suburbs'
 		$property['town'] = 'city'
 		$property['location'] = 'city_mansion_entrance'
 		$property['entrance'] = 'city_mansion_residence_1'
@@ -101,6 +105,7 @@ if $ARGS[0] = 'get_property_attr':
 		property['price'] = prop_rent['matryona_mansion']
 		property['id'] = 5
 		property['internet_enabled'] = 1
+		property['contstruction_needed'] = 1
 	elseif $ARGS[1] = 'pavlovsk_hotel':
 		$property['name'] = 'My hotel room in Pavlovsk'
 		$property['display'] = 'your hotel room in Pavlovsk'
@@ -175,7 +180,8 @@ if $ARGS[0] = 'get_property_attr':
 		property['id'] = 14
 	elseif $ARGS[1] = 'city_house':
 		$property['name'] = 'City residential house'
-		$property['display'] = 'your city residential house'
+		$property['display'] = 'house in the St. Petersburg''s residential area'
+		$property['agency_display'] = 'A house in the St. Petersburg''s residential area'
 		$property['town'] = 'city'
 		$property['location'] = 'city_residential'
 		$property['entrance'] = 'city_house_res_misc'
@@ -209,28 +215,205 @@ if $ARGS[0] = 'set_home':
 	gs 'homes_properties', 'get_property_attr', $ARGS[1]
 	COPYARR 'home','property'
 	$home['current'] = $ARGS[1]
+	if $owned_property[$ARGS[1]+'-status'] = 0: gs 'homes_properties', 'set_ownership', $ARGS[1], 1
 	killvar '$property'
 	killvar 'property'
 end
 
 !! $ARGS[1]: the name of the property (the index name)
 !! ARGS[2]: ownership type
+!!			0: no acces -> 'no access'
 !!			1: rented	-> 'rented'
 !!			2: owned    -> 'owned'
 !!			3: owned and rented out -> 'tenants'
+!!			4: has acess -> 'has access' / homes that behave like rentals but no rent is tracked
+!!				parents home, university dorm, lyceum dorm and the shared apartment, the Shulga and Meynold household, etc. 
+!! ARGS[3]: construction status
+!!			0: land only 
+!!			1: foundation, frames built, utilities are connected
+!!			2: fully built
+!! ARGS[4]:renovation status
+!!			0: not renovated
+!!			1: fully renovated
 if $ARGS[0] = 'set_ownership':
+	gs 'homes_properties', 'get_property_attr', $ARGS[1]
+	owned_property[$ARGS[1]] = ARGS[2]
 	$owned_property[$ARGS[1]] = $ARGS[1]
-	owned_property[$ARGS[1]+'-status'] = ARGS[2]
+	if $property['contstruction_needed'] = 1:
+		owned_property[$ARGS[1]+'-construction-status'] = ARGS[3]
+	else
+		owned_property[$ARGS[1]+'-construction-status'] = 2
+	end
+	owned_property[$ARGS[1]+'-renovated'] = ARGS[4]
+	if ARGS[2] = 1:
+		owned_property[$ARGS[1]+'-days-left'] += func( 'homes_properties', 'rent_due')
+	elseif ARGS[2] = 0:
+		if $home['current'] = $ARGS[1]: killvar '$home'
+		owned_property[$ARGS[1]+'-days-left'] = 0
+	elseif ARGS[2] = 2 or ARGS[2] = 3:
+		owned_property[$ARGS[1]+'-days-left'] = 0
+	end
+	killvar 'property'
 end
 
+!! Use it as a func() returns the total count of properties that are homes and are owned (including wiht tenants)
+if $ARGS[0] = 'get_owned_homes':
+	i = 0
+	count = ARRSIZE('owned_property')
+	if count > 0: 
+		:countloop
+			gs 'homes_properties', 'get_property_attr', $owned_property[i]
+			if $property['type'] = 'permanent_residence' and (owned_property[i] = 2 or owned_property[i] = 3): counter += 1
+			i += 1
+			killvar 'property'
+		if i < count: jump 'countloop'
+	end
+	result = counter
+	killvar 'counter'
+	killvar 'count'
+	killvar 'i'
+end
+
+!! Use it as a func() returns the total count of rented properties that are homes
+if $ARGS[0] = 'get_rented_count':
+	i = 0
+	count = ARRSIZE('owned_property')
+	if count > 0: 
+		:countloop
+			gs 'homes_properties', 'get_property_attr', $owned_property[i]
+			if $property['type'] = 'permanent_residence' or $property['type'] = 'temporary_residence' and owned_property[i] = 1: counter += 1
+			i += 1
+			killvar 'property'
+		if i < count: jump 'countloop'
+	end
+	result = counter
+	killvar 'counter'
+	killvar 'count'
+	killvar 'i'
+end
+
+!! Use it as a func() returns the total count of properties that are homes and accessible
+if $ARGS[0] = 'get_accessible_count':
+	i = 0
+	count = ARRSIZE('owned_property')
+	if count > 0: 
+		:countloop
+			gs 'homes_properties', 'get_property_attr', $owned_property[i]
+			if $property['type'] = 'permanent_residence' or $property['type'] = 'temporary_residence' and owned_property[i] ! 0 and owned_property[i] ! 3: counter += 1
+			i += 1
+			killvar 'property'
+		if i < count: jump 'countloop'
+	end
+	result = counter
+	killvar 'counter'
+	killvar 'count'
+	killvar 'i'
+end
+
+
+!! ARGS[1] = the code name of the property, e.g. 'city_apartment' 
+!! ARGS[2] - the number of days to add.
+!!           if the value is 0 then the code will add the number of days that is there in the month
+if $ARGS[0] = 'add_rent_days':
+	if ARGS[2] = 0:
+		owned_property[$ARGS[1]+'-days-left'] += func( 'homes_properties', 'rent_due')
+	else
+		owned_property[$ARGS[1]+'-days-left'] += ARGS[2]
+	end
+end
+
+!! ARGS[1] = the code name of the property, e.g. 'city_apartment' 
+!! ARGS[2] - the number of days to set to.
+if $ARGS[0] = 'set_rent_days':
+	owned_property[$ARGS[1]+'-days-left'] = ARGS[2]
+end
+
+!! Call it as a func()
+!! ARGS[1] = the code name of the property, e.g. 'city_apartment' 
+if $ARGS[0] = 'get_rent_days':
+	result = owned_property[$ARGS[1]+'-days-left']
+end
+
+!! Call it as a func()
+!! ARGS[1] = the code name of the property, e.g. 'city_apartment' 
+if $ARGS[0] = 'property_construction_status':
+	result = owned_property[$ARGS[1]+'-construction-status']
+end
+
+!! ARGS[1] = the code name of the property, e.g. 'city_apartment' 
+if $ARGS[0] = 'progress_construction_status':
+	if owned_property[$ARGS[1]+'-construction-status'] < 2: owned_property[$ARGS[1]+'-construction-status'] += 1
+end
+
+!! Call it as a func()
+!! ARGS[1] = the code name of the property, e.g. 'city_apartment' 
+if $ARGS[0] = 'property_renovated':
+	result = owned_property[$ARGS[1]+'-renovated']
+end
+
+
+!! Returns a simple string representation of the status
+!! ARGS[1]: the code name of the property, e.g. 'city_apartment' 
+if $ARGS[0] = 'property_status_to_text':
+	if ARGS[1] = 0: 
+		result = 'no access'
+	elseif ARGS[1] = 1: 
+		result = 'rented'
+	elseif ARGS[1] = 2: 
+		result = 'owned'
+	elseif ARGS[1] = 3: 
+		result = 'tenants'		
+	elseif ARGS[1] = 4:
+		result = 'has access'
+	else
+		result = 'invalid status'
+	end
+end
+
+!! Returns a string that can be displayed in a longer text.
+!! For example 'You have tenants living in your city apartment.'
+!! ARGS[1]: The ownership type
+if $ARGS[0] = 'property_status_to_display_text':
+	if ARGS[1] = 0: 
+		result = 'You have no access to '
+	elseif ARGS[1] = 1: 
+		result = 'Yo are renting '
+	elseif ARGS[1] = 2: 
+		result = 'You own '
+	elseif ARGS[1] = 3: 
+		result = 'You have tenants living in '		
+	else
+		result = 'invalid status'
+	end
+end
+
+!! Returns the monthly rent the property has - both as a number and as a string (result and $result)
+!! Call as a func()
+!! ARGS[1] - the code (not display) name of the property, e.g. city_apartment
 if $ARGS[0] = 'get_rent':
-	result = prop_rent[$ARGS[0]]
-	$result = prop_rent[$ARGS[0]]
+	result = prop_rent[$ARGS[1]]
 end
 
+!! Returns the price of the property - both as a number and as a string (result and $result)
+!! Call as a func() 
+!! ARGS[1] - the code (not display) name of the property, e.g. city_apartment
 if $ARGS[0] = 'get_price':
 	result = prop_price[$ARGS[0]]
-	$result = prop_price[$ARGS[0]]
+end
+
+!! Returns the rent due date for the given month. Call as a func()
+if $ARGS[0] = 'rent_due':
+	if month = 1 or month = 3 or month = 5 or month = 7 or month = 8 or month = 10 or month = 12:
+		result = 31
+	elseif month = 2:
+		if ((year mod 4 = 0) and (year mod 100 ! 0)) or (year mod 400 = 0):
+			result = 29
+		else
+			result = 28
+		end
+	else
+		result = 30
+	end
 end
 
 --- homes_properties ---------------------------------
