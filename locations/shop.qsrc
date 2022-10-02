@@ -593,226 +593,238 @@ if $shoplocation = 'megafon':
 	minut+=3
 	gs'stat'
 	'<center><b><font color = maroon>MegaFon shop</font></b></center>'
-!!	'<table align="center;">'
 	'<center><img src="images/system/phone/megafon2.jpg" ></center>'
-	'<center>'
-	'<tr><td> </td></tr>'
-	'<tr><td align="center"><b>Home Internet Subscription</b></td></tr>'
+
+	$tables = '<center><table>'
+	$tablec = '</table></center>'
+	if bankAccount = 0: '<center><h4>You need a valid bank account to buy monthly contracts.</h4></center>'
+	$title = '<center><h4>Home Internet Subscription</h4></cemter>'
 	price = 900
 	if $home['current'] = 'parents_home':
-		'<tr><td> </td></tr>'
-		'<tr><td align="center">Your parents are paying for the internet at home, and you can''t take out a second internet subscriptions for the same address</td></tr>'
-		'<tr><td> </td></tr>'
+		$line = '<tr><td align="center">Your parents are paying for the internet at home, and you can''t take out a second internet subscriptions for the same address</td></tr>'
 	elseif home['internet_enabled'] = 0:
-		'<tr><td> </td></tr>'
-		'<tr><td align="center">You can''t buy an internet subscription for <<$home[''display'']>></td></tr>'
-		'<tr><td> </td></tr>'
+		$line = '<tr><td align="center">You can''t buy an internet subscription for <<$home[''display'']>></td></tr>'
 	elseif subscription[$home['current']] = 1:
-		'<tr><td> </td></tr>'
-		'<tr><td align="center">You have an active internet subscription at <<$home[''display'']>> that will renew next month on day <<subscription[$home[''current'']+''-date'']>> for <<price>> <b>₽</b></td></tr>'
-		'<tr><td> </td></tr>'
-	elseif bankAccount = 0:
-		'<tr><td align="left"><b>You need a valid bank account to buy a monthly contract.</b><br/>Monthly internet subscription for <<price>> <b>₽</b> Automatically renews every month</td></tr>'
+		$line = '<tr><td align="center">You have an active internet subscription at <<$home[''display'']>> that will renew next month on day <<subscription[$home[''current'']+''-date'']>> for <<price>> <b>₽</b></td></tr>'
 	else
-		'<tr><td align="left">Monthly internet subscription for <<price>> <b>₽</b> Automatically renews every month</td>'
-		if karta+bankDebtLimit >= price:
-			'<td><a href="exec: gs ''internet_mobile'', ''buy_subscription'', ''<<$home[''current'']>>'', <<price>>, 0 & minut += 30 & karta -= <<price>> & gt ''shop'' ">Pay with Card</a></td></tr>'
-		else
-			'<td>Insufficient balance</td></tr>'
-		end
-	end
-	'<tr><td> </td></tr>'
-	count = ARRSIZE('owned_property') 
-	if count > 0:
-		'<tr><td align="center"><b>Internet Subscription for your other properties</b></td></tr>'
+		$line = '<tr><td style="padding-left: 10px; padding-right: 10px; align: left; ">Monthly internet subscription for <<price>><b>₽</b> at <<$home[''display'']>>. Automatically renews every month</td>'
 		if bankAccount = 0:
-			'<tr><td align="left"><b>You need a valid bank account to buy a monthly contract.</b><br/>Monthly internet subscription for <<price>> <b>₽</b> Automatically renews every month</td></tr>'
+			$line += '<td style="padding-left: 10px; padding-right: 10px;">No bank account</td></tr>'
+		elseif karta+bankDebtLimit >= price:
+			$line += '<td style="padding-left: 10px; padding-right: 10px;"><a href="exec: gs ''internet_mobile'', ''buy_subscription'', ''<<$home[''current'']>>'', <<price>>, 0 & minut += 30 & karta -= <<price>> & gt ''shop'' ">Pay with Card</a></td></tr>'
 		else
-			:propertyloop
-				if owned_property[i] ! 0 and owned_property[i] ! 4:				
-					gs 'homes_properties', 'get_property_attr', $owned_property[i]
-					if property['internet_enabled'] = 1 and $home['id'] ! $property['id']:
-						if owned_property[i] = 3:
-							'<tr><td align="center">You have rented out <<$property[''display'']>> and you don''t have to buy internet for your tenants.</td></tr>'
-						elseif subscription[$owned_property[i]] = 0:
-							'<tr><td align="left">Monthly internet subscription for <<price>> <b>₽</b> for <<$property[''display'']>>. Automatically renews every month</td>'
-							if karta+bankDebtLimit >= price: 
-								'<td><a href="exec: gs ''internet_mobile'', ''buy_subscription'', ''<<$owned_property[i]>>'', <<price>>, 0 & minut += 30 & karta -= <<price>> & gt ''shop'' ">Pay with card</a></td></tr>'
-							else
-								'<td>Insufficient balance</td></tr>'
-							end
-						elseif subscription[$owned_property[i]] > 0:
-							'<tr><td align="center">You have an active internet subscription at <<$property[''display'']>> that will renew next month on day <<subscription[$owned_property[i]+''-date'']>> for <<price>> <b>₽</b></td></tr>'
-						end
-					end
-					killvar '$property'
-				end
-				i += 1
-			if i < count: jump 'propertyloop'
+			$line += '<td style="padding-left: 10px; padding-right: 10px;">Insufficient balance</td></tr>'
 		end
 	end
-	'<tr><td> </td></tr>'
-	'<tr><td> </td></tr>'
-	'<tr><td align="center"><b>Mobile Internet Subscription</b></td></tr>'
-	'<tr><td> </td></tr>'
+	'<<$title>><<$tables>><<$line>><<$tablec>>'
+	killvar 'line'
+	killvar 'title'
+
+	$property_list = func('homes_properties', 'get_owned_homes')
+	count = ARRSIZE('$property_list') 
+	if count > 0:
+		:propertyloop
+			gs 'homes_properties', 'get_property_attr', $property_list[i]
+			if property['internet_enabled'] = 1 and $home['id'] ! $property['id']:
+				$title = '<center><h4>Internet Subscription for your other properties</h4></center>'
+				if owned_property[$property_list[i]] = 3:
+					$line += '<tr><td align="center">You have rented out <<$property[''display'']>> and you don''t have to buy internet for your tenants.</td></tr>'
+				elseif subscription[$property_list[i]] = 0:
+					$line += '<tr><td style="padding-left: 10px; padding-right: 10px; align: left; ">Monthly internet subscription for <<price>> <b>₽</b> at <<$property[''display'']>>. Automatically renews every month</td>'
+					if bankAccount = 0:
+						$line += '<td style="padding-left: 10px; padding-right: 10px;">No bank account</td></tr>'
+					elseif karta+bankDebtLimit >= price: 
+						$line += '<td style="padding-left: 10px; padding-right: 10px;"><a href="exec: gs ''internet_mobile'', ''buy_subscription'', ''<<$owned_property[i]>>'', <<price>>, 0 & minut += 30 & karta -= <<price>> & gt ''shop'' ">Pay with card</a></td></tr>'
+					else
+						$line += '<td style="padding-left: 10px; padding-right: 10px;">Insufficient balance</td></tr>'
+					end
+				elseif subscription[$owned_property[i]] > 0:
+					line += '<tr><td align="center">You have an active internet subscription at <<$property[''display'']>> that will renew next month on day <<subscription[$owned_property[i]+''-date'']>> for <<price>> <b>₽</b></td></tr>'
+				end
+			end
+			killvar '$property'
+			i += 1
+		if i < count: jump 'propertyloop'
+		killvar 'i'
+		killvar 'count'
+		if $title ! '' : '<<$title>><<$tables>><<$line>><<$tablec>>'
+		killvar 'line'
+		killvar 'title'
+	end
+
+	$title = '<center><h4>Mobile Internet Subscription</h4></center>'
 	price = 1200
 	if subscription['mobile'] = 1:
-		'<tr><td> </td></tr>'
-		'<tr><td align="center">You have an active mobile internet subscription that will renew next month on day <<subscription[''mobile-date'']>> for <<price>><b>₽</b></td></tr>'
-		'<tr><td> </td></tr>'
+		$line = '<tr><td align="center">You have an active mobile internet subscription that will renew next month on day <<subscription[''mobile-date'']>> for <<price>><b>₽</b></td></tr>'
 	else 
 		if subscription['metered_mobile'] > 0:
 			!! Every 12 minutes gives back 1 ₽  
 			discount = subscription['metered_mobile'] / 12 
 			discount_left = max(price - discount, 0)
-			'<tr><td align="center">You still a have <b><<subscription[''metered_mobile'']>> ₽</b> balance for your metered mobile internet which gives you a <<discount>> <b>₽</b> discount</td></tr>'
-			'<tr><td> </td></tr>'
+			$line = '<tr><td align="center">You still a have <b><<subscription[''metered_mobile'']>> ₽</b> balance for your metered mobile internet which gives you a <<discount>> <b>₽</b> discount</td></tr>'
 		end
-		if bankAccount = 1 and karta+bankDebtLimit >= (price-discount): '<tr><td align="left"><a href="exec: gs ''internet_mobile'', ''buy_subscription'', ''mobile'', <<price>>, <<discount_left>> & gs ''internet_mobile'', ''cancel_subscription'', ''metered_mobile'' & minut += 30 & karta -= <<price-discount>> & gt ''shop'' ">Monthly mobile internet subscription for'+iif(discount > 0, ' <s><<price>></s><<price-discount>>', ' <<price>>')+' <b>₽</b> Automatically renews every month - Pay with card</a></td></tr>'
-		if bankAccount = 1 and karta+bankDebtLimit < (price-discount): '<tr><td align="left">Monthly mobile internet subscription for'+iif(discount > 0, ' <s><<price>></s><<price-discount>>', ' <<price>>')+' <b>₽</b> Automatically renews every month</td></tr>'
-		if bankAccount = 0: '<tr><td align="left"><b>You need a valid bank account to buy a monthly contract.</b> Monthly mobile internet subscription for'+iif(discount > 0, ' <s><<price>></s><<price-discount>>', ' <<price>>')+' <b>₽</b> Automatically renews every month.</td></tr>'
-		'<tr><td> </td></tr>'			
+		$line += '<tr><td style="padding-left: 10px; padding-right: 10px; align: left; ">Monthly mobile internet subscription for'+iif(discount > 0, ' <s><<price>></s><<price-discount>>', ' <<price>>')+'<b>₽</b>. Automatically renews every month</td>'
+		if bankAccount = 1 and karta+bankDebtLimit >= (price-discount): $line += '<td style="padding-left: 10px; padding-right: 10px;"><a href="exec: gs ''internet_mobile'', ''buy_subscription'', ''mobile'', <<price>>, <<discount_left>> & gs ''internet_mobile'', ''cancel_subscription'', ''metered_mobile'' & minut += 30 & karta -= <<price-discount>> & gt ''shop'' ">Pay with card</a></td></tr>'
+		if bankAccount = 1 and karta+bankDebtLimit < (price-discount): $line += '<td style="padding-left: 10px; padding-right: 10px;">Insufficient funds</td></tr>'
+		if bankAccount = 0: $line += '<td style="padding-left: 10px; padding-right: 10px;">No bank account</td></tr>'
 	end
+	'<<$title>><<$tables>><<$line>><<$tablec>>'
+	killvar 'line'
+	killvar 'title'
 
-	'<tr><td> </td></tr>'
-	'<tr><td align="center"><b>Metered Internet</b></td></tr>'
-	'<tr><td></td></tr>'
+	$title = '<center><h4>Metered Internet</h4></center>'
 	if  subscription['mobile'] = 1:
-		'<tr><td align="center">You have an active mobile internet subscription for unlimited use, you can''t buy extra minutes </td></tr>'
-		'<tr><td> </td></tr>'
-		'tr><td align="left"><b>300 minutes</b> (5 hours) of mobile internet for 80 <b>₽</b></td></tr>'
-		'<tr><td align="left"><b>600 minutes</b> (10 hours) of mobile internet for 155 <b>₽</b></td></tr>'
-		'<tr><td align="left"><b>1200 minutes</b> (20 hours) of mobile internet for 295 <b>₽</b></td></tr>'
-		'<tr><td align="left"><b>3000 minutes</b> (50 hours) of mobile internet for 695 <b>₽</b></td></tr>'
+		$line = '<tr><td align="center">You have an active mobile internet subscription for unlimited use, you can''t buy extra minutes </td></tr>'
+		$line += 'tr><td align="left"><b>300 minutes</b> (5 hours) of mobile internet for 80 <b>₽</b></td></tr>'
+		$line += '<tr><td align="left"><b>600 minutes</b> (10 hours) of mobile internet for 155 <b>₽</b></td></tr>'
+		$line += '<tr><td align="left"><b>1200 minutes</b> (20 hours) of mobile internet for 295 <b>₽</b></td></tr>'
+		$line += '<tr><td align="left"><b>3000 minutes</b> (50 hours) of mobile internet for 695 <b>₽</b></td></tr>'
 	else
-		'<tr><td align="left"><b>300 minutes</b> (5 hours) of mobile internet for 80<b>₽</b></td></tr>'
+		$line = '<tr><td style="padding-left: 10px; padding-right: 10px; align: left; "><b>300 minutes</b> (5 hours) of mobile internet for 80<b>₽</b></td>'
 		if money > 80: 
-			'<td><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_mobile'', 300 & money -= 80 & minut += 10 & gt ''shop'' ">Pay with cash</a></td>'
+			$line += '<td style="padding-left: 10px; padding-right: 10px;"><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_mobile'', 300 & money -= 80 & minut += 10 & gt ''shop'' ">Pay with cash</a></td>'
 		else
-			'<td>Not enough cash</td>'
+			$line += '<td style="padding-left: 10px; padding-right: 10px;">Not enough cash</td>'
 		end
-		if bankAccount = 1 and karta+bankDebtLimit >= 80:
-			'<td><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_mobile'', 300 & karta -= 80 & minut += 10 & gt ''shop'' ">Pay with card</a></td></tr>'
+		if bankAccount = 0:
+			$line += '<td style="padding-left: 10px; padding-right: 10px;">No bank account</td></tr>'
+		elseif karta+bankDebtLimit >= 80:
+			$line += '<td style="padding-left: 10px; padding-right: 10px;"><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_mobile'', 300 & karta -= 80 & minut += 10 & gt ''shop'' ">Pay with card</a></td></tr>'
 		else
-			'<td>Insufficient balance</td></tr>'
+			$line += '<td style="padding-left: 10px; padding-right: 10px;">Insufficient balance</td></tr>'
 		end
-		'<tr><td align="left"><b>600 minutes</b> (10 hours) of mobile internet for 115<b>₽</b></td></tr>'
+
+		$line += '<tr><td style="padding-left: 10px; padding-right: 10px; align: left; "><b>600 minutes</b> (10 hours) of mobile internet for 115<b>₽</b></td>'
 		if money > 155: 
-			'<td><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_mobile'', 600 & money -= 115 & minut += 10 & gt ''shop'' ">Pay with cash</a></td>'
+			$line += '<td style="padding-left: 10px; padding-right: 10px;"><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_mobile'', 600 & money -= 115 & minut += 10 & gt ''shop'' ">Pay with cash</a></td>'
 		else
-			'<td>Not enough cash</td>'
+			$line += '<td style="padding-left: 10px; padding-right: 10px;">Not enough cash</td>'
 		end
-		if bankAccount = 1 and karta+bankDebtLimit >= 155:
-			'<td><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_mobile'', 600 & karta -= 115 & minut += 10 & gt ''shop'' ">Pay with card</a></td></tr>'
+		if bankAccount = 0:
+			$line += '<td style="padding-left: 10px; padding-right: 10px;">No bank account</td></tr>'
+		elseif karta+bankDebtLimit >= 155:
+			$line += '<td style="padding-left: 10px; padding-right: 10px;"><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_mobile'', 600 & karta -= 115 & minut += 10 & gt ''shop'' ">Pay with card</a></td></tr>'
 		else
-			'<td>Insufficient balance</td></tr>'
+			$line += '<td style="padding-left: 10px; padding-right: 10px;">Insufficient balance</td></tr>'
 		end
-		'<tr><td align="left"><b>1200 minutes</b> (20 hours) of mobile internet for 295<b>₽</b></td></tr>'
+
+		$line += '<tr><td style="padding-left: 10px; padding-right: 10px; align: left; "><b>1200 minutes</b> (20 hours) of mobile internet for 295<b>₽</b></td>'
 		if money > 295: 
-			'<td><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_mobile'', 1200 & money -= 295 & minut += 10 & gt ''shop'' ">Pay with cash</a></td>'
+			$line += '<td style="padding-left: 10px; padding-right: 10px;"><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_mobile'', 1200 & money -= 295 & minut += 10 & gt ''shop'' ">Pay with cash</a></td>'
 		else
-			'<td>Not enough cash</td>'
+			$line += '<td style="padding-left: 10px; padding-right: 10px;">Not enough cash</td>'
 		end
-		if bankAccount = 1 and karta+bankDebtLimit >= 295:
-			'<td><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_mobile'', 1200 & karta -= 295 & minut += 10 & gt ''shop'' ">Pay with card</a></td></tr>'
+		if bankAccount = 0:
+			$line += '<td style="padding-left: 10px; padding-right: 10px;">No bank account</td></tr>'
+		elseif karta+bankDebtLimit >= 295:
+			$line += '<td style="padding-left: 10px; padding-right: 10px;"><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_mobile'', 1200 & karta -= 295 & minut += 10 & gt ''shop'' ">Pay with card</a></td></tr>'
 		else
-			'<td>Insufficient balance</td></tr>'
+			$line += '<td style="padding-left: 10px; padding-right: 10px;">Insufficient balance</td></tr>'
 		end
-		'<tr><td align="left"><b>3000 minutes</b> (50 hours) of mobile internet for 295<b>₽</b></td></tr>'
+		
+		$line += '<tr><td style="padding-left: 10px; padding-right: 10px; align: left; "><b>3000 minutes</b> (50 hours) of mobile internet for 295<b>₽</b></td>'
 		if money > 695: 
-			'<td><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_mobile'', 3000 & money -= 695 & minut += 10 & gt ''shop'' ">Pay with cash</a></td>'
+			$line += '<td style="padding-left: 10px; padding-right: 10px;"><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_mobile'', 3000 & money -= 695 & minut += 10 & gt ''shop'' ">Pay with cash</a></td>'
 		else
-			'<td>Not enough cash</td>'
+			$line += '<td style="padding-left: 10px; padding-right: 10px;">Not enough cash</td>'
 		end
-		if bankAccount = 1 and karta+bankDebtLimit >= 695:
-			'<td><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_mobile'', 3000 & karta -= 695 & minut += 10 & gt ''shop'' ">Pay with card</a></td></tr>'
+		if bankAccount = 0:
+			$line += '<td style="padding-left: 10px; padding-right: 10px;">No bank account</td></tr>'
+		elseif karta+bankDebtLimit >= 695:
+			$line += '<td style="padding-left: 10px; padding-right: 10px;"><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_mobile'', 3000 & karta -= 695 & minut += 10 & gt ''shop'' ">Pay with card</a></td></tr>'
 		else
-			'<td>Insufficient balance</td></tr>'
+			$line += '<td style="padding-left: 10px; padding-right: 10px;">Insufficient balance</td></tr>'
 		end
-		'<tr><td> </td></tr>'
-		'<tr><td align="center">You have <<subscription[''metered_mobile'']>> minutes for mobile internet use</td></tr>'
 	end
-	'<tr><td> </td></tr>' 
-	'<tr><td align="center"><b>Mobile Calls and Texts</b></td></tr>'
-	'<tr><td> </td></tr>'
+	'<<$title>><<$tables>><<$line>><<$tablec>>'
+	'<center>You have <b><<subscription[''metered_mobile'']>></b> minutes for mobile internet use</center>'
+	killvar 'line'
+	killvar 'title'
+
+	$title = '<center><h4>Mobile Calls and Texts</h4></center>'
 	price = 800
 	if subscription['monthly_calls'] = 1:
-		'<tr><td align="center">You have an active mobile subscription that will renew next month on day <<subscription_date[''monthly_calls'']>> for <<price>> <b>₽</b></td></tr>'
-		'<tr><td> </td></tr>'
+		$line += '<tr><td align="center">You have an active mobile subscription that will renew next month on day <<subscription_date[''monthly_calls'']>> for <<price>> <b>₽</b></td></tr>'
 	else
 		if subscription['metered_calls'] > 0:			
 			discount = subscription['metered_calls'] / 2 
 			discount_left = max(price - discount, 0)
-			'<tr><td align="center">You have <b><<subscription[''metered_calls'']>> ₽</b> for mobile calls and text messages which gives you a <<discount>> <b>₽</b> discount</td></tr>'
-			'<tr><td> </td></tr>'
+			line += '<tr><td align="center">You have <b><<subscription[''metered_calls'']>>₽</b> for mobile calls and text messages which gives you a <<discount>> <b>₽</b> discount</td></tr>'
 		end
-		if bankAccount = 1 and karta+bankDebtLimit >= (price-discount): '<tr><td align="left"><a href="exec: gs ''internet_mobile'', ''buy_subscription'', ''monthly_calls'', <<price>>, <<discount_left>> & gs ''internet_mobile'', ''cancel_subscription'', ''metered_calls'' & minut += 30 & karta -= <<price>> & gt ''shop'' ">Monthly mobile subscription that allows you to make calls and send text messages for'+iif(discount > 0, '<b><s><<price>></s></b> <span color="red"><b><<price-discount>></b></span>', ' <b><<price>></b>')+'<b>₽</b> Automatically renews every month - Pay with card</a></td></tr>'
-		if bankAccount = 1 and karta+bankDebtLimit < (price-discount): '<tr><td align="left">Monthly mobile subscription with unlimited minutes text messages for'+iif(discount > 0, ' <s><<price>></s><<price-discount>>', ' <<price>>')+' <b>₽</b> Automatically renews every month</td></tr>'
-		if bankAccount = 0: '<tr><td align="left"><b>You need a valid bank account to buy a monthly contract.<b><br/>Monthly mobile subscription with unlimited minutes text messages for'+iif(discount > 0, ' <s><<price>></s><<price-discount>>', ' <<price>>')+' <b>₽</b> Automatically renews every month</td></tr>'
-		'<tr><td> </td></tr>'
+		$line += '<tr><td style="padding-left: 10px; padding-right: 10px; align: left;">Monthly mobile subscription that allows you to make calls and send text messages for'+iif(discount > 0, '<b><s><<price>></s></b> <span color="red"><b><<price-discount>></b></span>', ' <b><<price>></b>')+'<b>₽</b> Automatically renews every month</td>'
+		if bankAccount = 1 and karta+bankDebtLimit >= (price-discount): $line += '<td style="padding-left: 10px; padding-right: 10px;"><a href="exec: gs ''internet_mobile'', ''buy_subscription'', ''monthly_calls'', <<price>>, <<discount_left>> & gs ''internet_mobile'', ''cancel_subscription'', ''metered_calls'' & minut += 30 & karta -= <<price>> & gt ''shop'' ">Pay with card</a></td></tr>'
+		if bankAccount = 1 and karta+bankDebtLimit < (price-discount): $line += '<td style="padding-left: 10px; padding-right: 10px;">Insufficient funds</td></tr>'
+		if bankAccount = 0: $line += '<td style="padding-left: 10px; padding-right: 10px;">No bank account</td></tr>'
 	end
-	'<tr><td> </td></tr>'
- 	'<tr><td align="center"><b>Metered Calls and Texts</b></td></tr>'
+	'<<$title>><<$tables>><<$line>><<$tablec>>'
+	killvar 'title'
+	killvar 'line'
+
+	$title = '<center><h4>Metered Calls and Texts</h4></center>'
 	if subscription['monthly_calls'] = 1:
-		'<tr><td align="center">You have an active mobile subscription with unlimited minutes and texts, you can''t buy extra minutes</td></tr>'
-		'<tr><td> </td></tr>'
-		'<tr><td align="left">60 minutes call pack for 60 <b>₽</b></td></tr>'
-		'<tr><td align="left">120 minutes call pack for 115<b>₽</b></td></tr>'
-		'<tr><td align="left">180 minutes call pack for 170<b>₽</b></td></tr>'
-		'<tr><td align="left">240 minutes call pack for 225<b>₽</b></td></tr>'
+		$line += '<tr><td>You have an active mobile subscription with unlimited minutes and texts, you can''t buy extra minutes</td></tr>'
 	else
-		'<tr><td>1<b>₽</b> gives your 1 minute of calltime or 1 text message</td></tr>'
-		'<tr><td> </td></tr>'
-
-		'<tr><td align="left">60<b>₽</b> call pack for your mobile phone that gives you 60 minutes of calltime and 120 text messages</td></tr>'
+		$line += '<tr><td style="padding-left: 10px; padding-right: 10px; align: left;">60<b>₽</b> call pack for your mobile phone that gives you 60 minutes of calltime and 120 text messages</td>'
 		if money >= 60:  
-			'<td><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_calls'', 60, 120 & money -= 60 & minut += 10 & gt ''shop'' ">Pay with cash</a></td>'
+			$line += '<td style="padding-left: 10px; padding-right: 10px;"><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_calls'', 60, 120 & money -= 60 & minut += 10 & gt ''shop'' ">Pay with cash</a></td>'
 		else
-			'<td>Not enough cash</td>'
+			$line += '<td style="padding-left: 10px; padding-right: 10px;">Not enough cash</td>'
 		end
-		if bankAccount = 1 and karta+bankDebtLimit >= 60:
-			'<td><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_calls'', 60, 120 & karta -= 60 & minut += 10 & gt ''shop'' ">Pay with card</a></td></tr>'
+		if bankAccount = 0:
+			$line += '<td style="padding-left: 10px; padding-right: 10px;">No bank account</td></tr>'
+		elseif bankAccount = 1 and karta+bankDebtLimit >= 60:
+			$line += '<td style="padding-left: 10px; padding-right: 10px;"><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_calls'', 60, 120 & karta -= 60 & minut += 10 & gt ''shop'' ">Pay with card</a></td></tr>'
 		else
-			'<td>Insufficient balance</td></tr>'
+			$line += '<td style="padding-left: 10px; padding-right: 10px;">Insufficient balance</td></tr>'
 		end
-		'<tr><td align="left">115<b>₽</b> call pack for your mobile phone that gives you 120 minutes of calltime and 240 text messages</td></tr>'
-		if money >= 115:  
-			'<td><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_calls'', 120, 240 & money -= 115 & minut += 10 & gt ''shop'' ">Pay with cash</a></td>'
-		else
-			'<td>Not enough cash</td>'
-		end
-		if bankAccount = 1 and karta+bankDebtLimit >= 115:
-			'<td><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_calls'', 120, 240 & karta -= 115 & minut += 10 & gt ''shop'' ">Pay with card</a></td></tr>'
-		else
-			'<td>Insufficient balance</td></tr>'
-		end
-		'<tr><td align="left">170<b>₽</b> call pack for your mobile phone that gives you 180 minutes of calltime and 360 text messages</td></tr>'
-		if money >= 170:  
-			'<td><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_calls'', 180, 360 & money -= 170 & minut += 10 & gt ''shop'' ">Pay with cash</a></td>'
-		else
-			'<td>Not enough cash</td>'
-		end
-		if bankAccount = 1 and karta+bankDebtLimit >= 170:
-			'<td><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_calls'', 180, 360 & karta -= 170 & minut += 10 & gt ''shop'' ">Pay with card</a></td></tr>'
-		else
-			'<td>Insufficient balance</td></tr>'
-		end
-		'<tr><td align="left">225<b>₽</b> call pack for your mobile phone that gives you 240 minutes of calltime and 480 text messages</td></tr>'
-		if money >= 225:  
-			'<td><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_calls'', 240, 480 & money -= 225 & minut += 10 & gt ''shop'' ">Pay with cash</a></td>'
-		else
-			'<td>Not enough cash</td>'
-		end
-		if bankAccount = 1 and karta+bankDebtLimit >= 225:
-			'<td><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_calls'', 240, 480 & karta -=225 & minut += 10 & gt ''shop'' ">Pay with card</a></td></tr>'
-		else
-			'<td>Insufficient balance</td></tr>'
-		end
-		'<tr><td> </td></tr>'
-		'<tr><td align="center">You have <b><<subscription[''metered_calls'']>>₽</b> for mobile calls and text messages</td></tr>' 
-		'</center>'
-	end
 
+		$line += '<tr><td style="padding-left: 10px; padding-right: 10px; align: left;">115<b>₽</b> call pack for your mobile phone that gives you 120 minutes of calltime and 240 text messages</td>'
+		if money >= 115:  
+			$line += '<td style="padding-left: 10px; padding-right: 10px;"><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_calls'', 120, 240 & money -= 115 & minut += 10 & gt ''shop'' ">Pay with cash</a></td>'
+		else
+			$line += '<td style="padding-left: 10px; padding-right: 10px;">Not enough cash</td>'
+		end
+		if bankAccount = 0:
+			$line += '<td style="padding-left: 10px; padding-right: 10px;">No bank account</td></tr>'
+		elseif bankAccount = 1 and karta+bankDebtLimit >= 115:
+			$line += '<td style="padding-left: 10px; padding-right: 10px;"><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_calls'', 120, 240 & karta -= 115 & minut += 10 & gt ''shop'' ">Pay with card</a></td></tr>'
+		else
+			$line += '<td style="padding-left: 10px; padding-right: 10px;">Insufficient balance</td></tr>'
+		end
+
+		$line += '<tr><td style="padding-left: 10px; padding-right: 10px; align: left;">170<b>₽</b> call pack for your mobile phone that gives you 180 minutes of calltime and 360 text messages</td>'
+		if money >= 170:  
+			$line += '<td style="padding-left: 10px; padding-right: 10px;"><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_calls'', 180, 360 & money -= 170 & minut += 10 & gt ''shop'' ">Pay with cash</a></td>'
+		else
+			$line += '<td style="padding-left: 10px; padding-right: 10px;">Not enough cash</td>'
+		end
+		if bankAccount = 0:
+			$line += '<td style="padding-left: 10px; padding-right: 10px;">No bank account</td></tr>'
+		elseif bankAccount = 1 and karta+bankDebtLimit >= 170:
+			$line += '<td style="padding-left: 10px; padding-right: 10px;"><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_calls'', 180, 360 & karta -= 170 & minut += 10 & gt ''shop'' ">Pay with card</a></td></tr>'
+		else
+			$line += '<td style="padding-left: 10px; padding-right: 10px;">Insufficient balance</td></tr>'
+		end
+
+		$line += '<tr><td style="padding-left: 10px; padding-right: 10px; align: left;">225<b>₽</b> call pack for your mobile phone that gives you 240 minutes of calltime and 480 text messages</td>'
+		if money >= 225:  
+			$line += '<td style="padding-left: 10px; padding-right: 10px;"><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_calls'', 240, 480 & money -= 225 & minut += 10 & gt ''shop'' ">Pay with cash</a></td>'
+		else
+			$line += '<td style="padding-left: 10px; padding-right: 10px;">Not enough cash</td>'
+		end
+		if bankAccount = 0:
+			$line += '<td style="padding-left: 10px; padding-right: 10px;">No bank account</td></tr>'
+		elseif bankAccount = 1 and karta+bankDebtLimit >= 225:
+			$line += '<td style="padding-left: 10px; padding-right: 10px;"><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_calls'', 240, 480 & karta -=225 & minut += 10 & gt ''shop'' ">Pay with card</a></td></tr>'
+		else
+			$line += '<td style="padding-left: 10px; padding-right: 10px;">Insufficient balance</td></tr>'
+		end
+	end
+	'<<$title>><<$tables>><<$line>><<$tablec>>'
+	'<center>You have <b><<subscription[''metered_calls'']>>minutes</b> for mobile calls and <<subscription[''sms_limit'']>>text messages</center>' 
+
+	killvar 'title'
+	killvar 'line'
 	killvar 'discount'
 	killvar 'discount_left'
 	killvar 'price'
