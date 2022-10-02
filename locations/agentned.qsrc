@@ -20,7 +20,7 @@ if $ARGS[0] = 'start':
 	'This is the head office of the largest real estate agency in the Leningrad Oblast.'
 	*nl
 	'At the reception, you notice a large print banner:'
-	'"Please be aware that all sales transactions are made exclusively through your bank account. Rent payments are excluded from this policy."'
+	'<b>"Please be aware that all sales transactions are made exclusively through your bank account. Rent payments are excluded from this policy."</b>'
 
 	cityaptdays = func('homes_properties', 'get_rent_days', 'city_apartment')
 	oldtowndays = func('homes_properties', 'get_rent_days', 'old_town_apartment')
@@ -36,24 +36,23 @@ if $ARGS[0] = 'start':
 	killvar 'cityaptdays'
 	killvar 'oldtowndays'
 
-	count = ARRSIZE('owned_property') 
+	$property_list = func('homes_properties', 'get_owned_homes')
+	count = ARRSIZE('$property_list')
 	if count > 0:
 		$text_to_print = ''
 		:rent_loop
-			if owned_property[i] = 2 or owned_property[i] = 3:	
-				print = 1			
-				gs 'homes_properties', 'get_property_attr', $owned_property[i]
-				if owned_property[i] = 3:
-					$text_to_print[j] = '<<$property[''agency_display'']>> which is currently occupied by your tenants.'
-				elseif owned_property[i] = 2:
-					$text_to_print[j] = '<<$property[''agency_display'']>> which is currently occupied by your tenants.'
-				end
-				j += 1
-				killvar '$property'
+			gs 'homes_properties', 'get_property_attr', $property_list[i]
+			if owned_property[$property_list[i]] = 3:
+				$text_to_print[j] = '<<$property[''agency_display'']>> which is currently occupied by your tenants.'
+			elseif owned_property[$property_list[i]] = 2:
+				$text_to_print[j] = '<<$property[''agency_display'']>> which is currently occupied by your tenants.'
 			end
+			j += 1			
 			i += 1
+			killvar '$property'
 		if i < count: jump 'rent_loop'
 	end
+	killvar 'property_list'
 	if print = 1:
 		*nl
 		'<b>You own the following property</b>'
@@ -86,7 +85,7 @@ if $ARGS[0] = 'start':
 			'Attention: You won''t be able to return to your apartment when you cancel the lease.'
 
 			act 'Return': gt'agentned', 'start'
-			act 'Cancel it': owned_property['city_apartment'] = 0 & gt'agentned', 'start'
+			act 'Cancel it': gs 'homes_properties', 'set_ownership', 'city_apartment', 0 & gt'agentned', 'start'
 		end
 	end
 
@@ -96,7 +95,7 @@ if $ARGS[0] = 'start':
 			'Attention: You won''t be able to return to your apartment when you cancel the lease.'
 
 			act 'Return': gt'agentned', 'start'
-			act 'Cancel it': owned_property['old_town_apartment'] = 0 & gt'agentned', 'start'
+			act 'Cancel it': gs 'homes_properties', 'set_ownership', 'old_town_apartment', 0 & gt'agentned', 'start'
 		end
 	end
 end
@@ -113,23 +112,25 @@ if $ARGS[0] = 'buy':
 	'<center><b><font color = maroon>Real Estate Agency</font></b></center>'
 	'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo.jpg"></center>'
 	*nl
+	'<h4> The purchase of any properties requires a bank account. The Agency is not conducting business in cash in compliance with the Anti-Money Laundering Regulations</h4>'
+	*nl
 	minut += 5
 	gs 'stat'
 	
 	act 'Return':gt'agentned', 'start'
 	
-	if property_owned['city_apartment'] = 0 or property_owned['village_cottage'] = 0 or owned_property['matryona_mansion'] = 0 or owned_property['city_house'] = 0:
-		if property_owned['city_apartment'] = 0:
+	if owned_property['city_apartment'] = 0 or owned_property['village_cottage'] = 0 or owned_property['matryona_mansion'] = 0 or owned_property['city_house'] = 0:
+		if owned_property['city_apartment'] = 0:
 			'There is an apartment in the city residential area available for <<$prop_price[''city_apartment'']>> <b>₽</b>.'
 			*nl
 			if karta + bankDebtLimit >= $prop_price['city_apartment']: act 'Buy the city residential apartment': gt 'agentned', 'buy_property', 'city_apartment'
-		elseif property_owned['city_apartment'] = 1:
+		elseif owned_property['city_apartment'] = 1:
 			'You could buy your current rental apartment for <<$prop_price[''city_apartment'']>> <b>₽</b>.'
 			*nl
 			if karta + bankDebtLimit >= prop_price['city_apartment']: act 'Buy the city residential apartment': gt 'agentned', 'buy_property', 'city_apartment'
 		end
 
-		if property_owned['village_cottage'] = 0:
+		if owned_property['village_cottage'] = 0:
 			'There is a holiday cottage with an adjacent allotment in the village for <<$prop_price[''village_cottage'']>> <b>₽</b>.'
 			*nl
 			if karta + bankDebtLimit >= prop_price['village_cottage']: act 'Buy the cottage in the village': gt 'agentned','buy_property', 'village_cottage'
@@ -198,7 +199,7 @@ if $ARGS[0] = 'sell':
 		end
 	end
 	
-	if property_owned['village_cottage'] = 2:
+	if owned_property['village_cottage'] = 2:
 		if func('homes_properties', 'property_renovated', 'village_cottage') = 1: 
 			!Renovated communal cottage
 			offer2 = ((prop_price['village_cottage'] + 200000) + rand(-10000, 10000))
@@ -257,7 +258,7 @@ if $ARGS[0] = 'sell':
 		'Sorry, we are unable to find a buyer for your house at this time.'
 	end
 
-	if property_owned['city_apartment'] = 0 and property_owned['village_cottage'] = 0 and owned_property['city_house'] = 0 and owned_property['matryona_mansion'] = 0:
+	if owned_property['city_apartment'] = 0 and owned_property['village_cottage'] = 0 and owned_property['city_house'] = 0 and owned_property['matryona_mansion'] = 0:
 		'You don''t currently own any property.'
 	end
 end
@@ -278,20 +279,21 @@ if $ARGS[0] = 'rent':
 	
 	act 'Return':gt'agentned', 'start'
 	
-	if property_owned['city_apartment'] > 0 and property_owned['old_town_apartment'] > 0:
+	if owned_property['city_apartment'] > 0 and owned_property['old_town_apartment'] > 0:
 		'We currently have no properties listed for rent.'
-	elseif property_owned['city_apartment'] = 0 and property_owned['old_town_apartment'] = 0:
+	elseif owned_property['city_apartment'] = 0 and owned_property['old_town_apartment'] = 0:
 		*nl
 		'There are two apartments available for rent. They are located in the city residential area and in Pushkin.'
 		act 'View the city apartment details': gt 'agentned', 'rent_cityres'
 		act 'View the Pushkin apartment details': gt 'agentned', 'rent_pushkin'
-	elseif property_owned['city_apartment'] = 0:
+	elseif owned_property['city_apartment'] = 0:
 		'There is a property for rent in the city residential area'
 		act 'View the city apartment details': gt 'agentned', 'rent_cityres'
-	elseif property_owned['old_town_apartment'] = 0:
+	elseif owned_property['old_town_apartment'] = 0:
 		'There is a property for rent in the old town of Pushkin'
 		act 'View the Pushkin apartment details': gt 'agentned', 'rent_pushkin'
 	end
+	*nl
 end
 
 if $ARGS[0] = 'rent_cityres':
@@ -355,15 +357,15 @@ if $ARGS[0] = 'rent_pushkin':
 	*nl
 	'"We have a small apartment available right now that is in Pushkin’s city center. It’s a little bit pricey, but it’s been recently renovated to be more modern. It looks quite nice, so you won’t find a place like that outside of Pushkin." The receptionist says as he starts pulling out the paperwork. "Rent is <<$home_rent_txt[4]>> ₽ and leases have to be renewed every 30 days, which can be taken automatically from your account or you can come in and pay directly. Last, but not least, you have to make your first payment up front at signing."'
 	'<br>He pulls out a pen and slides the paperwork onto the counter. "Interested? You can move in right away," he calmly says.'
-	
-	if money >= property_owned['old_town_apartment'] or karta >= property_owned['old_town_apartment']:
+	*nl
+	if money >= prop_rent['old_town_apartment'] or karta >= prop_rent['old_town_apartment']:
 		act 'Agree and pay':
 			*clr & cla
 			minut += 30
-			if money >= property_owned['old_town_apartment']: 
-				money -= property_owned['old_town_apartment']
+			if money >= prop_rent['old_town_apartment']: 
+				money -= prop_rent['old_town_apartment']
 			else
-				karta -= property_owned['old_town_apartment']
+				karta -= prop_rent['old_town_apartment']
 			end
 			gs 'homes_properties', 'set_ownership', 'old_town_apartment', 1
 			if func( 'homes_properties', 'get_accessible_count') = 1:
@@ -377,7 +379,7 @@ if $ARGS[0] = 'rent_pushkin':
 			'<center><b><font color = maroon>Real Estate Agency</font></b></center>'
 			'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo_paperwork.jpg"></center>'
 			*nl
-			'You take the pen and start filling out the paperwork. After writing for an hour, you hand over the money and receive the keys to your new apartment.'
+			'You take the pen and start filling out the paperwork. After writing for half an hour, you hand over the money and receive the keys to your new apartment.'
 
 			act 'Return':gt'agentned', 'start'
 		end
