@@ -9,7 +9,7 @@ set QSPGUI=tools\Player-video\qspgui.exe
 set QGEN=tools\QGen5\QGen.exe
 
 :: The file that will be generated or open
-set QSPFILE=glife.qsp
+set QSPFILE=glife-internet-home.qsp
 
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
@@ -63,9 +63,14 @@ if defined QSPFILE (
 	if %action% == r goto run
 	if %action% == f goto build
 	if %action% == q goto qgen
+	if %action% == B goto build
+	if %action% == R goto run
+	if %action% == F goto build
+	if %action% == Q goto qgen
 )
 
 if %action% == e goto exit
+if %action% == E goto exit
 
 set NOT_FOUND=1
 goto menu

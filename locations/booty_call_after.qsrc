@@ -41,13 +41,13 @@ if $ARGS[0] = 'ending':
 !!	gs 'booty_call_stats', 'save'
 	gs 'arousal', 'end'
 	if $clothingworntype = 'nude': gs'booty_call_after', 'dress'
-	if pcs_vag > 0 and booty_call['fuck'] > 0: know_virgin[$boy] = 0
+	if booty_call['fuck'] > 0: know_virgin[$boy] = 0
 	if booty_call['creampie_orgasm'] = 1: stat_memory['creampie_orgasm'] = daystart
 	killvar 'booty_call'
 end
 
 if $ARGS[0] = 'dress':
-	gs 'clothing','wear_last_worn'
+	gs 'clothing', 'wear_last_worn'
 	gs 'panties', 'wear', $lastwornpantytype['booty_call'], lastwornpantynumber['booty_call']
 	gs 'bras', 'wear', $lastwornbratype['booty_call'], lastwornbranumber['booty_call']
 	gs 'stat'
@@ -261,13 +261,18 @@ if $ARGS[0] = 'keep_going':
 				act'Sex':cla & gs'booty_call_sex', 'position_change' & gs 'booty_call_condoms', 'condoms'
 			else
 				cla & *nl
-				$booty_call['reset_pos'] = $booty_call['pos_speed']
+				$booty_call['reset_pos'] = $booty_call['position']
 				minut += rand(1,2)
 				'"Think you can keep going?" you ask, flexing your pussy around his cock. It twitches inside in response, feeling a little stiffer than before. "That feels like a yes," you grin.'
 				gs'booty_call_sex', 'reset'
 				act'Let him lead':cla & gs 'booty_call_sex', 'he_choose_position'
 				act'Foreplay':cla & gs 'booty_call_start', 'foreplay_choose'
-				act'Keep fucking':cla & gs'booty_call_sex', 'reset' & gs'booty_call_sex', 'position_change' & gs 'booty_call_condoms', 'condoms'
+				act'Keep fucking':
+					cla
+					gs 'booty_call_sex', 'reset'
+					gs 'booty_call_condoms', 'condoms'
+					gt 'booty_call_<<$booty_call[''reset_pos'']>>', $booty_call['pos_speed']
+				end
 			end
 		else
 			cla & *clr
@@ -763,7 +768,7 @@ if $ARGS[0] = 'black_out':
 				gs'sleep', 'simple'
 			end
 
-			if mid($start_type,1,2) = 'sg' and home_owned[2] = 1: sveta_punishment['no_come_home'] = 1
+			if mid($start_type,1,2) = 'sg' and owned_property['parents_home'] = 4: sveta_punishment['no_come_home'] = 1
 			gt'booty_call_morning', 'morning'
 		end
 	end
@@ -893,7 +898,7 @@ if $ARGS[0] = 'cum_clean':
 		act'Lick your fingers clean':
 			gs'stat'
 			gs 'cum_cleanup', 'cleanloc'
-			swallow += 1
+			stat['swallow'] += 1
 			cla & *clr
 			'<center><b><font color="maroon"><<$npc_firstname[$boy]>>''s Bedroom</font></b></center>'
 			$npc_apt_bedroom[$boy]
@@ -1420,6 +1425,22 @@ if $ARGS[0] = 'dressing1':
 		
 		gs 'booty_call_after', 'panty_gift'
 	end
+	
+	if hour >= 18 and (week = 5 or week = 6):
+		act'Going to the disco':
+			cla & *nl
+			if booty_call['disco_after'] = 1:
+				'"Weren''t you listening to me?" you say, <<$booty_call[''dress_describe'']>>. "I told you, I''m going to the disco tonight."'
+			else
+				'"Yeah," you say, <<$booty_call[''dress_describe'']>>. "I want to go to the disco."'
+			end
+			!! add spontaneous disco date
+			gs 'booty_call_after', 'dressing2'
+			
+			gs 'booty_call_after', 'panty_gift'
+		end
+	end
+	
 	if mid($start_type,1,2) = 'sg' and hour >= 20:
 		act'Mom will kill me':
 			booty_call['mom_kill'] = 1
@@ -1465,13 +1486,13 @@ end
 
 if $ARGS[0] = 'dressing2':
 	if booty_call['sleepover'] = 1:
-		gs'booty_call_morning','end_morning'
+		gs'booty_call_morning', 'end_morning'
 	else
 		act'Finish getting dressed':
 			gs'booty_call_after', 'dress_loop'
 			cla & *clr
 			$npc_apt_bedroom[$boy]
-			'You finish <<$booty_call[''dress_describe'']>>'
+			'You finish <<$booty_call[''dress_describe'']>>.'
 			gs'booty_call_after', 'after_sex_dressed'
 		end
 	end
@@ -1686,12 +1707,35 @@ if $ARGS[0] = 'dress_loop':
 end
 
 if $ARGS[0] = 'after_sex_dressed':
-	act'Head out':
+	act'Prepare to leave':
 		cla & *clr
 		$npc_apt_bedroom[$boy]
 		'"I gotta get going."'
 		'"Okay, see you later."'
-		act'Leave':gt'booty_call_after', 'exit'
+		act'Bye':
+			cla & *nl
+			'"Bye," you say with a wave and head out the door.'
+			act'Leave':gt'booty_call_after', 'exit'
+		end
+
+		act'See ya':
+			cla & *nl
+			'"See you later," you wink and head out the door.'
+			act'Leave':gt'booty_call_after', 'exit'
+		end
+		
+		act'Blow him a kiss':
+			cla & *nl
+			'"Until next time."'
+			'You give him a wink and blow him a kiss and head out the door.'
+			act'Leave':gt'booty_call_after', 'exit'
+		end
+		
+		act'Text me':
+			cla & *nl
+			'"Text me later," you say nonchalantly and head out the door.'
+			act'Leave':gt'booty_call_after', 'exit'
+		end
 	end
 	act'Hang out':msg 'Work in progress! To be continued!'
 	act'Break things off':
@@ -2050,7 +2094,7 @@ if $ARGS[0] = 'sleep_function':
 		gs'sleep', 'simple'
 	end
 
-	if mid($start_type,1,2) = 'sg' and home_owned[2] = 1: sveta_punishment['no_come_home'] = 1
+	if mid($start_type,1,2) = 'sg' and owned_property['parents_home'] = 4: sveta_punishment['no_come_home'] = 1
 	gt'booty_call_morning', 'morning'
 end
 --- booty_call_after ---------------------------------

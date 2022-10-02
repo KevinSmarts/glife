@@ -425,7 +425,7 @@ if $ARGS[0] = 'SvetaCallsNPC':
 		end
 	end
 
-	if $home_town = 'city':
+	if $home['town'] = 'city':
 		act 'Invite to the bar':
 			cla
 			'"Let''s go to the bar."'
@@ -666,17 +666,25 @@ if $ARGS[0] = 'phone_call_receive':
 end &! --- phone_call_receive ---
 
 if $ARGS[0] = 'phone_balance':
-	if balans < 4:
+	if subscription['monthly_calls'] = 0 and subscription['metered_calls'] < 4:
+		if subscription['monthly_calls'] = 0 and subscription['monthly_calls-date'] > 0: 
+			$contractmessage = '<font size=6>Your mobile contract has expired, you have renew it or buy some minutes.</font><br>'
+		elseif subscription['metered_calls'] < 4 and subscription['metered_calls-date'] > 0:
+			$contractmessage = '<font size=6>Not enough minutes left on your contract to make a call</font><br>'
+		else
+			$contractmessage = '<font size=6>You don''t have a valid contract, you should buy one at MegFon.</font><br>'
+		end
 		$telefon['body'] = '
-		<font size=6>Not enough credit on your account</font><br>
+		<<$contractmessage>>
 		<img src="<<$callerid>>"><br><br>
 		<a href="exec:gs ''telefon'', ''Phone_menu'' "><img src="images/system/phone/decline.png"></a><br>'
 		dynamic $telefon['print']
 		wait 3500
 		cla
 		gt $loc, $loc_arg
-	elseif balans >= 4:
-		balans -= 4
+		killvar 'contractmessage'
+	elseif subscription['metered_calls'] > 4:
+		subscription['metered_calls'] -= 4
 	end
 end &! --- phone_balance ---
 
@@ -703,12 +711,24 @@ if $ARGS[0] = 'phone_call_reject':
 end &! --- phone_call_reject ---
 
 if $ARGS[0] = 'Phone_megafon':
+	if subscription['monthly_calls'] = 1: 
+		$contractmessage = 'You have a valid monthly contract that will renew on <<subscription[''monthly_calls-date'']>>/<<month+1>>' 
+	elseif subscription['metered_calls'] = 1:
+		$contractmessage = 'You have a valid minutes based contract that still has <<subscription[''metered_calls'']>> minuets left' 
+	elseif subscription['monthly_calls'] = 0 and subscription['monthly_calls-date'] > 0: 
+		$contractmessage = '<font size=6>Your mobile contract has expired, you have renew it or buy some minutes.</font><br>'
+	elseif subscription['metered_calls'] < 4 and subscription['metered_calls-date'] > 0:
+		$contractmessage = '<font size=6>You have a minute based plan, but it doesn''t have enough minutes left to make a call</font><br>'
+	else
+		$contractmessage = '<font size=6>You don''t have any valid contracta, you should buy one at MegFon.</font><br>'
+	end
+
 	$telefon['body'] = '
 	<font size=6>MegaFon</font><br>
 	<img src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/icon_megafon.png" height="80" width="80"><br><br>
-	<b>The balance in the account:</b>
-	<font size=5><<balans>> ₽.</font><br>'
+	<b><<$contractmessage>></b>'
 	dynamic $telefon['print']
+	killvar '$contractmessage'
 end &! --- Phone_megafon ---
 
 
@@ -857,7 +877,7 @@ if $ARGS[0] = 'callingTheLover' and loverGender[ARGS[1]] = 1:
 		end
 	end
 
-	if $home_town = 'city':
+	if $home['town'] = 'city':
 		act 'Invite to the pool hall':
 			cla
 			'"Let''s play pool."'
@@ -949,7 +969,7 @@ if $ARGS[0] = 'callingTheLover' and loverGender[ARGS[1]] = 0:
 		end
 	end
 
-	if $home_town = 'city':
+	if $home['town'] = 'city':
 		act 'Invite to the pool hall':
 			cla
 			'"Let''s play pool."'
@@ -1215,8 +1235,8 @@ if $ARGS[0] = 'Phone_notebook':
 	<<year>>-<<$month>>-<<day>>, <<$week[week]>><br><br>'
 	rent1 = -1
 	rent4 = -1
-	if home_owned[1] > 0 and ArendHouseSL > 0:rent1 = ArendHouseSL
-	if home_owned[4] > 0 and ArendHouseSL4 > 0:rent4 = ArendHouseSL4
+	if owned_property['city_apartment'] = 1 and func('homes_properties', 'get_rent_days', 'city_apartment') > 0: rent1 = func('homes_properties', 'get_rent_days', 'city_apartment')
+	if owned_property['old_town_apartment'] > 0 and func('homes_properties', 'get_rent_days', 'old_town_apartment') > 0: rent4 = func('homes_properties', 'get_rent_days', 'old_town_apartment')
 	d1 = day
 	w1 = week
 	m1 = month
@@ -1609,7 +1629,7 @@ if $ARGS[0] = 'Phone_sms':
 	<img src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/<<iif(telefon[''UnreadSMS'']=0,''icon_sms.png'',''icon_sms_new.gif'')>>" height="80" width="80"><br>'
 	
 	$telefon['body'] += '<b><a href="exec:gs ''telefon'', ''send_sms''">Send new SMS</a></b><br>'
-	$telefon['body'] += '<TABLE cellspacing="0" width="80%"><TR><TH>icon</TH><TH>Name</TH><TH align="right">Received</TH><TH></TH></TR>'
+	$telefon['body'] += '<TABLE cellspacing="0" width="80%"><TR><TH>Icon</TH><TH>Name</TH><TH align="right">Received</TH><TH></TH></TR>'
 
 	!!iterating all Messages
 	!!reset and recalculate unread messages count, in case they get out of sync
@@ -1759,7 +1779,7 @@ $telefon['SMS'] = {
 	end
 
 	$result = '<TR>
-		<TD><><img height=100 src="<<$telefon[''ContactIcon'']>>"></TD>
+		<TD><img height=100 src="<<$telefon[''ContactIcon'']>>"></TD>
 		<TD><<$telefon[''SMSstyle1'']>><<$telefon[''ContactNickName'']>><<$telefon[''SMSstyle2'']>></TD>
 		<TD align="right"><<$telefon[''SMSstyle1'']>><a href="exec:gs ''telefon'', ''show_sms'', <<telefon[''SMSid'']>>"><<$telefon[''SMSTime'']>></a><<$telefon[''SMSstyle2'']>></TD>
 		<TD><<$telefon[''SMSstyle1'']>><a href="exec:gs ''telefon'', ''delete_sms'', <<telefon[''SMSid'']>>">Delete</a><<$telefon[''SMSstyle2'']>></TD>
@@ -1772,7 +1792,10 @@ if $ARGS[0] = 'send_sms':
 	$telefon['body'] = '
 	<font size=6>Send SMS</font><br>
 	<img src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/<<iif(telefon[''UnreadSMS'']=0,''icon_sms.png'',''icon_sms_new.gif'')>>" height="80" width="80"><br>'
-
+	if $subscription['metered_calls'] = 1 and $subscription['sms_limit'] > 0: 
+		$telefon['body'] += '<br/>'
+		$telefon['body'] += '<b>You still can send <<$subscription[''sms_limit'']>> text messages on your contract</b>'
+	end
 !! Colour correction for editor ''''
 	
 	$telefon['body'] += '<TABLE cellspacing="0" width="80%">'
@@ -1853,6 +1876,7 @@ $telefon['smsMessageToSend'] = {
 
 if $ARGS[0] = 'smsSendMessage':
 	dynamic '<<$SMSSendCode[ARGS[1]]>>'
+	gs 'internet_mobile', 'send_sms'
 	if SMSSendRepeatable[ARGS[1]] = 0:
 		gs 'telefon', 'delete_sms_send_index', ARGS[1]
 	end

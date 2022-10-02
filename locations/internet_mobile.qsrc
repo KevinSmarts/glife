@@ -1,0 +1,266 @@
+# internet_mobile
+
+!! {  Plans and Subscriptions
+
+subscription[<plan name>]           The subscription itself that will be checked to see if Sveta can access the internet
+                                    Possible values:
+                                        Monthly subscriptions:
+                                            0: subscription is inactive, either never bought or expired.
+                                            1: subscription is active
+                                                                                    
+                                        Metered plans:
+                                            Any integer number, which means the available minutes left within the plan.
+                                            This is how the old mobile minutes and internet time worked, but tracked in minutes,
+                                            not hours for the internet.
+
+subscription[<plan name>-date]      The day the subscription was bought for the home (or mobile), this will be the renewal day.
+                                    automatically set to `day`.
+                                    Possible values 0-31, 1-31 are renewal days, 0 means the plan never expires.
+
+
+subscription[<plan name>-price]     The monthly fee of the subscription.
+
+subscription[<plan name>-discount]  The discount on the plan - relevant if the original discount was greater than the monthly
+                                    fee. If the value is higher than 0, payments come from this first until the value gets to
+                                    0.
+
+subscription[<plan nam>-type]       The type of the subscription. 
+                                    Possible values:
+                                        1: Monthly subscription
+                                        2: Metered plan
+                                        
+                                        
+
+Plan Names
+
+free:           A subscription that is freely available, libraries, friends and lovers apartment, etc. that has a computer.
+                The value of this plan is always 1 and the subscription_date is 0.
+
+mobile:         Mobile telephone (only internet or calls too?) and laptop if taken somewhere else. 
+                If at a location where subscription['free'] is used, she has to ask first to be able to use her own laptop
+                with the local internet, otherwise it will still use the mobile subscription - if there is none, it won''t work. 
+
+metered_mobile  Cheaper option for broke Svetas. When subscription['mobile'] = 0 check for this and if
+                `subscription['metered_mobile'] > 0` then use it.
+
+$home_name      This is a monthly subscription that can be used in a specific home owned/rented by Sveta.
+                This is tracking the internet subscription per home. So if Sveta owns several places, she has a separate
+                subscription for each of them.
+                For allowed values see `homes_properties`.
+
+monthly_calls   A monthly mobile subscription giving unlimited call minutes and text message
+
+metered_calls   A mobile plan that gives a set amount of minutes that can be used.
+
+}
+
+if subscription['free'] = 0: subscription['free'] = 1
+
+!! Used for metered calls/texts/internet.
+!! $ARGS[1] = subscription name, i.e., 'metered_mobile' for mobile net or 'metered_calls' for phone calls and text messages
+!! ARGS[2]  = the number of units purchased (minutes, calls, etc.) right now relevant for metered mobile internet 
+!! ARGS[3]  = the number of sms messages that can be sent with this top up - only for metered_calls
+!! NOTE: Putting this on top so if we decide not to use it, it is easy to find and delete
+if $ARGS[0] = 'top_up_metered':
+    subscription[$ARGS[1]] += ARGS[2]
+    subscription[$ARGS[1]+'-date'] = day
+    if $ARGS[1] = 'metered_calls': subscription['sms_limit'] += ARGS[3]
+    if subscription[$ARGS[1]+'-type'] = 0:  subscription[$ARGS[1]+'-type'] = 2
+    gs 'stat'
+end
+
+!! In case we decide that internet prices are different for different homes (mobile definitely should be)
+!! $ARGS[1] = The plan name - see on top, generally the name of a property or a mobile plan. 
+!! ARGS[2]  = Subscription fee - the price to be paid every month
+!! ARGS[3]  = The remaining amount from the discount when it was more than the monthly fee. Optional value
+!!            See valid values in set_home.qsrc
+if $ARGS[0] = 'buy_subscription':
+    subscription[$ARGS[1]] = 1
+    subscription[$ARGS[1]+'-date'] = day
+    subscription[$ARGS[1]+'-price'] = ARGS[2] 
+    subscription[$ARGS[1]+'-discount'] = ARGS[3] 
+    if subscription[$ARGS[1]+'-type'] = 0: subscription[$ARGS[1]+'-type'] = 1
+    gs 'stat'
+end
+
+!! Nightly check called from cikl - check for subscription renewal and suspension.
+if $ARGS[0] = 'check_subscription_actions':
+    $property_list = func('homes_properties', 'get_owned_homes')
+    count = ARRSIZE('$property_list') 
+	if count > 0:
+		:propertyloop
+            gs 'homes_properties', 'get_property_attr', $property_list[i]
+			if owned_property[$property_list[i]] ! 0 and owned_property[$property_list[i]] ! 3:
+				if property['internet_enabled'] = 1 and subscription[$property['code']] = 1:
+                    if subscription[$property['code']+'-date'] = day: gs 'internet_mobile', 'renew_subscription', $property['code']
+                    if subscription[$property['code']+'-suspension_month'] = month and subscription[$property['code']+'-suspension_day'] >= day: gs 'internet_mobile', 'renew_subscription', $property['code']
+                    if subscription[$property['code']+'-suspension_month'] <= month and subscription[$property['code']+'-suspension_day'] < day: gs 'internet_mobile', 'suspend_subscription', $property['code']
+                    $result[j] = 'Internet Subscription for <<$property[''name'']>>: <<subscription[$property[''code'']+''-contract_message'']>>'
+                    j += 1
+				end
+                killvar '$property'
+			end
+			i += 1
+	    if i < count: jump 'propertyloop'
+    end
+    killvar 'count'
+    killvar 'i'
+    if subscription['mobile'] = 1:
+        if subscription['mobile-date'] = day: gs 'internet_mobile', 'renew_subscription', 'mobile'
+        if subscription['mobile-suspension_month'] = month and subscription['mobile-suspension_day'] >= day: gs 'internet_mobile', 'renew_subscription', 'mobile'
+        if subscription['mobile-suspension_month'] <= month and subscription['mobile-suspension_day'] < day: gs 'internet_mobile', 'suspend_subscription', 'mobile'
+        $result[j] = 'You Mobile Internet Subscription: <<subscription[''mobile-contract_message'']>>'
+        j += 1
+    end
+    if subscription['monthly_calls'] = 1:
+        if subscription['monthly_calls-date'] = day: gs 'internet_mobile', 'renew_subscription', 'monthly_calls'
+        if subscription['monthly_calls-suspension_month'] = month and subscription['monthly_calls-suspension_day'] >= day: gs 'internet_mobile', 'renew_subscription', 'monthly_calls'
+        if subscription['monthly_calls-suspension_month'] <= month and subscription['monthly_calls-suspension_day'] < day: gs 'internet_mobile', 'suspend_subscription', 'monthly_calls'
+        $result[j] = 'You mobile contract: <<subscription[''monthly_calls-contract_message'']>>'
+        j += 1
+    end
+    killvar 'j'
+end
+
+!! Cancelling a subscription (currently uused only for metered_calls and metered_mobile to clean them up when a monthly subscription 
+!! is bought to repplace them)
+!! $ARGS[1] - subscription name
+if $ARGS[0] = 'cancel_subscription':
+    subscription[$ARGS[1]] = 0
+    subscription[$ARGS[1]+'-date'] = 0
+    subscription['sms_limit'] = 0
+    subscription[$ARGS[1]+'-type'] = 0
+    subscription[$ARGS[1]+'-price'] = 0
+    subscription[$ARGS[1]+'-discount'] = 0
+end
+
+!! Renewing the subscription
+if $ARGS[0] = 'renew_subscription':
+    renewfee = subscription[$ARGS[1]+'-price']
+    acc_discount = subscription[$ARGS[1]+'-discount']
+    app_discount = MIN(acc_discount,renewfee)
+    finalfee = app_discount
+    rem_discount = acc_discount-app_discount
+
+    if karta+bankDebtLimit > finalfee:
+        karta -= finalfee        
+        subscription[$ARGS[1]+'-discount'] = rem_discount
+        if app_discount > 0: $discounttext = '<<renewfee>>₽ and you had <<acc_discount>><b>₽</b> left on your account. After applying <<app_discount>><b>₽</b> to your monthly fee, your final payable was <b><font color="green"><<finalfee>>₽</b></font>  and you were left with <<rem_discount>><b>₽</b> on your account.'
+        $subscription[$ARGS[1]+'-contract_message'] = 'Your monthly fee was' + iif(app_discount > 0, $dicounttext, '<b><font color="green"><<renewfee>>₽</font></b> which was taken from your bank account.')
+        if subscription[$ARGS[1]+'-suspension_month'] > 0: subscription[$ARGS[1]+'-suspension_month'] = 0
+        if subscription[$ARGS[1]+'-suspension_day'] > 0: subscription[$ARGS[1]+'-suspension_day'] = 0
+    else
+        remainingday = 5
+        if subscription[$ARGS[1]+'-suspension_day'] > 0: remainingday = subscription[$ARGS[1]+'-suspension_day'] - day
+        if app_discount > 0: $discounttext = ' and you had <<acc_discount>><b>₽</b> left on your account. After applying <<app_discount>><b>₽</b> to your monthly fee, your final payable was <<finalfee>><b>₽</b>  and you were left with <<rem_discount>><b>₽</b> on your account.'
+        $subscription[$ARGS[1]+'-contract_message'] = 'Your monthly fee was <<renewfee>><b>₽</b>'+ iif(app_discount >0, $dicounttext,', unfortunately your payment was declined. We will try to take the payment over the next <b><font color="red"><<remainingday>> days</font></b> before suspending services.')
+        gs 'internet_mobile', 'set_suspension_date', $ARGS[1]
+    end
+    killvar 'renewfee'
+    killvar 'acc_discount'
+    killvar 'app_discount'
+    killvar 'finalfee'
+    killvar 'rem_discount'
+    killvar '$discounttext'
+    killvar 'remainingday'
+end
+
+
+
+!! Transfer existing subscription from one home to another if Sveta is moving.
+if $ARGS[0] = 'transfer_subscription':
+    allowed = func('internet_mobile', 'check_allowed_location', $ARGS[1])
+    allowed = allowed and func('internet_mobile', 'check_allowed_location', $ARGS[2])
+    if allowed:
+        subscription[$ARGS[2]] = subscription[$ARGS[1]]
+        subscription_date[$ARGS[2]+'-date'] = subscription[$ARGS[1]+'-date']
+        subscription[$ARGS[2]+'-price'] = subscription[$ARGS[1]+'-price']
+        subscription[$ARGS[2]+'-discount'] = subscription[$ARGS[1]+'-discount']
+        !! This one is always 1 because only type 1 subscriptions can be transferred, but making it "future proof"
+        subscription[$ARGS[2]+'-type'] = subscription[$ARGS[1]+'-type']
+        subscription[$ARGS[0]] = 0
+        killvar 'allowed'
+    end
+end
+
+!! This is a separate "function" because the check is a bit long, and can change if we realise it isn't the best way to do it.
+!! Spoiler alert: It is not, I'm pretty sure.  
+if $ARGS[0] = 'check_allowed_location':
+    gs 'homes_properties', 'get_propery_attr', $ARGS[1]
+    result = $property ! 'none' and $property['internet_enabled'] 
+    killvar 'property'
+end
+
+!! $ARGS[1] - this is expected only if the location allows the use of subscription['free']
+if $ARGS[0] = 'set_access':
+    if $ARGS[1] = 'free':
+        $access['subscription'] = 'free'
+    elseif subscription[$home_name] = 1:
+        $access['subscription'] = $home_name
+    elseif subscription['mobile'] = 1:
+        $access['subscription'] = 'mobile'
+    elseif subscription['metered_mobile'] > 0:
+        $access['subscription'] = 'metered_mobile'
+    end
+    
+    if subscription[$access['subscription']+'-type'] = 2: access['metered'] = 1
+    if $ARGS[2] = 'noporn': access['noporn'] = 1
+    if $ARGS[2] = 'nocamshow': access['nocamshow'] = 1
+    if $ARGS[3] = 'noporn': access['noporn'] = 1
+    if $ARGS[3] = 'nocamshow': access['nocamshow'] = 1
+    
+    if access['noporn'] = 1: $access['noporn-text'] = 'You can''t search for porn on this computer'
+    if access['nocamshow'] = 1: $access['nocamshow-text'] = 'You can''t do a cam show in this place'
+end
+
+
+if ARGS[0] = 'set_suspension_date':
+    temp_month = month
+    if month = 2:
+        if ((year mod 4 = 0) and (year mod 100 ! 0)) or (year mod 400 = 0):
+            switchday = 29
+        else
+            switchday = 28
+        end
+    elseif month = 4 or month = 6 or month = 9 or month = 11:
+        switchday = 30
+    else
+        switchday = 31
+    end
+    temp_day = day + 5
+    if temp_day > switchday:
+        temp_day -= switchday
+        temp_month += 1
+    end
+    subscription[$ARGS[1]+'suspension_day'] = temp_day
+    subscription[$ARGS[1]+'suspension_month'] = temp_month
+    killvar 'temp_month'
+    killvar 'temp_day'
+end
+
+!! Sending an sms on a metered contract
+if $ARGS[0] = 'send_sms':
+    if subscription['metered_calls'] = 1: subscription['sms_limit'] -= 1  
+end
+
+!! Using the internet - if metered, it lowers the minutes left
+!! $ARGS[1] - the name of the subscription used
+!! ARGS[2] - the number of minutes used
+if $ARGS[0] = 'use_internet':
+    if $subscription[$ARGS[1]+'-type'] = 'metered': 
+        subscription[$ARGS[1]] -= ARGS[2]
+        if subscription[$ARGS[1]] < 0: subscription[$ARGS[1]] = 0
+    end
+end
+
+!! Checks if Sveta still has access to the internet - use it while she is on the computer, mostly relevant for metered net,
+!! but monthly subscription can end abruptly too if she did not pay.
+!! Use it as a func() returns 1 or 0 based on the subscription[$ARGS[1]]  value
+!!
+!! $ARGS[1] - the name of the subscription
+if $ARGS[0] = 'check_internet_access':
+    if subscription[$ARGS[1]] > 0: result = 1
+end
+
+
+--- internet_mobile ---------------------------------
