@@ -3,21 +3,23 @@
 if $ARGS[0] = '':
 	$loc_arg = ''
 	$loc = 'city_mansion_entrance'
+	$home_name = 'matryona_mansion'
 	$menu_loc = 'city_mansion_entrance'
 	$menu_arg = ''
 	menu_off = 0
 	gs 'stat'
 	
 	*clr & cla
-	if home_owned[5] < 2:
+	constructionstatus = func('homes_properties', 'property_construction_status', 'matryona_mansion')
+	if constructionstatus = 0:
 		'<center><h4>Your Land</h4></center>'
 		'<center><img <<$set_imgh>> src="images/locations/city/suburb/mansion/o_empty_field.jpg"></center>'
 		'<center>An empty plot of land you own, suitable for building a large residence.</center>'
-	elseif home_owned[5] = 2:
+	elseif constructionstatus = 1:
 		'<center><h4>Your Mansion</h4></center>'
 		'<center><img <<$set_imgh>> src="images/locations/city/suburb/mansion/o_foundation.jpg"></center>'
 		'<center>The framework for your mansion stands here. It still needs more work.</center>'
-	elseif home_owned[5] = 3:
+	elseif constructionstatus = 2:
 		'<center><h4>Matryona Mansion</h4></center>'
 		'<center><img <<$set_imgh>> src="images/locations/city/suburb/mansion/matryona_mansion.jpg"></center>'
 		'<center>Your fully built mansion stands here. </center>'
@@ -29,7 +31,7 @@ if $ARGS[0] = '':
 		'<a href="exec:gs ''carF'', ''start''">Your <<$car>></a> is parked here.'
 	end
 
-	if curr_home = 5:
+	if $home['current'] = $home_name:
 		if vladimirday = daystart and vladimirQW = 30 and hour >= 16 and week = 6:'<a href="exec:gt ''qwmeet'',''2''">There''s an Audi parked in front of your mansion, and standing beside it, you notice Vladimir</a>.'
 		if vladimirday = daystart and vladimirQW = 40 and hour >= 16 and week = 6:'<a href="exec:gt ''qwmeet'',''3''">There''s an Audi parked in front of your mansion, and standing beside it, you notice Vladimir</a>.'
 
@@ -44,14 +46,19 @@ if $ARGS[0] = '':
 		end
 	end
 
-	act 'Go to the suburbs':minut += 10 & gt 'city_suburbs', 'start'
-	if home_owned[5] = 3: act 'Walk inside the mansion': minut += 4 & gt 'city_mansion_residence_1', 'yfoyer'
+	act 'Go to the suburbs':
+		minut += 10 
+		killvar 'home_name'
+		gt 'city_suburbs', 'start'
+	end
 
-	if karta + bankDebtLimit >= 1500000 and home_owned[5] = 0:
+	if owned_property['matryona_mansion'] = 2 and constructionstatus = 2  : act 'Walk inside the mansion': minut += 4 & gt 'city_mansion_residence_1', 'yfoyer'
+
+	if karta + bankDebtLimit >= 1500000 and owned_property['matryona_mansion'] = 0:
 		act 'Buy the land lot for a mansion (1,500,000 <b>₽</b>)':
 			cls
 			karta -= 1500000
-			home_owned[5] = 1
+			gs 'homes_properties', 'set_ownership', 'matryona_mansion', 2
 			minut += 5
 			menu_off = 1
 			gs 'stat'
@@ -61,11 +68,11 @@ if $ARGS[0] = '':
 		end
 	end
 
-	if karta + bankDebtLimit >= 500000 and home_owned[5] = 1:
+	if karta + bankDebtLimit >= 500000 and constructionstatus = 0:
 		act 'Pay for running utilities and the building foundation (500,000 <b>₽</b>)':
 			cls
 			karta -= 500000
-			home_owned[5] = 2
+			gs 'homes_properties', 'progress_construction_status', 'matryona_mansion'
 			minut += 5
 			menu_off = 1
 			gs 'stat'
@@ -75,11 +82,11 @@ if $ARGS[0] = '':
 		end
 	end
 
-	if karta + bankDebtLimit >= 1500000 and home_owned[5] = 2:
+	if karta + bankDebtLimit >= 1500000 and constructionstatus = 1:
 		act 'Pay for the finishing touches on the mansion (1,500,000 <b>₽</b>)':
 			cls
 			karta -= 1500000
-			home_owned[5] = 3
+			gs 'homes_properties', 'progress_construction_status', 'matryona_mansion'
 			minut += 5
 			menu_off = 1
 			gs 'stat'
@@ -89,7 +96,7 @@ if $ARGS[0] = '':
 		end
 	end
 
-	if karta + bankDebtLimit >= 500000 and home_owned[5] = 3 and ymanrem[3] = 0:
+	if karta + bankDebtLimit >= 500000 and constructionstatus = 2 and ymanrem[3] = 0:
 		act 'Pay for the construction of the rooms (500,000 <b>₽</b>)':
 			cls
 			karta -= 500000
@@ -103,7 +110,7 @@ if $ARGS[0] = '':
 		end
 	end
 
-	if home_owned[5] => 2:
+	if constructionstatus >= 1:
 		if karta + bankDebtLimit >= 800000 and banaMansion = 0:
 			act 'Pay for the construction of the sauna (800,000 <b>₽</b>)':
 				cls
@@ -132,7 +139,7 @@ if $ARGS[0] = '':
 			end
 		end
 	end
-	if home_owned[5] = 3:
+	if constructionstatus = 2:
 		if karta + bankDebtLimit >= 250000 and ymanrem[3] = 1:
 			act 'Pay for the renovations of the main hall (250,000 <b>₽</b>)':
 				cls
@@ -396,6 +403,8 @@ if $ARGS[0] = '':
 			end
 		end
 	end
+
+	killvar 'constructionstatus'
 end
 
 --- city_mansion_entrance ---------------------------------

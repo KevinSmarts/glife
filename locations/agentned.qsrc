@@ -20,52 +20,83 @@ if $ARGS[0] = 'start':
 	'This is the head office of the largest real estate agency in the Leningrad Oblast.'
 	*nl
 	'At the reception, you notice a large print banner:'
-	'"Please be aware that all sales transactions are made exclusively through your bank account. Rent payments are excluded from this policy."'
+	'<b>"Please be aware that all sales transactions are made exclusively through your bank account. Rent payments are excluded from this policy."</b>'
 
-	if home_owned[1] = 1 and ArendHouseSL > 0:
+	cityaptdays = func('homes_properties', 'get_rent_days', 'city_apartment')
+	oldtowndays = func('homes_properties', 'get_rent_days', 'old_town_apartment')
+	if owned_property['city_apartment'] = 1 and cityaptdays > 0:
 		*nl
-		'You have <B><<ArendHouseSL>> days</B> remaining on your St. Petersburg apartment lease. '+iif(money >= home_rent[1],'You can make a rent <a href="exec:money -= home_rent[1] & ArendHouseSL += ArendHouseSL_due & gt ''agentned'', ''start''">payment</a> in cash to extend it.','You can''t afford to pay your rent at the moment')+''
+		'You have <B><<cityaptdays>> days</B> remaining on your St. Petersburg apartment lease, and your monthly rent is <<$prop_rent[''city_apartment'']>> <b>₽</b>. '+iif(money >= prop_rent['city_apartment'],'You can make a rent <a href="exec:money -= prop_rent[''city_apartment''] & gs ''homes_properties'', ''add_rent_days'', ''city_apartment'' & gt ''agentned'', ''start''">payment</a> in cash to extend it.','You can''t afford to pay your rent at the moment')+''
 	end
-	if home_owned[4] > 0 and ArendHouseSL4 > 0:
+	if owned_property['old_town_apartment'] = 1 and oldtowndays > 0:
 		*nl
-		'You have <B><<ArendHouseSL4>> days</B> remaining on your Pushkin apartment lease. '+iif(money >= home_rent[4],'You can make a rent <a href="exec:money -= home_rent[4] & ArendHouseSL4 += ArendHouseSL_due & gt ''agentned'', ''start''">payment</a> in cash to extend it.','You can''t afford to your pay rent at the moment')+''
+		gs 'homes_properties', 'get_rent', 'old_town_apartment'
+		'You have <B><<oldtowndays>> days</B> remaining on your Pushkin apartment lease, and your monthly rent is <<$prop_rent[''old_town_apartment'']>> <b>₽</b>. '+iif(money >= prop_rent['old_town_apartment'],'You can make a rent <a href="exec:money -= prop_rent[''old_town_apartment''] & gs ''homes_properties'', ''add_rent_days'', ''old_town_apartment'' & gt ''agentned'', ''start''">payment</a> in cash to extend it.','You can''t afford to your pay rent at the moment')+''
 	end
+	killvar 'cityaptdays'
+	killvar 'oldtowndays'
 
-	if home_owned[1] = 2 or home_owned[3] > 0 or home_owned[5] = 1:
+	$property_list = func('homes_properties', 'get_owned_homes')
+	count = ARRSIZE('$property_list')
+	if count > 0:
+		print = 1
+		$text_to_print = ''
+		:rent_loop
+			gs 'homes_properties', 'get_property_attr', $property_list[i]
+			if owned_property[$property_list[i]] = 3:
+				$text_to_print[j] = '<<$property[''agency_display'']>> which is currently occupied by your tenants.'
+			elseif owned_property[$property_list[i]] = 2:
+				$text_to_print[j] = '<<$property[''agency_display'']>> which is currently occupied by your tenants.'
+			end
+			j += 1			
+			i += 1
+			killvar '$property'
+		if i < count: jump 'rent_loop'
+	end
+	killvar 'property_list'
+	if print = 1:
 		*nl
-		'You own the following property:'
+		'<b>You own the following property</b>'
 		*nl
-		if home_owned[1] = 2: 'An apartment in St. Petersburg''s residential area'
-		if home_owned[1] = 3: 'An apartment in St. Petersburg''s residential area which is currently occupied by your tenants'
-		if home_owned[3] > 0: 'An cottage located in the cooperative village'
-		if home_owned[5] = 1: 'A plot of land in the St. Petersburg''s suburbs'
-		if home_owned[15] = 1: 'A house in the St. Petersburg''s residential area'
+		
+		count = ARRSIZE('$text_to_print')
+		j = 0
+		:text_loop
+			$text_to_print[j]
+			J += 1
+		if j<count: jump 'text_loop'
+
 		*nl
 		'We are at your service if you decide to <a href="exec:gt ''agentned'',''sell''">sell</a>.'
 	end
+	killvar 'count'
+	killvar 'i'
+	killvar 'j'
+	killvar 'print'
+	killvar '$text_to_print'
 
 	act 'Leave': minut += 5 & gt 'city_center'
 
 	act 'View rentals': gt 'agentned', 'rent'
 	act 'View properties for sale': gt 'agentned', 'buy'
 
-	if home_owned[1] = 1:
+	if owned_property['city_apartment'] = 1:
 		act 'Cancel the lease of the city apartment':
 			cla & *nl
 			'Attention: You won''t be able to return to your apartment when you cancel the lease.'
 
 			act 'Return': gt'agentned', 'start'
-			act 'Cancel it': home_owned[1] = 0 & gt'agentned', 'start'
+			act 'Cancel it': gs 'homes_properties', 'set_ownership', 'city_apartment', 0 & gt'agentned', 'start'
 		end
 	end
 
-	if home_owned[4] = 1:
+	if owned_property['old_town_apartment'] = 1:
 		act 'Cancel the lease of the apartment in Pushkin':
 			cla & *nl
 			'Attention: You won''t be able to return to your apartment when you cancel the lease.'
 
 			act 'Return': gt'agentned', 'start'
-			act 'Cancel it': home_owned[4] = 0 & gt'agentned', 'start'
+			act 'Cancel it': gs 'homes_properties', 'set_ownership', 'old_town_apartment', 0 & gt'agentned', 'start'
 		end
 	end
 end
@@ -82,44 +113,52 @@ if $ARGS[0] = 'buy':
 	'<center><b><font color = maroon>Real Estate Agency</font></b></center>'
 	'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo.jpg"></center>'
 	*nl
+	'<h4> The purchase of any properties requires a bank account. The Agency is not conducting business in cash in compliance with the Anti-Money Laundering Regulations</h4>'
+	*nl
 	minut += 5
 	gs 'stat'
 	
 	act 'Return':gt'agentned', 'start'
 	
-	if home_owned[1] = 0 or home_owned[3] = 0 or home_owned[4] = 0 or home_owned[5] = 0:
-		if home_owned[1] = 0:
-			'There is an apartment in the city residential area available for <<$home_value_txt[1]>> <b>₽</b>.'
+	if owned_property['city_apartment'] = 0 or owned_property['village_cottage'] = 0 or owned_property['matryona_mansion'] = 0 or owned_property['city_house'] = 0:
+		if owned_property['city_apartment'] = 0:
+			'There is an apartment in the city residential area available for <<$prop_price[''city_apartment'']>> <b>₽</b>.'
 			*nl
-			if karta + bankDebtLimit >= home_value[1]:act 'Buy the city residential apartment': gt 'agentned', 'buy_cityres'
-		elseif home_owned[1] = 1:
-			'You could buy your current rental apartment for <<$home_value_txt[1]>> <b>₽</b>.'
+			if karta + bankDebtLimit >= prop_price['city_apartment']: act 'Buy the city residential apartment': gt 'agentned', 'buy_property', 'city_apartment'
+		elseif owned_property['city_apartment'] = 1:
+			'You could buy your current rental apartment for <<$prop_price[''city_apartment'']>> <b>₽</b>.'
 			*nl
-			if karta + bankDebtLimit >= home_value[1]:act 'Buy the city residential apartment': gt 'agentned', 'buy_cityres'
+			if karta + bankDebtLimit >= prop_price['city_apartment']: act 'Buy the city residential apartment': gt 'agentned', 'buy_property', 'city_apartment'
 		end
 
-		if home_owned[3] = 0:
-			'There is a holiday cottage with an adjacent allotment in the village for <<$home_value_txt[3]>> <b>₽</b>.'
+		if owned_property['village_cottage'] = 0:
+			'There is a holiday cottage with an adjacent allotment in the village for <<$prop_price[''village_cottage'']>> <b>₽</b>.'
 			*nl
-			if karta + bankDebtLimit >= home_value[3]:act 'Buy the cottage in the village': gt 'agentned','buy_dacha'
+			if karta + bankDebtLimit >= prop_price['village_cottage']: act 'Buy the cottage in the village': gt 'agentned','buy_property', 'village_cottage'
 		end
 
-		if home_owned[5] = 0:
-			'There is a plot of land in the suburbs with planning permission for a mansion for <<$home_value_txt[5]>> <b>₽</b>.'
+		if onwed_property['matryona_mansion'] = 0:
+			'There is a plot of land in the suburbs with planning permission for a mansion for <<$prop_price[''matryona_mansion'']>> <b>₽</b>.'
 			*nl
-			if karta + bankDebtLimit >= home_value[5]:act 'Buy the land plot in the suburbs': gt 'agentned','buy_Mansion'
+			if karta + bankDebtLimit >= prop_price['matryona_mansion']: act 'Buy the land plot in the suburbs': gt 'agentned','buy_property', 'matryona_mansion'
 		end
 		
-		if home_owned[15] = 0:
-			'There is a small house on the edge of the city residential area for <<$home_value_txt[15]>> <b>₽</b>.'
+		if owned_property['city_house'] = 0:
+			'There is a small house on the edge of the city residential area for <<$prop_price[''city_house'']>> <b>₽</b>.'
 			*nl
-			if karta + bankDebtLimit >= home_value[15]:act 'Buy the house on the edge of the city residential area': gt 'agentned','buy_city_house_res'
+			if karta + bankDebtLimit >= prop_price['city_house']: act 'Buy the house on the edge of the city residential area': gt 'agentned','buy_property', 'city_house'
 		end
 	else
 		'We currently have no properties listed for sale.'
 	end
 end
 
+
+!! TODO: This needs a bit of thinking because Sveta can buy the sold property again, for the old price, but will get all the renovation
+!! bonuses because those variables are not cleared. 
+!! Two options:
+!!   1. Sold properties can''t be bought back
+!!   2. The sales value is increased based on what Sveta sold it for plus the rand() range
 if $ARGS[0] = 'sell':
 	*clr & cla
 	$loc = 'agentned'
@@ -132,130 +171,89 @@ if $ARGS[0] = 'sell':
 	'<center><b><font color = maroon>Real Estate Agency</font></b></center>'
 	'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo.jpg"></center>'
 	*nl
-	
+	'<h4>Any purchase or sale of a property requires a bank account. The Agency is not conducting business in cash in compliance with the Anti-Money Laundering Regulations</h4>'
+	*nl
 	act 'Return':gt'agentned', 'start'
 	
-	if home_owned[1] = 2 and rembedr = 1 and remsitr = 1 and remkorr = 1 and remvanr = 1 and remkuhr = 1:
-		!Renovated city residential apartment
-		home_value1 = ((home_value[1] + 250000) + rand(-100000, 100000)) 
-		'We have found a buyer for your renovated apartment in the city residential area. They will offer <<home_value1>> <b>₽</b>, minus 5% for fees and taxes, bringing the total to <<home_value1/100*95>>'
-		act 'Sell the renovated apartment':
-			*clr
-			menu_off = 1
-			'<center><b><font color = maroon>Real Estate Agency</font></b></center>'
-			'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo_paperwork.jpg"></center>'
-			minut += 30
-			'You spend thirty minutes filling out the paperwork for the sale of your renovated apartment. You will suffer a loss of around 5% for fees and taxes. <<home_value1/100*95>> <b>₽</b> has been paid into your bank account.'
-			home_owned[1] = 0
-			ArendHouseSL = 0
-			if bankaccount = 1:
-				karta += home_value1/100*95
+	if bankAccount = 1:
+		if owned_property['city_apartment'] = 2:
+			if rembedr = 1 and remsitr = 1 and remkorr = 1 and remvanr = 1 and remkuhr = 1:
+				!Renovated city residential apartment
+				offer1 = ((prop_price['city_apartment'] + 250000) + rand(-100000, 100000)) 
 			else
-				money += home_value1/100*95
+				offer1 = (prop_price['city_apartment'] + rand(-100000, 100000))
 			end
-			delact 'Sell the renovated apartment'
-			gs 'stat'
+			'We have found a buyer for your apartment in the city residential area. They will offer <<offer1>> <b>₽</b>, minus 5% for fees and taxes, bringing the total to <<offer1/100*95>>'
+			act 'Sell the city apartment':
+				*clr
+				menu_off = 1
+				'<center><b><font color = maroon>Real Estate Agency</font></b></center>'
+				'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo_paperwork.jpg"></center>'
+				minut += 30
+				'You spend thirty minutes filling out the paperwork for the sale of your renovated apartment. You will suffer a loss of around 5% for fees and taxes. <<offer1/100*95>> <b>₽</b> has been paid into your bank account.'
+				gs 'homes_properties', 'set_home', 'city_apartment', 0
+				karta += offer1/100*95
+				delact 'Sell the city apartment'
+				gs 'stat'
+			end
 		end
-	end
-	if home_owned[1] = 2:
-		!City residential apartment
-		home_value1 = (home_value[1] + rand(-100000, 100000))
-		'We have found a buyer for your apartment in the city residential area. They will offer <<home_value1>> <b>₽</b>, minus 5% for fees and taxes, bringing the total to <<home_value1/100*95>>'
-		act 'Sell the city apartment':
-			*clr
-			menu_off = 1
-			'<center><b><font color = maroon>Real Estate Agency</font></b></center>'
-			'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo_paperwork.jpg"></center>'
-			minut += 30
-			'You spend thirty minutes filling out the paperwork for the sale of your apartment. You will suffer a loss of around 5% for fees and taxes. <<home_value1/100*95>> <b>₽</b> has been paid into your bank account.'
-			home_owned[1] = 0
-			ArendHouseSL = 0
-			if bankaccount = 1:
-				karta += home_value1/100*95
+		
+		if owned_property['village_cottage'] = 2:
+			if func('homes_properties', 'property_renovated', 'village_cottage') = 1: 
+				!Renovated communal cottage
+				offer2 = ((prop_price['village_cottage'] + 200000) + rand(-10000, 10000))
 			else
-				money += home_value1/100*95
+				!Communal cottage
+				offer2 = (prop_price['village_cottage'] + rand(-5000, 5000))
 			end
-			delact 'Sell the city apartment'
-			gs 'stat'
-		end
-	end
-	if home_owned[3] = 1:
-		!Communal cottage
-		home_value3 = (home_value[3] + rand(-5000, 5000))
-		'We have found a buyer for your small communal cottage. They will offer <<home_value3>> <b>₽</b>, minus 5% for fees and taxes, bringing the total to <<home_value3/100*95>>'
-		act 'Sell the holiday cottage':
-			*clr
-			menu_off = 1
-			'<center><b><font color = maroon>Real Estate Agency</font></b></center>'
-			'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo_paperwork.jpg"></center>'
-			minut += 30
-			'You spend thirty minutes filling out the paperwork for the sale of your small cottage. You will suffer a loss of around 5% for fees and taxes. <<home_value3/100*95>> <b>₽</b> has been paid into your bank account.'
-			home_owned[3] = 0
-			if bankaccount = 1:
-				karta += home_value3/100*95
-			else
-				money += home_value3/100*95
+			'We have found a buyer for your small communal cottage. They will offer <<offer2>> <b>₽</b>, minus 5% for fees and taxes, bringing the total to <<offer2/100*95>>'
+			act 'Sell the cottage':
+				*clr
+				menu_off = 1
+				'<center><b><font color = maroon>Real Estate Agency</font></b></center>'
+				'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo_paperwork.jpg"></center>'
+				minut += 30
+				'You spend thirty minutes filling out the paperwork for the sale of your small cottage. You will suffer a loss of around 5% for fees and taxes. <<offer2/100*95>> <b>₽</b> has been paid into your bank account.'
+				gs 'homes_properties', 'set_home', 'village_cottage', 0
+				karta += offer/100*95
+				delact 'Sell the cottage'
+				gs 'stat'
 			end
-			delact 'Sell the holiday cottage'
-			gs 'stat'
 		end
-	end
-	if home_owned[3] = 2:
-		!Renovated communal cottage
-		home_value3 = ((home_value[3] + 200000) + rand(-10000, 10000))
-		'We have found a buyer for your small renovated communal cottage. They will offer <<home_value3>> <b>₽</b>, minus 5% for fees and taxes, bringing the total to <<home_value3/100*95>>'
-		act 'Sell the renovated cottage':
-			*clr
-			menu_off = 1
-			'<center><b><font color = maroon>Real Estate Agency</font></b></center>'
-			'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo_paperwork.jpg"></center>'
-			minut += 30
-			'You spend thirty minutes filling out the paperwork for the sale of your small cottage. You will suffer a loss of around 5% for fees and taxes. <<home_value3/100*95>> <b>₽</b> has been paid into your bank account.'
-			home_owned[3] = 0
-			if bankaccount = 1:
-				karta += home_value3/100*95
-			else
-				money += home_value3/100*95
+		
+		if owned_property['matryona_mansion'] = 2:
+			if func('homes_properties', 'property_construction_status', 'matryona_mansion') = 0:
+				!Suburban land only - currently too many variables for selling upgraded mansion - might do later - 3xpurt.
+				offer3 = (prop_price['matryona_mansion'] + rand(-50000, 50000))
+				'We have found a buyer for your vacant plot of land in the suburbs. They will offer <<offer3>> <b>₽</b>, minus 5% for fees and taxes, bringing the total to <<offer3/100*95>>'
+				act 'Sell the vacant plot':
+					*clr
+					menu_off = 1
+					'<center><b><font color = maroon>Real Estate Agency</font></b></center>'
+					'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo_paperwork.jpg"></center>'
+					minut += 30
+					'You spend thirty minutes filling out the paperwork for the vacant plot. You will suffer a loss of around 5% for fees and taxes. <<offer3/100*95>> <b>₽</b> has been paid into your bank account.'
+					gs 'homes_properties', 'set_home', 'matryona_mansion', 0
+					karta += offer3/100*95
+					delact 'Sell the vacant plot'
+					gs 'stat'
+				end
+			else 
+				!Suburban land only - currently too many variables for selling upgraded mansion - might do later - 3xpurt.
+				'Sorry, we are unable to find a buyer for your property at this time.'
 			end
-			delact 'Sell the renovated cottage'
-			gs 'stat'
 		end
-	end
-	if home_owned[5] = 1:
-		!Suburban land only - currently too many variables for selling upgraded mansion - might do later - 3xpurt.
-		home_value5 = (home_value[5] + rand(-50000, 50000))
-		'We have found a buyer for your vacant plot of land in the suburbs. They will offer <<home_value5>> <b>₽</b>, minus 5% for fees and taxes, bringing the total to <<home_value5/100*95>>'
-		act 'Sell the vacant plot':
-			*clr
-			menu_off = 1
-			'<center><b><font color = maroon>Real Estate Agency</font></b></center>'
-			'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo_paperwork.jpg"></center>'
-			minut += 30
-			'You spend thirty minutes filling out the paperwork for the vacant plot. You will suffer a loss of around 5% for fees and taxes. <<home_value5/100*95>> <b>₽</b> has been paid into your bank account.'
-			home_owned[5] = 0
-			if bankaccount = 1:
-				karta += home_value5/100*95
-			else
-				money += home_value5/100*95
-			end
-			delact 'Sell the vacant plot'
-			gs 'stat'
+		
+		if owned_property['city_house'] = 2:
+			!! - might do later - Alaratt.
+			'Sorry, we are unable to find a buyer for your house at this time.'
 		end
-	end
-	if home_owned[5] = 2:
-		!Suburban land only - currently too many variables for selling upgraded mansion - might do later - 3xpurt.
-		'Sorry, we are unable to find a buyer for your property at this time.'
-	end
-	if home_owned[5] = 3:
-		!Suburban land only - currently too many variables for selling upgraded mansion - might do later - 3xpurt.
-		'Sorry, we are unable to find a buyer for your property at this time.'
-	end
-	if home_owned[1] = 0 and home_owned[3] = 0 and home_owned[4] = 0 and home_owned[5] = 0:
-		'You don''t currently own any property.'
-	end
-	if home_owned[15] = 1:
-		!! - might do later - Alaratt.
-		'Sorry, we are unable to find a buyer for your house at this time.'
+
+		if owned_property['city_apartment'] = 0 and owned_property['village_cottage'] = 0 and owned_property['city_house'] = 0 and owned_property['matryona_mansion'] = 0:
+			'You don''t currently own any property.'
+		end
+	else
+		'<b>You need to open a bank account to sell your property</b>'
 	end
 end
 
@@ -275,51 +273,50 @@ if $ARGS[0] = 'rent':
 	
 	act 'Return':gt'agentned', 'start'
 	
-	if home_owned[1] > 0 and home_owned[4] > 0:
+	if owned_property['city_apartment'] > 0 and owned_property['old_town_apartment'] > 0:
 		'We currently have no properties listed for rent.'
-	elseif home_owned[1] = 0 and home_owned[4] = 0:
+	elseif owned_property['city_apartment'] = 0 and owned_property['old_town_apartment'] = 0:
 		*nl
 		'There are two apartments available for rent. They are located in the city residential area and in Pushkin.'
 		act 'View the city apartment details': gt 'agentned', 'rent_cityres'
 		act 'View the Pushkin apartment details': gt 'agentned', 'rent_pushkin'
-	elseif home_owned[1] = 0:
+	elseif owned_property['city_apartment'] = 0:
 		'There is a property for rent in the city residential area'
 		act 'View the city apartment details': gt 'agentned', 'rent_cityres'
-	elseif home_owned[4] = 0:
+	elseif owned_property['old_town_apartment'] = 0:
 		'There is a property for rent in the old town of Pushkin'
 		act 'View the Pushkin apartment details': gt 'agentned', 'rent_pushkin'
 	end
+	*nl
 end
 
 if $ARGS[0] = 'rent_cityres':
 	*clr & cla
 	menu_off = 1
-	gs 'housing', 'rent'
 	'<center><b><font color = maroon>Real Estate Agency</font></b></center>'
 	'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo.jpg"></center>'
 	*nl
-	'"We have a flat available right now in the St. Petersburg residential area." The receptionist says as he starts pulling out the paperwork, "Rent is <<$home_rent_txt[1]>> ₽ and leases have to be renewed every 30 days. Payment will be automatically deducted from your account or you can come into the office to pay. When you sign for the lease you must make your first month''s rental payment upfront."'
+	'"We have a flat available right now in the St. Petersburg residential area." The receptionist says as he starts pulling out the paperwork, "Rent is <<$prop_rent[''city_apartment'']>> ₽ and leases have to be renewed every 30 days. Payment will be automatically deducted from your account or you can come into the office to pay. When you sign for the lease you must make your first month''s rental payment upfront."'
 	'<br>He pulls out a pen and slides the paperwork onto the counter. "Interested? You can move in right away," he calmly says.'
 
-	if money >= home_rent[1] or karta >= home_rent[1]:
+	if money >= prop_rent['city_apartment'] or karta >= prop_rent['city_apartment']:
 		act 'Agree and pay':
 			*clr & cla
 			cls
 			minut += 30
-			if money >= home_rent[1]: 
-				money -= home_rent[1]
+			if money >= prop_rent['city_apartment']: 
+				money -= prop_rent['city_apartment']
 			else
-				karta -= home_rent[1]
+				karta -= prop_rent['city_apartment']
 			end
-			home_owned[1] = 1
-			if ARRSIZE('home_owned') = 0:
-				gs 'set_home', 1
+			gs 'homes_properties', 'set_ownership', 'city_apartment', 1
+			if func( 'homes_properties', 'get_accessible_count') = 1:
+				gs 'homes_properties', 'set_home', 'city_apartment'
 			else
 				$set_homeyn = input("Would you like to set this as your new home? (yes/no)")
-				if $set_homeyn = 'yes': gs 'set_home', 1
+				if $set_homeyn = 'yes': gs 'homes_properties', 'set_home', 'city_apartment'
 				killvar '$set_homeyn'
 			end
-			ArendHouseSL += ArendHouseSL_due
 			gs'stat'
 			'<center><b><font color = maroon>Real Estate Agency</font></b></center>'
 			'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo_paperwork.jpg"></center>'
@@ -349,36 +346,34 @@ end
 if $ARGS[0] = 'rent_pushkin':
 	*clr & cla
 	menu_off = 1
-	gs 'housing', 'rent'
 	'<center><b><font color = maroon>Real Estate Agency</font></b></center>'
 	'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo.jpg"></center>'
 	*nl
 	'"We have a small apartment available right now that is in Pushkin’s city center. It’s a little bit pricey, but it’s been recently renovated to be more modern. It looks quite nice, so you won’t find a place like that outside of Pushkin." The receptionist says as he starts pulling out the paperwork. "Rent is <<$home_rent_txt[4]>> ₽ and leases have to be renewed every 30 days, which can be taken automatically from your account or you can come in and pay directly. Last, but not least, you have to make your first payment up front at signing."'
 	'<br>He pulls out a pen and slides the paperwork onto the counter. "Interested? You can move in right away," he calmly says.'
-	
-	if money >= home_rent[4] or karta >= home_rent[4]:
+	*nl
+	if money >= prop_rent['old_town_apartment'] or karta >= prop_rent['old_town_apartment']:
 		act 'Agree and pay':
 			*clr & cla
 			minut += 30
-			if money >= home_rent[4]: 
-				money -= home_rent[4]
+			if money >= prop_rent['old_town_apartment']: 
+				money -= prop_rent['old_town_apartment']
 			else
-				karta -= home_rent[4]
+				karta -= prop_rent['old_town_apartment']
 			end
-			home_owned[4] = 1
-			if ARRSIZE('home_owned') = 0:
-				gs 'set_home', 4
+			gs 'homes_properties', 'set_ownership', 'old_town_apartment', 1
+			if func( 'homes_properties', 'get_accessible_count') = 1:
+				gs 'homes_properties', 'set_home', 'old_town_apartment'
 			else
 				$set_homeyn = input("Would you like to set this as your new home? (yes/no)")
-				if $set_homeyn = 'yes': gs 'set_home', 4
+				if $set_homeyn = 'yes': gs 'homes_properties', 'set_home', 'old_town_apartment'
 				killvar '$set_homeyn'
 			end
-			ArendHouseSL4 += ArendHouseSL_due
 			gs'stat'
 			'<center><b><font color = maroon>Real Estate Agency</font></b></center>'
 			'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo_paperwork.jpg"></center>'
 			*nl
-			'You take the pen and start filling out the paperwork. After writing for an hour, you hand over the money and receive the keys to your new apartment.'
+			'You take the pen and start filling out the paperwork. After writing for half an hour, you hand over the money and receive the keys to your new apartment.'
 
 			act 'Return':gt'agentned', 'start'
 		end
@@ -401,98 +396,30 @@ if $ARGS[0] = 'rent_pushkin':
 	end
 end
 
-if $ARGS[0] = 'buy_cityres':
+if $ARGS[0] = 'buy_property':
 	*clr & cla
 	menu_off = 1
-	gs 'housing', 'sale'
+	gs 'homes_properties', 'get_property_attr', $ARGS[1]
 	minut += 30
-	karta -= home_value[1]
-	home_owned[1] = 2
-	if ARRSIZE('home_owned') = 0:
-		gs 'set_home', 1
-	else
-		$set_homeyn = input("Would you like to set this as your new home? (yes/no)")
-		if $set_homeyn = 'yes': gs 'set_home', 1
-		killvar '$set_homeyn'
-	end
+	karta -= property['price']
+	gs 'homes_properties', 'set_ownership', $ARGS[1], 2
+
+	$set_homeyn = input("Would you like to set this as your new home? (yes/no)")
+	if $set_homeyn = 'yes': gs 'homes_properties', 'set_home', $ARGS[1]
+	
+	killvar '$set_homeyn'
+
+	!!TODO: this etoexhib will need some rethinking I get what it means by now, but some better name would be better.
+	if $ARGS[1] = 'village_cottage': etoexhib = 0
 	gs'stat'
 	'<center><b><font color = maroon>Real Estate Agency</font></b></center>'
 	'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo_paperwork.jpg"></center>'
 	*nl
-	'You spend half an hour filling in the paperwork to buy the apartment in the residential area. <<$home_value_txt[1]>> <b>₽</b> has been removed from your bank account.'
+	'You spend half an hour filling in the paperwork to buy the <<$property[''name'']>>. <<$property[''price'']>> <b>₽</b> has been removed from your bank account.'
 
 	act 'Return':gt'agentned', 'start'
 end
 
-if $ARGS[0] = 'buy_dacha':
-	*clr & cla
-	menu_off = 1
-	gs 'housing', 'sale'
-	minut += 30
-	karta -= home_value[3]
-	home_owned[3] = 1
-	if ARRSIZE('home_owned') = 0:
-		gs 'set_home', 3
-	else
-		$set_homeyn = input("Would you like to set this as your new home? (yes/no)")
-		if $set_homeyn = 'yes': gs 'set_home', 3
-		killvar '$set_homeyn'
-	end
-	etoexhib = 0
-	gs'stat'
-	'<center><b><font color = maroon>Real Estate Agency</font></b></center>'
-	'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo_paperwork.jpg"></center>'
-	*nl
-	'You spend half an hour filling in the paperwork for the purchase of a cottage with a garden in the co-op. It''s located 5 km away from St. Petersburg. <<$home_value_txt[3]>> <b>₽</b> has been removed from your bank account.'
-
-	act 'Return':gt'agentned', 'start'
-end
-
-if $ARGS[0] = 'buy_Mansion':
-	*clr & cla
-	menu_off = 1
-	gs 'housing', 'sale'
-	minut += 30
-	karta -= home_value[5]
-	home_owned[5] = 1
-	if ARRSIZE('home_owned') = 0:
-		gs 'set_home', 5
-	else
-		$set_homeyn = input("Would you like to set this as your new home? (yes/no)")
-		if $set_homeyn = 'yes': gs 'set_home', 5
-		killvar '$set_homeyn'
-	end
-	gs'stat'
-	'<center><b><font color = maroon>Real Estate Agency</font></b></center>'
-	'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo_paperwork.jpg"></center>'
-	*nl
-	'You spend half an hour filling in the paperwork for the purchase of a lot for building a mansion 1 km up the north road. <<$home_value_txt[5]>> <b>₽</b> has been removed from your bank account.'
-
-	act 'Return':gt'agentned', 'start'
-end
-
-if $ARGS[0] = 'buy_city_house_res':
-	*clr & cla
-	menu_off = 1
-	gs 'housing', 'sale'
-	minut += 30
-	karta -= home_value[15]
-	home_owned[15] = 1
-	if ARRSIZE('home_owned') = 0:
-		gs 'set_home', 15
-	else
-		$set_homeyn = input("Would you like to set this as your new home? (yes/no)")
-		if $set_homeyn = 'yes': gs 'set_home', 15
-		killvar '$set_homeyn'
-	end
-	gs'stat'
-	'<center><b><font color = maroon>Real Estate Agency</font></b></center>'
-	'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo_paperwork.jpg"></center>'
-	*nl
-	'You spend half an hour filling in the paperwork for the purchase of a house on the edge of the city residential area. <<$home_value_txt[15]>> <b>₽</b> has been removed from your bank account.'
-
-	act 'Return':gt'agentned', 'start'
-end
 
 --- agentned ---------------------------------
 
