@@ -760,84 +760,97 @@ end
 !
 ! command syntax: gs 'shortgs', 'payments', value, 'method', 'item variable', item quantity, 'item description', 'return location', 'act'
 !
-! $ARGS[1] - Value = cost of goods
-! $ARGS[2] - Method = how it''s to be paid cash or card. leave blank for both.
-! $ARGS[3] - Item Variable = item variable to be purchase to add to players inventory - Optional.
-! $ARGS[4] - Item Quantity = How many items to be added. Defaults to one - Optional.
-! $ARGS[5] - Item Description - What's been bought
-! $ARGS[6] - Return Location - Where do you want the character to go to
-! $ARGS[7] - Act - If there's a specific act to go to.
+! value = cost of goods. Required
+! method = how it''s to be paid cash or card. leave blank for both. Optional
+! Item Description - What's been bought. Required
+! item variable = item variable to be purchased to be added to players inventory. Optional.
+! Item quantity = How many items to be added. Defaults to one - Optional.
+! Return Location - Where do you want the character to go to, optional falls back to starting location.
+! Act - If there's a specific act to return to. Optional
+!
+! Optional with no content are ignored.
 
 !Use stock image for the purchase screen?
+
 if $ARGS[0] = 'payments':
 
-	if $ARGS[1] = '':
-		'Error, Cash Value not set'
+	if ARGS[1] = 0:
+		msg	'<b>Error, Cash Value not set.</b>'
 	end
 	if $ARGS[5] = '':
-		'Error, Item Description not set'
+		msg '<b>Error, Item Description not set.</b>'
 	end
 
-	pay_value = $ARGS[1]
+	pay_value = ARGS[1]
 	$pay_method = $ARGS[2]
 	$pay_variable = $ARGS[3]
-	pay_quantity = $ARGS[4]
+	pay_quantity = ARGS[4]
+
 	$pay_desc = $ARGS[5]
 	$pay_section = $ARGS[6]
 	$pay_act = $ARGS[7]
 
 	! Construct payment call
 
-! Construct payment call
-
 	if $pay_variable ! '':
-		$construct_cash = 'exec: gs ''shortgs'', ''paymentcomplete'', ''<<$pay_section>>'', ''<<$pay_act>>'', ''<<pay_value>>'', ''<<$pay_desc>>'', ''cash'' & money -= <<pay_value>> & <<$pay_variable>> += <<pay_quantity>>'
-		$construct_card = 'exec: gs ''shortgs'', ''paymentcomplete'', ''<<$pay_section>>'', ''<<$pay_act>>'', ''<<pay_value>>'', ''<<$pay_desc>>'', ''card'' & karta -= <<pay_value>> & <<$pay_variable>> += <<pay_quantity>>'
+		$construct_cash = 'exec: gs ''shortgs'', ''paymentcomplete'', ''<<$pay_section>>'', ''<<$pay_act>>'', <<pay_value>>, ''<<$pay_desc>>'', ''cash'' & money -= <<pay_value>> & <<$pay_variable>> += <<pay_quantity>>'
+		$construct_card = 'exec: gs ''shortgs'', ''paymentcomplete'', ''<<$pay_section>>'', ''<<$pay_act>>'', <<pay_value>>, ''<<$pay_desc>>'', ''card'' & karta -= <<pay_value>> & <<$pay_variable>> += <<pay_quantity>>'
 	else
-		$construct_cash = 'exec: gs ''shortgs'', ''paymentcomplete'', ''<<$pay_section>>'', ''<<$pay_act>>'', ''<<pay_value>>'', ''<<$pay_desc>>'', ''cash'' & money -= <<pay_value>>'
-		$construct_card = 'exec: gs ''shortgs'', ''paymentcomplete'', ''<<$pay_section>>'', ''<<$pay_act>>'', ''<<pay_value>>'', ''<<$pay_desc>>'', ''card'' & karta -= <<pay_value>>'
+		$construct_cash = 'exec: gs ''shortgs'', ''paymentcomplete'', ''<<$pay_section>>'', ''<<$pay_act>>'', <<pay_value>>, ''<<$pay_desc>>'', ''cash'' & money -= <<pay_value>>'
+		$construct_card = 'exec: gs ''shortgs'', ''paymentcomplete'', ''<<$pay_section>>'', ''<<$pay_act>>'', <<pay_value>>, ''<<$pay_desc>>'', ''card'' & karta -= <<pay_value>>'
 	end
-
 
 
 	$pay_cash = '<a href="<<$construct_cash>>">Cash</a>'
 	$pay_card = '<a href="<<$construct_card>>">Card</a>'
 
+	*clr
+
 	!Use stock image for the purchase screen?
 
 	if ($pay_method ! 'cash' or $pay_method ! 'card') and pay_value <= money and pay_value <= karta:
-		'How do you want to pay for the services or item? <<$pay_cash>> or <<$pay_card>>'
-	elseif ($pay_method = 'cash' or $paymethod = '') and pay_value <= money:
-		'Pay for the services or item with <<$pay_cash>>?'
-	elseif  ($pay_method = 'card' or $pay_method = '') and pay_value <= karta:
-		'Pay for the services or item with your <<$pay_card>>?'
+		'How do you want to pay for  the <<$pay_desc>>? <<$pay_cash>> or <<$pay_card>>'
+	elseif ($pay_method = 'cash' or $pay_method = '') and pay_value <= money:
+		'Pay for the <<$pay_desc>> with <<$pay_cash>>?'
+	elseif  ($pay_method = 'card' or $pay_method = '') and pay_value <= karta + bankDebtLimit:
+		'Pay for the <<$pay_desc>> with your <<$pay_card>>?'
 	else
 		'You don''t have enough money in your purse or bank account for this item.'
 	end
 
+	! clean up all the variables
+
+	killvar 'pay_value'
+	killvar '$pay_method'
+	killvar '$pay_variable'
+	killvar 'pay_quantity'
+	killvar '$pay_desc'
+	killvar '$pay_type'
 end
 
 !payment complete
+
 if $ARGS[0] = 'paymentcomplete':
-	cla & *clr
-	gs 'stat'
+	*clr
+
 	'Thank you for your custom. Please come again!'
 	*nl
 
 	if $ARGS[5] = 'cash':
-		$pay_type = 'You paid <<$ARGS[3]>> <b>₽</b> in cash'
+		$pay_type = 'You paid <<ARGS[3]>> <b>₽</b> in cash'
 	else
-		$pay_type = 'You paid <<$ARGS[3]>> <b>₽</b> with your bank card'
+		$pay_type = 'You paid <<ARGS[3]>> <b>₽</b> with your bank card'
 	end
 
 	'<<$pay_type>> for your <<$ARGS[4]>>'
 
 	gs 'stat'
 
-	if $ARGS[1] ! '': $loc = $ARGS[1]
-    if $ARGS[2] ! '': $loc_arg = $ARGS[2]
-	if $ARGS[1] ! '' : act 'Finish payment' : gt $loc, $loc_arg
-
+	if $ARGS[1] ! '' :
+		$loc =  $ARGS[1]
+		$loc_arg = $ARGS[2]
+	end
+	act 'Finish payment' : gt $loc, $loc_arg
 end
 
 --- shortgs ---------------------------------
