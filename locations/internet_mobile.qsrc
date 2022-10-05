@@ -184,36 +184,84 @@ if $ARGS[0] = 'transfer_subscription':
 end
 
 !! This is a separate "function" because the check is a bit long, and can change if we realise it isn't the best way to do it.
-!! Spoiler alert: It is not, I'm pretty sure.  
+!! Spoiler alert: It is not, I'm pretty sure. 
+!! 
 if $ARGS[0] = 'check_allowed_location':
     gs 'homes_properties', 'get_propery_attr', $ARGS[1]
-    result = $property ! 'none' and $property['internet_enabled'] 
+    result = $property['internet_enabled'] = 1
     killvar 'property'
 end
 
 !! $ARGS[1] - this is expected only if the location allows the use of subscription['free']
+!! $ARGS[2] - Limitation code: : 'noporn', 'nocamshow'
+!! and on...can be up to 10 arguments.
 if $ARGS[0] = 'set_access':
-    if $ARGS[1] = 'free':
+    if £ARGS[1] = '': 
+        $subsname = func(homes_properties, get_home_name)
+    else
+        $subsname = func(homes_properties, get_home_name, $ARGS[1])
+    end
+    
+    if func('homes_properties', 'free_internet_property', $subname) ! 0:
         $access['subscription'] = 'free'
-    elseif subscription[$home_name] = 1:
-        $access['subscription'] = $home_name
+    elseif $ARGS[1] = 'free':
+        $access['subscription'] = 'free'
+    elseif subscription[$subsname] = 1:
+        $access['subscription'] = $subsname
+        killvar 'subsname'
     elseif subscription['mobile'] = 1:
         $access['subscription'] = 'mobile'
     elseif subscription['metered_mobile'] > 0:
         $access['subscription'] = 'metered_mobile'
+    else
+        $access = 'denied'
     end
-    
-    if subscription[$access['subscription']+'-type'] = 2: access['metered'] = 1
-    if $ARGS[2] = 'noporn': access['noporn'] = 1
-    if $ARGS[2] = 'nocamshow': access['nocamshow'] = 1
-    if $ARGS[3] = 'noporn': access['noporn'] = 1
-    if $ARGS[3] = 'nocamshow': access['nocamshow'] = 1
-    
-    if access['noporn'] = 1: $access['noporn-text'] = 'You can''t search for porn on this computer'
-    if access['nocamshow'] = 1: $access['nocamshow-text'] = 'You can''t do a cam show in this place'
+
+    if $access ! 'denied':
+        if subscription[$access['subscription']+'-type'] = 2: access['metered'] = 1
+
+        count = ARRSIZE(ARGS)
+        if count > 2:
+            k = 2
+            :loop_args
+                access[ARGS[k]] = 1
+                k += 1
+            if k < count: jump 'loop_args'
+        
+        if access['noporn'] = 1: $access['noporn-text'] = 'You can''t search for porn on this computer'
+        if access['nocamshow'] = 1: $access['nocamshow-text'] = 'You can''t do a cam show in this place'
+    end    
 end
 
+!! Adds a new limiation with a custom message
+!! If the limitation is already set, the existing message will be overwritten by the one passed here.
+!!
+!! $ARGS[1] - Limitation code: : 'noporn', 'nocamshow'
+!! $ARGS[2] - Custom message - optional
+if $ARGS[0] = 'add_limitation':
+    access[$ARGS[1]] = 1
+    $access[$ARGS[1]] = $ARGS2
+end
 
+!!Remove the limiation passed in $ARGS[1] and set's it's custom message to ''
+!!
+!! $ARGS[1] - Limitation code: : 'noporn', 'nocamshow'
+if $ARGS[0] = 'remove_limitation':
+    access[$ARGS[1]] = 0
+    $access[$ARGS[1]] = ''
+end
+
+!! Sets the message to limitation passed in $ARGS[1] if the limitation is active
+!!
+!! $ARGS[1] - Limitation code: : 'noporn', 'nocamshow'
+!! $ARGS[2] - Custom message 
+if $ARGS[0] = 'set_limitation_message':
+    if access[$ARGS[1]] = 1: $access[$ARGS[1]] = $ARGS2
+end
+
+!! Sets the date when the subscription will be cancelled if not paid.
+!!
+!! $ARGS[1] - the subscription name
 if ARGS[0] = 'set_suspension_date':
     temp_month = month
     if month = 2:
