@@ -366,66 +366,159 @@ if $ARGS[0] = 'get_property_attr':
 		$property['location'] = 'pav_residential'
 		$property['entrance'] = 'mey_home'
 		$property['type'] = 'temporary_residence'
+		property['free_internet'] = 1
 	else
 		!! Nonexisting property. CAn be useful if someone wants to check if something is a property or not. For example the
 		!! internet transfer code does this right now.
 		gs 'homes_properties', 'mod_property_query_hook'
-		if $property = '': $property = 'none'  
 	end
 end
 
-if $ARGS[0] = 'mod_property_query_hook':
+!! This does nothing, the only reason to have this is that a mod can use a redirect to their own 
+!! location, $args[0[] where they have the property info and can return it.
+if $ARGS[0] = 'property_query_hook':
 	!! use this for the redirect
 	mod_result = 1
 end
 
 !! Set the current home for Sveta based on either the property code or the id - for backward compatibility or some mods
-!! $ARGS[1] - the property code, can be an empty string if using the id
-!! ARGS[2] - the property id
+!! $ARGS[1] - a string to identify the property.
+!!			  Possible values:
+!!			  A property code - 'city_apartment', 'village_cottage', etc.
+!!			  A location name - $loc passed
+!! 			  An empty string - in this case ARGS[2] is mandatory
+!!			  A number as str - really should remove this 	
+!!
 if $ARGS[0] = 'set_home':
-	gs 'homes_properties', 'get_property_attr', $ARGS[1], ARGS[2]
+	if $ARGS[1] = '' and $ARGS[2] = 0:
+		!! WARNING: No way to identify home, missing arguments
+	elseif $ARGS = '':
+		gs 'homes_properties', 'get_property_attr', $loc]
+	else
+		gs 'homes_properties', 'get_property_attr', $home_name[$ARGS[1]]
+	end
+
 	COPYARR 'home','property'
 	$home['current'] = $property['code']
 	killvar 'property'
 end
 
-!! $ARGS[1]: the name of the property (the property code, e.g., 'city_apartment')
+!! $ARGS[1]: the location that will have the ownership
+!!			Accepted values
+!!			- property code   -> 'city_apartment', 'parents_home'
+!!			- a location      ->  'bedrPar, 'koo2x' - A value that can shop up in $loc
+!!			- empty strying   ->  '' - will work as if a locaiton was passed, but will use the actual value of $loc
+!!			- A number as str -> '1', '2' - this should be the id of the property 
+!!			  					NOTE: only added in case someone really want to use the old ids
 !! ARGS[2]: ownership type
-!!			0: no acces -> 'no access'
-!!			1: rented	-> 'rented'
-!!			2: owned    -> 'owned'
+!!			0: no acces  -> 'no access'
+!!			1: not owned but can live her - a rented property or living at some else''s place
+!!			2: owned     -> 'owned'
 !!			3: owned and rented out -> 'tenants'
-!!			4: has acess -> 'has access' / homes that behave like rentals but no rent is tracked
-!!				parents home, university dorm, lyceum dorm and the shared apartment, the Shulga and Meynold household, etc. 
-!! ARGS[3]: construction status
+!! ARGS[3]: construction status - optional
 !!			0: land only 
 !!			1: foundation, frames built, utilities are connected
 !!			2: fully built
-!! ARGS[4]:renovation status
+!! ARGS[4]:renovation status - optional
 !!			0: not renovated
 !!			1: fully renovated
 if $ARGS[0] = 'set_ownership':
-	gs 'homes_properties', 'get_property_attr', $ARGS[1]
-	owned_property[$ARGS[1]] = ARGS[2]
-	$owned_property[$ARGS[1]] = $ARGS[1]
-	if $property['contstruction_needed'] = 1:
-		owned_property[$ARGS[1]+'-construction-status'] = ARGS[3]
+	if $ARGS[1] = '':
+		$prop_code = $home_name[$loc]
 	else
-		owned_property[$ARGS[1]+'-construction-status'] = 2
+		$prop_code = $home_name[$ARGS[1]]
 	end
-	owned_property[$ARGS[1]+'-renovated'] = ARGS[4]
-	if ARGS[2] = 1:
-		owned_property[$ARGS[1]+'-days-left'] += func( 'homes_properties', 'rent_due')
-	elseif ARGS[2] = 0:
-		if $home['current'] = $ARGS[1]: killvar '$home'
-		owned_property[$ARGS[1]+'-days-left'] = 0
-	elseif ARGS[2] = 2 or ARGS[2] = 3:
-		owned_property[$ARGS[1]+'-days-left'] = 0
+	orig_status_code = owned_property[$prop_code]
+	new_status_code = $ARGS[2]
+	if ARGS[2] = 1 and $property['rental'] = 0: new_status_code = 4
+	
+	if orig_status_code ! new_status_code:
+		$owned_property[$prop_code] = $prop_code
+		owned_property[$prop_code] = new_status_code
+
+		gs 'homes_properties', 'get_property_attr', $prop_code
+			
+		if $property['contstruction_needed'] = 1:
+			owned_property[$prop_code+'-construction-status'] = ARGS[3]
+		else
+			owned_property[$prop_code+'-construction-status'] = 2
+		end
+		owned_property[$prop_code+'-renovated'] = ARGS[4]
+
+		!! Setting status dependent variables
+		if owned_property[$prop_code] = 0:
+			!! If this was the current home then killing it
+			if $home['current'] = $prop_code: killvar '$home'
+			!! Resetting rent days just to be sure
+			owned_property[$prop_code+'-days-left'] = -1
+			
+			!! Updating home counts
+			!! NOTE: Valid transitions: 1 -> 0, 2 -> 0, 4 -> 0
+			if $property['type'] = 'permanent_residence' or $property['type'] = 'temporary_residence':
+				if orig_status_code = 1: owned_property['rental_home_count'] -= 1
+				if orig_status_code = 2: owned_property['owned_home_count'] -= 1
+				if owned_property[$prop_code+'-construction-status'] = 2: owned_property['furnishable_home_count'] -= 1
+				owned_property['accessible_home_count'] -= 1
+			end
+		elseif owned_property[$prop_code] = 1:
+			!! Setting rent days
+			owned_property[$prop_code+'-days-left'] += func('homes_properties', 'rent_due_date')
+			
+			!! Updating home counts
+			!! NOTE: Only valid transition is 0 -> 1
+			if $property['type'] = 'permanent_residence' or $property['type'] = 'temporary_residence':
+				owned_property['rental_home_count']+-= 1
+				owned_property['accessible_home_count'] += 1
+				if owned_property[$prop_code+'-construction-status'] = 2: owned_property['furnishable_home_count'] +=1 
+			end
+		elseif owned_property[$prop_code] = 2:
+			!! Resetting rent days left just in case
+			owned_property[$prop_code+'-days-left'] = -1
+			
+			!! Updating home counts
+			!! NOTE: Valid transitions: 0 -> 2, 1 -> 2, 3-> 2
+			if $property['type'] = 'permanent_residence' or $property['type'] = 'temporary_residence':
+			if orig_status_code = 0: 
+				owned_property['accessible_home_count'] += 1
+				if owned_property[$prop_code+'-construction-status'] = 2: owned_property['furnishable_home_count'] += 1
+			end
+			if orig_status_code = 1: owned_property['rental_home_count'] -= 1
+			if orig_status_code = 3: 
+				owned_property['tenant_home_count'] -= 1 
+				if owned_property[$prop_code+'-construction-status'] = 2: owned_property['furnishable_home_count'] += 1
+			end
+			owned_property['owned_home_count'] += 1
+		elseif owned_property[$prop_code] = 3:
+			!! Resetting rent days left just in case
+			owned_property[$prop_code+'-days-left'] = -1
+			
+			!! Updating home counts
+			!! NOTE: Valid transitions: 2 -> 3
+			if $property['type'] = 'permanent_residence' or $property['type'] = 'temporary_residence':
+				owned_property['tenant_home_count'] += 1
+				owned_property['owned_home_count'] -= 1
+				owned_property['accessible_home_count'] -= 1
+			end
+		elseif owned_property[$prop_code] = 4:
+			!! Resetting rent days left just in case
+			owned_property[$prop_code+'-days-left'] = -1
+			
+			!! Updating home counts
+			!! NOTE: Valid transitions: 0 -> 4
+			if $property['type'] = 'permanent_residence' or $property['type'] = 'temporary_residence':
+				owned_property['accessible_home_count'] += 1
+			end
+		end
+		killvar 'property'
 	end
-	killvar 'property'
+
+	killvar 'orig_status_code'
+	killvar 'new_status_code'
 end
 
-!! Use it as a func() returns the list of property codes for the properties are homes and are owned (including wiht tenants)
+!! Use it as a func() returns the list of property codes for the properties are homes and are owned
+!!
+!! ARGS[1] - optional, if 1 then the full list is returns, if 0 then homes are occupied by tenants are left out.
 if $ARGS[0] = 'get_owned_homes':
 	i = 0
 	j = 0
@@ -433,7 +526,7 @@ if $ARGS[0] = 'get_owned_homes':
 	if count > 0: 
 		:countloop
 			gs 'homes_properties', 'get_property_attr', $owned_property[i]
-			if $property['type'] = 'permanent_residence' and (owned_property[i] = 2 or owned_property[i] = 3): 
+			if $property['type'] = 'permanent_residence' and (owned_property[i] = 2 or (owned_property[i] = 3 and $ARGS[1] = 1)): 
 				$result[j] = $property['code']
 				j += 1
 			end
@@ -446,110 +539,270 @@ if $ARGS[0] = 'get_owned_homes':
 	killvar 'j'
 end
 
-!! Use it as a func() returns the total count of rented properties that are homes
-if $ARGS[0] = 'get_rented':
+!! Use it as a func() returns the count of properties that are homes and are owned
+!!
+!! ARGS[1] - optional, if 1 then the full list is returns, if 0 then homes are occupied by tenants are left out.
+if $ARGS[0] = 'get_owned_homes_count':
 	i = 0
 	count = ARRSIZE('owned_property')
 	if count > 0: 
 		:countloop
 			gs 'homes_properties', 'get_property_attr', $owned_property[i]
-			if $property['type'] = 'permanent_residence' or $property['type'] = 'temporary_residence' and owned_property[i] = 1: counter += 1
+			if $property['type'] = 'permanent_residence' and (owned_property[i] = 2 or (owned_property[i] = 3 and $ARGS[1] = 1)): result += 1
 			i += 1
 			killvar 'property'
 		if i < count: jump 'countloop'
 	end
-	result = counter
-	killvar 'counter'
 	killvar 'count'
 	killvar 'i'
 end
 
-!! Use it as a func() returns the total count of properties that are homes and accessible
-if $ARGS[0] = 'get_accessible_count':
-	i = 0
-	count = ARRSIZE('owned_property')
-	if count > 0: 
-		:countloop
-			gs 'homes_properties', 'get_property_attr', $owned_property[i]
-			if $property['type'] = 'permanent_residence' or $property['type'] = 'temporary_residence' and owned_property[i] ! 0 and owned_property[i] ! 3: counter += 1
-			i += 1
-			killvar 'property'
-		if i < count: jump 'countloop'
+!! $ARGS[1]: the location that will have the ownership
+!!			Accepted values
+!!			- property code   -> 'city_apartment', 'parents_home'
+!!			- a location      ->  'bedrPar, 'koo2x' - A value that can shop up in $loc
+!!			- empty strying   ->  '' - will work as if a locaiton was passed, but will use the actual value of $loc
+if $ARGS[0] = 'property_status':
+	if $ARGS]1] = '':
+		result = owned_property[$home_name[$loc]]
+	else
+		result = owned_property[$home_name[$ARGS[1]]]
 	end
-	result = counter
-	killvar 'counter'
-	killvar 'count'
-	killvar 'i'
 end
 
-!! Use it as a func() returns the total count of rented or woned properties that can be lived in a stuff can be bought for
-!! TV, Computer, etc. that checks for this to allow purchase
-if $ARGS[0] = 'get_count_of_furnishable_homes':
+!! Creates two arrays, one with display name of the home the other with it''s status (owned, rented, tenants, etc.)
+if $ARGS[0] = 'owned_home_name_status':
 	i = 0
+	j = 0
 	count = ARRSIZE('owned_property')
 	if count > 0: 
 		:countloop
 			gs 'homes_properties', 'get_property_attr', $owned_property[i]
-			if $property['type'] = 'permanent_residence' or $property['type'] = 'temporary_residence' and owned_property[i] = 1 or owned_property[i] = 2: 
-				if $property['code'] = 'matryona_mansion':
-					if func('homes_properties', 'property_construction_status', 'matryona_mansion') = 2: result += 1
-				else
-					result += 1
-				end
+			if $property['type'] = 'permanent_residence' and (owned_property[i] = 2 or owned_property[i] = 3): 
+				$home_name_status= $property['display']
+				home_name_status = owned_property[i]
+				j += 1
 			end
 			i += 1
 			killvar 'property'
 		if i < count: jump 'countloop'
 	end
-	killvar 'counter'
 	killvar 'count'
 	killvar 'i'
+	killvar 'j'
+end
+
+!! Use it as a func() returns the list of property codes for rented properties that are homes
+if $ARGS[0] = 'get_rented_homes':
+	i = 0
+	j = 0
+	count = ARRSIZE('owned_property')
+	if count > 0: 
+		:countloop
+			gs 'homes_properties', 'get_property_attr', $owned_property[i]
+			if $property['rental'] = 1 and owned_property[i] = 1: 
+				$result[j] = $property['code']
+				j += 1
+			end
+			i += 1
+			killvar 'property'
+		if i < count: jump 'countloop'
+	end
+	killvar 'count'
+	killvar 'i'
+	killvar 'j'
+end
+
+!! Use it as `gs` to create rent payment info
+!! Creates $rent_name, rent_due, rent_days
+if $ARGS[0] = 'rent_payment_info'
+	i = 0
+	j = 0
+	count = ARRSIZE('owned_property')
+	if count > 0: 
+		:countloop
+			gs 'homes_properties', 'get_property_attr', $owned_property[i]
+			if $property['rental'] = 1 and owned_property[i] = 1: 
+				$rent_name[j] = $property['display']
+				$rent_code[j] = $property['code']
+				rent_due[j] = property['rent']
+				rent_days[j] = owned_property[$property['code']+'-days-left']
+				j += 1
+			end
+			i += 1
+			killvar 'property'
+		if i < count: jump 'countloop'
+	end
+	killvar 'count'
+	killvar 'i'
+	killvar 'j'
+end
+
+!! Use it as a func() returns the total count of properties that are homes and accessible
+if $ARGS[0] = 'get_accessible_count':
+	result = owned_property['accessible_home_count']
+end
+
+!! Use it as a func() returns the total count of rented or woned properties that can be lived in a stuff can be bought for
+!! TV, Computer, etc. that checks for this to allow purchase
+if $ARGS[0] = 'get_count_of_furnishable_homes':
+	result = owned_property['furnishable_home_count']
 end
 
 
-!! ARGS[1] = the code name of the property, e.g. 'city_apartment' 
+if $ARGS[0] = 'properties_for_sale':
+	i = 0
+	j = 0
+	count = ARRSIZE('$home_name')
+	if count > 0:
+		:countloop
+			if control_array[$home_name[i]] = 0:				
+				control_array[$home_name[i]] = 1
+				if owned_property[$home_name[i]] < 2:
+					gs 'homes_properties', 'get_property_attr', $home_name[i]
+					$properties_for_sale_name[j] = $property['agency_display']
+					$properties_for_sale_code[j] = $property['code']
+					$properties_for_sale_price[j] = $property['price']
+					properties_for_sale_price[j] = property['price']
+					killvar 'property'
+					j += 1
+				end
+			end
+			i += 1
+		if i < count: jump 'countloop'
+end
+
+!! Given a location or property code,this will tell whether Sveta can live here
+!! Could owned, rented or just allowed to stay (parents home, Meynold household, etc.)
+!! Call it as `func('homes_properties', 'can_live_here')` 
+!! It returns 0 if the answer is NO and 1 or -1 if the answer is yes
+!!
+!! $ARGS[1] - A string to use for the check. 
+!!			  Accepted values:
+!!			  - A property code: 'city_apartment', 'village_cottage', etc.
+!!			  - A location: any value that can show up in $loc, e.g. 'bedrPar', 'mey_home', etc.
+!!			  - empty string: If the argument is not passed - or an empty string - it will use $loc for the check
+!!
+if $ARGS[0] = 'can_live_here':
+	if $ARGS[1] = '':
+		result = owned_property[$home_name[$loc]] > 0
+	else
+		result = owned_property[$home_name[$ARGS[1]]] > 0
+	end
+end
+
+!! Given a location, it will tell whether the location is the current home
+!! Call it as `func('homes_properties', 'is_current_home')` 
+!! It returns 0 if the location is not the current home otherwise 1 or -1 
+!!
+!! $ARGS[1] - A string to use for the check. 
+!!			  Accepted values:
+!!			  - A property code: 'city_apartment', 'village_cottage', etc.
+!!			  - A location: any value that can show up in $loc, e.g. 'bedrPar', 'mey_home', etc.
+!!			  - empty string: If the argument is not passed - or an empty string - it will use $loc for the check
+!!
+if $ARGS[0] = 'is_current_home':
+	if $ARGS[1] = '': 
+		result = $home['current'] = $home_name[$loc]
+	elseif $home_name[$ARGS[1]] ! '':
+		$result = $home_name[$ARGS[1]]
+	else
+		result = 0
+	end
+end
+
+!! Given a location it returns the home name ($property['code']).
+!! It can then be checked against current home, or used as the property code where 
+!! originally the $home_name variable was used.
+!! Call this as `func('homes_properties', 'get_home_name', $ARGS[1])` 
+!!
+!! $ARGS[1] - the location to be checked
+!!			  Accepted values:
+!!			  - a property code - 'city_apartment', etc.
+!!			  - a location - a value that could show up in $loc, like 'bedr' or 'mey_home'
+!!			  - empty string - in this case the actual $loc value will be used
+if $ARGS[0] = 'get_home_name':
+	if $ARGS[1] = '': 
+		$result = $home['current'] = $home_name[$loc]
+	elseif $home_name[$ARGS[1]] ! '':
+		$result = $home_name[$ARGS[1]]
+	else
+		$result = ''
+	end
+end
+
+!!{ 
+This is for the mods that want to introduce some new home
+**OR** they rename an existing home location.
+Call this when the mod is initialised and then never again
+
+Example: A mod changes some things in the bedroom at the parents home and for this
+	redirects to `mod_whatever_bedrPar`. 
+	In this case it would fail as the location code passed would not match
+	`bedrPar` and would get back an empty string a the name of the home 
+	To avoid this, the mod should call this function with to location to the mapping.
+
+IMPORTANT: $ARGS[1] is mandatory, and either $ARGS[2] or $ARGS[3] must have a value! 
+
+$ARGS[1]	the new location name as it would appear in the $loc variable. This must start with `mod_` otherwise 
+$ARGS[2] 	the location that is being replaced - leave it '' if it is a completely new location
+$ARGS[3] 	the name of the home if it is a completely new location - otherwise pass '' or don't pass it			}
+if $ARGS[0] = 'add_new_home_location':
+	if $home_name$ARGS[1] ! '': 
+		!! WARNING: Do Nothing, the location already exists
+	elseif $ARGS[2] = '' and $ARGS[3] = '':
+		!! WARNING: Either $ARGS[2] or $ARGS[3] must have a value, otherwise no mapping will be created
+		$home_name[$ARGS[1]] = ''
+	elseif $ARGS[2] = '':
+		$home_name[$ARGS[1]] = $home_name[$ARGS[2]]
+	else
+		$home_name[$ARGS[1]] = $ARGS[3]
+	end
+end
+
+!! $ARGS[1] = the code name of the property, e.g. 'city_apartment' 
 !! ARGS[2] - the number of days to add.
 !!           if the value is 0 then the code will add the number of days that is there in the month
 if $ARGS[0] = 'add_rent_days':
 	if ARGS[2] = 0:
-		owned_property[$ARGS[1]+'-days-left'] += func( 'homes_properties', 'rent_due')
+		owned_property[$ARGS[1]+'-days-left'] += func( 'homes_properties', 'rent_due_date')
 	else
 		owned_property[$ARGS[1]+'-days-left'] += ARGS[2]
 	end
 end
 
-!! ARGS[1] = the code name of the property, e.g. 'city_apartment' 
+!! $ARGS[1] = the code name of the property, e.g. 'city_apartment' 
 !! ARGS[2] - the number of days to set to.
 if $ARGS[0] = 'set_rent_days':
 	owned_property[$ARGS[1]+'-days-left'] = ARGS[2]
 end
 
 !! Call it as a func()
-!! ARGS[1] = the code name of the property, e.g. 'city_apartment' 
+!! $ARGS[1] = the code name of the property, e.g. 'city_apartment' 
 if $ARGS[0] = 'get_rent_days':
 	result = owned_property[$ARGS[1]+'-days-left']
 end
 
 !! Call it as a func()
-!! ARGS[1] = the code name of the property, e.g. 'city_apartment' 
+!! $ARGS[1] = the code name of the property, e.g. 'city_apartment' 
 if $ARGS[0] = 'property_construction_status':
 	result = owned_property[$ARGS[1]+'-construction-status']
 end
 
-!! ARGS[1] = the code name of the property, e.g. 'city_apartment' 
+!! $ARGS[1] = the code name of the property, e.g. 'city_apartment' 
 if $ARGS[0] = 'progress_construction_status':
 	if owned_property[$ARGS[1]+'-construction-status'] < 2: owned_property[$ARGS[1]+'-construction-status'] += 1
 end
 
 !! Call it as a func()
-!! ARGS[1] = the code name of the property, e.g. 'city_apartment' 
+!! $ARGS[1] = the code name of the property, e.g. 'city_apartment' 
 if $ARGS[0] = 'property_renovated':
 	result = owned_property[$ARGS[1]+'-renovated']
 end
 
 
 !! Returns a simple string representation of the status
-!! ARGS[1]: the code name of the property, e.g. 'city_apartment' 
+!! $ARGS[1]: the code name of the property, e.g. 'city_apartment' 
 if $ARGS[0] = 'property_status_to_text':
 	if ARGS[1] = 0: 
 		result = 'no access'
@@ -612,9 +865,48 @@ if $ARGS[0] = 'rent_due':
 	end
 end
 
-if $ARGS[0] = 'leave_home':
-	killvar '$home_name'
+!!{ 
+Returns 0 if the property doesn''t give free internet access, and 1 or -1 if it does
+
+$ARGS[1] 	The location to be checked
+			Accepted values:
+			- a property code - 'city_apartment', etc.
+			- a location - a value that could show up in $loc, like 'bedr' or 'mey_home'
+			- empty string - in this case the actual $loc value will be used 	}
+if $ARGS[0] = 'free_internet_property':
+
+end
+
+!! Runs even night and sees if any tenants are moving out
+if $ARGS[0] = 'tenant_move_out_check':
+	count = ARRSIZE('owned_property')
+	i = 0
+	j = 0
+	if count > 0:
+		:tenantloop
+			gs 'homes_properties', 'get_property_attr', $owned_property[i]
+			if  $property['code'] ! '' and owned_property[$property['code']] = 3:
+				if owned_property[$property['code']+'-tenant-day'] = day and owned_property[$property['code']+'-tenant-month'] = month:
+					gs 'homes_properties', 'set_ownership', $property['code'], 2
+					owned_property[$property['code']+'-tenant-day'] = -1
+					owned_property[$property['code']+'-tenant-month'] = -1	
+					$result[j] = '<b><font color="red">Your tenants have moved out from your <<$property[''name'']>> and your apartment is now vacant.</font></b>'
+					j += 1
+				end
+			wnd					
+			i += 1
+			killvar 'property'
+		if i < count: jump 'tenantloop'
+	end
+end
+
+!! $ARGS[1] - the property code of the home that is rented to tenants
+!! ARGS[2] - the tenancy end day
+!! ARGS[3] - the tenancy end month
+if $ARGS[0] = 'tenants_move_in':
+	gs 'homes_properties', 'set_ownership', $ARGS[1], 3
+	owned_property[$ARGS[1]+'-tenant-day'] = ARGS[2]
+	owned_property[$ARGS[1]+'-tenant-month'] = ARGS[3]
 end
 
 --- homes_properties ---------------------------------
-
