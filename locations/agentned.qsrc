@@ -22,13 +22,16 @@ if $ARGS[0] = 'start':
 	'At the reception, you notice a large print banner:'
 	'<b>"Please be aware that all sales transactions are made exclusively through your bank account. Rent payments are excluded from this policy."</b>'
 
+	act 'View rentals': gt 'agentned', 'rent'
+	act 'View properties for sale': gt 'agentned', 'buy'
+
 	gs 'homes_properties', 'rent_payment_info'
 	count = ARRSIZE('$rent_name')
 	if count > 0:
 		'<h4>Rent Information</h4>'
 		i = 0
 		:loop_rent_info
-			'You have <B><<rent_days[i]>> days</B> remaining on the lease of your <<$rent_name[i]>>, and your monthly rent is <<rent_due[i]>> <b>₽</b>. '+iif(money >= rent_due[i],'You can make a rent <a href="exec:money -= rent_due[i] & gs ''homes_properties'', ''add_rent_days'', $trent_code[i] & gt ''agentned'', ''start''">payment</a> in cash to extend it.','You can''t afford to pay your rent at the moment')+''	
+			'You have <B><<rent_days[i]>> days</B> remaining on the lease of your <<$rent_name[i]>>, and your monthly rent is <<rent_due[i]>> <b>₽</b>. '+iif(money >= rent_due[i],'You can make a rent <a href="exec:money -= rent_due[i] & gs ''homes_properties'', ''add_rent_days'', $rent_code[i] & gt ''agentned'', ''start''">payment</a> in cash to extend it.','You can''t afford to pay your rent at the moment')+''	
 
 			act 'Cancel the lease of the <<$rent_name[i]>>':
 				cla & *nl
@@ -55,11 +58,12 @@ if $ARGS[0] = 'start':
 		:property_loop
 			if owned_home_name_status[i] = 3:
 				$text_to_print[j] = '<<$owned_home_name_status[i]>> which is currently occupied by your tenants.'
+				j += 1	
 			elseif owned_home_name_status[i] = 2:
 				$text_to_print[j] = '<<owned_home_name_status[i]>> which is currently occupied by your tenants.'
+				j += 1	
 			end
-			j += 1			
-			i += 1n
+			i += 1
 		if i < count: jump 'property_loop'
 	end
 	killvar 'owned_home_name_status'
@@ -86,9 +90,6 @@ if $ARGS[0] = 'start':
 	killvar '$text_to_print'
 
 	act 'Leave': minut += 5 & gt 'city_center'
-
-	act 'View rentals': gt 'agentned', 'rent'
-	act 'View properties for sale': gt 'agentned', 'buy'
 end
 
 if $ARGS[0] = 'buy':
@@ -332,11 +333,11 @@ if $ARGS[0] = 'rent_pushkin':
 	'<br>He pulls out a pen and slides the paperwork onto the counter. "Interested? You can move in right away," he calmly says.'
 	*nl
 	monthly_rent = func('homes_properties', 'get_rent', 'old_town_apartment')
-	if money >= monthly_rent or monthly_rent
+	if money >= monthly_rent or karta+bankDebtLimit >= monthly_rent:
 		act 'Agree and pay':
 			*clr & cla
 			minut += 30
-			if money >= monthly_rent
+			if money >= monthly_rent:
 				money -= monthly_rent
 			else
 				karta -= pmonthly_rent
@@ -361,6 +362,7 @@ if $ARGS[0] = 'rent_pushkin':
 		*nl
 		'You do not have enough money with you or in your bank account to rent this.'
 	end
+
 	killvar 'monthly_rent'
 	act 'Decline':
 		*clr & cla
