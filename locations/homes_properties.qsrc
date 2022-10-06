@@ -465,10 +465,13 @@ if $ARGS[0] = 'set_ownership':
 	if ARGS[2] = 1 and $property['rental'] = 0: new_status_code = 4
 	
 	if orig_status_code ! new_status_code:
+		gs 'homes_properties', 'get_property_attr', $prop_code		
+		
 		$owned_property[$prop_code] = $prop_code
+		owned_property['<<$prop_code>>-rent'] = property['rent']
+		owned_property['<<$prop_code>>-display'] = $property['display']
+		owned_property['<<$prop_code>>-name'] = $property['name']
 		owned_property[$prop_code] = new_status_code
-
-		gs 'homes_properties', 'get_property_attr', $prop_code
 			
 		if $property['contstruction_needed'] = 1:
 			owned_property[$prop_code+'-construction-status'] = ARGS[3]
@@ -482,14 +485,14 @@ if $ARGS[0] = 'set_ownership':
 			!! If this was the current home then killing it
 			if $home['current'] = $prop_code: killvar '$home'
 			!! Resetting rent days just to be sure
-			owned_property[$prop_code+'-days-left'] = -1
+			owned_property['<<$prop_code>>-days-left'] = -1
 			
 			!! Updating home counts
 			!! NOTE: Valid transitions: 1 -> 0, 2 -> 0, 4 -> 0
 			if $property['type'] = 'permanent_residence' or $property['type'] = 'temporary_residence':
 				if orig_status_code = 1: owned_property['rental_home_count'] -= 1
 				if orig_status_code = 2: owned_property['owned_home_count'] -= 1
-				if owned_property[$prop_code+'-construction-status'] = 2: owned_property['furnishable_home_count'] -= 1
+				if owned_property['<<$prop_code>>-construction-status'] = 2: owned_property['furnishable_home_count'] -= 1
 				owned_property['accessible_home_count'] -= 1
 			end
 		elseif owned_property[$prop_code] = 1:
@@ -501,7 +504,7 @@ if $ARGS[0] = 'set_ownership':
 			if $property['type'] = 'permanent_residence' or $property['type'] = 'temporary_residence':
 				owned_property['rental_home_count']+-= 1
 				owned_property['accessible_home_count'] += 1
-				if owned_property[$prop_code+'-construction-status'] = 2: owned_property['furnishable_home_count'] +=1 
+				if owned_property['<<$prop_code>>-construction-status'] = 2: owned_property['furnishable_home_count'] +=1 
 			end
 		elseif owned_property[$prop_code] = 2:
 			!! Resetting rent days left just in case
@@ -548,6 +551,29 @@ if $ARGS[0] = 'set_ownership':
 	killvar 'new_status_code'
 end
 
+!! Returns the owned property values
+!! ARGS[1] - property code
+if $ARGS[0] = 'get_owned_property':
+	gs 'homes_properties', 'get_property_attr', $ARGS[1]
+	$result['code'] = $owned_property[$ARGS[1]]
+	'Code: <<$result[''code'']>>'
+	$result['name'] = $property['display']
+	'Name: <<$result[''name'']>>'
+	result['renovated'] = owned_property[$ARGS[1]+'renovated']
+	'Renovated: <<result[''renovated'']>>'
+	result['status'] = owned_property[$ARGS[1]]
+	'Status: <<result[''status'']>>'
+	result['construction_status'] = owned_property[$ARGS[1]+'-construction-status']
+	'Construction Status: <<result[''construction_status'']>>'
+	result['days_left'] = owned_property[$ARGS[1]+'-days-left']
+	'Days left: <<result[''days_left'']>>'
+	result['rent'] = $property['rent']
+	'Rent: <<result[''rent'']>>'
+
+	killvar 'property'
+end
+
+
 !! Use it as a func() returns the list of property codes for the properties are homes and are owned
 !!
 !! ARGS[1] - optional, if 1 then the full list is returns, if 0 then homes are occupied by tenants are left out.
@@ -575,18 +601,16 @@ end
 !!
 !! ARGS[1] - optional, if 1 then the full list is returns, if 0 then homes are occupied by tenants are left out.
 if $ARGS[0] = 'get_owned_homes_count':
-	i = 0
-	count = ARRSIZE('owned_property')
-	if count > 0: 
-		:countloop
-			gs 'homes_properties', 'get_property_attr', $owned_property[i]
-			if $property['type'] = 'permanent_residence' and (owned_property[i] = 2 or (owned_property[i] = 3 and $ARGS[1] = 1)): result += 1
-			i += 1
-			killvar 'property'
-		if i < count: jump 'countloop'
-	end
-	killvar 'count'
-	killvar 'i'
+	
+end
+
+!! Returns the count of rented properties
+!!
+!! ARGS[1] - property type filter: 'home', 'business', 'all' or '' or missing
+if $ARGS[0] = 'get_rented_property_count':
+	if $ARGS[1] = 'home': result = owned_propeprty['rental_home_count']
+	if $ARGS[1] = 'business': result = owned_propeprty['rental_busiess_count']
+	if $ARGS[1] = 'all' or $ARGS[1] = '': result = owned_propeprty['rental_home_count'] + owned_propeprty['rental_busiess_count']
 end
 
 !! $ARGS[1]: the location that will have the ownership
@@ -602,29 +626,11 @@ if $ARGS[0] = 'property_status':
 	end
 end
 
-!! Creates two arrays, one with display name of the home the other with it''s status (owned, rented, tenants, etc.)
-if $ARGS[0] = 'owned_home_name_status':
-	i = 0
-	j = 0
-	count = ARRSIZE('owned_property')
-	if count > 0: 
-		:countloop
-			gs 'homes_properties', 'get_property_attr', $owned_property[i]
-			if $property['type'] = 'permanent_residence' and (owned_property[i] = 2 or owned_property[i] = 3): 
-				$home_name_status= $property['display']
-				home_name_status = owned_property[i]
-				j += 1
-			end
-			i += 1
-			killvar 'property'
-		if i < count: jump 'countloop'
-	end
-	killvar 'count'
-	killvar 'i'
-	killvar 'j'
-end
+
 
 !! Use it as a func() returns the list of property codes for rented properties that are homes
+!!
+!! Returns: rental_due, rental_days, rental_name ($property['display']), rental_code
 if $ARGS[0] = 'get_rented_homes':
 	i = 0
 	j = 0
@@ -640,9 +646,7 @@ if $ARGS[0] = 'get_rented_homes':
 			killvar 'property'
 		if i < count: jump 'countloop'
 	end
-	killvar 'count'
-	killvar 'i'
-	killvar 'j'
+	killvar 'count', 'i', 'j'
 end
 
 !! Use it as `gs` to create rent payment info
@@ -691,20 +695,43 @@ if $ARGS[0] = 'properties_for_sale':
 		:countloop
 			if control_array[$home_name[i]] = 0:				
 				control_array[$home_name[i]] = 1
-				if owned_property[$home_name[i]] < 2:
-					gs 'homes_properties', 'get_property_attr', $home_name[i]
+				gs 'homes_properties', 'get_property_attr', $home_name[i]
+				if owned_property[$home_name[i]] < 2 and $property['type'] = 'permanent_residence':					
 					$properties_for_sale_name[j] = $property['agency_display']
 					$properties_for_sale_code[j] = $property['code']
 					$properties_for_sale_price[j] = $property['price']
 					properties_for_sale_price[j] = property['price']
-					killvar 'property'
 					j += 1
 				end
+				killvar 'property'
 			end
 			i += 1
 		if i < count: jump 'countloop'
 	end
 end
+
+!! A list of codes for the properties that can be rented.
+if $ARGS[0] = 'properties_for_rent':
+	i = 0
+	j = 0
+	count = ARRSIZE('$home_name')
+	if count > 0:
+		:countloop
+			if control_array[$home_name[i]] = 0:				
+				control_array[$home_name[i]] = 1
+				gs 'homes_properties', 'get_property_attr', $home_name[i]
+				if owned_property[$home_name[i]] = 0 and property['rental'] = 1 and owned_property[$home_name[i]] = 0:
+					$result[j] = $property['code']
+					j += 1
+				end
+				killvar 'property'
+			end
+			i += 1
+		if i < count: jump 'countloop'
+	end
+	killvar 'i', 'j'
+end
+
 
 !! Given a location or property code,this will tell whether Sveta can live here
 !! Could owned, rented or just allowed to stay (parents home, Meynold household, etc.)
@@ -884,7 +911,7 @@ if $ARGS[0] = 'get_price':
 end
 
 !! Returns the rent due date for the given month. Call as a func()
-if $ARGS[0] = 'rent_due':
+if $ARGS[0] = 'rent_due_date':
 	if month = 1 or month = 3 or month = 5 or month = 7 or month = 8 or month = 10 or month = 12:
 		result = 31
 	elseif month = 2:
@@ -900,7 +927,6 @@ end
 
 !!{ 
 Returns 0 if the property doesn''t give free internet access, and 1 or -1 if it does
-
 $ARGS[1] 	The location to be checked
 			Accepted values:
 			- a property code - 'city_apartment', etc.

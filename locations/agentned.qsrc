@@ -25,30 +25,31 @@ if $ARGS[0] = 'start':
 	act 'View rentals': gt 'agentned', 'rent'
 	act 'View properties for sale': gt 'agentned', 'buy'
 
-	gs 'homes_properties', 'rent_payment_info'
-	count = ARRSIZE('$rent_name')
-	if count > 0:
-		'<h4>Rent Information</h4>'
-		i = 0
-		:loop_rent_info
-			'You have <B><<rent_days[i]>> days</B> remaining on the lease of your <<$rent_name[i]>>, and your monthly rent is <<rent_due[i]>> <b>₽</b>. '+iif(money >= rent_due[i],'You can make a rent <a href="exec:money -= rent_due[i] & gs ''homes_properties'', ''add_rent_days'', $rent_code[i] & gt ''agentned'', ''start''">payment</a> in cash to extend it.','You can''t afford to pay your rent at the moment')+''	
+	!! Get a list of the properties and their attributes that the player rented:
 
-			act 'Cancel the lease of the <<$rent_name[i]>>':
+	iif(func('homes_properties', 'get_rented_count', 'home') > 0, count = func('homes_properties', 'get_rented_count'), count = 0)
+
+	if count > 0:
+		!! Returns: $rental_name[i], $rental_code[i], rental_amount[i], rental_days[i]
+		gs 'homes_properties', 'get_rented_homes'
+		i = 0
+		'<h4>Rent Information</h4>'
+		:loop_rental_info
+			'You have <B><<rental_days[i]]>> days</B> remaining on the lease of your <<$rental_name[i]>>, and your monthly rent is <<rental_amount[i]>> <b>₽</b>. '+iif(money >= rental_amount[i],'You can make a rent <a href="exec:money -= <<rental_amount[i]>> & gs ''homes_properties'', ''add_rental_days'', ''<<$rental_code[i]>>'' & gt ''agentned'', ''start''">payment</a> in cash to extend it.','You can''t afford to pay your rent at the moment')
+			act 'Cancel the lease of the <<$rental_name[i]>>':
 				cla & *nl
 				'Attention: You won''t be able to return to your apartment when you cancel the lease.'
 			
 				act 'Return': gt'agentned', 'start'
-				act 'Cancel it': gs 'homes_properties', 'set_ownership', $rent_name[i], 0 & gt'agentned', 'start'
+				act 'Cancel it': gs 'homes_properties', 'cancel_home_rent', '<<$rental_code[i]>>', 0 & gt'agentned', 'start'
 			end
-
 			i += 1
-		if i < count: jump 'loop_rent_info'
+		if i < count: jump 'loop_rental_info'
+		killvar 'rental_due', 'rental_days', 'rental_name', 'rental_code'}
 	end
 	killvar 'count'
-	killvar 'rent_due'
-	killvar 'rent_days'
-	killvar 'rent_name'
-	killvar 'rent_code'
+	
+
 
 	gs ('homes_properties', 'owned_home_name_status')
 	count = ARRSIZE('$owned_home_name_status')
@@ -251,6 +252,7 @@ if $ARGS[0] = 'rent':
 	
 	act 'Return':gt'agentned', 'start'
 	
+
 	if owned_property['city_apartment'] > 0 and owned_property['old_town_apartment'] > 0:
 		'We currently have no properties listed for rent.'
 	elseif owned_property['city_apartment'] = 0 and owned_property['old_town_apartment'] = 0:
