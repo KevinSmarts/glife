@@ -5,7 +5,8 @@
 ! Amended by Hooded Silence
 ! Game Character Journal - central core game data area for players.
 ! V .01 Refactored to enable menu bar navigation for UI consistency. 
-! V .02 In Progress - redesign and integration of content areas.
+! V .02 Redesign and integration of content areas.
+! V .03 Bug fixes.
 !
 ! Sections:
 ! 0 Magic (if enabled)
@@ -32,7 +33,6 @@ if $ARGS[0] = 'records':
 ! records
 end
 
-
 if $ARGS[0]='journalmenu':
 	*clr & cla
 	if $start_type[1] ! 'nomagic':
@@ -46,16 +46,18 @@ if $ARGS[0]='journalmenu':
 	
 	'<center><table width="90%" align="center" width="90%" cellspacing="0" cellpadding="0" valign="top"><tr><<$tablebody>></tr></table></center>'
 	
-	if $jumploc = '': 
+	if $jumploc = '' or jclose = 1: 
 		if $start_type[1] ! 'nomagic': 
 			menutrack = 0
+			jclose = 0
 			gt 'journal', 'magictab'
 		else
 			menutrack = 1
+			jclose = 0
 			gt 'journal', 'housingtab'  
 		end
 	end
-	act 'Put your notebook down': gt $loc, $loc_arg & killvar 'jumploc'	
+	gs 'journal', 'leaveactions'
 
 ! Journal Menu
 end
@@ -63,14 +65,16 @@ end
 if $ARGS[0] = 'magictab':
 	$jumploc = 'magictab'
 	gs 'journal', 'journalmenu'
+	
 	'<center><h2>Spells</h2></center><br>'
 	'<center><h2>Spells to Cast</h2></center><br>'
-	func('spellBook','cast','$nonComSpells')
+	func('spellBook','cast','$nonComSpells') 
 	'<br><center><h2>Spell Learning</h2></center><br>'
 	'<br><center><h3>Combat</h3></center><br>'
-	func('spellBook','learn','$combatSpells')
+	func('spellBook','learn','$combatSpells') 
 	'<br><center><h3>Non-Combat</h3></center><br>'
-	func('spellBook','learn','$nonComSpells')
+	func('spellBook','learn','$nonComSpells') 
+	delact 'Never mind'
 ! magic
 end
 
@@ -80,19 +84,18 @@ if $ARGS[0] = 'housingtab':
 
 	'<center><h2>Housing</h2></center>'
 	*nl
-	constructionstatus = func('homes_properties', 'property_construction_status', 'matryona_mansion')
 	if pavSharedAptEnabled = 1:'You share an apartment with three others in Pavlovsk. Your bills are paid by the other tenants in exchange for your house services'
-	if owned_property['city_apartment'] = 1:'You rent a two room apartment in the city residential area. Your rent for the apartment is subtracted automatically in sum of <<home_rent[1]>> <b>₽</b> us electric bill on 25th of each month. You are currently paid up for <b><<ArendHouseSL>></b> days'
-	if owned_property['city_apartment'] = 2:'You own a two room apartment in the city residential area. Your utility bills are due on the 25th of each month.'
-	if owned_property['city_apartment'] = 3:'You own a two room apartment in the city residential area. It''s currently occupied by your tenants.'
-	if owned_property['parents_home'] = 4:'You live with your parents and siblings in a two room apartment in Pavlovsk.'
-	if owned_property['village_cottage']= 2 :'You own a small holiday cottage with an adjacent allotment in the communal village.'
-	if owned_property['old_town_apartment'] = 1:'You rent a two room apartment in Pushkin. Your rent for the apartment is subtracted automatically in the sum of <<home_rent[4]>> <b>₽</b> us electric bill on the 25th of each month. You are currently paid up for <b><<ArendHouseSL4>></b> days'
-	if owned_property['matryona_mansion'] = 2 and constructionstatus = 0:'You own a vacant block in the city suburbs. Your utility bills are due on the 25th of each month.'
-	if owned_property['matryona_mansion'] = 2 and constructionstatus = 1:'You own a plot of land in the city suburbs upon which you are building a house. Your utility bills are due on the 25th of each month.'
-	if owned_property['matryona_mansion'] = 2 and constructionstatus = 2:'You own an impressive mansion in the city suburbs. Your utility bills are due on the 25th of each month.'
-	if owned_property['city_house'] = 2:'You own a nice house on the edge of the city residential district. Your utility bills are due on the 25th of each month.'
-	if owned_property['meynold_household'] = 4:'You live with Vicky, Katja and Tamara Meynold. You have your own room and get an allowance based on helping out around the house and/or studying with Tamara.'
+	if home_owned[1] = 1:'You rent a two room apartment in the city residential area. Your rent for the apartment is subtracted automatically in sum of <<home_rent[1]>> <b>₽</b> us electric bill on 25th of each month. You are currently paid up for <b><<ArendHouseSL>></b> days'
+	if home_owned[1] = 2:'You own a two room apartment in the city residential area. Your utility bills are due on the 25th of each month.'
+	if home_owned[1] = 3:'You own a two room apartment in the city residential area. It''s currently occupied by your tenants.'
+	if home_owned[2] > 0:'You live with your parents and siblings in a two room apartment in Pavlovsk.'
+	if home_owned[3] > 0:'You own a small holiday cottage with an adjacent allotment in the communal village.'
+	if home_owned[4] > 0:'You rent a two room apartment in Pushkin. Your rent for the apartment is subtracted automatically in the sum of <<home_rent[4]>> <b>₽</b> us electric bill on the 25th of each month. You are currently paid up for <b><<ArendHouseSL4>></b> days'
+	if home_owned[5] = 1:'You own a vacant block in the city suburbs. Your utility bills are due on the 25th of each month.'
+	if home_owned[5] = 2:'You own a plot of land in the city suburbs upon which you are building a house. Your utility bills are due on the 25th of each month.'
+	if home_owned[5] = 3:'You own an impressive mansion in the city suburbs. Your utility bills are due on the 25th of each month.'
+	if home_owned[15] = 1:'You own a nice house on the edge of the city residential district. Your utility bills are due on the 25th of each month.'
+	if home_owned[16] = 1:'You live with Vicky, Katja and Tamara Meynold. You have your own room and get an allowance based on helping out around the house and/or studying with Tamara.'
 	*nl
 	if car > 0:
 		'<center><h2>Car</h2></center>'
@@ -125,7 +128,6 @@ if $ARGS[0] = 'housingtab':
 	end
 ! housing
 end
-
 
 if $ARGS[0] = 'relationstab':
     $jumploc = 'relationstab'
@@ -180,7 +182,6 @@ if $ARGS[0] = 'relationstab':
 		end
 		*nl
 		
-
 		'Cool Kids'
 
 		gs 'indik', '4', grupvalue[1]/10, grupvalue[1], 1 & '<<$ind>>'
@@ -196,25 +197,25 @@ if $ARGS[0] = 'relationstab':
 		
 		'<h2>Other Relations</h2>'
 		
-	if npc_QW['A192'] > 0: 'Friendship with Nastya:' & gs 'journal', 'relindex', 'A192' 
-	if npc_rel['A218'] > 0: 'Friendship with Tanya:' & gs 'journal', 'relindex', 'A218'  
-	if npc_rel['A219'] > 0: 'Friendship with Kat:' & gs 'journal', 'relindex', 'A219' 
-	if npc_rel['A220'] > 0: 'Friendship with Vika:' & gs 'journal', 'relindex', 'A220' 
-	if npc_rel['A93'] > 0: 'Friendship with Ira:'  & gs 'journal', 'relindex', 'A93' 
-	if npc_rel['A43'] > 0: 'Friendship with Tamara:' & gs 'journal', 'relindex', 'A43' 
-	if npc_rel['A169']> 0: 'Friendship with Dima:'  & gs 'journal', 'relindex', 'A169' 
-	if npc_rel['A69'] > 0:'Friendship with Mikhail Nikolaevich (Volleyball Coach):' & gs 'journal', 'relindex', 'A69' 
-	
-	! Uncomment if re-introduced into the game ensure you use NPC ID to update them
-	! if alla > 0: 'Friendship with Alla <<alla>>'
-	! if masha > 0: 'Friendship with Masha <<masha>>'
-	! if npc_rel['A41'] > 0: 'Friendship with Givi K. <<npc_rel[''A41'']>>'
-	! if npc_rel['A42'] > 0: 'Friendship with Ashot <<npc_rel[''A42'']>>'
-	
+		if npc_QW['A192'] > 0: 'Friendship with Nastya:' & gs 'journal', 'relindex', 'A192' 
+		if npc_rel['A218'] > 0: 'Friendship with Tanya:' & gs 'journal', 'relindex', 'A218'  
+		if npc_rel['A219'] > 0: 'Friendship with Kat:' & gs 'journal', 'relindex', 'A219' 
+		if npc_rel['A220'] > 0: 'Friendship with Vika:' & gs 'journal', 'relindex', 'A220' 
+		if npc_rel['A93'] > 0: 'Friendship with Ira:'  & gs 'journal', 'relindex', 'A93' 
+		if npc_rel['A43'] > 0: 'Friendship with Tamara:' & gs 'journal', 'relindex', 'A43' 
+		if npc_rel['A169']> 0: 'Friendship with Dima:'  & gs 'journal', 'relindex', 'A169' 
+		if npc_rel['A69'] > 0:'Friendship with Mikhail Nikolaevich (Volleyball Coach):' & gs 'journal', 'relindex', 'A69' 
+		
+		! Uncomment if re-introduced into the game ensure you use NPC ID to update them
+		! if alla > 0: 'Friendship with Alla <<alla>>'
+		! if masha > 0: 'Friendship with Masha <<masha>>'
+		! if npc_rel['A41'] > 0: 'Friendship with Givi K. <<npc_rel[''A41'']>>'
+		! if npc_rel['A42'] > 0: 'Friendship with Ashot <<npc_rel[''A42'']>>'
+		
 
-	!!!WD: Formatting
-	if (npc_rel['A93'] + npc_rel['A41'] + npc_rel['A42'] + npc_rel['A43'] + gosh + npc_rel['A220'] + npc_rel['A219'] + npc_QW['A192'] + npc_rel['A218']) > 0:*nl
-	*nl
+		!!!WD: Formatting
+		if (npc_rel['A93'] + npc_rel['A41'] + npc_rel['A42'] + npc_rel['A43'] + gosh + npc_rel['A220'] + npc_rel['A219'] + npc_QW['A192'] + npc_rel['A218']) > 0:*nl
+		*nl
 		
 	end
 
@@ -273,7 +274,6 @@ if $ARGS[0] = 'relationstab':
 	if haraklover[2] = 2 and loverrelation[2] > 1:'<<$obj_loverpron>>''s short-tempered and strict.'
 	*nl
 
-
 ! relations
 end
 
@@ -293,7 +293,6 @@ if $ARGS[0] = 'generaltab':
 	if university['student'] = 1: '<br><center><a href="exec: gs ''journal'', ''uni''">University</a></center>'
 	'<br><center><a href="exec: gs ''journal'', ''clothing''">Clothing information</a></center>'
 end
-
 
 if $ARGS[0] = 'notestab':
 	$jumploc = 'notestab'
@@ -316,9 +315,7 @@ if $ARGS[0] = 'notestab':
 ! notes
 end
 
-
 ! ---- Other Sections ---- 
-
 
 if $ARGS[0] = 'clothing':
 	$jumploc = 'generalsub'
@@ -337,10 +334,8 @@ if $ARGS[0] = 'clothing':
 	'	Good quality outfit'
 	'	Outstanding quality outfit'
 
-	act 'Go back': gt 'journal', 'generaltab'
-	act 'Put your notebook down': gt $loc, $loc_arg & killvar 'jumploc'
+	gs 'journal', 'leaveactions'
 end
-
 
 if $ARGS[0] = 'uni':
 	$jumploc = 'generalsub'
@@ -454,15 +449,15 @@ if $ARGS[0] = 'uni':
 		if ARRSIZE('class_list_institution') >= j: jump 'exam_loop'
 		killvar 'j'
 	end
-
-	act 'Go back': gt 'journal', 'records'
-	act 'Put your notebook down': gt $loc, $loc_arg
+	act 'Go back': gt 'journal', 'generaltab'
+	gs 'journal', 'leaveactions'
 end
 if $ARGS[0] = 'locations':
 	$jumploc = 'generalsub'
 	gs 'journal', 'journalmenu'
 	'<center><h2>Pavlovsk</h2></center>'
 	'Pavlovsk is a small town. It is somewhat of a tourist trap thanks to the Catharina Palace and the former palace grounds, which have been converted into a large park centered around the train station. There is an open air market near the train station that is open year round where many bargains can be found. The cafe where your mother works can also be found near the train station. It caters to the visitors coming in by train. The downtown area contains businesses and some middle class housing, while the residential area is a mixture of houses and old Soviet era apartment blocks.'
+	*nl
 	'The wealthier families live in large houses near the park on the outskirts of town, while the poorest homes are found near the old industrial area where several factories have long since been abandoned. The only factory still open is the G&M clothing factory, which also has a local store front and a tailor that can adjust your clothing. The industrial area is now mostly home to prostitutes and drug dealers and is not considered a safe area to walk around at night. Despite being a tourist destination, the area is seen as fairly poor and without many jobs.'
 
 	'<center><h2>Gadukino</h2></center>'
@@ -472,7 +467,7 @@ if $ARGS[0] = 'locations':
 	'You''ve heard many rumors about the city from both family members and school friends. They all say it''s both a great and bad place. The few memories you have are connected to the big park that you and your family visited once, which had a large amusement park with lots of rides. You also know about the University because you''ve overheard Anya and your mother argue about it. Sometimes, your mother would drag you and Anya along to the city mall while she was visiting the beauty salon. You remember running through the stores asking your mother to buy you clothes.'
 
 	act 'Go back': gt 'journal', 'generaltab'
-	act 'Put your notebook down': gt $loc, $loc_arg & killvar 'jumploc'
+	gs 'journal', 'leaveactions'
 end
 
 if $ARGS[0] = 'friends_family':
@@ -512,12 +507,21 @@ if $ARGS[0] = 'friends_family':
 	'Sergey Shulgin - Sergey lives in the same building as you with his son, your childhood friend Vasily. He has gray hair and a small beer belly, but is still hearty looking. His wife, Vasily''s mother, left when Vasily was young. He has been close friends with your stepfather and mother for as long as you can remember. Oddly enough, he never re-married after being abandoned by his ex-wife.'
 
 	act 'Go back': gt 'journal', 'generaltab'
-	act 'Put your notebook down': gt $loc, $loc_arg & killvar 'jumploc'
+	gs 'journal', 'leaveactions'
 end
+
+! Helper functions
 
 if $ARGS[0] = 'relindex':
 
-    *pl & gs 'indik', '1', npc_rel['<<$ARGS[1]>>'], npc_rel['<<$ARGS[1]>>'], 100 & '<<$ind>>'
+    *pl & gs 'indik', '4', npc_rel['<<$ARGS[1]>>'], npc_rel['<<$ARGS[1]>>'], 100 & '<<$ind>>'
 end
 
+if $ARGS[0] = 'leaveactions':
+	act 'Put your notebook down': 		 
+		killvar 'jumploc'
+		jclose = 1
+		gt $loc, $loc_arg
+	end	
+end
 --- journal ---------------------------------
