@@ -26,69 +26,46 @@ if $ARGS[0] = 'start':
 	act 'View properties for sale': gt 'agentned', 'buy'
 
 	!! Get a list of the properties and their attributes that the player rented:
-	!! Returns: $rental_name[i], $rental_code[i], rental_amount[i], rental_days[i]
+	!! Returns: $property_name[i], $property_code[i], property_rent[i], property_days[i]
 	gs 'homes_properties', 'get_rented_properties', 'home'
-	count = ARRSIZE('$rental_name')
+	count = ARRSIZE('$property_name')
 	if count > 0:
 		i = 0
 		'<h4>Rent Information</h4>'
 		:loop_rental_info
-			'You have <B><<rental_days[i]>> days</B> remaining on the lease of your <<$rental_name[i]>>, and your monthly rent is <<rental_amount[i]>> <b>₽</b>. '+iif(money >= rental_amount[i],'You can make a rent <a href="exec:money -= <<rental_amount[i]>> & gs ''homes_properties'', ''add_rental_days'', ''<<$rental_code[i]>>'' & gt ''agentned'', ''start''">payment</a> in cash to extend it.','You can''t afford to pay your rent at the moment')
-			act 'Cancel the lease of the <<$rental_name[i]>>':
+			'You have <B><<property_days[i]>> days</B> remaining on the lease of your <<$property_name[i]>>, and your monthly rent is <<property_rent[i]>> <b>₽</b>. '+iif(money >= property_rent[i],'You can make a rent <a href="exec:money -= <<property_rent[i]>> & gs ''homes_properties'', ''add_rental_days'', ''<<$property_code[i]>>'' & gt ''agentned'', ''start''">payment</a> in cash to extend it.','You can''t afford to pay your rent at the moment')
+			act 'Cancel the lease of the <<$property_name[i]>>':
 				cla & *nl
 				!! TODO: 1 month notice period like in real life?
 				'Attention: You won''t be able to return to your apartment when you cancel the lease.'
 			
 				act 'Return': gt'agentned', 'start'
-				act 'Cancel it': gs 'homes_properties', 'cancel_rent', '<<$rental_code[i]>>' & gt'agentned', 'start'
+				act 'Cancel it': gs 'homes_properties', 'cancel_rent', '<<$property_code[i]>>' & gt'agentned', 'start'
 			end
 			i += 1
 		if i < count: jump 'loop_rental_info'
-		killvar 'rental_due' && killvar 'rental_days' && killvar 'rental_name' && killvar 'rental_code'  && killvar 'i'
 	end
-	killvar 'count'
+	gs 'homes_properties', 'clean_up_property_data'
+	killvar 'count' & killvar 'i'
 	
-
-
-	gs ('homes_properties', 'owned_home_name_status')
-	count = ARRSIZE('$owned_home_name_status')
+	!! Get a list of the properties and their attributes that the player rented:
+	!! $property_code[], $property_name[], $property_display[], $property_agency_name[], 
+	!! property_construction_status[], property_is_renovated[], property_sales_price[], property_status[]
+	gs 'homes_properties', 'get_owned_properties', 'home'
+	count = ARRSIZE('$property_name')
 	if count > 0:
-		print = 1
-		$text_to_print = ''
+		'<h4>You own the following properties</h4>'
+		i = 0
 		:property_loop
-			if owned_home_name_status[i] = 3:
-				$text_to_print[j] = '<<$owned_home_name_status[i]>> which is currently occupied by your tenants.'
-				j += 1	
-			elseif owned_home_name_status[i] = 2:
-				$text_to_print[j] = '<<owned_home_name_status[i]>> which is currently occupied by your tenants.'
-				j += 1	
-			end
+			'A(n) <<$property_display[i]>> which is currently occupied by your tenants.'
 			i += 1
 		if i < count: jump 'property_loop'
-	end
-	killvar 'owned_home_name_status'
-
-	if print = 1:
-		*nl
-		'<h4>You own the following properties</h4>'
-		*nl
-		
-		count = ARRSIZE('$text_to_print')
-		j = 0
-		:text_loop
-			$text_to_print[j]
-			J += 1
-		if j<count: jump 'text_loop'
-
 		*nl
 		'We are at your service if you decide to <a href="exec:gt ''agentned'',''sell''">sell</a>.'
+		*nl
 	end
-	killvar 'count'
-	killvar 'i'
-	killvar 'j'
-	killvar 'print'
-	killvar '$text_to_print'
-
+	killvar 'count' & killvar 'i' & killvar 'j'
+	gs 'homes_properties', 'clean_up_property_data'
 	act 'Leave': minut += 5 & gt 'city_center'
 end
 
@@ -111,27 +88,36 @@ if $ARGS[0] = 'buy':
 	
 	act 'Return':gt'agentned', 'start'
 	
+	!! "Returns": 
+	!! $property_code[], $property_name[], $property_display[], $property_agency_name[], 
+	!! property_construction_status,property_is_renovated[], property_sales_price[],
+	!! property_type[]
 	gs 'homes_properties', 'get_properties_for_sale'
 
-	count = ARRSIZE('$properties_for_sale')
+	count = ARRSIZE('$property_name')
 
 	if count > 0:
 		i = 0
+		'<h4>We have the following properties for sales</h4>'
 		:properties_for_sale_loop
-			if properties_for_sale_rented[i]:
-				'You could buy the << REPLACE($properties_for_sale_name[i], ''An'') >> you''re currently renting, for <<$properties_for_sale_price[i]>> <b>₽</b>.'
+			$buy_code = $property_code[i]
+			if property_is_rented[i]:
+				'You could buy the <<$property_display[i]>> you''re currently renting, for <<property_sales_price[i]>> <b>₽</b>.'
 			else
-				'<<$properties_for_sale_name[i]>> is available for sale for <<$properties_for_sale_price>> <b>₽</b>.'
+				'<<$property_agency_name[i]>> is available for sale for <<property_sales_price[i]>> <b>₽</b>.'
 			end
-			if karta + bankDebtLimit >= properties_for_sale_price[i]: act 'Buy the <<REPLACE($properties_for_sale_name[i], ''An'') >>': gt 'agentned', 'buy_property', $properties_for_sale_code[i]
+			if karta + bankDebtLimit >= property_sales_price[i]: act 'Buy the <<$property_display[i]>>': gt 'agentned', 'buy_property', '<<$property_code[i]>>'
 			i += 1
 		if i < count: jump 'properties_for_sale_loop'
 	else
 		'We currently have no properties listed for sale.'
 	end
+	gs 'homes_properties', 'clean_up_property_data'
+	killvar 'count' & killvar 'i'
 end
 
 
+!! TODO: 09/10/2022
 !! TODO: This needs a bit of thinking because Sveta can buy the sold property again, for the old price, but will get all the renovation
 !! bonuses because those variables are not cleared. 
 !! Two options:
@@ -235,6 +221,7 @@ if $ARGS[0] = 'sell':
 	end
 end
 
+!! TODO: 09/10/2022
 if $ARGS[0] = 'rent':
 	*clr & cla
 	$loc = 'agentned'
@@ -382,14 +369,15 @@ end
 if $ARGS[0] = 'buy_property':
 	*clr & cla
 	menu_off = 1
-	gs 'homes_properties', 'get_property_attr', $ARGS[1]
+	'<b> ARGS[1] passed: <<$ARGS[1]>></b>'
+	gs 'homes_properties', 'get_property_sales_info', $ARGS[1]
+	'Property name: <<$property_display>> Property code: <<$ARGS[1]>>  Property price: <<property_sales_price>>'
 	minut += 30
-	karta -= property['price']
-	gs 'homes_properties', 'buy_property', $ARGS[1]
-
+	karta -= property_sales_price
+	
+	gs 'homes_properties', 'buy_property', $ARGS[1], property_sales_price
 	$set_homeyn = input("Would you like to set this as your new home? (yes/no)")
 	if $set_homeyn = 'yes': gs 'homes_properties', 'set_home', $ARGS[1]
-	
 	killvar '$set_homeyn'
 
 	!!TODO: this etoexhib will need some rethinking I get what it means by now, but some better name would help a lot.
@@ -399,8 +387,9 @@ if $ARGS[0] = 'buy_property':
 	'<center><b><font color = maroon>Real Estate Agency</font></b></center>'
 	'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo_paperwork.jpg"></center>'
 	*nl
-	'You spend half an hour filling in the paperwork to buy the <<$property[''name'']>>. <<$property[''price'']>> <b>₽</b> has been removed from your bank account.'
-	killvar 'property'
+	'You spend half an hour filling in the paperwork to buy the <<$property_display>>. <<property_sales_price>><b>₽</b> has been removed from your bank account.'
+	
+	killvar 'property' & killvar 'property_code'
 	act 'Return':gt'agentned', 'start'
 end
 
