@@ -14,6 +14,8 @@ if $ARGS[0] = 'start':
 	gs'stat'
 	gs'dina'
 	gs 'housing', 'rent'
+	gs 'homes_properties', 'clean_up_property_data'
+	
 	'<center><b><font color = maroon>Kirsanova Real Estate Agency</font></b></center>'
 	'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo.jpg"></center>'
 	*nl
@@ -45,19 +47,18 @@ if $ARGS[0] = 'start':
 			i += 1
 		if i < count: jump 'loop_rental_info'
 	end
-	gs 'homes_properties', 'clean_up_property_data'
 	killvar 'count' & killvar 'i'
 	
 	!! Get a list of the properties and their attributes that the player rented:
-	!! $property_code[], $property_name[], $property_display[], $property_agency_name[], 
-	!! property_construction_status[], property_is_renovated[], property_sales_price[], property_status[]
+	!! $property_code[], $property_name[], $property_display[], $property_status_display[], $property_type[]
+	!! property_construction_status, property_is_renovated[], property_sales_price[], property_renovation_value[]
 	gs 'homes_properties', 'get_owned_properties', 'home'
 	count = ARRSIZE('$property_name')
 	if count > 0:
 		'<h4>You own the following properties</h4>'
 		i = 0
 		:property_loop
-			'A(n) <<$property_display[i]>> which is currently occupied by your tenants.'
+			$property_status_display[i]
 			i += 1
 		if i < count: jump 'property_loop'
 		*nl
@@ -65,7 +66,6 @@ if $ARGS[0] = 'start':
 		*nl
 	end
 	killvar 'count' & killvar 'i' & killvar 'j'
-	gs 'homes_properties', 'clean_up_property_data'
 	act 'Leave': minut += 5 & gt 'city_center'
 end
 
@@ -95,7 +95,6 @@ if $ARGS[0] = 'buy':
 	gs 'homes_properties', 'get_properties_for_sale'
 
 	count = ARRSIZE('$property_name')
-
 	if count > 0:
 		i = 0
 		'<h4>We have the following properties for sales</h4>'
@@ -104,15 +103,18 @@ if $ARGS[0] = 'buy':
 			if property_is_rented[i]:
 				'You could buy the <<$property_display[i]>> you''re currently renting, for <<property_sales_price[i]>> <b>₽</b>.'
 			else
-				'<<$property_agency_name[i]>> is available for sale for <<property_sales_price[i]>> <b>₽</b>.'
+				'A(n) <<$property_display[i]>> is available for sale for <<property_sales_price[i]>> <b>₽</b>.'
 			end
-			if karta + bankDebtLimit >= property_sales_price[i]: act 'Buy the <<$property_display[i]>>': gt 'agentned', 'buy_property', '<<$property_code[i]>>'
+			if karta + bankDebtLimit >= property_sales_price[i]: 
+				act 'Buy the <<$property_display[i]>>': 
+					gt 'agentned', 'buy_property', '<<$property_code[i]>>'
+				end
+			end
 			i += 1
 		if i < count: jump 'properties_for_sale_loop'
 	else
 		'We currently have no properties listed for sale.'
 	end
-	gs 'homes_properties', 'clean_up_property_data'
 	killvar 'count' & killvar 'i'
 end
 
@@ -123,6 +125,8 @@ end
 !! Two options:
 !!   1. Sold properties can''t be bought back
 !!   2. The sales value is increased based on what Sveta sold it for plus the rand() range
+!!
+!!   3, 
 if $ARGS[0] = 'sell':
 	*clr & cla
 	$loc = 'agentned'
@@ -139,6 +143,46 @@ if $ARGS[0] = 'sell':
 	*nl
 	act 'Return':gt'agentned', 'start'
 	
+	!! NOTE: Offer: (original sales price + renovation value) +/- 10%
+	!!              `property_sales_price + property_renovation_value + 
+	!!				(property_sales_price * rand(-10,10))/100 + (property_renovation_value * rand(0,10))/100`
+	!! 		 No need to check what has been renovated, the only thing that matters is the total value of the renovation
+	!! 		 If Sveta sells, this will be stored as the new `accessible_property['<<$propcode>>-sales-price']`
+
+	if bankAccount = 1:
+		!! Get a list of the properties and their attributes that the player rented:
+		!! $property_code[], $property_name[], $property_display[], $property_status_display[], $property_type[]
+		!! property_construction_status, property_is_renovated[], property_sales_price[], property_renovation_value[]
+		gs 'homes_properties', 'get_owned_properties', 'home'
+		count = ARRSIZE('$property_name')
+		if count > 0:
+			'<h4>Available offers for your properties</h4>'
+			i = 0
+			:property_loop
+				i += 1
+				if $property_code[i] ! 'matryona_mansion' or ($property_code[i] = 'matryona_mansion' and $property_construction_status[i] = 0):
+					offer = property_sales_price + property_renovation_value + (property_sales_price*rand(-10,10))/100 + (property_renovation_value*rand(0,10))/100
+					'We have found a buyer for your <<$property_display[i]>>. They will offer <<offer>><b>₽</b>, minus 5% for fees and taxes to the value of <<(offer*5)/100>>,  bringing the total to <<(offer*95)/100>>'
+					act 'Sell the <<$property_display[i]>>':
+						*clr
+						menu_off = 1
+						'<center><b><font color = maroon>Real Estate Agency</font></b></center>'
+						'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo_paperwork.jpg"></center>'
+						minut += 30
+						'You spend thirty minutes filling out the paperwork for the sale of your <<$property_display[i]>>. <<(offer*95)/100>><b>₽</b> has been paid into your bank account.'
+						gs 'homes_properties', 'sell_property', '<<$property_code[i]>>'
+						karta += (offer*95)/100
+						delact 'Sell the <<$property_display[i]>>'
+						gs 'stat'
+					end
+				end
+			if i < count: jump 'property_loop'
+			
+		end
+		killvar 'count' & killvar 'i' & killvar 'j'
+		act 'Leave': minut += 5 & gt 'city_center'
+
+!!{
 	if bankAccount = 1:
 		if accessible_property['city_apartment'] = 2:
 			if rembedr = 1 and remsitr = 1 and remkorr = 1 and remvanr = 1 and remkuhr = 1:
@@ -206,16 +250,12 @@ if $ARGS[0] = 'sell':
 				!Suburban land only - currently too many variables for selling upgraded mansion - might do later - 3xpurt.
 				'Sorry, we are unable to find a buyer for your property at this time.'
 			end
-		end
+		end}
 		
-		if accessible_property['city_house'] = 2:
-			!! - might do later - Alaratt.
-			'Sorry, we are unable to find a buyer for your house at this time.'
-		end
-
-		if accessible_property['city_apartment'] = 0 and accessible_property['village_cottage'] = 0 and accessible_property['city_house'] = 0 and accessible_property['matryona_mansion'] = 0:
-			'You don''t currently own any property.'
-		end
+!!		if accessible_property['city_house'] = 2:
+!!			!! - might do later - Alaratt.
+!!			'Sorry, we are unable to find a buyer for your house at this time.'
+!!		end
 	else
 		'<b>You need to open a bank account to sell your property</b>'
 	end
