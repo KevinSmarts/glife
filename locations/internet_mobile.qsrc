@@ -63,9 +63,9 @@ if subscription['free'] = 0: subscription['free'] = 1
 !! NOTE: Putting this on top so if we decide not to use it, it is easy to find and delete
 if $ARGS[0] = 'top_up_metered':
     subscription[$ARGS[1]] += ARGS[2]
-    subscription[$ARGS[1]+'-date'] = day
+    subscription['<<$ARGS[1]>>-date'] = day
     if $ARGS[1] = 'metered_calls': subscription['sms_limit'] += ARGS[3]
-    if subscription[$ARGS[1]+'-type'] = 0:  subscription[$ARGS[1]+'-type'] = 2
+    if subscription['<<$ARGS[1]>>-type'] = 0:  subscription['<<$ARGS[1]>>-type'] = 2
     gs 'stat'
 end
 
@@ -76,35 +76,40 @@ end
 !!            See valid values in set_home.qsrc
 if $ARGS[0] = 'buy_subscription':
     subscription[$ARGS[1]] = 1
-    subscription[$ARGS[1]+'-date'] = day
-    subscription[$ARGS[1]+'-price'] = ARGS[2] 
-    subscription[$ARGS[1]+'-discount'] = ARGS[3] 
-    if subscription[$ARGS[1]+'-type'] = 0: subscription[$ARGS[1]+'-type'] = 1
+    subscription['<<$ARGS[1]>>-date'] = day
+    subscription['<<$ARGS[1]>>-price'] = ARGS[2] 
+    subscription['<<$ARGS[1]>>-discount'] = ARGS[3] 
+    if subscription['<<$ARGS[1]>>-type'] = 0: subscription['<<$ARGS[1]>>-type'] = 1
     gs 'stat'
 end
 
 !! Nightly check called from cikl - check for subscription renewal and suspension.
 if $ARGS[0] = 'check_subscription_actions':
-    $property_list = func('homes_properties', 'get_owned_homes')
-    count = ARRSIZE('$property_list') 
+	!! Get a list of the properties and their attributes that the player rented:
+	!! $property_code[], $property_name[], $property_display[], $property_status_display[], $property_type[]
+	!! property_status[], property_construction_status[], property_is_renovated[], property_sales_price[], 
+    !! property_renovation_value[]
+	gs 'homes_properties', 'get_accessible_properties', 'home'
+	count = ARRSIZE('$property_name')
 	if count > 0:
-		:propertyloop
-            gs 'homes_properties', 'get_property_attr', $property_list[i]
-			if accessible_property[$property_list[i]] ! 0 and accessible_property[$property_list[i]] ! 3:
-				if property['internet_enabled'] = 1 and subscription[$property['code']] = 1:
-                    if subscription[$property['code']+'-date'] = day: gs 'internet_mobile', 'renew_subscription', $property['code']
-                    if subscription[$property['code']+'-suspension_month'] = month and subscription[$property['code']+'-suspension_day'] >= day: gs 'internet_mobile', 'renew_subscription', $property['code']
-                    if subscription[$property['code']+'-suspension_month'] <= month and subscription[$property['code']+'-suspension_day'] < day: gs 'internet_mobile', 'suspend_subscription', $property['code']
-                    $result[j] = 'Internet Subscription for <<$property[''name'']>>: <<subscription[$property[''code'']+''-contract_message'']>>'
-                    j += 1
-				end
-                killvar '$property'
-			end
+		i = 0
+		:home_internet_subscription_loop
+			if (property_status[i] = 1 or property_status[i] = 2) and subscription[$property_code[i]] = 1: 
+                if subscription['<<$property_code[i]>>-date'] = day: gs 'internet_mobile', 'renew_subscription', $property_code[i]
+                if subscription['<<$property_code[i]>>-suspension_month'] = month and subscription['<<$property_code[i]>>-suspension_day'] >= day: gs 'internet_mobile', 'renew_subscription', $property_code[i]
+                if subscription['<<$property_code[i]>>-suspension_month'] <= month and subscription['<<$property_code[i]>>-suspension_day'] < day: gs 'internet_mobile', 'suspend_subscription', $property_code[i]
+                
+                $result[j] = 'Internet Subscription for <<$property_display[i]>>: <<subscription[''<<$property_code[i]>>-contract_message'']>>'
+                j += 1
+            end
 			i += 1
-	    if i < count: jump 'propertyloop'
-    end
-    killvar 'count'
-    killvar 'i'
+		if i < count: jump 'home_internet_subscription_loop'
+		*nl
+		'We are at your service if you decide to <a href="exec:gt ''agentned'',''sell''">sell</a>.'
+		*nl
+	end
+	gs 'homes_properties', 'clean_up_property_data'
+
     if subscription['mobile'] = 1:
         if subscription['mobile-date'] = day: gs 'internet_mobile', 'renew_subscription', 'mobile'
         if subscription['mobile-suspension_month'] = month and subscription['mobile-suspension_day'] >= day: gs 'internet_mobile', 'renew_subscription', 'mobile'
@@ -119,7 +124,7 @@ if $ARGS[0] = 'check_subscription_actions':
         $result[j] = 'You mobile contract: <<subscription[''monthly_calls-contract_message'']>>'
         j += 1
     end
-    killvar 'j'
+    killvar 'count' & killvar 'i' & killvar 'j'
 end
 
 !! Cancelling a subscription (currently uused only for metered_calls and metered_mobile to clean them up when a monthly subscription 
@@ -127,33 +132,33 @@ end
 !! $ARGS[1] - subscription name
 if $ARGS[0] = 'cancel_subscription':
     subscription[$ARGS[1]] = 0
-    subscription[$ARGS[1]+'-date'] = 0
+    subscription['<<$ARGS[1]>>-date'] = 0
     subscription['sms_limit'] = 0
-    subscription[$ARGS[1]+'-type'] = 0
-    subscription[$ARGS[1]+'-price'] = 0
-    subscription[$ARGS[1]+'-discount'] = 0
+    subscription['<<$ARGS[1]>>-type'] = 0
+    subscription['<<$ARGS[1]>>-price'] = 0
+    subscription['<<$ARGS[1]>>-discount'] = 0
 end
 
 !! Renewing the subscription
 if $ARGS[0] = 'renew_subscription':
-    renewfee = subscription[$ARGS[1]+'-price']
-    acc_discount = subscription[$ARGS[1]+'-discount']
+    renewfee = subscription['<<$ARGS[1]>>-price']
+    acc_discount = subscription['<<$ARGS[1]>>-discount']
     app_discount = MIN(acc_discount,renewfee)
     finalfee = app_discount
     rem_discount = acc_discount-app_discount
 
     if karta+bankDebtLimit > finalfee:
         karta -= finalfee        
-        subscription[$ARGS[1]+'-discount'] = rem_discount
+        subscription['<<$ARGS[1]>>-discount'] = rem_discount
         if app_discount > 0: $discounttext = '<<renewfee>>₽ and you had <<acc_discount>><b>₽</b> left on your account. After applying <<app_discount>><b>₽</b> to your monthly fee, your final payable was <b><font color="green"><<finalfee>>₽</b></font>  and you were left with <<rem_discount>><b>₽</b> on your account.'
-        $subscription[$ARGS[1]+'-contract_message'] = 'Your monthly fee was' + iif(app_discount > 0, $dicounttext, '<b><font color="green"><<renewfee>>₽</font></b> which was taken from your bank account.')
-        if subscription[$ARGS[1]+'-suspension_month'] > 0: subscription[$ARGS[1]+'-suspension_month'] = 0
-        if subscription[$ARGS[1]+'-suspension_day'] > 0: subscription[$ARGS[1]+'-suspension_day'] = 0
+        $subscription['<<$ARGS[1]>>-contract_message'] = 'Your monthly fee was' + iif(app_discount > 0, $dicounttext, '<b><font color="green"><<renewfee>>₽</font></b> which was taken from your bank account.')
+        if subscription['<<$ARGS[1]>>-suspension_month'] > 0: subscription['<<$ARGS[1]>>-suspension_month'] = 0
+        if subscription['<<$ARGS[1]>>-suspension_day'] > 0: subscription['<<$ARGS[1]>>-suspension_day'] = 0
     else
         remainingday = 5
-        if subscription[$ARGS[1]+'-suspension_day'] > 0: remainingday = subscription[$ARGS[1]+'-suspension_day'] - day
+        if subscription['<<$ARGS[1]>>-suspension_day'] > 0: remainingday = subscription['<<$ARGS[1]>>-suspension_day'] - day
         if app_discount > 0: $discounttext = ' and you had <<acc_discount>><b>₽</b> left on your account. After applying <<app_discount>><b>₽</b> to your monthly fee, your final payable was <<finalfee>><b>₽</b>  and you were left with <<rem_discount>><b>₽</b> on your account.'
-        $subscription[$ARGS[1]+'-contract_message'] = 'Your monthly fee was <<renewfee>><b>₽</b>'+ iif(app_discount >0, $dicounttext,', unfortunately your payment was declined. We will try to take the payment over the next <b><font color="red"><<remainingday>> days</font></b> before suspending services.')
+        $subscription['<<$ARGS[1]>>-contract_message'] = 'Your monthly fee was <<renewfee>><b>₽</b>'+ iif(app_discount >0, $dicounttext,', unfortunately your payment was declined. We will try to take the payment over the next <b><font color="red"><<remainingday>> days</font></b> before suspending services.')
         gs 'internet_mobile', 'set_suspension_date', $ARGS[1]
     end
     killvar 'renewfee'
@@ -173,11 +178,11 @@ if $ARGS[0] = 'transfer_subscription':
     allowed = allowed and func('internet_mobile', 'check_allowed_location', $ARGS[2])
     if allowed:
         subscription[$ARGS[2]] = subscription[$ARGS[1]]
-        subscription_date[$ARGS[2]+'-date'] = subscription[$ARGS[1]+'-date']
-        subscription[$ARGS[2]+'-price'] = subscription[$ARGS[1]+'-price']
-        subscription[$ARGS[2]+'-discount'] = subscription[$ARGS[1]+'-discount']
+        subscription_date[$'<<ARGS[2]>>-date'] = subscription['<<$ARGS[1]>>-date']
+        subscription[$'<<ARGS[2]>>-price'] = subscription['<<$ARGS[1]>>-price']
+        subscription[$'<<ARGS[2]>>-discount'] = subscription['<<$ARGS[1]>>-discount']
         !! This one is always 1 because only type 1 subscriptions can be transferred, but making it "future proof"
-        subscription[$ARGS[2]+'-type'] = subscription[$ARGS[1]+'-type']
+        subscription[$'<<ARGS[2]>>-type'] = subscription['<<$ARGS[1]>>-type']
         subscription[$ARGS[0]] = 0
         killvar 'allowed'
     end
@@ -197,9 +202,9 @@ end
 !! and on...can be up to 10 arguments.
 if $ARGS[0] = 'get_access':
     if £ARGS[1] = '': 
-        $subsname = func('homes_properties', 'get_home_code')
+        $subsname = func('homes_properties', 'get_property_code')
     else
-        $subsname = func('homes_properties', 'get_home_code', $ARGS[1])
+        $subsname = func('homes_properties', 'get_property_code', $ARGS[1])
     end
     
     if func('homes_properties', 'free_internet_available', $subname) ! 0:
@@ -295,7 +300,7 @@ end
 !! $ARGS[1] - the name of the subscription used
 !! ARGS[2] - the number of minutes used
 if $ARGS[0] = 'use_internet':
-    if $subscription[$ARGS[1]+'-type'] = 'metered': 
+    if $subscription['<<$ARGS[1]>>-type'] = 'metered': 
         subscription[$ARGS[1]] -= ARGS[2]
         if subscription[$ARGS[1]] < 0: subscription[$ARGS[1]] = 0
     end

@@ -1,5 +1,6 @@
 # agentned
 
+
 if $ARGS[0] = 'start':
 	CLOSE ALL
 	
@@ -13,8 +14,8 @@ if $ARGS[0] = 'start':
 	
 	gs'stat'
 	gs'dina'
-	gs 'housing', 'rent'
-	gs 'homes_properties', 'clean_up_property_data'
+!!	gs 'housing', 'rent'
+	killvar 'cancel_code'
 	
 	'<center><b><font color = maroon>Kirsanova Real Estate Agency</font></b></center>'
 	'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo.jpg"></center>'
@@ -28,24 +29,28 @@ if $ARGS[0] = 'start':
 	act 'View properties for sale': gt 'agentned', 'buy'
 
 	!! Get a list of the properties and their attributes that the player rented:
-	!! Returns: $property_name[i], $property_code[i], property_rent[i], property_days[i]
+	!! Returns: $property_name[i], $property_code[i], $property_display[i], property_rent[i], property_days[i]
 	gs 'homes_properties', 'get_rented_properties', 'home'
 	count = ARRSIZE('$property_name')
 	if count > 0:
 		i = 0
 		'<h4>Rent Information</h4>'
-		:loop_rental_info
-			'You have <B><<property_days[i]>> days</B> remaining on the lease of your <<$property_name[i]>>, and your monthly rent is <<property_rent[i]>> <b>₽</b>. '+iif(money >= property_rent[i],'You can make a rent <a href="exec:money -= <<property_rent[i]>> & gs ''homes_properties'', ''add_rental_days'', ''<<$property_code[i]>>'' & gt ''agentned'', ''start''">payment</a> in cash to extend it.','You can''t afford to pay your rent at the moment')
-			act 'Cancel the lease of the <<$property_name[i]>>':
+		:listing_rented_properties_loop
+			!! This is needed as $property_code[i] is overwritten when the owned property list is built everything is displayed
+			!! But the code inside the `act` will try to read it when the `act` is clicked and it will beither be empty or wrong value.
+			!! For this reason, the `killvar'cancel_code'` is at the start of this "function"
+			$cancel_code[i] = $property_code[i]
+			'You have <B><<property_days[i]>> days</B> remaining on the lease of your <<$property_display[i]>>, and your monthly rent is <<func(''agentned'', ''format_price_string'', property_rent[i])>><b>₽</b>. '+iif(money >= property_rent[i],'You can make a rent <a href="exec:money -= <<property_rent[i]>> & gs ''homes_properties'', ''add_rental_days'', ''<<$property_code[i]>>'' & gt ''agentned'', ''start''">payment</a> in cash to extend it.','You can''t afford to pay your rent at the moment')
+			act 'Cancel the lease of the <<$property_display[i]>>':
 				cla & *nl
 				!! TODO: 1 month notice period like in real life?
 				'Attention: You won''t be able to return to your apartment when you cancel the lease.'
-			
+				'Property code right now is: <<$cancel_code[i]>>'
 				act 'Return': gt'agentned', 'start'
-				act 'Cancel it': gs 'homes_properties', 'cancel_rent', '<<$property_code[i]>>' & gt'agentned', 'start'
+				act 'Cancel it': gs 'homes_properties', 'cancel_rent', '<<$cancel_code[i]>>' & gt'agentned', 'start'
 			end
 			i += 1
-		if i < count: jump 'loop_rental_info'
+		if i < count: jump 'listing_rented_properties_loop'
 	end
 	killvar 'count' & killvar 'i'
 	
@@ -57,14 +62,15 @@ if $ARGS[0] = 'start':
 	if count > 0:
 		'<h4>You own the following properties</h4>'
 		i = 0
-		:property_loop
+		:listing_owned_properties_loop
 			$property_status_display[i]
 			i += 1
-		if i < count: jump 'property_loop'
+		if i < count: jump 'listing_owned_properties_loop'
 		*nl
 		'We are at your service if you decide to <a href="exec:gt ''agentned'',''sell''">sell</a>.'
 		*nl
 	end
+	gs 'homes_properties', 'clean_up_property_data'
 	killvar 'count' & killvar 'i' & killvar 'j'
 	act 'Leave': minut += 5 & gt 'city_center'
 end
@@ -78,6 +84,8 @@ if $ARGS[0] = 'buy':
 	$menu_arg = 'buy'
 	menu_off = 0
 	gs 'housing', 'sale'
+	killvar 'buy_code'
+	gs 'homes_properties', 'clean_up_property_data'
 	'<center><b><font color = maroon>Real Estate Agency</font></b></center>'
 	'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo.jpg"></center>'
 	*nl
@@ -93,40 +101,64 @@ if $ARGS[0] = 'buy':
 	!! property_construction_status,property_is_renovated[], property_sales_price[],
 	!! property_type[]
 	gs 'homes_properties', 'get_properties_for_sale'
-
 	count = ARRSIZE('$property_name')
 	if count > 0:
 		i = 0
 		'<h4>We have the following properties for sales</h4>'
-		:properties_for_sale_loop
-			$buy_code = $property_code[i]
+		:listing_properties_for_sale_loop			
 			if property_is_rented[i]:
-				'You could buy the <<$property_display[i]>> you''re currently renting, for <<property_sales_price[i]>> <b>₽</b>.'
+				'You could buy the <<$property_display[i]>> you''re currently renting, for <<func(''agentned'', ''format_price_string'', property_sales_price[i])>> <b>₽</b>.'
 			else
-				'A(n) <<$property_display[i]>> is available for sale for <<property_sales_price[i]>> <b>₽</b>.'
+				'A(n) <<$property_display[i]>> is available for sale for <<func(''agentned'', ''format_price_string'', property_sales_price[i])>> <b>₽</b>.'
 			end
 			if karta + bankDebtLimit >= property_sales_price[i]: 
+				!! This is needed as $property_code[i] is overwritten when the owned property list is built everything is displayed
+				!! But the code inside the `act` will try to read it when the `act` is clicked and it will beither be empty or wrong value.
+				!! For this reason, the `killvar'buy_code'` is at the start of this "function"
+				$buy_code[i] = $property_code[i]
+
 				act 'Buy the <<$property_display[i]>>': 
-					gt 'agentned', 'buy_property', '<<$property_code[i]>>'
+					gt 'agentned', 'buy_property', '<<$buy_code[i]>>'
 				end
 			end
 			i += 1
-		if i < count: jump 'properties_for_sale_loop'
+		if i < count: jump 'listing_properties_for_sale_loop'
 	else
 		'We currently have no properties listed for sale.'
 	end
+	gs 'homes_properties', 'clean_up_property_data'
 	killvar 'count' & killvar 'i'
 end
 
+if $ARGS[0] = 'buy_property':
+	*clr & cla
+	menu_off = 1
+	
+	gs 'homes_properties', 'get_property_sales_info', $ARGS[1]
+	minut += 30
+	karta -= property_sales_price
+	
+	gs 'homes_properties', 'buy_property', $ARGS[1], property_sales_price
+	$set_homeyn = input("Would you like to set this as your new home? (yes/no)")
+	if $set_homeyn = 'yes': gs 'homes_properties', 'set_home', $ARGS[1]
+	killvar '$set_homeyn'
 
-!! TODO: 09/10/2022
-!! TODO: This needs a bit of thinking because Sveta can buy the sold property again, for the old price, but will get all the renovation
-!! bonuses because those variables are not cleared. 
-!! Two options:
-!!   1. Sold properties can''t be bought back
-!!   2. The sales value is increased based on what Sveta sold it for plus the rand() range
-!!
-!!   3, 
+	!!TODO: this etoexhib will need some rethinking I get what it means by now, but some better name would help a lot.
+	!!NOTE: It means how "famous" Sveta is for being an exhibitionist.
+	if $ARGS[1] = 'village_cottage': etoexhib = 0
+	gs'stat'
+
+	'<center><b><font color = maroon>Real Estate Agency</font></b></center>'
+	'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo_paperwork.jpg"></center>'
+	*nl
+	'You spend half an hour filling in the paperwork to buy the <<$property_display>>. <<func(''agentned'', ''format_price_string'', property_sales_price)>><b>₽</b> has been removed from your bank account.'
+	killvar 'property' & killvar 'property_code' & killvar 'property_sales_price' & killvar 'property_display'
+	act 'Return':gt'agentned', 'start'
+end
+
+!! NOTE: When a property is sold, it can be bought back. To avoid a guaranteed income from the 
+!!       "I buy property for X, renovate it, sell it for X+Y, then buy it for X, then repeat" loop,
+!!       the sales price of the property is updated with the price that it was sold for.
 if $ARGS[0] = 'sell':
 	*clr & cla
 	$loc = 'agentned'
@@ -135,78 +167,64 @@ if $ARGS[0] = 'sell':
 	$menu_loc = 'agentned'
 	$menu_arg = 'sell'
 	menu_off = 0
-	gs 'housing', 'sale'
+	gs 'homes_properties', 'clean_up_property_data'
+	
 	'<center><b><font color = maroon>Real Estate Agency</font></b></center>'
 	'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo.jpg"></center>'
 	*nl
 	'<h4>Any purchase or sale of a property requires a bank account. The Agency is not conducting business in cash in compliance with the Anti-Money Laundering Regulations</h4>'
 	*nl
-	act 'Return':gt'agentned', 'start'
+	act 'Return': gs 'homes_properties', 'clean_up_property_data' & gt'agentned', 'start'
 	
-	!! NOTE: Offer: (original sales price + renovation value) +/- 10%
-	!!              `property_sales_price + property_renovation_value + 
-	!!				(property_sales_price * rand(-10,10))/100 + (property_renovation_value * rand(0,10))/100`
-	!! 		 No need to check what has been renovated, the only thing that matters is the total value of the renovation
-	!! 		 If Sveta sells, this will be stored as the new `accessible_property['<<$propcode>>-sales-price']`
-
 	if bankAccount = 1:
 		!! Get a list of the properties and their attributes that the player rented:
 		!! $property_code[], $property_name[], $property_display[], $property_status_display[], $property_type[]
 		!! property_construction_status, property_is_renovated[], property_sales_price[], property_renovation_value[]
 		gs 'homes_properties', 'get_owned_properties', 'home'
+		
 		count = ARRSIZE('$property_name')
 		if count > 0:
 			'<h4>Available offers for your properties</h4>'
 			i = 0
-			:property_loop
-				i += 1
+			:listing_offers_on_owned_properties_loop
 				if $property_code[i] ! 'matryona_mansion' or ($property_code[i] = 'matryona_mansion' and $property_construction_status[i] = 0):
+					!! NOTE: Offer: (last sales price + rand(-10%, +10%)) + (renovation value + rand(0%,+10%)
+					!! 		 No need to check what has been renovated, the only thing that matters is the total value of the renovation
+					!! 		 If Sveta sells, this will be stored as the new sales price of the property
+					
 					offer = property_sales_price + property_renovation_value + (property_sales_price*rand(-10,10))/100 + (property_renovation_value*rand(0,10))/100
-					'We have found a buyer for your <<$property_display[i]>>. They will offer <<offer>><b>₽</b>, minus 5% for fees and taxes to the value of <<(offer*5)/100>>,  bringing the total to <<(offer*95)/100>>'
-					act 'Sell the <<$property_display[i]>>':
+					'We have found a buyer for your <<$property_display[i]>>. They will offer <<func(''agentned'', ''format_price_string'', offer)>><b>₽</b>, minus 5% for fees and taxes to the value of <<func(''agentned'', ''format_price_string'', ( (offer*5)/100) )>>, bringing the total to <<func(''agentned'', ''format_price_string'', ( (offer*95)/100 ) )>>'
+					act 'Sell the <<$property_display[i]>>': 
 						*clr
 						menu_off = 1
 						'<center><b><font color = maroon>Real Estate Agency</font></b></center>'
 						'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo_paperwork.jpg"></center>'
 						minut += 30
-						'You spend thirty minutes filling out the paperwork for the sale of your <<$property_display[i]>>. <<(offer*95)/100>><b>₽</b> has been paid into your bank account.'
-						gs 'homes_properties', 'sell_property', '<<$property_code[i]>>'
+						'You spend thirty minutes filling out the paperwork for the sale of your <<$property_display[i]>>. <<func(''agentned'', ''format_price_string'', ( (offer*95)/100) )>><b>₽</b> has been paid into your bank account.'
+						gs 'homes_properties', 'sell_property', '<<$property_code[i]>>', offer
 						karta += (offer*95)/100
 						delact 'Sell the <<$property_display[i]>>'
 						gs 'stat'
+						gs 'homes_properties', 'clean_up_property_data'
 					end
 				end
-			if i < count: jump 'property_loop'
+				i += 1
+			if i < count: jump 'listing_offers_on_owned_properties_loop'
 			
 		end
 		killvar 'count' & killvar 'i' & killvar 'j'
-		act 'Leave': minut += 5 & gt 'city_center'
+		act 'Leave': gs 'homes_properties', 'clean_up_property_data' & minut += 5 & gt 'city_center'
 
-!!{
+!! NOTE: Keeping this here for future renovation related reference.
+!!{ 
 	if bankAccount = 1:
-		if accessible_property['city_apartment'] = 2:
 			if rembedr = 1 and remsitr = 1 and remkorr = 1 and remvanr = 1 and remkuhr = 1:
 				!Renovated city residential apartment
 				offer1 = ((800000 + 250000) + rand(-100000, 100000)) 
 			else
 				offer1 = (800000 + rand(-100000, 100000))
 			end
-			'We have found a buyer for your apartment in the city residential area. They will offer <<offer1>> <b>₽</b>, minus 5% for fees and taxes, bringing the total to <<offer1/100*95>>'
-			act 'Sell the city apartment':
-				*clr
-				menu_off = 1
-				'<center><b><font color = maroon>Real Estate Agency</font></b></center>'
-				'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo_paperwork.jpg"></center>'
-				minut += 30
-				'You spend thirty minutes filling out the paperwork for the sale of your renovated apartment. You will suffer a loss of around 5% for fees and taxes. <<offer1/100*95>> <b>₽</b> has been paid into your bank account.'
-				gs 'homes_properties', 'sell_property', 'city_apartment'
-				karta += offer1/100*95
-				delact 'Sell the city apartment'
-				gs 'stat'
-			end
-		end
 		
-		if accessible_property['village_cottage'] = 2:
 			if func('homes_properties', 'property_renovated', 'village_cottage') = 1: 
 				!Renovated communal cottage
 				offer2 = ((prop_price['village_cottage'] + 200000) + rand(-10000, 10000))
@@ -214,54 +232,12 @@ if $ARGS[0] = 'sell':
 				!Communal cottage
 				offer2 = (prop_price['village_cottage'] + rand(-5000, 5000))
 			end
-			'We have found a buyer for your small communal cottage. They will offer <<offer2>> <b>₽</b>, minus 5% for fees and taxes, bringing the total to <<offer2/100*95>>'
-			act 'Sell the cottage':
-				*clr
-				menu_off = 1
-				'<center><b><font color = maroon>Real Estate Agency</font></b></center>'
-				'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo_paperwork.jpg"></center>'
-				minut += 30
-				'You spend thirty minutes filling out the paperwork for the sale of your small cottage. You will suffer a loss of around 5% for fees and taxes. <<offer2/100*95>> <b>₽</b> has been paid into your bank account.'
-				gs 'homes_properties', 'sell_property', 'village_cottage'
-				karta += offer/100*95
-				delact 'Sell the cottage'
-				gs 'stat'
-			end
-		end
-		
-		if accessible_property['matryona_mansion'] = 2:
-			if func('homes_properties', 'property_construction_status', 'matryona_mansion') = 0:
-				!Suburban land only - currently too many variables for selling upgraded mansion - might do later - 3xpurt.
-				offer3 = (prop_price['matryona_mansion'] + rand(-50000, 50000))
-				'We have found a buyer for your vacant plot of land in the suburbs. They will offer <<offer3>> <b>₽</b>, minus 5% for fees and taxes, bringing the total to <<offer3/100*95>>'
-				act 'Sell the vacant plot':
-					*clr
-					menu_off = 1
-					'<center><b><font color = maroon>Real Estate Agency</font></b></center>'
-					'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo_paperwork.jpg"></center>'
-					minut += 30
-					'You spend thirty minutes filling out the paperwork for the vacant plot. You will suffer a loss of around 5% for fees and taxes. <<offer3/100*95>> <b>₽</b> has been paid into your bank account.'
-					gs 'homes_properties', 'sell_property', 'matryona_mansion'
-					karta += offer3/100*95
-					delact 'Sell the vacant plot'
-					gs 'stat'
-				end
-			else 
-				!Suburban land only - currently too many variables for selling upgraded mansion - might do later - 3xpurt.
-				'Sorry, we are unable to find a buyer for your property at this time.'
-			end
-		end}
-		
-!!		if accessible_property['city_house'] = 2:
-!!			!! - might do later - Alaratt.
-!!			'Sorry, we are unable to find a buyer for your house at this time.'
-!!		end
+}
 	else
 		'<b>You need to open a bank account to sell your property</b>'
 	end
 end
 
-!! TODO: 09/10/2022
 if $ARGS[0] = 'rent':
 	*clr & cla
 	$loc = 'agentned'
@@ -276,68 +252,70 @@ if $ARGS[0] = 'rent':
 	minut += 5
 	gs 'stat'
 	
-	act 'Return':gt'agentned', 'start'
+	act 'Return': killvar 'rent_code' & killvar 'monthly_rent' & gt'agentned', 'start'
 	
+	gs 'homes_properties', 'get_properties_for_rent', 'home'
+	count = ARRSIZE('property_name')
 
-	if accessible_property['city_apartment'] > 0 and accessible_property['old_town_apartment'] > 0:
+	if count > 0:
+		i = 0
+		'<h4>Properties currently available for rent</h4>'
+		:listing_properties_for_rent_loop
+			'We have a(n) <<$property_display[i]>> avaible for a monthly rent of <<func(''agentned'', ''format_price_string'', property_rent[i])>><b>₽</b>.'
+			$rent_code[i] = $property_code[i]
+			monthly_rent[i] = property_rent[i]
+			act 'View the <<$property_display[i]>> details': gt 'agentned', 'view_property_details', $rent_code[i], monthly_rent[i]
+			i += 1
+		if i < count: jump 'listing_properties_for_rent_loop'
+	else
 		'We currently have no properties listed for rent.'
-	elseif accessible_property['city_apartment'] = 0 and accessible_property['old_town_apartment'] = 0:
-		*nl
-		'There are two apartments available for rent. They are located in the city residential area and in Pushkin.'
-		act 'View the city apartment details': gt 'agentned', 'rent_cityres'
-		act 'View the Pushkin apartment details': gt 'agentned', 'rent_pushkin'
-	elseif accessible_property['city_apartment'] = 0:
-		'There is a property for rent in the city residential area'
-		act 'View the city apartment details': gt 'agentned', 'rent_cityres'
-	elseif accessible_property['old_town_apartment'] = 0:
-		'There is a property for rent in the old town of Pushkin'
-		act 'View the Pushkin apartment details': gt 'agentned', 'rent_pushkin'
 	end
 	*nl
+	gs 'homes_properties', 'clean_up_property_data'
+	killvar 'count' & killvar 'i'
 end
 
-if $ARGS[0] = 'rent_cityres':
+if $ARGS[0] = 'view_property_details':
 	*clr & cla
 	menu_off = 1
 	'<center><b><font color = maroon>Real Estate Agency</font></b></center>'
 	'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo.jpg"></center>'
 	*nl
-	'"We have a flat available right now in the St. Petersburg residential area." The receptionist says as he starts pulling out the paperwork, "Rent is <<$prop_rent[''city_apartment'']>> ₽ and leases have to be renewed every 30 days. Payment will be automatically deducted from your account or you can come into the office to pay. When you sign for the lease you must make your first month''s rental payment upfront."'
-	'<br>He pulls out a pen and slides the paperwork onto the counter. "Interested? You can move in right away," he calmly says.'
-
-	monthly_rent = func('homes_properties', 'get_rent_amount', 'city_apartment')
-	if money >= monthly_rent or karta >= monthly_rent:
-		act 'Agree and pay':
+	'<<func(''agentned'', ''get_rent_detail_dialogue'', $ARGS[1] )>> The receptionist says as he starts pulling out the paperwork, "Rent is <<func(''agentned'', ''format_price_string'', ARGS[2] )>><b>₽</b> and leases have to be renewed every 30 days. Payment will be automatically deducted from your account or you can come into the office to pay. Last, but not least, you must make pay the first month when you sign for the lease."'
+	'<br>He pulls out a pen and slides the paperwork onto the counter. "Interested? You can move in right away," he says calmly.'
+	
+	if money >= ARGS[2] or karta+bankDebtLimit >= ARGS[2]:
+		act 'Agree and pay': 
 			*clr & cla
 			cls
 			minut += 30
-			if money >= monthly_rent: 
-				money -= monthly_rent
+
+			if money >= ARGS[2]:
+				money -= ARGS[2]
 			else
-				karta -= monthly_rent
+				karta -= ARGS[2]
 			end
-			gs 'homes_properties', 'rent_property', 'city_apartment'
-			if func( 'homes_properties', 'get_accessible_count', 'home') = 1:
-				gs 'homes_properties', 'set_home', 'city_apartment'
+
+			gs 'homes_properties', 'rent_property', $ARGS[1]
+			if func( 'homes_properties', 'get_accessible_property_count', 'home') = 1:
+				gs 'homes_properties', 'set_home', $ARGS[1]
 			else
 				$set_homeyn = input("Would you like to set this as your new home? (yes/no)")
-				if $set_homeyn = 'yes': gs 'homes_properties', 'set_home', 'city_apartment'
+				if $set_homeyn = 'yes': gs 'homes_properties', 'set_home', $ARGS[1]
 				killvar '$set_homeyn'
 			end
+			
 			gs'stat'
 			'<center><b><font color = maroon>Real Estate Agency</font></b></center>'
 			'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo_paperwork.jpg"></center>'
 			*nl
 			'You take the pen then start filling out the paperwork. After writing for half an hour, you hand over the money and receive the keys to your new apartment.'
-
 			act 'Return':gt'agentned', 'start'
 		end
 	else
-		*nl
 		'You do not have enough money with you or in your bank account to pay the rent.'
-	end
-	killvar 'monthly_rent
-	'
+	end	
+
 	act 'Decline':
 		*clr & cla
 		minut += 5
@@ -349,90 +327,42 @@ if $ARGS[0] = 'rent_cityres':
 
 		act 'Return':gt'agentned', 'start'
 	end
+	 killvar 'rent_code' & killvar 'monthly_rent'
 end
 
-if $ARGS[0] = 'rent_pushkin':
-	*clr & cla
-	menu_off = 1
-	'<center><b><font color = maroon>Real Estate Agency</font></b></center>'
-	'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo.jpg"></center>'
-	*nl
-	'"We have a small apartment available right now that is in Pushkin’s city center. It’s a little bit pricey, but it’s been recently renovated to be more modern. It looks quite nice, so you won’t find a place like that outside of Pushkin." The receptionist says as he starts pulling out the paperwork. "Rent is <<$home_rent_txt[4]>> ₽ and leases have to be renewed every 30 days, which can be taken automatically from your account or you can come in and pay directly. Last, but not least, you have to make your first payment up front at signing."'
-	'<br>He pulls out a pen and slides the paperwork onto the counter. "Interested? You can move in right away," he calmly says.'
-	*nl
-	monthly_rent = func('homes_properties', 'get_rent_amount', 'old_town_apartment')
-	if money >= monthly_rent or karta+bankDebtLimit >= monthly_rent:
-		act 'Agree and pay':
-			*clr & cla
-			minut += 30
-			if money >= monthly_rent:
-				money -= monthly_rent
-			else
-				karta -= pmonthly_rent
-			end
-			gs 'homes_properties', 'rent_property', 'old_town_apartment'
-			if func( 'homes_properties', 'get_accessible_count', 'home') = 1:
-				gs 'homes_properties', 'set_home', 'old_town_apartment'
-			else
-				$set_homeyn = input("Would you like to set this as your new home? (yes/no)")
-				if $set_homeyn = 'yes': gs 'homes_properties', 'set_home', 'old_town_apartment'
-				killvar '$set_homeyn'
-			end
-			gs'stat'
-			'<center><b><font color = maroon>Real Estate Agency</font></b></center>'
-			'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo_paperwork.jpg"></center>'
-			*nl
-			'You take the pen and start filling out the paperwork. After writing for half an hour, you hand over the money and receive the keys to your new apartment.'
-
-			act 'Return':gt'agentned', 'start'
-		end
+!! $ARGS[1] - the code of the property.
+if $ARGS[0] = 'get_rent_detail_dialogue':
+	if $ARGS[1] = 'old_town_apartment': 
+		$result = '"We have a small apartment available right now that is in Pushkin’s city center. It’s a little bit pricey, but it’s been recently renovated to be more modern. It looks quite nice, so you won’t find a place like that outside of Pushkin."'
+	elseif $ARGS[1] = 'city_apartment': 
+		$result = '"We have a flat available right now in the St. Petersburg residential area."'
 	else
-		*nl
-		'You do not have enough money with you or in your bank account to rent this.'
-	end
-
-	killvar 'monthly_rent'
-	act 'Decline':
-		*clr & cla
-		minut += 5
-		gs 'stat'
-		'<center><b><font color = maroon>Real Estate Agency</font></b></center>'
-		'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo.jpg"></center>'
-		*nl
-		'You shake your head, "Actually, I need more time to think about this."'
-		'<br>The receptionist seems a bit miffed, but says nothing as he takes back the paperwork and stuffs it back into his desk drawer.'
-
-		act 'Return':gt'agentned', 'start'
-	end
+		gs 'agentned', 'get_rent_detail_dialogue_hook', $ARGS[1]
+		$result = agency_rental_dialogue
+		killvar 'agency_rental_dialogue'
+	end 
 end
 
-if $ARGS[0] = 'buy_property':
-	*clr & cla
-	menu_off = 1
-	'<b> ARGS[1] passed: <<$ARGS[1]>></b>'
-	gs 'homes_properties', 'get_property_sales_info', $ARGS[1]
-	'Property name: <<$property_display>> Property code: <<$ARGS[1]>>  Property price: <<property_sales_price>>'
-	minut += 30
-	karta -= property_sales_price
-	
-	gs 'homes_properties', 'buy_property', $ARGS[1], property_sales_price
-	$set_homeyn = input("Would you like to set this as your new home? (yes/no)")
-	if $set_homeyn = 'yes': gs 'homes_properties', 'set_home', $ARGS[1]
-	killvar '$set_homeyn'
-
-	!!TODO: this etoexhib will need some rethinking I get what it means by now, but some better name would help a lot.
-	if $ARGS[1] = 'village_cottage': etoexhib = 0
-	gs'stat'
-
-	'<center><b><font color = maroon>Real Estate Agency</font></b></center>'
-	'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo_paperwork.jpg"></center>'
-	*nl
-	'You spend half an hour filling in the paperwork to buy the <<$property_display>>. <<property_sales_price>><b>₽</b> has been removed from your bank account.'
-	
-	killvar 'property' & killvar 'property_code'
-	act 'Return':gt'agentned', 'start'
+!! $ARGS[1] - the code of the property.
+if $ARGS[0] = 'get_rent_detail_dialogue_hook':
+	!! In a mod just redirect this call and set the value of the variable below to the text
+	!! that should be used for the property by the agency.
+	$agency_rental_dialogue = ''
 end
 
-
+!! Call: `func('agentned', 'format_price_string', ARGS[1])
+!! ARGS[1] - the price (as a number)
+if $ARGS[0] = 'format_price_string':
+	$worknum = STR(ARGS[1])
+	worknumlength = LEN($worknum)
+	pos1 = 1 &
+	pos2 = iif((worknumlength MOD 3) = 0, 3, worknumlength MOD 3)
+	:format_price_string_loop
+		$split = $MID($worknum, pos1, pos2)
+		$result += iif(pos2 < worknumlength, $split+',', $split)
+		pos1 = pos2+1
+		pos2 = pos1+2
+	if pos2 <= worknumlength: jump 'format_price_string_loop'
+	killvar 'pos1' & killvar 'pos2' & killvar 'worknum' & killvar 'worknumlength' & killvar 'split'
+end
 --- agentned ---------------------------------
-

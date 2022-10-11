@@ -177,7 +177,7 @@ end
 if $ARGS[0] = 'get_property_attr':
 	if $ARGS[1] = 'city_apartment':
 		property['id'] = 1
-		$property['code'] = 'city_apartment'
+		$property['code'] = $ARGS[1]
 		$property['name'] = 'City residential apartment'
 		$property['display'] = 'apartment in St. Petersburg''s residential area'
 		$property['town'] = 'city'
@@ -195,7 +195,7 @@ if $ARGS[0] = 'get_property_attr':
 		property['can_be_renovated'] = 1
 	elseif $ARGS[1] = 'parents_home':
 		property['id'] = 2
-		$property['code'] = 'parents_home'
+		$property['code'] = $ARGS[1]
 		$property['name'] = 'Parent''s home in Pavlovsk'
 		$property['display'] = 'parent''s home in Pavlovsk'
 		$property['town'] = 'pavlovsk'
@@ -232,7 +232,7 @@ if $ARGS[0] = 'get_property_attr':
 		$property['entrance'] = 'korr2x'
 		$property['entrance_arg'] = ''
 		$property['type'] = 'permanent_residence'
-
+		
 		property['rental'] = 1
 		$property['rent'] = '10,000'		
 		property['rent'] = 10000		
@@ -398,11 +398,52 @@ if $ARGS[0] = 'get_property_attr':
 	end
 end
 
+!! NOTE: The code will set the value to -1 if now property of correct type is found.
+!!       The reason for this is to make sure that it will not run more than once because there are no properties of that type - like business properties right now -,
+!!  	 but to also make it sure that if we add one or more, either in the main game, or via some mod, we won't have to worry about this, as it will calculate correctly.
+if accessible_property['available_for_rent_home_count'] = 0 or accessible_property['available_for_rent_business_count']:
+	gs 'homes_properties', 'get_rentable_property_count'
+end
+
 !!-----------------------------------------------------------------------------------------------------
 !!
 !!   General calls 
 !!
 !!-----------------------------------------------------------------------------------------------------
+
+!! Call: `gs 'homes_properties', 'calculate_available_for_rent_property_count'`
+!! This calculate the value of accessible_property['available_for_rent_home_count'] and accessible_property['available_for_rent_business_count']
+!! Right now it is called once when the first call to this location finds that the value for these are 0.
+!! However, I added it as a named thing in case a mod adds new properties, especially business type properties, in which the mod should call this
+!! to recalculate the values to include the newly added properties.
+!!
+!! NOTE: The code will set the value to -1 if now property of correct type is found.
+!!       The reason for this is to make sure that it will not run more than once because there are no properties of that type - like business properties right now -,
+!!  	 but to also make it sure that if we add one or more, either in the main game, or via some mod, we won't have to worry about this, as it will calculate correctly.
+!!
+!! ARGS[1] - property type filter: 'home', 'business', 'all' or '' or missing
+if $ARGS[0] = 'calculate_rentable_property_count':
+	count = ARRSIZE('$home_name')
+	if count > 0:
+		:get_rentable_property_count_loop
+			gs 'homes_properties', 'get_property_attr', $home_name[i]
+			if ($ARGS[1] ! 'home' and INSTR($property['type'], 'residence') = 0) and property['rental']: 
+				 accessible_property['rentable_business_count'] += 1
+			elseif ($ARGS[1] ! 'business' and INSTR($property['type'], 'business') = 0) and property['rental']: 
+				accessible_property['rentable_rent_home_count'] += 1
+			end
+			i += 1
+		if i < count: jump 'get_rentable_property_count_loop'
+	end
+
+	if accessible_property['rentable_business_count'] = 0: accessible_property['rentable_business_count'] = -1
+	if accessible_property['rentable_home_count'] = 0: accessible_property['rentable_home_count'] = -1
+
+	accessible_property['available_for_rent_home_count'] = accessible_property['rentable_home_count']
+	accessible_property['available_for_rent_business_count'] = accessible_property['rentable_business_count']
+	killvar 'count' & killvar 'i'
+end
+
 
 !! Set the current home for Sveta based on either the property code or the id - for backward compatibility or some mods
 !! $ARGS[1] - a string to identify the property.
@@ -478,13 +519,10 @@ if $ARGS[0] = 'set_access':
 			$accessible_property['<<$propcode>>-name'] = $property['name']
 			!!'  Expected Name: <<$property[''name'']>> - Stored Name: <<$accessible_property[''<<$propcode>>-name'']>>'			
 		
-			accessible_property['<<$propcode>>-rent'] = property['rent']
-			!!'  Expected Rent: <<property[''rent'']>> - Stored Rent: <<accessible_property[''<<$propcode>>-rent'']>>'
-		
-			if $property['type'] = 'permanent_residence' or $property['type'] = 'temporary_residence': accessible_property['<<$propcode>>-is-home'] = 1
+			if INSTR($property['type'], 'residence') > 0: accessible_property['<<$propcode>>-is-home'] = 1
 			$accessible_property['<<$propcode>>-type'] = $property['type']
 			!!'  Expected Type: <<$property[''type'']>> - Stored Type: <<accessible_property[''<<$propcode>>-type'']>>'
-		
+
 			if property['contstruction_needed'] = 1:
 				accessible_property['<<$propcode>>-construction-status'] = ARGS[3]
 				!!'  Expected Construction Status: <<ARGS[3]>> - Stored Construction Status: <<accessible_property[''<<$propcode>>-onstruction-status'']>>'
@@ -499,11 +537,18 @@ if $ARGS[0] = 'set_access':
 				!!'  Expected Display: <<$property[''display'']>> - Stored Display: <<$accessible_property[''<<$propcode>>-display'']>>'
 			end
 			
+			accessible_property['<<$propcode>>-rental'] = property['rental']
+			!!'  Expected Rent: <<property[''rental'']>> - Stored Rent: <<accessible_property[''<<$propcode>>-rental'']>>'
+		
+
 			accessible_property['<<$propcode>>-renovated'] = ARGS[4]
 			!!'  Expected Renovated: <<ARGS[4]>> - Stored Renovated: <<accessible_property[''<<$propcode>>-renovated'']>>'
 		
 			accessible_property['<<$propcode>>-sales-price'] = property['price']
 			!!'  Expected Sales Price: <<property[''price'']>> - Stored Sales Price: <<accessible_property[''<<$propcode>>-sales-price'']>>'
+
+			accessible_property['<<$propcode>>-rent'] = property['rent']
+			!!'  Expected Rent: <<property[''rent'']>> - Stored Rent: <<accessible_property[''<<$propcode>>-rent'']>>'
 		end
 
 		!! Setting status dependent variables
@@ -515,7 +560,10 @@ if $ARGS[0] = 'set_access':
 			!! Updating home counts
 			!! NOTE: Valid transitions: 1 -> 0, 2 -> 0, 4 -> 0
 			if accessible_property['<<$propcode>>-is-home'] = 1:
-				if orig_status_code = 1: accessible_property['rental_home_count'] -= 1
+				if orig_status_code = 1: 
+					accessible_property['rental_home_count'] -= 1
+					accessible_property['available_for_rent_home_count'] += 1
+				end
 				if orig_status_code = 2: accessible_property['owned_home_count'] -= 1
 				if accessible_property['<<$propcode>>-construction-status'] = 2: accessible_property['furnishable_home_count'] -= 1
 				accessible_property['accessible_home_count'] -= 1
@@ -527,6 +575,7 @@ if $ARGS[0] = 'set_access':
 			if accessible_property['<<$propcode>>-is-home'] = 1:
 				accessible_property['rental_home_count'] += 1
 				accessible_property['accessible_home_count'] += 1
+				accessible_property['available_for_rent_home_count'] -= 1
 				if accessible_property['<<$propcode>>-construction-status'] = 2: accessible_property['furnishable_home_count'] +=1 
 			end
 		!! Property is owned
@@ -534,15 +583,18 @@ if $ARGS[0] = 'set_access':
 			!! Updating home counts
 			!! NOTE: Valid transitions: 0 -> 2, 1 -> 2, 3-> 2
 			if accessible_property['<<$propcode>>-is-home'] = 1:
-				if orig_status_code = 0: accessible_property['accessible_home_count'] += 1
-				if accessible_property['<<$propcode>>-construction-status'] = 2: accessible_property['furnishable_home_count'] += 1
-				if orig_status_code = 1: accessible_property['rental_home_count'] -= 1
-				if orig_status_code = 3: 
+				if orig_status_code = 0: 
+					accessible_property['accessible_home_count'] += 1
+				elseif orig_status_code = 1: 
+					accessible_property['rental_home_count'] -= 1 
+					accessible_property['available_for_rent_home_count'] += 1
+				elseif orig_status_code = 3: 
 					accessible_property['tenant_home_count'] -= 1 
 					accessible_property['<<$propcode>>-tenant-day'] = -1
 					accessible_property['<<$propcode>>-tenant-month'] = -1	
 					if accessible_property['<<$propcode>>-construction-status'] = 2: accessible_property['furnishable_home_count'] += 1
 				end
+				if accessible_property['<<$propcode>>-construction-status'] = 2 and orig_status_code ! 1: accessible_property['furnishable_home_count'] += 1 
 				accessible_property['owned_home_count'] += 1
 			end
 		!! Property has tenants
@@ -578,6 +630,10 @@ if $ARGS[0] = 'set_access':
 	killvar 'propcode' & killvar 'orig_status_code' & killvar 'new_status_code' & killvar 'nokill'
 end
 
+!! Call: `func('homes_properties', 'can_live_here', $ARGS[1])`
+!! Return -1 if the location/property is a place where Sveta can live, whether he owns or rents the place, 
+!! she is just allowed to live there: university dorm, parents home, the Meynold Household, etc.
+!!
 !! $ARGS[1]: the location for which the access is set
 !!			Accepted values
 !!			- property code   -> 'city_apartment', 'parents_home'
@@ -587,13 +643,14 @@ end
 !!			  					NOTE: only added in case someone really want to use the old ids
 if $ARGS[0] = 'can_live_here':
 	if $ARGS[1] = '':
-		result = accessible_property[$home_name[$loc]] > 0 and func('homes_properties', 'property_construction_status', $home_name[$loc]) = 2
+		result = accessible_property[$home_name[$loc]] > 0 and func('homes_properties', 'get_property_construction_status', $home_name[$loc]) = 2
 	else
-		result = accessible_property[$home_name[$ARGS[1]]] > 0 and func('homes_properties', 'property_construction_status', $home_name[$loc]) = 2
+		result = accessible_property[$home_name[$ARGS[1]]] > 0 and func('homes_properties', 'get_property_construction_status', $home_name[$loc]) = 2
 	end
 end
 
-!! Call as: func('homes_properties', 'is_current_home', $ARGS[1])
+!! Call: `func('homes_properties', 'is_current_home', $ARGS[1])`
+!! Returns 0 if the location/property is not the current home, otherwise -1.
 !!
 !! $ARGS[1]: the location for which the access is set
 !!			Accepted values
@@ -612,6 +669,10 @@ if $ARGS[0] = 'is_current_home':
 	end
 end
 
+!! Call: `func('homes_properties', 'is_at_a_home', $ARGS[1])`
+!! Tells if the location passed in $ARGS[1] or if empty the $loc is a home or not.
+!! If true then returns -1, if false 0.
+!!
 !! $ARGS[1]: the location for which the access is set
 !!			Accepted values
 !!			- property code   -> 'city_apartment', 'parents_home'
@@ -619,7 +680,65 @@ end
 !!			- empty strying   ->  '' - will work as if a location was passed, but will use the actual value of $loc
 !!			- A number as str -> '1', '2' - this should be the id of the property 
 !!			  					NOTE: only added in case someone really want to use the old ids
-if $ARGS[0] = 'get_home_code':
+if $ARGS[0] = 'is_at_a_home':
+	if $ARGS[1] = '': 
+		result = accessible_property['<<$loc>>-is-home'] = 1
+	elseif $home_name[$ARGS[1]] ! '':
+		result = accessible_property['<<$ARGS[1]>>-is-home'] = 1
+	else
+		result = 0
+	end
+end
+
+!! Call: `func('homes_properties', 'is_property_of_status', $ARGS[1])`
+!! Tells if the location passed in $ARGS[1] or if empty the $loc is of the  queried status.
+!! If true then returns -1, if false 0.
+!!
+!! $ARGS{1]: the status that is checked
+!!			 Accepted values
+!!			 'rented' -> is the property rented?
+!!			 'owned'  -> is the property is owned (bought by Sveta) ? 
+!!			 'tenants' -> are there tenants in the property?
+!!			 'blocked' -> is the property blocked?
+!!			 'hasaccess' -> can Sveta use the property (without owning or renting it)?
+!!
+!! $ARGS[2]: the location for which the access is set
+!!			Accepted values
+!!			- property code   -> 'city_apartment', 'parents_home'
+!!			- a location      ->  'bedrPar', 'koo2x' - A value that can shop up in $loc
+!!			- empty strying   ->  '' - will work as if a location was passed, but will use the actual value of $loc
+!!			- A number as str -> '1', '2' - this should be the id of the property 
+!!			  					NOTE: only added in case someone really want to use the old ids
+if $ARGS[0] = 'is_property_of_status':
+	$propcode = iif($ARGS[2] = '', $loc, $ARGS[2])	
+
+	if $ARGS[1] = 'rented':
+		result = accessible_property[$propcode] = 1
+	elseif $ARGS[1] = 'owned':
+		result = accessible_property[$propcode] = 2
+	elseif $ARGS[1] = 'tenants':
+		result = accessible_property[$propcode] = 3
+	elseif $ARGS[1] = 'blocked':
+		result = accessible_property[$propcode] = 0
+	elseif $ARGS[1] = 'hasacces':
+		result = accessible_property[$propcode] = 4
+	else
+		result = 0
+	end
+	killvar 'propcode'
+end
+
+!! Call `func('homes_properties', 'get_property_code', $ARGS[1])
+!! Returns 
+!!
+!! $ARGS[1]: the location for which the access is set
+!!			Accepted values
+!!			- property code   -> 'city_apartment', 'parents_home'
+!!			- a location      ->  'bedrPar', 'koo2x' - A value that can shop up in $loc
+!!			- empty strying   ->  '' - will work as if a location was passed, but will use the actual value of $loc
+!!			- A number as str -> '1', '2' - this should be the id of the property 
+!!			  					NOTE: only added in case someone really want to use the old ids
+if $ARGS[0] = 'get_property_code':
 	if $ARGS[1] = '': 
 		$result = $home_name[$loc]
 	elseif $home_name[$ARGS[1]] ! '':
@@ -629,10 +748,12 @@ if $ARGS[0] = 'get_home_code':
 	end
 end
 
+
 !!---------------------------------------------------------
-!!  Home and Property Counts
+!!  Home and Property Counts - FUNC()
 !!---------------------------------------------------------
 
+!! Call: `func('homes_properties', 'get_rented_property_count')`
 !! Returns the count of rented properties
 !!
 !! ARGS[1] - property type filter: 'home', 'business', 'all' or '' or missing
@@ -646,6 +767,7 @@ if $ARGS[0] = 'get_rented_property_count':
 	end
 end
 
+!! Call: `func('homes_properties', 'get_accessible_property_count')`
 !! Returns the count of rented properties
 !!
 !! ARGS[1] - property type filter: 'home', 'business', 'all' or '' or missing
@@ -659,6 +781,31 @@ if $ARGS[0] = 'get_accessible_property_count':
 	end
 end
 
+!! Call: `func('homes_properties', 'get_rentable_property_count')`
+!! Returns the count of properties that can be rented (all properties with where property['rental'] = 1)
+!!
+!! ARGS[1] - property type filter: 'home', 'business', 'all' or '' or missing
+if $ARGS[0] = 'get_rentable_property_count':
+	if $ARGS[1] = 'home': 
+		result = accessible_property['rentable_home_count']
+	elseif $ARGS[1] = 'business': 
+		result = accessible_property['rentable_business_count']
+	elseif $ARGS[1] = 'all' or $ARGS[1] = '': 
+		result = accessible_property['rentable_home_count'] + accessible_property['rentable_business_count']
+	end
+end
+
+!! Returns the number of properties that are avaiable for rent - rentable properties that are not rented.
+!! ARGS[1] - property type filter: 'home', 'business', 'all' or '' or missing
+if $ARGS[0] = 'get_available_for_rent_property_count':
+	if $ARGS[1] = 'home': 
+		result = accessible_property['available_for_rent_home_count']
+	elseif $ARGS[1] = 'business': 
+		result = accessible_property['available_for_rent_business_count']
+	elseif $ARGS[1] = 'all' or $ARGS[1] = '': 
+		result = accessible_property['available_for_rent_home_count'] + accessible_property['available_for_rent_business_count']
+	end
+end
 
 !!---------------------------------------------------------
 !!  Get Properties and their values
@@ -667,8 +814,9 @@ end
 !! Use it as `gs`, creates a set of arrays that contains the relevant info for 
 !! rented properties
 !!
-!! Returns: property_rent, property_days, $property_name, $property_display $property_code
+!! Returns: property_rent, property_days, $property_name, $property_display, $property_code
 !! $ARGS[1] - the property_type: 'home' - homes, 'business' - business properties, 'all' or '' - both types
+!!  ARGS[2] - optional, if value is 1 then only $property_code[] is created. 
 if $ARGS[0] = 'get_rented_properties':
 	i = 0
 	j = 0
@@ -687,19 +835,17 @@ if $ARGS[0] = 'get_rented_properties':
 					!!'    ----- Stored Values -----'
 					$property_code[j] = $propcode
 					!!'    Stored Code: <<$property_code[j]>>'
-					$property_name[j] = $accessible_property['<<$propcode>>-name']
-					!!'    Stored Name: <<$property_name[j]>>'
-					if property['construction_needed'] = 1:
-						$property_display[j] = iif($accessible_property[$propcode] = '', $property['display_0'], $accessible_property['<<$propcode>>-display'])
-					else
-						$property_display[j] = iif($accessible_property[$propcode] = '', $property['display'], $accessible_property['<<$propcode>>-display'])
+					if ARGS[2] = 0:
+						$property_name[j] = $accessible_property['<<$propcode>>-name']
+						!!'    Stored Name: <<$property_name[j]>>'
+						$property_display[j] = $accessible_property['<<$propcode>>-display']
+						!!'    Stored Display: <<$property_display[j]>>'
+						property_days[j] = accessible_property['<<$propcode>>-days-left']
+						!!'    Rent Days: <<property_days[j]>>'
+						property_rent[j] = accessible_property['<<$propcode>>-rent']
+						!!'    Rent Amount: <<property_rent[j]>>'
+						!!'    <br/>'
 					end
-					'    Stored Display: <<$property_display[j]>>'
-					property_days[j] = accessible_property['<<$propcode>>-days-left']
-					!!'    Rent Days: <<property_days[j]>>'
-					property_rent[j] = accessible_property['<<$propcode>>-rent']
-					!!'    Rent Amount: <<property_rent[j]>>'
-					!!'    <br/>'
 					j += 1
 				end
 			end
@@ -714,55 +860,79 @@ end
 !!
 !! "Returns": 
 !! $property_code[], $property_name[], $property_display[], $property_status_display[], $property_type[]
-!! property_construction_status, property_is_renovated[], property_sales_price[], property_renovation_value[]
+!! property_status[], property_construction_status, property_is_renovated[], property_sales_price[], 
+!! property_renovation_value[]
 !!
-!! $ARGS[1] - the class of the property: 'home' - returns only homes; 'business' - returns only business properties; '' - returns both types
+!! $ARGS[1] - the class of the property: 'home' - returns only homes; 'business' - returns only business properties;
+!!										 'all' or '' (or $ARGS[1] not passed) - returns both types
+!!			  IMPORTANT: If $ARGS[2] is passed, the $ARGS[1] will be ignored and will be treated as if it was ''all'/''.
+!! $ARGS[2] - optional, a property code or a location. If $ARGS[2] passed, only one property will be checked and returned.
+!!			 	
 if $ARGS[0] = 'get_owned_properties':
 	i = 0
 	j = 0
 	gs 'homes_properties', 'clean_up_property_data'
-	count = ARRSIZE('accessible_property')	
+	$type = iif($ARGS[2] = '', $ARGS[1], 'all')
+	count = iif($ARGS[2] = '', ARRSIZE('accessible_property'), 1)
 	if count > 0: 
 		!!'<h3>Building Owned Properties List</h3>'
 		!!'Count: <b><<count>></b>'
 		:get_owned_properties_loop
-			$propcode = $accessible_property[i]
+			$propcode = iif($ARGS[2] = '', $accessible_property[i], $ARGS[2])
 			!!'  Index: <b><<i>></b> Code: <b><<$propcode>></b> Status: <b><<accessible_property[i]>></b>'
-			if $home_name[$propcode] ! '' and (accessible_property[i] = 2 or accessible_property[i] = 3):
+			if $home_name[$propcode] ! '' and (accessible_property[$propcode] = 2 or accessible_property[$propcode] = 3):
 				!!'    $ARGS[1]: <b><<$ARGS[i]>></b> Is home: <b><<accessible_property[''<<$propcode>>-is-home'']>></b>'
-				if ($ARGS[1] ! 'home' and accessible_property['<<$propcode>>-is-home'] = 0) or ($ARGS[1] ! 'business' and accessible_property['<<$propcode>>-is-home'] = 1):
+				if ($type ! 'home' and accessible_property['<<$propcode>>-is-home'] = 0) or ($type ! 'business' and accessible_property['<<$propcode>>-is-home'] = 1):
 					!!'      Entry Index : <b><<j>></b>'
 					!!'      Current Home: <b><<$home[''current'']>></b>'
 					!!'      ----- Stored Values -----'
 					$property_code[j] = $propcode
-					!!'      Code:    <b><<$property_code[j]>></b>'
-					$property_name[j] = $accessible_property['<<$propcode>>-name']
-					!!'      Name:    <b><<$property_name[j]>></b>'
-					if property['construction_needed'] = 1:
-						$property_display[j] = iif($accessible_property[$propcode] = '', $property['display_0'], $accessible_property['<<$propcode>>-display'])
-					else
-						$property_display[j] = iif($accessible_property[$propcode] = '', $property['display'], $accessible_property['<<$propcode>>-display'])
-					end
-					!!'      Display: <b><<$property_display[j]>></b>'
-					$property_type[j] = accessible_property['<<$propcode>>-type']
-					!!'      Type   : <b><<$property_type[j]>></b>'
-				
+					!!'      Expected Code:    <b><<$property_code[j]>></b>'
+
+					$property_name[j] = $accessible_property['<<$propcode>>-name']					
+					!!'	   Expected Name: <b>$accessible_property[''<<$propcode>>-name'']</b>'
+
+					$property_display[j] = $accessible_property['<<$propcode>>-display']
+					!!'	   Expected Display: <b>$accessible_property[''<<$propcode>>-display'']</b>'
+					
+					$property_type[j] = $accessible_property['<<$propcode>>-type']
+					!!'      Expected Type   : <b><<$accessible_property[''<<$propcode>>-type'']>></b>'
+
 					!!'<br/>'
 					if accessible_property[$propcode] = 3: 
 						$property_status_display[j] = 'A(n) <<$property_display[j]>> which is currently occupied by your tenants'
 					else
 						$property_status_display[j] = 'A(n) <<$property_display[j]>> ' + iif($accessible_property[$propcode] = $home['current'], 'where you currently live.', 'which is currently empty.')
 					end
-					!!'      Status Text :  <b><<$property_status_display[j]>></b>'
+					!!'      Expected Status Text :  <b><<$property_status_display[j]>></b>'
+					
+					property_status[j] =accessible_property[$propcode]
+					!!'      Expected Status   : <b><<accessible_property[''<<$propcode>>'']>></b>'
+
 					property_construction_status[j] = accessible_property['<<$propcode>>-construction-status']
 					!!'<br/>'
-					!!'      Construction: <b><<property_construction_status[j]>></b>'
+					!!'      Expected Construction Stats: <b><<accessible_property[''<<$propcode>>-construction-status'']>></b>'
+
 					property_is_renovated[j] = accessible_property['<<$propcode>>-renovated']
-					!!'      Renovated   : <b><<property_is_renovated[j]>></b>'
+					!!'      Expected Renovated   : <b><<accessible_property[''<<$propcode>>-renovated'']>></b>'
+
 					property_sales_price[j] = accessible_property['<<$propcode>>-sales-price']
-					!!'      Sales Price : <b><<property_sales_price[j]>></b>'
-					property_renovation_value[j] = iif($accessible_property[$propcode] = '', 0, accessible_property['<<$propcode>>-renovation-value'])
-					!!'      Renovation V: <b><<property_renovation_value[j]>></b>'
+					!!'      Expected Sales Price : <b><<property_sales_price[j]>></b>'
+
+					property_renovation_value[j] = accessible_property['<<$propcode>>-renovation-value']
+					!!'      Expected Renovation Value: <b>accessible_property[''<<$propcode>>-renovation-value'']</b>'
+					
+					!!'      Stored Code:    <b><<$property_code[j]>></b>'
+					!!'      Stored Name:    <b><<$property_name[j]>></b>'
+					!!'      Stored Display: <b><<$property_display[j]>></b>'
+					!!'      Stored Type   : <b><<$property_type[j]>></b>'
+					!!'      Stored Status Text :  <b><<$property_status_display[j]>></b>'
+					!!' 	 Stored Status : <b><<$property_status[j]>></b>'
+					!!'      Stored Construction Status: <b><<property_construction_status[j]>></b>'
+					!!'      Stored Renovated   : <b><<property_is_renovated[j]>></b>'
+					!!'      Stored Sales Price : <b><<property_sales_price[j]>></b>'
+					!!'      Stored Renovation Value: <b><<property_renovation_value[j]>></b>'
+
 					j += 1
 				end
 			end
@@ -777,9 +947,8 @@ end
 !!
 !! "Returns": 
 !! $property_code[], $property_name[], $property_display[], $property_status_display[], $property_type[]
-!! property_construction_status,property_is_renovated[], property_renovation_value[]
+!! property_status[], property_construction_status[], property_is_renovated[], property_renovation_value[]
 !! 
-!!
 !! $ARGS[1] - the class of the property: 'home' - returns only homes; 'business' - returns only business properties; '' - returns both types
 if $ARGS[0] = 'get_accessible_properties':
 	i = 0
@@ -808,6 +977,7 @@ if $ARGS[0] = 'get_accessible_properties':
 						$property_status_display[j] = 'You can stay at the <<$property_display[j]>> which is currently occupied by your tenants'
 					end
 					
+					property_status[j] = accessible_property[$propcode]
 					property_construction_status[j] = accessible_property['<<$propcode>>-construction-status']
 					property_is_renovated[j] = accessible_property['<<$propcode>>-renovated']
 					property_type[j] = accessible_property['<<$propcode>>-type']
@@ -838,41 +1008,58 @@ if $ARGS[0] = 'get_properties_for_sale':
 		!!'<h3>Building Properties For Sale List </h3>'
 		:get_properties_for_sale_loop
 			$propcode = $home_name[i]
-			if $last_checked ! $propcode: '------------------------------------------------------------------------------------------------'
-			!!'Index: <b><<i>></b> Code: <b><<$propcode>></b> Status: <b><<accessible_property[$propcode]>></b>'		
-			$last_checked = $propcode
+		!!	{if $last_checked ! $propcode: 
+				'------------------------------------------------------------------------------------------------'
+				'<h4>Checking <<$propcode>></h4>'
+				'Home Name Index: <b><<i>></b> Property Code: <b><<$propcode>></b> Property Status: <b><<accessible_property[$propcode]>></b>'		
+				'Has been checked: '+iif(checked_homes[$propcode] = 0, '<b>No</b>', '<b>Yes</b>')
+				if accessible_property[$propcode] = 2 or accessible_property[$propcode] = 3: 
+					'Property Owned: TRUE'
+				else
+					'Property Owned: FALSE'
+				end
+			end
+			$last_checked = $propcode}
 			if $propcode ! '' and checked_homes[$propcode] = 0 and accessible_property[$propcode] < 2:
 				checked_homes[$propcode] = 1
 				if accessible_property[$propcode] = '': 
-				!!	'  Newer bought or rented property, using $property'
+					!!'  Newer bought or rented property, using $property'
 					gs 'homes_properties', 'get_property_attr', $propcode
 				end
-				!!'  Price: '+iif($accessible_property[$propcode] = '' and $property['price'] > 0, $property['price'], accessible_property['<<$propcode>>-sales-price'])
-				if ($accessible_property[$propcode] = '' and $property['price'] > 0) or accessible_property['<<$propcode>>-sales-price'] > 0:
-				!!	'    Adding property to list at index <<j>>'
-				!!	'    ----- Stored Values -----'
+				ishome = iif(accessible_property[$propcode] = '', INSTR($property['type'], 'residence') > 0, INSTR($accessible_property['<<$propcode>>-type'], 'residence') > 0 )
+				hasprice = iif($accessible_property[$propcode] = '', property['price'] > 0, accessible_property['<<$propcode>>-sales-price'] > 0)
+				!!'  $ARGS[1]: <<$ARGS[1]>>  -  Is Home: <<ishome>> - Has Price: <<hasprice>> - Property Type: '+iif(accessible_property[$propcode] = '', $property['type'], $accessible_property['<<$propcode>>-type'])
+				if (($ARGS[1] ! 'home' and ishome = 0) or ($ARGS[1] ! 'business' and ishome)) and hasprice:
+					!!'    Adding property to list at index <<j>>'
+					!!'    ----- Stored Values -----'
+					
 					$property_code[j] = $propcode
-				!!	'    Code: <<$property_code[j]>>'
+					!!'    Code: <<$property_code[j]>>   (<<$propcode>>)'
+					
 					$property_name[j] = iif($accessible._property[$propcode] = '', $property['name'], $accessible_property['<<$propcode>>-name'])
-				!!	'    Name: <<$property_name[j]>>'
+					!!'    Name: <<$property_name[j]>>   (<<$propcode>>)'
 					
 					if property['construction_needed'] = 1:
 						$property_display[j] = iif($accessible_property[$propcode] = '', $property['display_0'], $accessible_property['<<$propcode>>-display'])
 					else
 						$property_display[j] = iif($accessible_property[$propcode] = '', $property['display'], $accessible_property['<<$propcode>>-display'])
 					end
-				!!	'    Display: <<$property_display[j]>>'
+					!!'    Display: <<$property_display[j]>>   (<<$propcode>>)'
 					
 					$property_type[j] = iif($accessible_property[$propcode] = '', $property['type'], $accessible_property['<<$propcode>>-type'])
-				!!	'    Type: <<$property_type[j]>>'
+					!!'    Type: <<$property_type[j]>>   (<<$propcode>>)'
+					
 					property_is_rented[j] = accessible_property[$propcode] = 1
-				!!	'    Rented:: <<property_is_rented[j]>>'
+					!!'    Rented:: <<property_is_rented[j]>>   (<<$propcode>>)'
+					
 					property_construction_status[j] = iif($accessible_property[$propcode] = '', 0, accessible_property['<<$propcode>>-construction-status'])
-				!!	'    Const. Status: <<property_construction_status[j]>>'
+					!!'    Const. Status: <<property_construction_status[j]>>   (<<$propcode>>)'
+					
 					property_is_renovated[j] = iif($accessible_property[$propcode] = '', 0, accessible_property['<<$propcode>>-renovated'])
-				!!	'    Renovated: <<property_is_renovated[j]>>'
+					!!'    Renovated: <<property_is_renovated[j]>>   (<<$propcode>>)'
+					
 					property_sales_price[j] = iif($accessible_property[$propcode] = '', property['price'], accessible_property['<<$propcode>>-sales-price'])
-				!!	'    Sales Price: <<property_sales_price[j]>>'
+					!!'    Sales Price: <<property_sales_price[j]>>   (<<$propcode>>)'
 					j += 1
 				end
 				killvar 'property'
@@ -880,11 +1067,84 @@ if $ARGS[0] = 'get_properties_for_sale':
 			i += 1
 		if i < count: jump 'get_properties_for_sale_loop'
 	end
-	killvar 'count' & killvar 'i' & killvar 'j' & killvar 'propcode' & killvar 'checked_homes'
+	killvar 'count' & killvar 'i' & killvar 'j' & killvar 'propcode' & killvar 'checked_homes' & killvar 'ishome' & killvar 'hasprice'
+end
+
+!! Use it as `gs`, creates a set of arrays that contains the relevant info for 
+!! all properties that are for sale.
+!!
+!! "Returns": 
+!! $property_code[], $property_name[], $property_display[], $property_type[]
+!! property_construction_status,property_is_renovated[], property_sales_price[], property_renovation_value[]
+!!
+!! $ARGS[1] - the class of the property: 'home' - returns only homes; 'business' - returns only business properties; '' - returns both types
+if $ARGS[0] = 'get_properties_for_rent':
+	i = 0
+	j = 0
+	gs 'homes_properties', 'clean_up_property_data'
+	count = ARRSIZE('home_name')
+
+	if count > 0: 
+		!!'<h3>Building Properties For Rent List </h3>'
+		!!'Count: <b><<count>></b>'
+		:get_rented_properties_loop
+			$propcode = $home_name[i]
+			!!{if $last_checked ! $propcode: 
+				'------------------------------------------------------------------------------------------------'
+				'<h4>Checking <<$propcode>></h4>'
+				'Home Name Index: <b><<i>></b> Property Code: <b><<$propcode>></b> Property Status: <b><<accessible_property[$propcode]>></b>'		
+				'Has been checked: '+iif(checked_homes[$propcode] = 0, '<b>No</b>', '<b>Yes</b>')
+				if accessible_property[$propcode] = 1: 
+					'Property Rented: TRUE'
+				else
+					'Property Rented: FALSE'
+				end
+			end
+			$last_checked = $propcode}			
+			if $propcode ! '' and checked_homes[$propcode] = 0 and accessible_property[$propcode] = 0:
+				checked_homes[$propcode] = 1
+				if accessible_property[$propcode] = '': 
+					!!'  Newer bought or rented property'
+					gs 'homes_properties', 'get_property_attr', $propcode
+				else
+					!!'  It has been accessible at some point in the past'
+				end
+				ishome = iif($accessible_property[$propcode] = '', INSTR($property['type'], 'residence') > 1, INSTR($accessible_property['<<$propcode>>-type'], 'residence') > 1 )
+				isrental = iif($accessible_property[$propcode] = '', property['rental'] = 1, accessible_property['<<$propcode>>-rental'] = 1 )
+				!!'  $ARGS[1]: <<$ARGS[1]>>  -  Is Home: <<ishome>> - Is Rental: <<isrental>> - Property Type: '+iif(accessible_property[$propcode] = '', $property['type'], $accessible_property['<<$propcode>>-type'])
+				if (($ARGS[1] ! 'home' and ishome = 0) or ($ARGS[1] ! 'business' and ishome)) and ishome and isrental:			
+					!!'    Adding home to list'
+					!!'    ----- Stored Values -----'
+					$property_code[j] = $propcode
+					!!'    Stored Code: <<$property_code[j]>>'
+					$property_name[j] = iif($accessible_property[$propcode] = '', $property['name'], $accessible_property['<<$propcode>>-name'])
+					!!'    Stored Name: <<$property_name[j]>>'
+					if property['construction_needed'] = 1:
+						$property_display[j] = iif($accessible_property[$propcode] = '', $property['display_0'], $accessible_property['<<$propcode>>-display'])
+					else
+						$property_display[j] = iif($accessible_property[$propcode] = '', $property['display'], $accessible_property['<<$propcode>>-display'])
+					end
+					!!'    Stored Display: <<$property_display[j]>>'
+					property_days[j] = iif($accessible_property[$propcode] = '', 0, accessible_property['<<$propcode>>-days-left'])
+					!!'    Rent Days: <<property_days[j]>>'
+					property_rent[j] = iif($accessible_property[$propcode] = '', property['rent'], accessible_property['<<$propcode>>-rent'])
+					!!'    Rent Amount: <<property_rent[j]>>'
+					!!'    <br/>'
+					j += 1
+					killvar 'property'
+				end
+			end
+			i += 1
+		if i < count: jump 'get_rented_properties_loop'
+	end
+	killvar 'checked_homes'
+	killvar 'count' & killvar 'i' & killvar 'j' & killvar '$propcode' & killvar 'ishome' & killvar 'isrental'
+
 end
 
 !! Call after using any of the above calls to run killvar on all the temporary variables
 if $ARGS[0] = 'clean_up_property_data':
+	!!'<h2><font color="crimson">Cleaning up!</font></h2>'
 	killvar 'property_rent' & killvar 'property_days' & killvar 'property_code'
 	killvar 'property_name' & killvar 'property_display' & killvar 'property_type' & killvar 'property_status_display'
 	killvar 'property_is_rented' & killvar 'property_construction_status' & killvar 'property_is_renovated' 
@@ -927,6 +1187,7 @@ if $ARGS[0] = 'block_access':
 	end
 end
 
+!! Call: `func('homes_properties', 'has_access', $ARGS[1])`
 !! Returns 0 if Sveta has no access to the property and 1 or -1 if she has access, irrelecant of the type of access 
 !! - owns the property, rents the property or allowed to stay at the property
 !!
@@ -950,6 +1211,9 @@ end
 !!  Buy, rent out and sell properties
 !!---------------------------------------------------------
 
+!! Call: `gs 'homes_properties', 'get_property_sales_info', $ARGS[1]
+!! Creates $property_display and property_sales_price for a specific property.
+!!
 !! $ARGS[1] = the code of the property, e.g. 'city_apartment'
 if $ARGS[0] = 'get_property_sales_info':
 	if $accessible_property[$ARGS[1]] = '' : gs 'homes_properties', 'get_property_attr', $ARGS[1]
@@ -958,7 +1222,10 @@ if $ARGS[0] = 'get_property_sales_info':
 	killvar 'property'
 end
 
-
+!! Call: `gs 'homes_properties', 'buy_property', $ARGS[1], ARGS[2]
+!! Makes all the necessary changes to the property status, access, etc.
+!! and stores the new sales value for future reference in case Sveta sells the property.
+!!
 !! $ARGS[1] = the code of the property, e.g. 'city_apartment'
 !! ARGS[2] = the final sales price in the transaction 
 if $ARGS[0] = 'buy_property':
@@ -966,6 +1233,10 @@ if $ARGS[0] = 'buy_property':
 	accessible_property['<<$ARGS[1]>>-sales-price'] = ARGS[2]
 end
 
+!! Call: `gs 'homes_properties', 'sell_property', $ARGS[1], ARGS[2]
+!! Makes all the necessary changes to the property status, access, etc.
+!! and stores the new sales value for future reference in case Sveta buys the property back.
+!!
 !! $ARGS[1] = the code name of the property, e.g. 'city_apartment'
 !! ARGS[2] = the final sales price in the transaction 
 if $ARGS[0] = 'sell_property':
@@ -973,17 +1244,23 @@ if $ARGS[0] = 'sell_property':
 	accessible_property['<<$ARGS[1]>>-sales-price'] = ARGS[2]
 end
 
+!! Call: gs 'homes_properties', 'tenants_move_in', $ARGS[1], ARGS[2], ARGS[3]
+!! Makes the necessary changes to the property to track the tenants. 
+!!
 !! $ARGS[1] - the property code of the home that is rented to tenants
-!! ARGS[2] - the tenancy end day
-!! ARGS[3] - the tenancy end month
+!!  ARGS[2] - the tenancy end day
+!!  ARGS[3] - the tenancy end month
 if $ARGS[0] = 'tenants_move_in':
 	gs 'homes_properties', 'set_ownership', $ARGS[1], 3
 	accessible_property['<<$ARGS[1]>>-tenant-day'] = ARGS[2]
 	accessible_property['<<$ARGS[1]>>-tenant-month'] = ARGS[3]
 end
 
-!! Runs even night and sees if any tenants are moving out
+!! Call: `func('homes_properties', 'tenant_move_out_check')`
+!! Returns an array of messages for the tenants that have moved out.
+!! Runs every night and sees if any tenants are moving out
 !! If the tenants are moving out, the property becomes accessible again
+!!
 if $ARGS[0] = 'tenant_move_out_check':
 	count = ARRSIZE('accessible_property')
 	i = 0
@@ -1005,56 +1282,126 @@ if $ARGS[0] = 'tenant_move_out_check':
 	killvar 'i' && killvar 'j' && killvar 'count'
 end
 
+!! Call: `func('homes_properties', 'get_property_sales_price', $ARGS[1])`
+!! Returns the actual sales price of the property
+!!
+!! $ARGS[1] - property code
+if $ARGS[0] = 'get_property_sales_price':
+	if accessible_property[$ARGS[1]] ! '':
+		result = accessible_property['<<$ARGS[1]>>-sales-price']
+	else
+		gs 'homes_properties', 'get_property_attr', $ARGS[1]
+		result = $property['price']
+		killvar 'property'
+	end
+end
+
 !!---------------------------------------------------------
 !!  Create, Update and Cancel Rents and related values
 !!---------------------------------------------------------
 
+!! Call: `gs 'homes_properties', 'rent_property'`, $ARGS[1], ARGS[2]`
+!! Rents a property. For now with immediate effect.
+!!
 !! $ARGS[1] = the code name of the property, e.g. 'city_apartment'
-!! ARGS[2] = the number of days the rent is paid for, optional
+!!  ARGS[2] = the number of days the rent is paid for, optional
 if $ARGS[0] = 'rent_property':
 	gs 'homes_properties', 'set_access', $ARGS[1], 1
-	gs 'homes_properties', 'add_rent_days', $ARGS[1], $ARGS[2]
+	gs 'homes_properties', 'set_rent_days', $ARGS[1], ARGS[2]
 end
 
+!! Call: `gs 'homes_properties', 'cancel_rent'`, $ARGS[1]`
+!! Cancels the rent. For now with immediate effect.
+!!
 !! $ARGS[1] = the code name of the property, e.g. 'city_apartment'
 if $ARGS[0] = 'cancel_rent':
+	'<h3>Cancelling apartment <<$ARGS[1]>></h3>'
 	gs 'homes_properties', 'set_access', $ARGS[1], 0
 	gs 'homes_properties', 'set_rent_days', $ARGS[1], -1
 end
 
+!! Call: `gs 'homes_properties', 'cancel_rent'`, $ARGS[1]`, $ARGS[2]
+!!
+!! $ARGS[1] - property code of the rental
+!! $ARGS[2] - payment method: 'card' or 'cash'
+if $ARGS[0] = 'pay_rent':
+	$rent_amount = 
+	if $ARGS[2] = 'card': 
+		karta -= accessible_property['<<$ARGS[1]>>-rent']
+	elseif $ARGS[2] = 'cash': 
+		money -= accessible_property['<<$ARGS[1]>>-rent']
+	end
+	gs 'homes_properties', 'add_rent_days', $ARGS[1]
+end
+
+!! Call: `gs 'homes_properties', 'set_rent_days', $ARGS[1], ARGS[2]`
+!! Sets the remaining rental days to a specific amount
+!!
 !! $ARGS[1] = the code name of the property, e.g. 'city_apartment'
-!! ARGS[2] - the number of days to add.
-!!           if the value is 0 then the code will add the number of days that is there in the month
+!! ARGS[2] - the number of days to add (can be negative).
+!!           if the value is 0 then the code will add the number of days equal to the length of the month
 if $ARGS[0] = 'add_rent_days':
 	if ARGS[2] = 0:
-		accessible_property['<<$ARGS[1]>>-days-left'] += func( 'homes_properties', 'rent_due_date')
+		accessible_property['<<$ARGS[1]>>-days-left'] += func( 'homes_properties', 'days_in_month')
 	else
 		accessible_property['<<$ARGS[1]>>-days-left'] += ARGS[2]
 	end
 end
 
-!! $ARGS[1] = the code name of the property, e.g. 'city_apartment'
-!! ARGS[2] - the number of days to set to - it is an absolute value
+!! Call: `gs 'homes_properties', 'set_rent_days', $ARGS[1], ARGS[2]`
+!! Sets the remaining rental days to a specific amount.
+!!
+!! $ARGS[1] - the code name of the property, e.g. 'city_apartment'
+!!  ARGS[2] - the number of days to set to - it is an absolute value
+!!			  If the value is zero, it will be set to the length of the month (ie. 28,29,30 or 31 days)	
 if $ARGS[0] = 'set_rent_days':
-	accessible_property['<<$ARGS[1]>>-days-left'] = ARGS[2]
+	if ARGS[2] = 0:
+		accessible_property['<<$ARGS[1]>>-days-left'] = func( 'homes_properties', 'days_in_month')
+	else
+		accessible_property['<<$ARGS[1]>>-days-left'] = ARGS[2]
+	end
 end
 
 
-!! Call it as a func()
+!! Call: `func('homes_properties', 'get_rent_days', $RGS{1])`
+!! Returns the remaining rent days for the property
+!!
 !! $ARGS[1] = the code name of the property, e.g. 'city_apartment'
 if $ARGS[0] = 'get_rent_days':
 	result = accessible_property['<<$ARGS[1]>>-days-left']
 end
 
-!! Call it as a func()
-!! $ARGS[1] = the code name of the property, e.g. 'city_apartment'
+!! Call: `func('homes_properties', 'get_rent_amount', $ARGS[1])`
+!! Returns the monthly rent of the property
+!!
+!! $ARGS[1] - property code
 if $ARGS[0] = 'get_rent_amount':
-	result = accessible_property['<<$ARGS[1]>>-rent']
+	if $ARGS[1] ! '':
+		result = accessible_property['<<$ARGS[1]>>-rent']
+	else
+		gs 'homes_properties', 'get_property_attr', $ARGS[1]
+		result = $property['rent']
+		killvar 'property'
+	end
 end
 
+if $ARGS[0] = 'progress_property_rent_time':
+	gs 'homes_properties', 'get_rented_properties', 1
+	count = ARRSIZE('property_code')
+	i = 0
+	if count > 0:
+		:progress_property_rent_time_loop
+			gs 'homes_properties', 'add_rent_days', $property_code[i], -1
+			i += 1
+		if i < count: jump 'progress_property_rent_time_loop'
+	end
+	killvar 'property_code' & killvar 'count' & killvar 'i'
+end
 
-!! Returns the rent due date for the given month. Call as a func()
-if $ARGS[0] = 'rent_due_date':
+!! Call: `func('homes_properties', 'days_in_month'}`
+!! Returns the rent the number of days in a give month.
+!! 
+if $ARGS[0] = 'days_in_month':
 	if month = 1 or month = 3 or month = 5 or month = 7 or month = 8 or month = 10 or month = 12:
 		result = 31
 	elseif month = 2:
@@ -1069,15 +1416,41 @@ if $ARGS[0] = 'rent_due_date':
 end
 
 !!---------------------------------------------------------
+!!  Construction and Renovation of Properties
+!!---------------------------------------------------------
+
+!! Call: `func('homes_properties', 'get_property_construction_status', $ARGS[1])`
+!! $ARGS[1] - the property code or location, if empty it will use $loc
+if $ARGS[0] = 'get_property_construction_status':
+	result = iif($ARGS[1] = '', accessible_property['<<$loc>>-construction-status'], accessible_property['<<$ARGS[1]>>-construction-status'])
+end
+
+!! Call: `func('homes_properties', 'progress_construction_status', $ARGS[1])`
+!! $ARGS[1] - the property code or location, if empty it will use $loc
+if $ARGS[0] = 'progress_construction_status':
+	$propcode = iif($ARGS[1] = '', $loc, $ARGS{2})
+	if accessible_property['<<$propcode>>-construction-status'] < 2: owned_property['<<$propcode>>-construction-status'] += 1
+	killvar 'propcode'
+end
+
+!! Call: `func('homes_properties', 'is_property_renovated', $ARGS[1])`
+!! $ARGS[1] - the property code or location, if empty it will use $loc
+if $ARGS[0] = 'is_property_renovated':
+	result = iif($ARGS[1] = '', accessible_property['<<$loc>>-renovated'], accessible_property['<<$ARGS[1]>>-renovated'])
+end
+
+
+!!---------------------------------------------------------
 !!  Go to properties, home, free internet checksm etc.
 !!---------------------------------------------------------
 
-
+!! Call: `gs 'homes_properties', 'go_home'
 !! Takes Sveta to the location where her home can be found
 if $ARGS[0] = 'go_home':
 	gt $home['location'], $home['location_arg']
 end
 
+!! Call: `gs 'homes_properties', 'go_straight_home'
 !! Takes Sveta to the entracne of her home
 if $ARGS[0] = 'go_straight_home':
 	gt $home['entrance'], $home['entrance_arg']
