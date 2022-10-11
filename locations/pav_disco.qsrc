@@ -647,7 +647,6 @@ if $ARGS[0] = 'dance_partner':
 	if sozboyrand > boynum:
 		gs 'npcgeneratec', 0, 'Stranger', rand((age - 1),(age + 1)), 1
 		gs 'boystat', $npclastgenerated
-		$hookupboy = $npclastgenerated
 		DaPaTipeRand = rand(0,100)
 
 		if DaPaTipeRand < 70:
@@ -731,9 +730,78 @@ if $ARGS[0] = 'familiar':
 		'<center><img <<$set_imgh>> src="images/locations/pavlovsk/community/disco/suit1.jpg"></center>'
 		'A man dressed in a nice suit and expensive shoes invites you to dance. You don''t recognize him, but he seems familiar.'
 	end
-	gs 'BMloc'
+	gs 'pav_disco', 'familiar2'
 end
 
+if $ARGS[0] = 'familiar2':
+	act 'Leave':gt 'pav_disco'
+	act 'Dance':
+		*clr & cla
+		gs 'stat'
+		gs 'boystat', $bmNane[Tboynum]
+		$hookupboy = $bmNane[Tboynum]
+		$npc_usedname[$npclastcalled] = $npc_nickname[$npclastcalled]
+		if npc_virgin_take[$boy] = 1:
+			'"Remember me? I''m <<$npc_firstname[$boy]>>. I took your virginity."'
+		elseif npc_hookup[$boy] > 0:
+			if npc_last_sex[$boy] >= daystart - 7:
+				'"Remember me? I''m <<$npc_firstname[$boy]>>. We hooked up the other day."'
+			elseif npc_last_sex[$boy] >= daystart - 30:
+				'"Remember me? I''m <<$npc_firstname[$boy]>>. We hooked up a few weeks ago."'
+			else
+				'"Remember me? I''m <<$npc_firstname[$boy]>>. We hooked up a while back."'
+			end
+		elseif bmHJ[$boy] > 0:
+			'"Remember me? I''m <<$npc_firstname[$boy]>>. You gave me a hand job."'
+		elseif bmBJ[$boy] > 0:
+			'"Remember me? I''m <<$npc_firstname[$boy]>>. You gave me a blowjob."'
+		elseif bmSEX[$boy] > 0:
+			'"Remember me? I''m <<$npc_firstname[$boy]>>. You let me fuck you."'
+		elseif bmANAL[$boy] > 0:
+			'"Remember me? I''m <<$npc_firstname[$boy]>>. You let me fuck you in the ass."'
+		elseif bmGANG[$boy] > 0:
+			'"Remember me? I''m <<$npc_firstname[$boy]>>. You let me and my friend fuck you."'
+		else
+			if bmKISS[$boy] > 0 or bmTITS[$boy] > 0:
+				'"Remember me? I''m <<$npc_firstname[$boy]>>. We hung out and drank together beer."'
+			else
+				'"Remember me? I''m <<$npc_firstname[$boy]>>.  We danced together."'
+			end
+		end
+
+		if bmTip[Tboynum] = 0:'After the Dance <<$boydesc>> offers to go out and drink beer.'
+		if bmTip[Tboynum] = 1:'After the Dance <<$boydesc>> offers to go hang out.'
+		if bmTip[Tboynum] = 2:'After the Dance <<$boydesc>> offers to go to his hotel.'
+		
+		gs 'willpower', 'drink', 'resist'
+		if will_cost <= pcs_willpwr:
+			act 'Refuse (<<will_cost>> Willpower)':
+				gs 'exp_gain', 'sprt', rand(0,1)
+				gs 'willpower', 'drink', 'resist'
+				gs 'willpower', 'pay'
+				gs 'stat'
+				gt 'pav_disco'
+			end
+		else
+			act 'Refuse (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
+		end
+		
+		act 'Agree':
+			*clr & cla
+			boynumBlock = 1
+
+			if bmTip[Tboynum] = 0:
+				gdk_nice_guy = 1
+				gt 'pav_disco_sex', 'outside'
+			end
+			if bmTip[Tboynum] = 1:gt 'pav_disco_sex', 'outside'
+			if bmTip[Tboynum] = 2:
+				DPtipe = 2
+				gt 'pav_disco_sex', 'hotel'
+			end
+		end
+	end
+end
 if $ARGS[0] = 'katja_too_drunk':
 	*clr & cla
 	menu_off = 1
@@ -777,6 +845,7 @@ end
 
 if $ARGS[0] = 'hookup_aggressive':
 	cla & *clr
+	$hookup['pickup'] = 'pav_disco'
 	gs 'fame', 'pav', 'sex', 1
 	'<center><img src="images/locations/pavlovsk/community/disco/outside_talk.jpg"></center>'
 	'"Hey, let''s go back to my place and fuck!"'
@@ -807,7 +876,6 @@ if $ARGS[0] = 'hookup_aggressive':
 		'<center><img src="images/locations/pavlovsk/community/disco/outside_kiss.jpg"></center>'
 		'"That sounds nice," you say with a smile.'
 		'He leans in and gives you a quick, yet passionate kiss. "Great!" He grabs you by the arm and starts pulling you towards a nearby apartment complex, whispering obscenities in your ear along the way.'
-		if $hookupboy ! $npclastsaved:gs 'npcpreservec', $npclastgenerated
 		gs 'arousal', 'kiss', 5
 		gs 'arousal', 'end'
 		gs 'stat'
@@ -819,7 +887,6 @@ if $ARGS[0] = 'hookup_aggressive':
 		'<center><img src="images/locations/pavlovsk/community/disco/outside_kiss.jpg"></center>'
 		'"Fuck yeah, that sounds awesome." you say back to him.'
 		'He leans in and gives you a quick, yet passionate kiss. "I knew I liked you." He grabs you by the arm and starts pulling you towards a nearby apartment complex.'
-		if $hookupboy ! $npclastsaved:gs 'npcpreservec', $npclastgenerated
 		gs 'arousal', 'kiss', 5
 		gs 'arousal', 'end'
 		gs 'stat'
@@ -829,6 +896,7 @@ if $ARGS[0] = 'hookup_aggressive':
 end
 
 if $ARGS[0] = 'hookup_nice':
+	$hookup['pickup'] = 'pav_disco'
 	cla & *clr
 	'<center><img src="images/locations/pavlovsk/community/disco/outside_talk.jpg"></center>'
 	'"Hey," <<$npc_firstname[$boy]>> says. "I had a really good time dancing with you tonight and I was wondering... would you maybe want to come back to my place? I could get you a drink and maybe..."'
@@ -851,6 +919,17 @@ if $ARGS[0] = 'hookup_nice':
 		act 'Return to the dance':gt 'pav_disco'
 	end
 	
+	act 'Hook up with him':
+		cla & *clr
+		gs 'fame', 'pav', 'sex', 1
+		'<center><img src="images/locations/pavlovsk/community/disco/outside_kiss.jpg"></center>'
+		'"That sounds nice," you smile.'
+		'"Great! So, shall we..."'
+		'You follow him back to his home in nearby apartment complex, flirting in innuendos along the way. By the time you get there, you''ve both forgotten about the drinks.'
+		gs 'stat'
+		act 'Go to his place':gt 'hookup', 'start'
+	end
+	
 	act 'Want to fuck?':
 		cla & *clr
 		gs 'fame', 'pav', 'sex', 1
@@ -859,11 +938,7 @@ if $ARGS[0] = 'hookup_nice':
 		'He looks dumb founded by your words. "Uhh..."'
 		'"Fuck," you repeat. "Wanna go back to your place and fuck? We can skip the drinks too."'
 		'<<$npc_firstname[$boy]>> seems stunned by your straightforwardness, but eventually answers, "Yes!"'
-		'You lean in to kiss him passionately, and he returns the kiss just as enthusiastically.'
-		'"Great! Lead the way!" you say with a smile after breaking the kiss. The two of you hurry through the streets together to a nearby apartment complex.'
-		if $hookupboy ! $npclastsaved:gs 'npcpreservec', $npclastgenerated
-		gs 'arousal', 'kiss', 5
-		gs 'arousal', 'end'
+		'"Great! Lead the way!" you grin. The two of you hurry through the streets together to a nearby apartment complex.'
 		gs 'stat'
 		act 'Go to his place':gt 'hookup', 'start'
 	end

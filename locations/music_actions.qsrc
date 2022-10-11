@@ -3,6 +3,25 @@
 if $ARGS[0] = 'start': 
     if ml_not_alone = 0: gs 'music_actions', 'willpower_cost'
 
+    if $access['subscription'] = '':
+        !! Create an access for online things
+        if $home_name ! '' and komp = 1 and subscription[$home_name] = 1:
+            $access['subscription'] = $home_name            
+        else
+            if subscription['mobile'] = 1:
+                $access['subscription'] = 'mobile'
+            elseif subscription['metered_mobile'] = 1:
+                $access['subscription'] = 'metered_mobile'
+            else
+                $access = 'denied'
+            end
+        end
+        if subscription[access['subscription']+'-type'] = 2: access['metered'] = 1
+    end
+    
+
+
+
     !! $location_type = ''private'' = these are usually homes. ''indoors'' usually an office, shop or an NPC''s home. Same for ''public_indoors'' For those locations
     !! anything music related should be part of a storyline/quest, or some prewritten scene, like in the room of Anushka
     if $location_type = 'private' and ml_no_music = 0:
@@ -11,11 +30,8 @@ if $ARGS[0] = 'start':
             gs 'music_actions', 'play_something'
             gs 'music_actions', 'practice_guitar'
             if pcs_perform > 35 and (instrmusic_lvl >15 or vokal_lvl > 15): gs 'music_actions', 'rehearse_sets'
-            !! TODO: Find some way to remove this type of check from the music_action location, and keep them in the 
-            !! original location. 
-            !! Maybe a gs that sets a 'can record/stream' flag. 
             if ml_not_alone = 0 :
-                if internet > 0 and ml_online['account'] = 1 and ml_streaming['lastday'] ! daystart: gs 'music_actions', 'stream_music'
+                if $access ! 'denied' and ml_online['account'] = 1 and ml_streaming['lastday'] ! daystart: gs 'music_actions', 'stream_music'
                 gs 'music_actions', 'record_music'
             end
         end
@@ -30,7 +46,7 @@ if $ARGS[0] = 'start':
         gs 'music_actions', 'play_something'
         gs 'music_actions', 'practice_guitar'
         gs 'music_actions', 'rehearse_gig'
-        if internet > 0 and ml_online['account'] = 1 and ml_streaming['lastday'] ! daystart: gs 'music_actions', 'stream_music'
+        if $access ! 'denied' and ml_online['account'] = 1 and ml_streaming['lastday'] ! daystart: gs 'music_actions', 'stream_music'
 
         !! if this is done outdoors, any editing, mixing must be dones at home. So 'Record and edit' is not available outdoors.
         !! Although more accurate would be to check whether Sveta is at home or not, and if she is not home then that option won't be available.
@@ -161,7 +177,10 @@ if $ARGS[0] = 'stream_music':
     !! NOTE: The check for guitar is done in the 'liveStream', without a guitar Sveta will sing
     !! TODO: Some other checks to be added maybe, if she is not 
     if ml_performance['performed_minutes'] < ml_performance['max_perform_minutes'] and ml_performance['max_perform_minutes'] >= 15:
-        ml_streamtime =  min((ml_performance['max_perform_minutes']-ml_performance['performed_minutes']), 60)
+        
+        max_stream_time = iif($access['type'] = 2, subscription[$access['subscription']], 60)
+        ml_streamtime =  min((ml_performance['max_perform_minutes']-ml_performance['performed_minutes']), max_stream_time)
+        
         if ml_willcost = 0:
             act 'Live stream (<<ml_streamtime>> minutes)': gt 'music_onlinemusic', 'liveStream'
         elseif ml_willcost  <= pcs_willpwr:
