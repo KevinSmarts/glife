@@ -87,7 +87,7 @@ if $ARGS[0] = 'browse':
 
 		'A blinking banner for a <a href="exec:gt ''komp'',''agent''">Kirsanova Real Estate Agency</a> keeps popping up in the corner.'
 
-		if accessible_property['city_apartment'] = 2 and husband = 0: act 'Rent your apartment out':gt 'komp', 'sale'
+		if func('homes_properties', 'is_property_of_status', 'owned', 'city_apartment') and husband = 0: act 'Rent your apartment out':gt 'komp', 'sale'
 
 		if access['noporn'] = 0: act 'Watch porn': gt 'komp', 'porno'
 
@@ -570,54 +570,55 @@ if $ARGS[0] = 'agent':
 	'<br>The website shows they have apartments available for rent or purchase in various areas, both in and out of the city. Renting or purchase requires you visit the agency in the city center to fill an application and collect the keys. Rent on all properties is deducted every month on the 25th.'
 	*nl
 	'<b>Property listing</b>:'
-	if accessible_property['city_apartment'] = 1 and func('homes_properties', 'get_rent_days', 'city_apartment') > 0:
-		'You have <B><<func(''homes_properties'', ''get_rent_days'', ''city_apartment'')>> days</B> remaining on the rental of your St. Petersburg apartment.'
-		*nl
-	elseif accessible_property['city_apartment'] = 0:
+	if func('homes_properties', 'is_property_of_status', 'rented', 'city_apartment') :
+		if func('homes_properties', 'get_rent_days', 'city_apartment') > 0: 
+			'You have <B><<func(''homes_properties'', ''get_rent_days'', ''city_apartment'')>> days</B> remaining on the rental of your St. Petersburg apartment.'
+			*nl
+		end
+		if karta + bankDebtLimit >= func('homes_properties', 'get_rent_amount', 'city_apartment'):
+		act 'Pay rent on St. Petersburg':
+			cla
+			gs 'homes_properties', 'pay_rent', 'city_apartment', 'card'
+			'After a very simple procedure, you can now call an apartment in the city residential district home for another month. You have <B><<func(''homes_properties'', ''get_rent_days'', ''city_apartment'')>> days</B> remaining on the rental of your apartment.'
+			act 'Leave this website':gt 'komp','browse'
+		end
+	elseif func('homes_properties', 'has_access', 'city_apartment') = 0:
 		'There is an apartment in St. Petersburg residental area available, for rent or puchase.'
-		'Rent is: <<func(''homes_properties'', ''get_rent'', ''city_apartment'')>> ₽ per month. Current sale price is listed at: <<func(''homes_properties'', ''get_price'', ''city_apartment'')>> <b>₽</b>.'
+		'Rent is: <<func(''homes_properties'', ''get_rent_amount'', ''city_apartment'')>><b>₽</b> per month. Current sale price is listed at: <<func(''homes_properties'', ''get_price'', ''city_apartment'')>> <b>₽</b>.'
 		*nl
 	end
 
-	if accessible_property['village_cottage'] = 0:
+	if func('homes_properties', 'has_access', 'village_cottage') = 0:
 		'There is a holiday cottage with an adjacent allotment in the communal village for sale.'
-		'Current sale price is listed at: <<func(''homes_properties'', ''get_price'', ''village_cottage'')>> <b>₽</b>.'
+		'Current sale price is listed at: <<func(''homes_properties'', ''get_property_sales_price'', ''village_cottage'')>> <b>₽</b>.'
 		*nl
 	end
 	
-	if accessible_property['old_town_apartment'] = 1 and func('homes_properties', 'get_rent_days', 'old_town_apartment') > 0:
-		'You have <B><<func(''homes_properties'', ''get_rent_days'', ''old_town_apartment'')>> days</B> remaining on the rental of your Pushkin apartment.'
-		*nl
-	elseif accessible_property['old_town_apartment'] = 1 and func('homes_properties', 'get_rent_days', 'old_town_apartment') = 0:
-		'There is an apartment in Pushkin area (Old Town) available to rent.'
-		'Rent is: <<func(''homes_properties'', ''get_rent'', ''old_town_apartment'')>> <b>₽</b> per month.'
-		*nl
-	end
-
-	if accessible_property['matryona_mansion'] = 0:
-		'There is a plot in the suburbs available for puchase, with planning permission for a mansion.'
-		'Current sale price is listed at: <<func(''homes_properties'', ''get_price'', ''matryona_mansion'')>> <b>₽</b>.'
-		*nl
-	end
-
-	if karta + bankDebtLimit >= func('homes_properties', 'get_rent_amount', 'city_apartment') and accessible_property['city_apartment'] = 1:
-		act 'Pay rent on St. Petersburg':
-			cla
-			karta -= func('homes_properties', 'get_rent_amount', 'city_apartment')
-			gs 'homes_properties', 'add_rent_days'
-			'After a very simple procedure, you can now call an apartment in the city residential district home for another 30 days. You have <B><<func(''homes_properties'', ''get_rent_days'', ''city_apartment'')>> days</B> remaining on the rental of your apartment.'
-			act 'Leave this website':gt 'komp','browse'
+	if func('homes_properties', 'is_property_of_status', 'rented', 'old_town_apartment'):
+		if func('homes_properties', 'get_rent_days', 'old_town_apartment') >= 0: 
+			'You have <B><<func(''homes_properties'', ''get_rent_days'', ''old_town_apartment'')>> days</B> remaining on the rental of your Pushkin apartment.'
+			*nl
 		end
-	end
-	if karta + bankDebtLimit >= func('homes_properties', 'get_rent_amount', 'old_town_apartment') and accessible_property['old_town_apartment'] = 1:
+		
+		if karta + bankDebtLimit >= func('homes_properties', 'get_rent_amount', 'old_town_apartment'):
 		act 'Pay rent on Pushkin':
 			cla
-			karta -= func('homes_properties', 'get_rent_amount', 'old_town_apartment')
-			gs 'homes_properties', 'add_rent_days'
-			'After a very simple procedure, you can now call an apartment in Pushkin home for another 30 days. You have <B><<func(''homes_properties'', ''get_rent_days'', ''old_town_apartment'')>> days</B> remaining on the rental of your apartment.'
+			gs 'homes_properties', 'pay_rent', 'old_town_apartment', 'card'
+			'After a very simple procedure, you can now call an apartment in Pushkin home for another month. You have <B><<func(''homes_properties'', ''get_rent_days'', ''old_town_apartment'')>> days</B> remaining on the rental of your apartment.'
 			act 'Leave this website':gt 'komp','browse'
 		end
+	elseif func('homes_properties', 'has_access', 'old_town_apartment') = 0
+		'There is an apartment in Pushkin area (Old Town) available to rent.'
+		'Rent is: <<func(''homes_properties'', ''get_rent_amount'', ''old_town_apartment'')>><b>₽</b> per month.'
+		*nl
 	end
+
+	if func('homes_properties', 'has_access', 'matryona_mansion') = 0:
+		'There is a plot in the suburbs available for puchase, with planning permission for a mansion.'
+		'Current sale price is listed at: <<func(''homes_properties'', ''get_property_sales_price'', ''matryona_mansion'')>> <b>₽</b>.'
+		*nl
+	end
+
 	act 'Leave this website':gt 'komp','browse'
 end
 
