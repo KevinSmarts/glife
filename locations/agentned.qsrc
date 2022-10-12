@@ -15,7 +15,6 @@ if $ARGS[0] = 'start':
 	gs'stat'
 	gs'dina'
 !!	gs 'housing', 'rent'
-	killvar 'cancel_code'
 	
 	'<center><b><font color = maroon>Kirsanova Real Estate Agency</font></b></center>'
 	'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo.jpg"></center>'
@@ -36,19 +35,25 @@ if $ARGS[0] = 'start':
 		i = 0
 		'<h4>Rent Information</h4>'
 		:listing_rented_properties_loop
-			!! This is needed as $property_code[i] is overwritten when the owned property list is built everything is displayed
-			!! But the code inside the `act` will try to read it when the `act` is clicked and it will beither be empty or wrong value.
-			!! For this reason, the `killvar'cancel_code'` is at the start of this "function"
-			$cancel_code[i] = $property_code[i]
 			'You have <B><<property_days[i]>> days</B> remaining on the lease of your <<$property_display[i]>>, and your monthly rent is <<func(''agentned'', ''format_price_string'', property_rent[i])>><b>₽</b>. '+iif(money >= property_rent[i],'You can make a rent <a href="exec:money -= <<property_rent[i]>> & gs ''homes_properties'', ''add_rental_days'', ''<<$property_code[i]>>'' & gt ''agentned'', ''start''">payment</a> in cash to extend it.','You can''t afford to pay your rent at the moment')
-			act 'Cancel the lease of the <<$property_display[i]>>':
-				cla & *nl
-				!! TODO: 1 month notice period like in real life?
-				'Attention: You won''t be able to return to your apartment when you cancel the lease.'
-				'Property code right now is: <<$cancel_code[i]>>'
-				act 'Return': gt'agentned', 'start'
-				act 'Cancel it': gs 'homes_properties', 'cancel_rent', '<<$cancel_code[i]>>' & gt'agentned', 'start'
-			end
+				!! TODO: Make the duplication way less.
+				if $property_code[i] = 'city_apartment':
+					act 'Cancel the lease of the <<$property_display[i]>>':
+						cla & *nl
+						!! TODO: 1 month notice period like in real life?
+						'Attention: You won''t be able to return to your apartment when you cancel the lease.'
+						act 'Return': gt'agentned', 'start'
+						act 'Cancel it': gs 'homes_properties', 'cancel_rent', 'city_apartment' & gt'agentned', 'start'
+					end
+				elseif $property_code[i] = 'old_town_apartment':
+					act 'Cancel the lease of the <<$property_display[i]>>':
+						cla & *nl
+						!! TODO: 1 month notice period like in real life?
+						'Attention: You won''t be able to return to your apartment when you cancel the lease.'
+						act 'Return': gt'agentned', 'start'
+						act 'Cancel it': gs 'homes_properties', 'cancel_rent', 'old_town_apartment' & gt'agentned', 'start'
+					end
+				end
 			i += 1
 		if i < count: jump 'listing_rented_properties_loop'
 	end
@@ -84,7 +89,6 @@ if $ARGS[0] = 'buy':
 	$menu_arg = 'buy'
 	menu_off = 0
 	gs 'housing', 'sale'
-	killvar 'buy_code'
 	gs 'homes_properties', 'clean_up_property_data'
 	'<center><b><font color = maroon>Real Estate Agency</font></b></center>'
 	'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo.jpg"></center>'
@@ -105,21 +109,17 @@ if $ARGS[0] = 'buy':
 	if count > 0:
 		i = 0
 		'<h4>We have the following properties for sales</h4>'
-		:listing_properties_for_sale_loop			
-			if property_is_rented[i]:
+		:listing_properties_for_sale_loop	
+			if property_is_rented[i] ! 0:
 				'You could buy the <<$property_display[i]>> you''re currently renting, for <<func(''agentned'', ''format_price_string'', property_sales_price[i])>> <b>₽</b>.'
-			else
+			else	
 				'A(n) <<$property_display[i]>> is available for sale for <<func(''agentned'', ''format_price_string'', property_sales_price[i])>> <b>₽</b>.'
 			end
 			if karta + bankDebtLimit >= property_sales_price[i]: 
-				!! This is needed as $property_code[i] is overwritten when the owned property list is built everything is displayed
-				!! But the code inside the `act` will try to read it when the `act` is clicked and it will beither be empty or wrong value.
-				!! For this reason, the `killvar'buy_code'` is at the start of this "function"
-				$buy_code[i] = $property_code[i]
-
-				act 'Buy the <<$property_display[i]>>': 
-					gt 'agentned', 'buy_property', '<<$buy_code[i]>>'
-				end
+				if $property_code[i] = 'city_apartment': act 'Sell the <<$property_display[i]>>': gs 'agentned', 'buy_property', 'city_apartment'
+				if $property_code[i] = 'village_cottage': act 'Sell the <<$property_display[i]>>': gs 'agentned', 'buy_property', 'village_cottage'
+				if $property_code[i] = 'matryona_mansion': act 'Sell the <<$property_display[i]>>': gs 'agentned', 'buy_property', 'matryona_mansion'
+				if $property_code[i] = 'city_house': act 'Sell the <<$property_display[i]>>': gs 'agentned', 'buy_property', 'city_house'
 			end
 			i += 1
 		if i < count: jump 'listing_properties_for_sale_loop'
@@ -194,26 +194,18 @@ if $ARGS[0] = 'sell':
 					
 					offer = property_sales_price + property_renovation_value + (property_sales_price*rand(-10,10))/100 + (property_renovation_value*rand(0,10))/100
 					'We have found a buyer for your <<$property_display[i]>>. They will offer <<func(''agentned'', ''format_price_string'', offer)>><b>₽</b>, minus 5% for fees and taxes to the value of <<func(''agentned'', ''format_price_string'', ( (offer*5)/100) )>>, bringing the total to <<func(''agentned'', ''format_price_string'', ( (offer*95)/100 ) )>>'
-					act 'Sell the <<$property_display[i]>>': 
-						*clr
-						menu_off = 1
-						'<center><b><font color = maroon>Real Estate Agency</font></b></center>'
-						'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo_paperwork.jpg"></center>'
-						minut += 30
-						'You spend thirty minutes filling out the paperwork for the sale of your <<$property_display[i]>>. <<func(''agentned'', ''format_price_string'', ( (offer*95)/100) )>><b>₽</b> has been paid into your bank account.'
-						gs 'homes_properties', 'sell_property', '<<$property_code[i]>>', offer
-						karta += (offer*95)/100
-						delact 'Sell the <<$property_display[i]>>'
-						gs 'stat'
-						gs 'homes_properties', 'clean_up_property_data'
-					end
+					if $property_code[i] = 'city_apartment': act 'Sell the <<$property_display[i]>>': gs 'agentned', 'finalise_sale', 'city_apartment'
+					if $property_code[i] = 'village_cottage': act 'Sell the <<$property_display[i]>>': gs 'agentned', 'finalise_sale', 'village_cottage'
+					if $property_code[i] = 'matryona_mansion': act 'Sell the <<$property_display[i]>>': gs 'agentned', 'finalise_sale', 'matryona_mansion'
+					if $property_code[i] = 'city_house': act 'Sell the <<$property_display[i]>>': gs 'agentned', 'finalise_sale', 'city_house'
 				end
 				i += 1
 			if i < count: jump 'listing_offers_on_owned_properties_loop'
 			
 		end
+		gs 'homes_properties', 'clean_up_property_data'
 		killvar 'count' & killvar 'i' & killvar 'j'
-		act 'Leave': gs 'homes_properties', 'clean_up_property_data' & minut += 5 & gt 'city_center'
+		act 'Leave': minut += 5 & gt 'city_center'
 
 !! NOTE: Keeping this here for future renovation related reference.
 !!{ 
@@ -237,6 +229,22 @@ if $ARGS[0] = 'sell':
 		'<b>You need to open a bank account to sell your property</b>'
 	end
 end
+
+if $ARGS[0] = 'finalise_sale':
+	*clr
+	menu_off = 1
+	gs 'homes_properties', 'get_property_sales_info', $ARGS[1]
+	'<center><b><font color = maroon>Real Estate Agency</font></b></center>'
+	'<center><img <<$set_imgh>> src="images/locations/city/citycenter/realestate/agenstvo_paperwork.jpg"></center>'
+	minut += 30
+	'You spend thirty minutes filling out the paperwork for the sale of your <<$property_display>>. <<func(''agentned'', ''format_price_string'', ( (offer*95)/100) )>><b>₽</b> has been paid into your bank account.'
+	gs 'homes_properties', 'sell_property', $ARGS[1], offer
+	karta += (offer*95)/100
+	delact 'Sell the <<$property_display>>'
+	gs 'stat'
+	killvar 'property_display' & killvar 'property_sales_price'
+end
+
 
 if $ARGS[0] = 'rent':
 	*clr & cla
@@ -262,9 +270,9 @@ if $ARGS[0] = 'rent':
 		'<h4>Properties currently available for rent</h4>'
 		:listing_properties_for_rent_loop
 			'We have a(n) <<$property_display[i]>> avaible for a monthly rent of <<func(''agentned'', ''format_price_string'', property_rent[i])>><b>₽</b>.'
-			$rent_code[i] = $property_code[i]
-			monthly_rent[i] = property_rent[i]
-			act 'View the <<$property_display[i]>> details': gt 'agentned', 'view_property_details', $rent_code[i], monthly_rent[i]
+			monthly_rent[$property_code[i]] = property_rent[i]
+			if $property_code[i] = 'city_apartment': act 'View the <<$property_display[i]>> details': gt 'agentned', 'view_property_details', 'city_apartment', monthly_rent['city_apartment']
+			if $property_code[i] ='old_town_apartment': act 'View the <<$property_display[i]>> details': gt 'agentned', 'view_property_details', 'old_town_apartment', monthly_rent['old_town_apartment']
 			i += 1
 		if i < count: jump 'listing_properties_for_rent_loop'
 	else
