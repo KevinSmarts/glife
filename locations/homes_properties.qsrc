@@ -94,11 +94,7 @@ end
 !!			0: not renovated
 !!			1: fully renovated
 if $ARGS[0] = 'set_access':
-	if $ARGS[1] = '':
-		$propcode = $home_name[$loc]
-	else
-		$propcode = $home_name[$ARGS[1]]
-	end
+	$propcode = iif($ARGS[1] = '', $home_name[$loc], $home_name[$ARGS[1]])
 	orig_status_code = accessible_property[$propcode]
 	new_status_code = ARGS[2]
 	if orig_status_code ! new_status_code:
@@ -144,6 +140,7 @@ if $ARGS[0] = 'set_access':
 				if accessible_property['<<$propcode>>-construction-status'] = 2: accessible_property['furnishable_home_count'] -= 1
 				accessible_property['accessible_home_count'] -= 1
 			end
+			if accessible_property['accessible_home_count'] = 1: $accessible_property[0]
 		!! Property is rented
 		elseif accessible_property[$propcode] = 1:
 			!! Updating home counts
@@ -208,11 +205,9 @@ end
 !!			- A number as str -> '1', '2' - this should be the id of the property 
 !!			  					NOTE: only added in case someone really want to use the old ids
 if $ARGS[0] = 'can_live_here':
-	if $ARGS[1] = '':
-		result = accessible_property[$home_name[$loc]] > 0 and func('homes_properties', 'get_property_construction_status', $home_name[$loc]) = 2
-	else
-		result = accessible_property[$home_name[$ARGS[1]]] > 0 and func('homes_properties', 'get_property_construction_status', $home_name[$loc]) = 2
-	end
+	$canlivecode = iif($ARGS[1] = '', $home_name[$loc], $home_name[$ARGS[1]])
+	result = accessible_property[$canlivecode] > 0 and accessible_property[$canlivecode] ! 3 and func('homes_properties', 'get_property_construction_status', $propcode) = 2
+	killvar 'canlivecode'
 end
 
 !! Call: `func('homes_properties', 'is_current_home', $ARGS[1])`
@@ -226,13 +221,9 @@ end
 !!			- A number as str -> '1', '2' - this should be the id of the property 
 !!			  					NOTE: only added in case someone really want to use the old ids
 if $ARGS[0] = 'is_current_home':
-	if $ARGS[1] = '': 
-		result = $home['current'] = $home_name[$loc]
-	elseif $home_name[$ARGS[1]] ! '':
-		result = $home_name[$ARGS[1]]
-	else
-		result = 0
-	end
+	$currenthomecode = iif($ARGS[1] = '', $home_name[$loc], $home_name[$ARGS[1]])
+	result = $home['current'] = $currenthomecode
+	killvar 'currenthomecode'
 end
 
 !! Call: `func('homes_properties', 'is_at_a_home', $ARGS[1])`
@@ -247,13 +238,9 @@ end
 !!			- A number as str -> '1', '2' - this should be the id of the property 
 !!			  					NOTE: only added in case someone really want to use the old ids
 if $ARGS[0] = 'is_at_a_home':
-	if $ARGS[1] = '': 
-		result = accessible_property['<<$loc>>-is-home'] = 1
-	elseif $home_name[$ARGS[1]] ! '':
-		result = accessible_property['<<$ARGS[1]>>-is-home'] = 1
-	else
-		result = 0
-	end
+	$isathomecode = iif($ARGS[1] = '', $home_name[$loc], $home_name[$ARGS[1]])
+	result = accessible_property['<<$isathomecode>>-is-home'] = 1
+	killvar 'propcode'
 end
 
 !! Call: `func('homes_properties', 'is_property_of_status', $ARGS[1])`
@@ -277,24 +264,24 @@ end
 !!			- A number as str -> '1', '2' - this should be the id of the property 
 !!			  					NOTE: only added in case someone really want to use the old ids
 if $ARGS[0] = 'is_property_of_status':
-	$propcode = iif($ARGS[2] = '', $loc, $ARGS[2])	
+	$propstatcode = iif($ARGS[2] = '', $loc, $ARGS[2])	
 
 	if $ARGS[1] = 'rented':
-		result = accessible_property[$propcode] = 1
+		result = accessible_property[$propstatcode] = 1
 	elseif $ARGS[1] = 'owned':
-		result = accessible_property[$propcode] = 2
+		result = accessible_property[$propstatcode] = 2
 	elseif $ARGS[1] = 'tenants':
-		result = accessible_property[$propcode] = 3
+		result = accessible_property[$propstatcode] = 3
 	elseif $ARGS[1] = 'blocked':
-		result = accessible_property[$propcode] = 0
+		result = accessible_property[$propstatcode] = 0
 	elseif $ARGS[1] = 'hasacces':
-		result = accessible_property[$propcode] = 4
+		result = accessible_property[$propstatcode] = 4
 	elseif $ARGS[1] = 'purchased':
-		result = accessible_property[$propcode] = 2 or accessible_property[$propcode] = 3
+		result = accessible_property[$propstatcode] = 2 or accessible_property[$propstatcode] = 3
 	else
 		result = 0
 	end
-	killvar 'propcode'
+	killvar 'propstatcode'
 end
 
 !! Call `func('homes_properties', 'get_property_code', $ARGS[1])
@@ -308,13 +295,7 @@ end
 !!			- A number as str -> '1', '2' - this should be the id of the property 
 !!			  					NOTE: only added in case someone really want to use the old ids
 if $ARGS[0] = 'get_property_code':
-	if $ARGS[1] = '': 
-		$result = $home_name[$loc]
-	elseif $home_name[$ARGS[1]] ! '':
-		$result = $home_name[$ARGS[1]]
-	else
-		$result = ''
-	end
+	$result = iif($ARGS[1] = '', $home_name[$loc], $home_name[$ARGS[1]])
 end
 
 
@@ -407,16 +388,16 @@ if $ARGS[0] = 'get_rented_properties':
 	count = ARRSIZE('accessible_property')
 	if count > 0: 
 		:get_rented_properties_loop
-			$propcode = $accessible_property[i]
+			$accessiblepropcode = $accessible_property[i]
 			if $home_name[$propcode] ! '' and accessible_property[i] = 1:
-				if ($ARGS[1] ! 'home' and accessible_property['<<$propcode>>-is-home'] = 0) or ($ARGS[1] ! 'business' and accessible_property['<<$propcode>>-is-home'] = 1):
-					$property_code[j] = $propcode
+				if ($ARGS[1] ! 'home' and accessible_property['<<$accessiblepropcode>>-is-home'] = 0) or ($ARGS[1] ! 'business' and accessible_property['<<$propcode>>-is-home'] = 1):
+					$property_code[j] = $accessiblepropcode
 					if ARGS[2] = 0:
-						$property_name[j] = $accessible_property['<<$propcode>>-name']
+						$property_name[j] = $accessible_property['<<$accessiblepropcode>>-name']
 
-						$property_display[j] = $accessible_property['<<$propcode>>-display']
-						property_days[j] = accessible_property['<<$propcode>>-days-left']
-						property_rent[j] = accessible_property['<<$propcode>>-rent']
+						$property_display[j] = $accessible_property['<<$accessiblepropcode>>-display']
+						property_days[j] = accessible_property['<<$accessiblepropcode>>-days-left']
+						property_rent[j] = accessible_property['<<$accessiblepropcode>>-rent']
 					end
 					j += 1
 				end
@@ -424,7 +405,7 @@ if $ARGS[0] = 'get_rented_properties':
 			i += 1
 		if i < count: jump 'get_rented_properties_loop'
 	end
-	killvar 'count' & killvar 'i' & killvar 'j' & killvar '$propcode'
+	killvar 'count' & killvar 'i' & killvar 'j' & killvar '$accessiblepropcode'
 end
 
 !! Use it as `gs`, creates a set of arrays that contains the relevant info for 
@@ -450,39 +431,39 @@ if $ARGS[0] = 'get_owned_properties':
 		!!'<h3>Building Owned Properties List</h3>'
 		!!'Count: <b><<count>></b>'
 		:get_owned_properties_loop
-			$propcode = iif($ARGS[2] = '', $accessible_property[i], $ARGS[2])
-			!!'  Index: <b><<i>></b> Code: <b><<$propcode>></b> Status: <b><<accessible_property[i]>></b>'
-			if $home_name[$propcode] ! '' and (accessible_property[$propcode] = 2 or accessible_property[$propcode] = 3):
-				!!'    $ARGS[1]: <b><<$ARGS[i]>></b> Is home: <b><<accessible_property[''<<$propcode>>-is-home'']>></b>'
-				if ($type ! 'home' and accessible_property['<<$propcode>>-is-home'] = 0) or ($type ! 'business' and accessible_property['<<$propcode>>-is-home'] = 1):
-					$property_code[j] = $propcode
-					$property_name[j] = $accessible_property['<<$propcode>>-name']					
+			$getownedpropcode = iif($ARGS[2] = '', $accessible_property[i], $ARGS[2])
+			!!'  Index: <b><<i>></b> Code: <b><<$getownedpropcode>></b> Status: <b><<accessible_property[i]>></b>'
+			if $home_name[$getownedpropcode] ! '' and (accessible_property[$getownedpropcode] = 2 or accessible_property[$getownedpropcode] = 3):
+				!!'    $ARGS[1]: <b><<$ARGS[i]>></b> Is home: <b><<accessible_property[''<<$getownedpropcode>>-is-home'']>></b>'
+				if ($type ! 'home' and accessible_property['<<$getownedpropcode>>-is-home'] = 0) or ($type ! 'business' and accessible_property['<<$getownedpropcode>>-is-home'] = 1):
+					$property_code[j] = $getownedpropcode
+					$property_name[j] = $accessible_property['<<$getownedpropcode>>-name']					
 					
 					if property['construction_needed'] = 1:
-						$property_display[j] = iif($accessible_property[$propcode] = '', $property['display_0'], $accessible_property['<<$propcode>>-display'])
+						$property_display[j] = iif($accessible_property[$getownedpropcode] = '', $property['display_0'], $accessible_property['<<$getownedpropcode>>-display'])
 					else
-						$property_display[j] = iif($accessible_property[$propcode] = '', $property['display'], $accessible_property['<<$propcode>>-display'])
+						$property_display[j] = iif($accessible_property[$getownedpropcode] = '', $property['display'], $accessible_property['<<$getownedpropcode>>-display'])
 					end
 
-					$property_type[j] = $accessible_property['<<$propcode>>-type']
-					if accessible_property[$propcode] = 3: 
+					$property_type[j] = $accessible_property['<<$getownedpropcode>>-type']
+					if accessible_property[$getownedpropcode] = 3: 
 						$property_status_display[j] = 'A(n) <<$property_display[j]>> which is currently occupied by your tenants'
 					else
-						$property_status_display[j] = 'A(n) <<$property_display[j]>> ' + iif($accessible_property[$propcode] = $home['current'], 'where you currently live.', 'which is currently empty.')
+						$property_status_display[j] = 'A(n) <<$property_display[j]>> ' + iif($accessible_property[$getownedpropcode] = $home['current'], 'where you currently live.', 'which is currently empty.')
 					end
 
-					property_status[j] =accessible_property[$propcode]
-					property_construction_status[j] = accessible_property['<<$propcode>>-construction-status']
-					property_is_renovated[j] = accessible_property['<<$propcode>>-renovated']
-					property_sales_price[j] = accessible_property['<<$propcode>>-sales-price']
-					property_renovation_value[j] = accessible_property['<<$propcode>>-renovation-value']
+					property_status[j] =accessible_property[$getownedpropcode]
+					property_construction_status[j] = accessible_property['<<$getownedpropcode>>-construction-status']
+					property_is_renovated[j] = accessible_property['<<$getownedpropcode>>-renovated']
+					property_sales_price[j] = accessible_property['<<$getownedpropcode>>-sales-price']
+					property_renovation_value[j] = accessible_property['<<$getownedpropcode>>-renovation-value']
 					j += 1
 				end
 			end
 			i += 1
 		if i < count: jump 'get_owned_properties_loop'
 	end
-	killvar 'count' & killvar 'i' & killvar 'j' & killvar '$propcode'
+	killvar 'count' & killvar 'i' & killvar 'j' & killvar '$getownedpropcode'
 end
 
 !! Use it as `gs`, creates a set of arrays that contains the relevant info for 
@@ -500,37 +481,37 @@ if $ARGS[0] = 'get_accessible_properties':
 	count = ARRSIZE('accessible_property')
 	if count > 0: 
 		:get_accessible_properties_loop
-			$propcode = $accessible_property[i]
-			if $home_name[$propcode] ! '' and accessible_property[$propcode] > 0:
-				if ($ARGS[1] ! 'home' and accessible_property['<<$propcode>>-is-home'] = 0) or ($ARGS[1] ! 'business' and accessible_property['<<$propcode>>-is-home'] = 1):
-					$property_code[j] = $propcode
-					$property_name[j] = $accessible_property['<<$propcode>>-name']
+			$setaccessiblepropcode = $accessible_property[i]
+			if $home_name[$setaccessiblepropcode] ! '' and accessible_property[$setaccessiblepropcode] > 0:
+				if ($ARGS[1] ! 'home' and accessible_property['<<$setaccessiblepropcode>>-is-home'] = 0) or ($ARGS[1] ! 'business' and accessible_property['<<$setaccessiblepropcode>>-is-home'] = 1):
+					$property_code[j] = $setaccessiblepropcode
+					$property_name[j] = $accessible_property['<<$setaccessiblepropcode>>-name']
 					if property['construction_needed'] = 1:
-						$property_display[j] = iif($accessible_property[$propcode] = '', $property['display_0'], $accessible_property['<<$propcode>>-display'])
+						$property_display[j] = iif($accessible_property[$setaccessiblepropcode] = '', $property['display_0'], $accessible_property['<<$setaccessiblepropcode>>-display'])
 					else
-						$property_display[j] = iif($accessible_property[$propcode] = '', $property['display'], $accessible_property['<<$propcode>>-display'])
+						$property_display[j] = iif($accessible_property[$setaccessiblepropcode] = '', $property['display'], $accessible_property['<<$setaccessiblepropcode>>-display'])
 					end
-					if accessible_property[$propcode] = 1:
-						$property_status_display[j] = 'You rent the <<$property_display[j]>> '+iif($accessible_property[$propcode] = $home['current'], 'where you currently live.', 'which is currently  empty.')
-					elseif accessible_property[$propcode] = 2: 
-						$property_status_display[j] = 'You own the <<$property_display[j]>> ' + iif($accessible_property[$propcode] = $home['current'], 'where you currently live.', 'which is currently  empty.')
-					elseif accessible_property[$propcode] = 3: 
+					if accessible_property[$setaccessiblepropcode] = 1:
+						$property_status_display[j] = 'You rent the <<$property_display[j]>> '+iif($accessible_property[$setaccessiblepropcode] = $home['current'], 'where you currently live.', 'which is currently  empty.')
+					elseif accessible_property[$setaccessiblepropcode] = 2: 
+						$property_status_display[j] = 'You own the <<$property_display[j]>> ' + iif($accessible_property[$setaccessiblepropcode] = $home['current'], 'where you currently live.', 'which is currently  empty.')
+					elseif accessible_property[$setaccessiblepropcode] = 3: 
 						$property_status_display[j] = 'You own the <<$property_display[j]>> which is currently occupied by your tenants'
 					else
 						$property_status_display[j] = 'You can stay at the <<$property_display[j]>> which is currently occupied by your tenants'
 					end
 					
-					property_status[j] = accessible_property[$propcode]
-					property_construction_status[j] = accessible_property['<<$propcode>>-construction-status']
-					property_is_renovated[j] = accessible_property['<<$propcode>>-renovated']
-					property_type[j] = accessible_property['<<$propcode>>-type']
+					property_status[j] = accessible_property[$setaccessiblepropcode]
+					property_construction_status[j] = accessible_property['<<$setaccessiblepropcode>>-construction-status']
+					property_is_renovated[j] = accessible_property['<<$setaccessiblepropcode>>-renovated']
+					property_type[j] = accessible_property['<<$setaccessiblepropcode>>-type']
 					j += 1
 				end
 			end
 			i += 1
 		if i < count: jump 'get_accessible_properties_loop'
 	end
-	killvar 'count' & killvar 'i' & killvar 'j' & killvar '$propcode'
+	killvar 'count' & killvar 'i' & killvar 'j' & killvar '$setaccessiblepropcode'
 end
 
 
@@ -549,28 +530,28 @@ if $ARGS[0] = 'get_properties_for_sale':
 	count = ARRSIZE('home_name')
 	if count > 0: 
 		:get_properties_for_sale_loop
-			$propcode = $home_name[i]
-			if $propcode ! '' and checked_homes[$propcode] = 0 and accessible_property[$propcode] < 2:
-				checked_homes[$propcode] = 1
-				if accessible_property[$propcode] = '': 
-					gs 'homes_properties_attr', 'get_property_attr', $propcode
+			$getforsalespropcode = $home_name[i]
+			if $getforsalespropcode ! '' and checked_homes[$getforsalespropcode] = 0 and accessible_property[$getforsalespropcode] < 2:
+				checked_homes[$getforsalespropcode] = 1
+				if accessible_property[$getforsalespropcode] = '': 
+					gs 'homes_properties_attr', 'get_property_attr', $getforsalespropcode
 				end
-				ishome = iif(accessible_property[$propcode] = '', INSTR($property['type'], 'residence') > 0, INSTR($accessible_property['<<$propcode>>-type'], 'residence') > 0 )
-				hasprice = iif($accessible_property[$propcode] = '', property['price'] > 0, accessible_property['<<$propcode>>-sales-price'] > 0)
+				ishome = iif(accessible_property[$getforsalespropcode] = '', INSTR($property['type'], 'residence') > 0, INSTR($accessible_property['<<$getforsalespropcode>>-type'], 'residence') > 0 )
+				hasprice = iif($accessible_property[$getforsalespropcode] = '', property['price'] > 0, accessible_property['<<$getforsalespropcode>>-sales-price'] > 0)
 				if (($ARGS[1] ! 'home' and ishome = 0) or ($ARGS[1] ! 'business' and ishome)) and hasprice:
-					$property_code[j] = $propcode
-					$property_name[j] = iif($accessible._property[$propcode] = '', $property['name'], $accessible_property['<<$propcode>>-name'])
-					$property_type[j] = iif($accessible_property[$propcode] = '', $property['type'], $accessible_property['<<$propcode>>-type'])
+					$property_code[j] = $getforsalespropcode
+					$property_name[j] = iif($accessible._property[$getforsalespropcode] = '', $property['name'], $accessible_property['<<$getforsalespropcode>>-name'])
+					$property_type[j] = iif($accessible_property[$getforsalespropcode] = '', $property['type'], $accessible_property['<<$getforsalespropcode>>-type'])
 					if property['construction_needed'] = 1:
-						$property_display[j] = iif($accessible_property[$propcode] = '', $property['display_0'], $accessible_property['<<$propcode>>-display'])
+						$property_display[j] = iif($accessible_property[$getforsalespropcode] = '', $property['display_0'], $accessible_property['<<$getforsalespropcode>>-display'])
 					else
-						$property_display[j] = iif($accessible_property[$propcode] = '', $property['display'], $accessible_property['<<$propcode>>-display'])
+						$property_display[j] = iif($accessible_property[$getforsalespropcode] = '', $property['display'], $accessible_property['<<$getforsalespropcode>>-display'])
 					end
 
-					property_is_rented[j] = accessible_property[$propcode] = 1
-					property_construction_status[j] = iif($accessible_property[$propcode] = '', 0, accessible_property['<<$propcode>>-construction-status'])
-					property_is_renovated[j] = iif($accessible_property[$propcode] = '', 0, accessible_property['<<$propcode>>-renovated'])
-					property_sales_price[j] = iif($accessible_property[$propcode] = '', property['price'], accessible_property['<<$propcode>>-sales-price'])
+					property_is_rented[j] = accessible_property[$getforsalespropcode] = 1
+					property_construction_status[j] = iif($accessible_property[$getforsalespropcode] = '', 0, accessible_property['<<$getforsalespropcode>>-construction-status'])
+					property_is_renovated[j] = iif($accessible_property[$getforsalespropcode] = '', 0, accessible_property['<<$getforsalespropcode>>-renovated'])
+					property_sales_price[j] = iif($accessible_property[$getforsalespropcode] = '', property['price'], accessible_property['<<$getforsalespropcode>>-sales-price'])
 					j += 1
 				end
 				killvar 'property'
@@ -597,23 +578,23 @@ if $ARGS[0] = 'get_properties_for_rent':
 
 	if count > 0: 
 		:get_rented_properties_loop
-			$propcode = $home_name[i]
-			if $propcode ! '' and checked_homes[$propcode] = 0 and accessible_property[$propcode] = 0:
-				checked_homes[$propcode] = 1
-				if accessible_property[$propcode] = '': gs 'homes_properties_attr', 'get_property_attr', $propcode
-				ishome = iif($accessible_property[$propcode] = '', INSTR($property['type'], 'residence') > 1, INSTR($accessible_property['<<$propcode>>-type'], 'residence') > 1 )
-				isrental = iif($accessible_property[$propcode] = '', property['rental'] = 1, accessible_property['<<$propcode>>-rental'] = 1 )
+			$getpropforrentcode = $home_name[i]
+			if $getpropforrentcode ! '' and checked_homes[$getpropforrentcode] = 0 and accessible_property[$getpropforrentcode] = 0:
+				checked_homes[$getpropforrentcode] = 1
+				if accessible_property[$getpropforrentcode] = '': gs 'homes_properties_attr', 'get_property_attr', $getpropforrentcode
+				ishome = iif($accessible_property[$getpropforrentcode] = '', INSTR($property['type'], 'residence') > 1, INSTR($accessible_property['<<$getpropforrentcode>>-type'], 'residence') > 1 )
+				isrental = iif($accessible_property[$getpropforrentcode] = '', property['rental'] = 1, accessible_property['<<$getpropforrentcode>>-rental'] = 1 )
 				if (($ARGS[1] ! 'home' and ishome = 0) or ($ARGS[1] ! 'business' and ishome)) and isrental:			
-					$property_code[j] = $propcode
-					$property_name[j] = iif($accessible_property[$propcode] = '', $property['name'], $accessible_property['<<$propcode>>-name'])
+					$property_code[j] = $getpropforrentcode
+					$property_name[j] = iif($accessible_property[$getpropforrentcode] = '', $property['name'], $accessible_property['<<$getpropforrentcode>>-name'])
 					if property['construction_needed'] = 1:
-						$property_display[j] = iif($accessible_property[$propcode] = '', $property['display_0'], $accessible_property['<<$propcode>>-display'])
+						$property_display[j] = iif($accessible_property[$getpropforrentcode] = '', $property['display_0'], $accessible_property['<<$getpropforrentcode>>-display'])
 					else
-						$property_display[j] = iif($accessible_property[$propcode] = '', $property['display'], $accessible_property['<<$propcode>>-display'])
+						$property_display[j] = iif($accessible_property[$getpropforrentcode] = '', $property['display'], $accessible_property['<<$getpropforrentcode>>-display'])
 					end
 					
-					property_days[j] = iif($accessible_property[$propcode] = '', 0, accessible_property['<<$propcode>>-days-left'])
-					property_rent[j] = iif($accessible_property[$propcode] = '', property['rent'], accessible_property['<<$propcode>>-rent'])
+					property_days[j] = iif($accessible_property[$getpropforrentcode] = '', 0, accessible_property['<<$getpropforrentcode>>-days-left'])
+					property_rent[j] = iif($accessible_property[$getpropforrentcode] = '', property['rent'], accessible_property['<<$getpropforrentcode>>-rent'])
 					j += 1
 				end
 				killvar 'property'
@@ -622,7 +603,7 @@ if $ARGS[0] = 'get_properties_for_rent':
 		if i < count: jump 'get_rented_properties_loop'
 	end
 	killvar 'checked_homes'
-	killvar 'count' & killvar 'i' & killvar 'j' & killvar '$propcode' & killvar 'ishome' & killvar 'isrental'
+	killvar 'count' & killvar 'i' & killvar 'j' & killvar '$getpropforrentcode' & killvar 'ishome' & killvar 'isrental'
 
 end
 
@@ -643,26 +624,26 @@ if $ARGS[0] = 'get_internet_enabled_properties':
 	count = ARRSIZE('home_name')
 	if count > 0: 
 		:get_internet_enabled_properties_loop
-			$propcode = $home_name[i]
-			if checked_homes[$propcode] = 0:
-				checked_homes[$propcode] = 1
-				gs 'homes_properties_attr', 'get_property_attr', $propcode
-				accesscheck = ($ARGS[2] = 'hasaccess' and accessible_property[$propcode] ! 0 and accessible_property[$propcode] ! 4) or $ARGS[2] = ''
+			$getnetenabledprocode = $home_name[i]
+			if checked_homes[$getnetenabledprocode] = 0:
+				checked_homes[$getnetenabledprocode] = 1
+				gs 'homes_properties_attr', 'get_property_attr', $getnetenabledprocode
+				accesscheck = ($ARGS[2] = 'hasaccess' and accessible_property[$getnetenabledprocode] ! 0 and accessible_property[$getnetenabledprocode] ! 4) or $ARGS[2] = ''
 				typecheck = (($ARGS[1] ! 'home' and INSTR($property['type'], 'residence') = 0) or ($ARGS[1] ! 'business' and INSTR($property['type'], 'residence') > 0))				
 				if accesscheck and typecheck and property['internet_enabled']:
 					$property_name[j] = $poperty['name']
-					$property_code[j] = $propcode
-					if accessible_property[$propcode] = 0: 
+					$property_code[j] = $getnetenabledprocode
+					if accessible_property[$getnetenabledprocode] = 0: 
 						$property_status[j] = 'no access'
-					elseif accessible_property[$propcode] = 1:
+					elseif accessible_property[$getnetenabledprocode] = 1:
 						$property_status[j] = 'rented'
-					elseif accessible_property[$propcode] = 2: 
+					elseif accessible_property[$getnetenabledprocode] = 2: 
 						$property_status[j] = 'owned'
-					elseif accessible_property[$propcode] = 3: 
+					elseif accessible_property[$getnetenabledprocode] = 3: 
 						$property_status[j] = 'tenants'
 					end
 
-					property__is_current_home[j] = $home['current'] = $propcode
+					property__is_current_home[j] = $home['current'] = $getnetenabledprocode
 					j += 1
 					killvar 'accesscheck' & killvar 'typecheck'
 				end
@@ -697,11 +678,10 @@ end
 !!			- A number as str -> '1', '2' - this should be the id of the property 
 !!			  					NOTE: only added in case someone really want to use the old ids
 if $ARGS[0] = 'give_access':
-	if $ARGS[1] = '':
-		gs 'homes_properties', 'set_access', $home_name[$loc], 1
-	else
-		gs 'homes_properties', 'set_access', $home_name[$ARGS[1]], 1
-	end
+	$accesscode = iif($ARGS[1] = '', $home_name[$loc], $ARGS[1])
+	gs 'homes_properties', 'set_access', $accesscode, 1
+	if accessible_property['accessible_home_count'] = 1 and $home['current'] = '': gs 'homes_properties', 'set_home', $accesscode
+	killvar '$accesscode'
 end
 
 !! $ARGS[1]: the location for which the access is set
@@ -712,11 +692,9 @@ end
 !!			- A number as str -> '1', '2' - this should be the id of the property 
 !!			  					NOTE: only added in case someone really want to use the old ids
 if $ARGS[0] = 'block_access':
-	if $ARGS[1] = '':
-		gs 'homes_properties', 'set_access', $home_name[$loc], 0
-	else
-		gs 'homes_properties', 'set_access', $home_name[$ARGS[1]], 0
-	end
+	$blockcode = iif($ARGS[1] = '', $home_name[$loc], $ARGS[1])
+	gs 'homes_properties', 'set_access', $blockcode, 0
+	killvar 'blockcode'
 end
 
 !! Call: `func('homes_properties', 'has_access', $ARGS[1])`
@@ -731,11 +709,9 @@ end
 !!			- A number as str -> '1', '2' - this should be the id of the property 
 !!			  					NOTE: only added in case someone really want to use the old ids
 if $ARGS[0] = 'has_access':
-	if $ARGS[1] = '':
-		result = accessible_property[$loc] > 0 and accessible_property[$loc] ! 3
-	else
-		result = accessible_property[$ARGS[1]] > 0 and accessible_property[$ARGS[1]] ! 3
-	end
+	$hasaccesscode = iif($ARGS[1] = '', $home_name[$loc], $ARGS[1])
+	result = accessible_property[$hasaccesscode] > 0 and accessible_property[$hasaccesscode] ! 3
+	killvar 'hasaccesscode'
 end
 
 
@@ -803,11 +779,11 @@ if $ARGS[0] = 'tenant_move_out_check':
 	j = 0
 	if count > 0:
 		:tenantloop
-			$propcode = $accessible_property[i]
-			if $home_name[$propcode] ! '' and accessible_property[$propcode] = 3:
-				if accessible_property['<<$propcode>>-tenant-day'] = day and accessible_property['<<$propcode>>-tenant-month'] = month:
-					gs 'homes_properties', 'set_access', $propcode, 2
-					$result[j] = '<b><font color="red">Your tenants have moved out from your <<$accessible_property[''<<$propcode>>-display'']>> and your apartment is now vacant.</font></b>'
+			$tenantcode = $accessible_property[i]
+			if $home_name[$tenantcode] ! '' and accessible_property[$tenantcode] = 3:
+				if accessible_property['<<$tenantcode>>-tenant-day'] = day and accessible_property['<<$tenantcode>>-tenant-month'] = month:
+					gs 'homes_properties', 'set_access', $tenantcode, 2
+					$result[j] = '<b><font color="red">Your tenants have moved out from your <<$accessible_property[''<<$tenantcode>>-display'']>> and your apartment is now vacant.</font></b>'
 					j += 1
 				end
 			end					
@@ -851,7 +827,6 @@ end
 !!
 !! $ARGS[1] = the code name of the property, e.g. 'city_apartment'
 if $ARGS[0] = 'cancel_rent':
-	'<h3>Cancelling apartment <<$ARGS[1]>></h3>'
 	gs 'homes_properties', 'set_access', $ARGS[1], 0
 	gs 'homes_properties', 'set_rent_days', $ARGS[1], -1
 end
@@ -965,9 +940,9 @@ end
 !! Call: `func('homes_properties', 'progress_construction_status', $ARGS[1])`
 !! $ARGS[1] - the property code or location, if empty it will use $loc
 if $ARGS[0] = 'progress_construction_status':
-	$propcode = iif($ARGS[1] = '', $loc, $ARGS{2})
-	if accessible_property['<<$propcode>>-construction-status'] < 2: owned_property['<<$propcode>>-construction-status'] += 1
-	killvar 'propcode'
+	$constrstatpropcode = iif($ARGS[1] = '', $loc, $ARGS{2})
+	if accessible_property['<<$constrstatpropcode>>-construction-status'] < 2: owned_property['<<$constrstatpropcode>>-construction-status'] += 1
+	killvar 'constrstatpropcode'
 end
 
 !! Call: `func('homes_properties', 'is_property_renovated', $ARGS[1])`
@@ -982,10 +957,11 @@ end
 !!  ARGS[2] - the value of the renovation
 !! $ARGS[3] - the part of the property that was renovated - 'bedroom', 'living room', etc.  Optional
 if $ARGS[0] = 'renovate_property':
-	$propcode = iif($ARGS[1] = '', $loc, $ARGS{2})
-	accessible_property['<<$propcode>>-renovated'] = 1
-	if $ARGS[3] ! '' : accessible_property['<<$propcode>>-renovations'] += ';<<$ARGS[3]>>' 
-	killvar '$propcode'
+	$renovatepropcode = iif($ARGS[1] = '', $loc, $ARGS{2})
+	accessible_property['<<$renovatepropcode>>-renovated'] = 1
+	accessible_property['<<$renovatepropcode>>-renovation-value'] += ARGS[2]
+	if $ARGS[3] ! '' : accessible_property['<<$renovatepropcode>>-renovations'] += ';<<$ARGS[3]>>' 
+	killvar '$renovatepropcode'
 end
 
 
