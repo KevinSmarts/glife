@@ -1,12 +1,10 @@
 # music_onlinemusic
 
-if $ARGS[0] = 'setupAccount':
+if $ARGS[0] = 'set_up_account':
 	ml_online['account'] = 1
-	minut += 30
-	ml_online_minute += 30
-	gs 'music_onlinemusic', 'internetcount'
-	gs 'stat'
-	
+	minut += 10
+	gs 'internet_mobile', 'use_internet', $access['subscription'], 10
+	gs 'stat'	
 	'You log into Youtube to set up a channel for your music. You can upload videos or live stream, but you will need to open a bank account if you want to receive any tips from viewers of your stream.'	
 !!	TODO: Ask for a screen name? 
 	act 'Leave': gt $loc, $loc_arg
@@ -16,22 +14,21 @@ end
 if $ARGS[0] = 'liveStream':	
 !!	TODO: Much, much better scene needed.
 	ml_streaming['times_streamed'] += 1		
+	gs 'music_onlinemusic', 'stream_interruptions'
 
-	if $location_type = 'public_outdoors': gs 'music_onlinemusic', 'stream_interruptions'
-
-	if ml_no_interruption : 
+	if ml_no_interruption ! 0: 
 		!! TODO: Separate scenes by instrument used, not used
+		gs 'music_onlinemusic', 'streaming_stats'
 		if komp = 1 and webcamera = 1 and $location_type ! 'public_outdoors':
 			'<center><img <<$set_imgh>> src="images/pc/activities/music/gomixer_hero.jpg"/></center>'
-			'You set up your webcamera and start the streaming app on your laptop. After settling down comfortably, you start to stream.'			
+			'You set up your webcamera and start the streaming app on your computer. After settling down comfortably, you start to stream.'			
 			'Your fans tipped you <<ml_superchats>> rubels for your performance.'
 		else		
 			'<center><img <<$set_imgh>> src="images/pc/activities/music/gomixer_hero.jpg"/></center>'
 			'You set up your phone on a little tri-pod and log into your account. After settling down comfortably, you start to stream.'			
 			'Your fans tipped you <<ml_superchats>> rubels for your performance.'
-		end		
+		end	
 	end
-	gs 'music_onlinemusic', 'streaming_stats'
 	
 	killvar 'ml_streamtime'
 	
@@ -56,22 +53,22 @@ end
 if $ARGS[0] = 'recordSong':
 	recording_time = 30
 	performed_minutes = 15
-	if $location_type = 'public_outdoors': gs 'music_onlinemusic', 'recording_interruptions'
-
-	if ml_no_interruption:
+	gs 'music_onlinemusic', 'recording_interruptions'
+	
+	if ml_no_interruption ! 0:
 	!!	TODO: Write a scene. It should describe that a song is recorded and then edited properly before uploading it to the net.
 		'<center><img <<$set_imgh>> src="images/pc/activities/music/phonerecording.jpg"/></center>'
 		'You set up your phone and settle down comfortably to record a song. After several tries you finally end up with a version you are content with and upload it to your account.'
 		'As you don''t have a computer you can''t really do much with the songs quality. But then you have seen quite a few people work with only with their phones. Like Ling Ling.'
 	end
 
-	gs 'music_online_music', 'recording_stats'
+	gs 'music_onlinemusic', 'recording_stats'
 
 	killvar 'recording_time'
 	killvar 'ml_no_interruption'
 	killvar 'performed_minutes'
 
-	if ml_online['account'] = 1 and internet > 0:
+	if ml_online['account'] = 1 and $access ! 'denied':
 		if pcs_inhib < 30:
 			if pcs_inhib < 10: 
 				$diff = 'hard'
@@ -127,7 +124,7 @@ if $ARGS[0] = 'recordAndEditSong':
 	ml_uploadablemusic += 1
 	ml_onlinesongcount += 1	
 
-	if ml_online['account'] = 1 and internet > 0:
+	if ml_online['account'] = 1 and $access ! 'denied':
 		if pcs_inhib < 30:
 			if pcs_inhib < 10: 
 				$diff = 'hard'
@@ -160,9 +157,7 @@ if $ARGS[0] = 'uploadmusic':
 		'You bite in your lip, then close the screen before you change your mind and delete it.'
 	else
 		'You smile brightly and click on the "Upload" button. Now the whole world can see you play. And if they don''t like it, well... "Haters gonna hate" you shrug mentally and close the screen. They will like it."'
-	end
-	ml_online_minute += 10
-	gs 'music_onlinemusic', 'internetcount'
+	end	
 	gs 'stat'
 
 	ml_uploadablemusic -= 1 
@@ -191,9 +186,9 @@ if $ARGS[0] = 'uploadallmusic':
 
 	i = 0
 	:uploadallmusic			
-		if ml_onlinesong_uploaded[i] = 0 and internet > 0: 
-			ml_online_minute += 10
-			gs 'music_onlinemusic', 'internetcount'
+		if ml_onlinesong_uploaded[i] = 0 and $access ! 'denied': 
+			minut += 5
+			gs 'internet_mobile', 'use_internet', $access['subscription'], 5
 			gs 'stat'
 
 			ml_onlinesong_uploaded[i] = 1	
@@ -268,13 +263,6 @@ if $ARGS[0] = 'deleting':
 
 end
 
-if $ARGS[0] = 'internetcount':
-	if ml_online_minute >= 60:
-		internet -= 1
-		ml_online_minute -= 60
-	end
-end
-
 if $ARGS[0] = 'finish':
 	if $location_type = 'public_outdoors': 
 		ml_rand_event = rand(0,100)
@@ -302,9 +290,7 @@ end
 
 if $ARGS[0] = 'streaming_stats':
 	minut += ml_streamtime
-	ml_online_minute += ml_streamtime
-	gs 'music_onlinemusic', 'internetcount'
-	gs 'stat'
+	gs 'internet_mobile', 'use_internet', $access['subscription'], ml_streamtime
 
 	ml_maxsuperchats = 	( fame['pav_music'] + (fame['city_music'] * 2) + fame['pushkin_music'] + fame['village_music'] + pcs_apprnc )
 	ml_superchats = (rand( 0, ml_maxsuperchats) * ml_streamtime) / 60
@@ -315,6 +301,7 @@ if $ARGS[0] = 'streaming_stats':
 	else	
 		ml_famebase = ( (pcs_vokal * 2) + pcs_perform + ( (hotcat-5) * 20 ) ) / 20
 	end
+	
 	gs 'fame', 'pav', 'music', rand(0, ml_famebase)
 	gs 'fame', 'city', 'music', rand(0, ml_famebase)
 	gs 'exp_gain', 'vokal', rand(1,3)	
@@ -326,6 +313,8 @@ if $ARGS[0] = 'streaming_stats':
 	ml_performance['total_time_performed'] += ml_streamtime
 	ml_streaming['total_earnings'] += ml_superchats		
 	ml_streaming['unclaimed_earnings'] += ml_superchats
+
+	gs 'stat'
 end
 
 if $ARGS[0] = 'recording_stats':
