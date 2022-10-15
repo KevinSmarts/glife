@@ -4,7 +4,10 @@ if $ARGS[0] = 'music_icon':
     !! Everywhere
     if alko > 5:
         'You are too drunk to stream or record music without messing up or throwing up into your guitar.'
+    !! $location_type = ''public_outdoors'' means parks, streets. Some event types can be placed in these locations : playing music, recording music - e.g in front of
+    !! the library, or at the church, etc. 
     elseif $location_type = 'private' or ($location_type = 'public_outdoors' and sunWeather = 1 and temper > 15) and ml_no_music = 0:
+        if $location_type = 'public_outdoors': ml_not_alone = 1
         if hour < 8: 
             'It''s too early to do anything noisy like playing the guitar or singing.'
             gs 'music_actions', 'put_down_pick_up'
@@ -12,15 +15,15 @@ if $ARGS[0] = 'music_icon':
             'It''s too late to do anything noisy like playing the guitar or singing.'
             gs 'music_actions', 'put_down_pick_up'
         elseif ml_guitar['hasguitar'] = 1 and (ml_guitar['carried'] = 1 or $ml_guitar['location'] = $loc):
-            pl '<center><a href="exec: gs ''music_actions'', ''start''"><img title="Click to to see available music activities." height = 120 src="images/system/icons/icon_white_guitaraction01.png"></a></center>'
+            pl '<center><a href="exec: gs ''music_actions'', ''start''"><img title="Click to to see available music activities." height = 120 src="images/system/icons/icon_transp_guitaraction01.png"></a></center>'
         else
-            pl '<center><a href="exec: gs ''music_actions'', ''start''"><img title="Click to to see available music activities." height = 120 src="images/system/icons/icon_white_singingaction01.png"></a></center>'
+            pl '<center><a href="exec: gs ''music_actions'', ''start''"><img title="Click to to see available music activities." height = 120 src="images/system/icons/icon_transp_singeraction01.png"></a></center>'
         end
     end
 end
 
 if $ARGS[0] = 'start': 
-    cla
+cla
     if ml_not_alone = 0: gs 'music_actions', 'willpower_cost'
     if $access = '': gs 'internet_mobile', 'get_access'
     
@@ -32,41 +35,33 @@ if $ARGS[0] = 'start':
     else
         'Your hands and your brain is too tired from playing to practice today.'
     end
-    if ml_activities['playsets'] = 1: gs 'music_actions', 'rehearse_sets'
-    !! TODO: Find some way to remove this type of check from the music_action location, and keep them in the 
-    !! original location. 
-    !! Maybe a gs that sets a 'can record/stream' flag. 
-    if ml_activities['streaming'] = 1: gs 'music_actions', 'stream_music'
-    if ml_activities['recordig'] = 1: gs 'music_actions', 'record_music'
-    !! $location_type = ''public_outdoors'' means parks, streets. Some event types can be placed in these locations : playing music, recording music - e.g in front of
-    !! the library, or at the church, etc. 
-    !! TODO: What can be done publicly? I think streaming with a phone and recording music would fit here. Also just playing something on the guitar, but not busking.
-    !!       They will need some tweaking in the descriptions and photos, videos.
-    !!       Doing things outdoors takes a bit more willpower if inhibition/confidence is not high enough yet, but adds extra exp for that, and also improves 
-    !!       the mood of Sveta.
-    !!       Need to check for the weather, if it''s raining, freezing, etc. nothing can be done outside (at least for now.)
     gs 'music_actions', 'play_something'
     
     if ml_time_left > 5: gs 'music_actions', 'practice_guitar'
     if ml_time_left >= 30: 
-        if ml_activities['setlist'] = 1: gs 'music_actions', 'rehearse_gig'
-        if ml_activities['busking'] = 1: gs 'music_actions', 'busking'
-        if ml_activities['streaming'] = 1: gs 'music_actions', 'stream_music'
+        gs 'music_actions', 'busking'
+        gs 'music_actions', 'record_music'
+        gs 'music_actions', 'stream_music'
+
+        !! NOTE: When content gates are added
+        !!if ml_activities['setlist'] = 1: gs 'music_actions', 'rehearse_gig'
+        !!if ml_activities['busking'] = 1: gs 'music_actions', 'busking'
+        !!if ml_activities['streaming'] = 1: gs 'music_actions', 'stream_music'
         !! if this is done outdoors, any editing, mixing must be dones at home. So 'Record and edit' is not available outdoors.
         !! Although more accurate would be to check whether Sveta is at home or not, and if she is not home then that option won''t be available.
-        if ml_activities['recording'] = 1: gs 'music_actions', 'record_music'
+        !!if ml_activities['recording'] = 1: gs 'music_actions', 'record_music'
     end        
 
-    if ml_activities['recording']: 
     if $access ! 'denied': gs 'music_actions', 'set_up_account'
     if $access ! 'denied': gs 'music_actions', 'upload_music'
-        gs 'music_actions', 'delete_music'
+    gs 'music_actions', 'delete_music'
 
     act 'Finish': gt $loc, $loc_arg
 
     killvar 'ml_willcost'
     killvar 'ml_not_alone'
     killvar 'ml_no_music'
+    
 end
 
 if $ARGS[0] = 'put_down_pick_up':
@@ -214,8 +209,8 @@ if $ARGS[0] = 'stream_music':
     ml_streamtime =  min((ml_performance['max_perform_minutes']-ml_performance['performed_minutes']), 60)
     if ml_online['account'] = 0:
         act 'Live stream (<<ml_streamtime>> minutes) (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You will have to set up an online account first to stream.</font>'
-    elseif internet = 0: 
-        act 'Live stream (<<ml_streamtime>> minutes) (<font color="red">No internet access</font>)':  '<br><font color="red">You have <<internet>> hours left from your internet subscription.</font>'
+    elseif $access = denied: 
+        act 'Live stream (<<ml_streamtime>> minutes) (<font color="red">No internet access</font>)':  '<br><font color="red">You have no internet access.</font>'
     elseif ml_streaming['lastday'] ! daystart: 
         act 'Live stream (<<ml_streamtime>> minutes) (<font color="red">Already streamed today</font>)': '<br><font color="red">You already streamed today.</font>'
     elseif ml_not_alone = 1:
@@ -234,7 +229,6 @@ if $ARGS[0] = 'stream_music':
             end
         else
             act 'Live stream (<<ml_streamtime>> minutes) (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
-        elseif ml_willcost  <= pcs_willpwr:
         end
     end
 end
