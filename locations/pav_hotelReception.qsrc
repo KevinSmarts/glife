@@ -130,52 +130,63 @@ if $ARGS[0] = '':
 				'She smiles at you happily: "Excellent! We have the following rooms available right now:"'
 				'Standard room - 500 <b>₽</b> / night;'
 				'Luxury room - 1500 <b>₽</b> / night;'
+				
 				act'Normal room':
-					*clr
-					cla
-					hotelRoomDays['pav_hotel']=input ("For how long would you like to stay?")
-					if hotelRoomDays['pav_hotel']<0:set hotelRoomDays['pav_hotel']=0
-					if hotelRoomDays['pav_hotel']*500>money:msg'You can''t afford to stay in the hotel for that long.'&gt'pav_hotel'
-					if hotelRoomDays['pav_hotel']*500<=money and hotelRoomDays['pav_hotel'] ! 0:
-						money-=hotelRoomDays['pav_hotel']*500
-						hotelRoom['pav_hotel']=1
-						hotelRoomDays['pav_hotel'] = daystart + hotelRoomDays['pav_hotel']
-						if pavHotelMaid = 0:
-							'You count the money and give it to her. She gives you the key to your room in return. She says happily: "Thank you miss, I hope you enjoy your stay!"'
-						else
-							'You count the money and give it to her. She gives you the key to your room in return. She says happily: "Thank you <<$pcs_nickname>>, I hope you enjoy your stay!"'
-						end
-						act'Step away from the reception desk':gt'pav_hotel'
-					end
-					if hotelRoomDays['pav_hotel'] = 0:gt'pav_hotel'
+					*clr & cla 
+					'<center><img <<$set_imgh>> src="images/locations/pavlovsk/hotel/resep.girl0,'+rand(0,10)+'.jpg"></center>'
+					hotelRoomDays['pav_hotel'] = input ("For how long would you like to stay?")
+					'You asked for <<hotelRoomDays[''pav_hotel'']>> days'
+					totalCost = hotelRoomDays['pav_hotel'] * 500
+					if hotelRoomDays['pav_hotel'] <= 0 : '<h2>You need to enter 0 or more days</h2>' & gt'pav_hotel'
+					'"A normal room for <<hotelRoomDays[''pav_hotel'']>> days, that would be <<totalCost>><b>₽</b> in total." says the receptionist, "would you like to pay with cash or with card?"'
+					gs 'pav_hotelReception', 'pay_the_room', 1
 				end
 
 				act'Luxury room':
-					*clr
-					cla
-					hotelRoomDays['pav_hotel']=input ("For how long would you like to stay?")
-					if hotelRoomDays['pav_hotel']<0:set hotelRoomDays['pav_hotel']=0
-					if hotelRoomDays['pav_hotel']*1500>money:msg'You can''t afford to stay in the hotel for that long.'&gt'pav_hotel'
-					if hotelRoomDays['pav_hotel']*1500<=money and hotelRoomDays['pav_hotel'] ! 0:
-						money-=hotelRoomDays['pav_hotel']*1500
-						hotelRoom['pav_hotel']=2
-						hotelRoomDays['pav_hotel'] = daystart + hotelRoomDays['pav_hotel']
-						if pavHotelMaid = 0:
-							'You count the money and give it to her. She gives you the key to your room in return. She says happily: "Thank you miss, I hope you enjoy your stay!"'
-						else
-							'You count the money and give it to her. She gives you the key to your room in return. She says happily: "Thank you <<$pcs_nickname>>, I hope you enjoy your stay!"'
-						end
-						act'Step away from the reception desk':gt'pav_hotel'
-					end
-					if hotelRoomDays['pav_hotel'] = 0:gt'pav_hotel'
+					*clr & cla
+					'<center><img <<$set_imgh>> src="images/locations/pavlovsk/hotel/resep.girl0,'+rand(0,10)+'.jpg"></center>'
+					hotelRoomDays['pav_hotel'] = input ("For how long would you like to stay?")
+					'You asked for <<hotelRoomDays[''pav_hotel'']>> days'
+					totalCost = hotelRoomDays['pav_hotel'] * 1500
+					if hotelRoomDays['pav_hotel'] <= 0 : gt'pav_hotel'
+					'"That would be <<totalCost>><b>₽</b>" says the receptionist, "would you like to pay with cash or with card?"'
+					gs 'pav_hotelReception', 'pay_the_room', 2
 				end
 
-				act 'Step away from the reception desk':gt'pav_hotel'
+				act 'Step away from the reception desk': gt'pav_hotel'
 			end
 			act'No, thank you':gt'pav_hotel'
 		end
 	end
 end
+
+if $ARGS[0] = 'pay_the_room':
+	if totalCost<=money:
+		act 'Pay with cash':
+			*clr & cla
+			'<center><img <<$set_imgh>> src="images/locations/pavlovsk/hotel/resep.girl0,'+rand(0,10)+'.jpg"></center>'
+			money-=totalCost
+			hotelRoom['pav_hotel'] = ARGS[1]
+			hotelRoomDays['pav_hotel'] = daystart + hotelRoomDays['pav_hotel']
+			'You count the money and give it to her. She gives you the key to your room in return. She says happily: "Thank you ' + iif(pavHotelMaid = 0, 'miss', $pcs_nickname) +', I hope you enjoy your stay!"'
+			act 'Step away from the reception desk': killvar 'totalCost' & gt 'pav_hotel'
+		end
+	end
+	if totalCost<=karta+bankDebtLimit:
+		act 'Pay with card':
+			*clr & cla
+			'<center><img <<$set_imgh>> src="images/locations/pavlovsk/hotel/resep.girl0,'+rand(0,10)+'.jpg"></center>'
+			karta-=totalCost
+			hotelRoom['pav_hotel'] = ARGS[1]
+			hotelRoomDays['pav_hotel'] = daystart + hotelRoomDays['pav_hotel']
+			'You swipe your card and wait a moment for ''APPROVED'' to appear on the tiny screen. As soon as the receipt is printed, she hands it to you with the key to your room. "Thank you ' + iif(pavHotelMaid = 0, 'miss', $pcs_nickname) +', I hope you enjoy your stay!" she says with a smile.'
+			act 'Step away from the reception desk': killvar 'totalCost' & gt 'pav_hotel'
+		end
+	end
+	if totalCost > karta+bankDebtLimit and totalCost > money: act 'You can''t afford to stay in the hotel for that long.': killvar 'totalCost' & gt 'pav_hotel'
+	act 'You change your mind': killvar 'totalCost' & gt 'pav_hotel'
+end
+
 
 if $ARGS[0] = 'pavlbar':
 	menu_off = 1
