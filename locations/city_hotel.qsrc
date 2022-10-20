@@ -108,34 +108,55 @@ if $ARGS[0] = 'reception':
 				'Standard room - 500 <b>₽</b> / night;'
 				'Luxury room - 1500 <b>₽</b> / night;'
 				'and the Royal Suite - 10000 <b>₽</b> / night.'
-
+				*nl
 				act'Standard room':
-					*clr & cla
-					'<center><img <<$set_imgh>> src="images/locations/city/citycenter/hotel/receptionist.jpg"></center>'
+					cla
 					hotelRoomDays['city_hotel'] = input ("For how long would you like to stay?")
 					totalCost = hotelRoomDays['city_hotel'] * 500
-					if hotelRoomDays['city_hotel'] <= 0 : gt'city_hotel'
-					'"A standard room for <<hotelRoomDays[''city_hotel'']>> days, that will be <<totalCost>><b>₽</b>" says the receptionist, "would you like to pay with cash or with card?"'
-					gt 'city_hotel', 'pay_the_room', 1
+					if hotelRoomDays['city_hotel'] > 0 : 
+						$temp_desc = 'standard room for <<hotelRoomDays[''city_hotel'']>> days'
+						$temp_question = '"A standard room for <<hotelRoomDays[''city_hotel'']>> days, that will be <<totalCost>><b>₽</b>" says the receptionist, "would you like to pay with _cash_ or with _card_?"'
+						$temp_nomoney = '"You can''t afford to stay in this hotel for that long.'
+						$temp_cancel = 'Change your mind and step away from the reception desk'
+						$temp_cancel_nomoney = 'Step away from the reception desk'
+						hotelRoom['city_hotel'] = 1 
+						gs 'shortgs', 'silent_payment', totalCost, '', $temp_desc, 'city_hotel', 'complete_payment', $temp_question, $temp_nomoney, $temp_cancel
+					else
+						gt'city_hotel'					
+					end
 				end
 				act 'Luxury room':
-					*clr & cla
-					'<center><img <<$set_imgh>> src="images/locations/city/citycenter/hotel/receptionist.jpg"></center>'
-					hotelRoomDays['city_hotel']=input ("For how long would you like to stay?")
+					cla
+					hotelRoomDays['city_hotel'] = input ("For how long would you like to stay?")
 					totalCost = hotelRoomDays['city_hotel'] * 1500
-					if hotelRoomDays['city_hotel'] <= 0:gt'city_hotel'
-					'"A luxury room for <<hotelRoomDays[''city_hotel'']>> days, that would be <<totalCost>><b>₽</b>" says the receptionist, "would you like to pay with cash or with card?"'
-					gt 'city_hotel', 'pay_the_room', 2			
+					if hotelRoomDays['city_hotel'] > 0:
+						$temp_desc = 'luxury room for <<hotelRoomDays[''city_hotel'']>> days'
+						$temp_question = '"A luxury room for <<hotelRoomDays[''city_hotel'']>> days, that would be <<totalCost>><b>₽</b>" says the receptionist, "would you like to pay with _cash_ or with _card_?"'
+						$temp_nomoney = '"You can''t afford to stay in a luxury room at this hotel for that long.'
+						$temp_cancel = 'Change your mind and step away from the reception desk'
+						$temp_cancel_nomoney = 'Step away from the reception desk'
+						hotelRoom['city_hotel'] = 2 
+						gs 'shortgs', 'silent_payment', totalCost, '', $temp_desc, 'city_hotel', 'complete_payment', $temp_question, $temp_nomoney, $temp_cancel
+					else
+						gt'city_hotel'
+					end
 				end
 
 				act'Royal Suite':
-					*clr & cla
-					'<center><img <<$set_imgh>> src="images/locations/city/citycenter/hotel/receptionist.jpg"></center>'
-					hotelRoomDays['city_hotel']=input ("For how long would you like to stay?")
+					cla
+					hotelRoomDays['city_hotel'] = input ("For how long would you like to stay?")
 					totalCost = hotelRoomDays['city_hotel'] * 10000
-					if hotelRoomDays['city_hotel'] <= 0:gt'city_hotel'
-					'"The royal suite for <<hotelRoomDays[''city_hotel'']>> days, that would be <<totalCost>><b>₽</b>" says the receptionist, "would you like to pay with cash or with card?"'
-					gt 'city_hotel', 'pay_the_room', 3
+					if hotelRoomDays['city_hotel'] > 0: 
+						$temp_desc = 'Royal Suite for <<hotelRoomDays[''city_hotel'']>> days'
+						$temp_question = '"The royal suite for <<hotelRoomDays[''city_hotel'']>> days, that would be <<totalCost>><b>₽</b>" says the receptionist, "would you like to pay with _cash_ or with _card_?"'
+						$temp_nomoney = '"You can''t afford the Royal Suite that long.'
+						$temp_cancel = 'Change your mind and step away from the reception desk'
+						$temp_cancel_nomoney = 'Step away from the reception desk'
+						hotelRoom['city_hotel'] = 3
+						gs 'shortgs', 'silent_payment', totalCost, '', $temp_desc, 'city_hotel', 'complete_payment', $temp_question, $temp_nomoney, $temp_cancel
+					else	
+						gt'city_hotel'
+					end
 				end
 
 				act 'Step away from the reception desk':gt'city_hotel'
@@ -145,31 +166,23 @@ if $ARGS[0] = 'reception':
 	end
 end
 
-if $ARGS[0] = 'pay_the_room':
-	if totalCost <= money:
-		act 'Pay with cash':
-			*clr & cla
-			'<center><img <<$set_imgh>> src="images/locations/city/citycenter/hotel/receptionist.jpg"></center>'
-			money-=totalCost
-			hotelRoom['city_hotel'] = ARGS[1]
-			hotelRoomDays['city_hotel'] = daystart + hotelRoomDays['city_hotel']
-			'You count the money and give it to her. She gives you the key to your room in return. She says happily: "Thank you miss, I hope you enjoy your stay!"'
-			act 'Step away from the reception desk': killvar 'totalCost' & gt 'city_hotel'
-		end
+if $ARGS[0] = 'complete_payment':
+	'<center><img <<$set_imgh>> src="images/locations/city/citycenter/hotel/receptionist.jpg"></center>'
+	if $ARGS[3] = 'failed':
+		hotelRoom['city_hotel'] = 0
+		hotelRoomDays['city_hotel'] = 0
+	elseif $ARGS[3] = 'cash' or $ARGS[3] = 'card':
+		hotelRoomDays['city_hotel'] = daystart + hotelRoomDays['city_hotel']
+		if $ARGS[3] = 'cash' :'You count the money and give it to her. She gives you the key to your room in return. She says happily: "Thank you miss, I hope you enjoy your stay!"'
+		if $ARGS[3] = 'card' :'You swipe your card and wait a moment for ''APPROVED'' to appear on the tiny screen. As soon as the receipt is printed, she hands it to you with the key to your room. "Thank you miss, I hope you enjoy your stay!" she says with a smile.'
 	end
-	if totalCost <= karta+bankDebtLimit:
-		act 'Pay with card':
-			*clr & cla
-			'<center><img <<$set_imgh>> src="images/locations/city/citycenter/hotel/receptionist.jpg"></center>'
-			karta-=totalCost
-			hotelRoom['city_hotel'] = ARGS[1]
-			hotelRoomDays['city_hotel'] = daystart + hotelRoomDays['city_hotel']
-			'You swipe your card and wait a moment for ''APPROVED'' to appear on the tiny screen. As soon as the receipt is printed, she hands it to you with the key to your room. "Thank you miss, I hope you enjoy your stay!" she says with a smile.'
-			act 'Step away from the reception desk': killvar 'totalCost' & gt 'city_hotel'
-		end
-	end
-	if totalCost > karta+bankDebtLimit and totalCost > money: act 'You can''t afford to stay in the hotel for that long.': killvar 'totalCost' & gt 'city_hotel'
-	act 'You change your mind': killvar 'totalCost' & gt 'city_hotel'
+	act 'Step away from the reception desk': gt 'city_hotel'
+
+	killvar 'totalCost'
+	killvar 'temp_desc'
+	killvar 'temp_question'
+	killvar 'temp_nomoney'
 end
+
 --- city_hotel ---------------------------------
 

@@ -6,8 +6,7 @@ if $ARGS[0] = 'music_icon':
         'You are too drunk to stream or record music without messing up or throwing up into your guitar.'
     !! $location_type = ''public_outdoors'' means parks, streets. Some event types can be placed in these locations : playing music, recording music - e.g in front of
     !! the library, or at the church, etc. 
-    elseif $location_type = 'private' or ($location_type = 'public_outdoors' and sunWeather = 1 and temper > 15) and ml_no_music = 0:
-        if $location_type = 'public_outdoors': ml_not_alone = 1
+    elseif $location_type = 'private' or ($location_type = 'public_outdoors' and sunWeather = 1 and temper > 15) and ml_no_music = 0:        
         if hour < 8: 
             'It''s too early to do anything noisy like playing the guitar or singing.'
             gs 'music_actions', 'put_down_pick_up'
@@ -23,10 +22,19 @@ if $ARGS[0] = 'music_icon':
 end
 
 if $ARGS[0] = 'start': 
-cla
+    cla
+
     ml_time_left =  ml_performance['max_perform_minutes']-ml_performance['performed_minutes']
+    if $location_type = 'public_outdoors': 
+        !! In public, Sveta is never alone
+        gs 'music_actions', 'not_alone'
+        !! Clear out accidentally stuck $access if Sveta is outdoors.
+        killvar 'access'
+    end
+    
     if ml_not_alone = 0: gs 'music_actions', 'willpower_cost'
     if $access = '': gs 'internet_mobile', 'get_access'
+
     !! $location_type = ''private'' = these are usually homes. ''indoors'' usually an office, shop or an NPC''s home. Same for ''public_indoors'' For those locations
     !! anything music related should be part of a storyline/quest, or some prewritten scene, like in the room of Anushka
     gs 'music_actions', 'play_something'
@@ -50,12 +58,7 @@ cla
     if $access ! 'denied': gs 'music_actions', 'upload_music'
     gs 'music_actions', 'delete_music'
 
-    act 'Finish': gt $loc, $loc_arg
-
-    killvar 'ml_willcost'
-    killvar 'ml_not_alone'
-    killvar 'ml_no_music'
-    killvar 'ml_time_left'
+    act 'Finish': gs 'music_actions', 'finish'
 end
 
 if $ARGS[0] = 'put_down_pick_up':
@@ -69,7 +72,7 @@ if $ARGS[0] = 'put_down_pick_up':
         act 'Pick up the guitar':
             ml_guitar['carried'] = 1
             $ml_guitar['location'] = 'carried'
-            gt $loc, $loc_arg
+            gs 'music_actions', 'finish'
         end
     end
 end
@@ -86,7 +89,7 @@ if $ARGS[0] = 'play_something':
                 '<center><img <<$set_imgh>> src="images/pc/activities/music/guitarpractice_1.jpg"></center>'
                 'You pick up your guitar and start to play some songs you know, just for your own entertainment.'
                 'You hum along to the tune, relaxing into the music and enjoying it. When you look up, 10 minutes has passed and you are in a much better mood.'
-                act 'Finish': gt $loc, $loc_arg
+                act 'Finish': gs 'music_actions', 'finish'
             end
         elseif ml_willcost  <= pcs_willpwr:
             act 'Play something on the guitar (10 minutes) (<<will_cost>> Willpower - you are not alone)':
@@ -100,7 +103,7 @@ if $ARGS[0] = 'play_something':
                 '<center><img <<$set_imgh>> src="images/pc/activities/music/guitarpractice_1.jpg"></center>'
                 'You pick up your guitar and start to play some songs you know, just for your own entertainment.'
                 'You hum along to the tune, relaxing into the music and enjoying it. When you look up, 10 minutes has passed and you are in a much better mood.'
-                act 'Finish': gt $loc, $loc_arg
+                act 'Finish': gs 'music_actions', 'finish'
             end
         else
             act 'Practice guitar (<font color="red"><<will_cost>> Willpower - you are not alone</font>)': '<br><font color="red">You feel too embarrassed to pick up your guitar in front of people</font>'
@@ -114,7 +117,7 @@ if $ARGS[0] = 'play_something':
             gs 'stat'
             'You hum a few notes to warm up your throat and start to some some songs you know, just for your own entertainment.'
             'You sway and move your had to keep the temp, relaxing into the music and enjoying it. When you look up, 10 minutes has passed and you are in a much better mood.'
-            act 'Finish': gt $loc, $loc_arg        
+            act 'Finish': gs 'music_actions', 'finish'        
         end
     elseif ml_willcost  <= pcs_willpwr:
         act 'Sing something (10 minutes) (<<will_cost>> Willpower - you are not alone)':
@@ -128,7 +131,7 @@ if $ARGS[0] = 'play_something':
             gs 'stat'
             'You hum a few notes to warm up your throat and start to some some songs you know, just for your own entertainment.'
             'You sway and move your had to keep the temp, relaxing into the music and enjoying it. When you look up, 10 minutes has passed and you are in a much better mood.'
-            act 'Finish': gt $loc, $loc_arg        
+            act 'Finish': gs 'music_actions', 'finish' 
         end
     else
         act 'Sing something (<font color="red"><<will_cost>> Willpower - you are not alone</font>)': '<br><font color="red">You feel too embarrassed to sing in front of people</font>'
@@ -160,33 +163,32 @@ end
 if $ARGS[0] = 'busking':
     *nl
     'With the weather being pleasant and sunny, there are groups of people moving around the streets. You could play some music, practice performing songs and maybe make some money too.'
-    if ml_time_left < 30:
+    if ml_time_left < 60:
         act 'Start busking (<font color="red">You are too tired</font>)': '<br><font color="red">You have played so much today, that your brain and hands are too tired to play a whole stream.</font>'
     elseif  ml_willcost ! 0:
         if ml_willcost <= pcs_willpwr:
-            act 'Start busking (<<ml_buskingtime>> minutes) (<<will_cost>> Willpower)':
+            act 'Start busking (60 minutes) (<<will_cost>> Willpower)':
                 inhib_exp += rand(1,3)
                 gs 'willpower', 'pay', 'self'
                 gs 'stat'
                 gs 'music_buskingevents', 'busking'
             end
         else
-            act 'Start busking (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t comfortable enough to play in front of people right now.</font>'
+            act 'Start busking (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t feel comfortable enough to play in front of people right now.</font>'
         end
     else
-        act 'Start busking (<<ml_buskingtime>> minutes)': gs 'music_buskingevents', 'busking'
+        act 'Start busking (60 minutes)': gs 'music_buskingevents', 'busking'
     end
 end
 
 if $ARGS[0] = 'stream_music':
     !! Streaming music
     !! NOTE: The check for guitar is done in the 'live_stream', without a guitar Sveta will sing
-    !! TODO: Some other checks to be added maybe, if she is not 
     if ml_online['account'] = 0:
         act 'Live stream (<font color="red">No online account</font>)': '<br><font color="red">You will have to set up an online account first to stream.</font>'
-    elseif $access = denied: 
+    elseif $access = 'denied': 
         act 'Live stream (<font color="red">No internet access</font>)':  '<br><font color="red">You have no internet access.</font>'
-    elseif ml_streaming['lastday'] ! daystart: 
+    elseif ml_streaming['lastday'] = daystart: 
         act 'Live stream (<font color="red">Already streamed today</font>)': '<br><font color="red">You already streamed today.</font>'
     elseif ml_not_alone = 1 and location_type = 'private' :
         act 'Live stream (<font color="red">You are not alone, can''t stream right now</font>)': '<br><font color="red">You are not alone in the room, which makes starting a stream impossible until they leave.</font>'
@@ -323,4 +325,11 @@ if $ARGS[0] = 'willpower_cost':
     end
 end
 
+if $ARGS[0] = 'finish':
+    killvar 'ml_willcost'
+    killvar 'ml_not_alone'
+    killvar 'ml_no_music'
+    killvar 'ml_time_left'
+    gt $loc, $loc_arg
+end
 --- music_actions ---------------------------------
