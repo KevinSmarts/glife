@@ -306,7 +306,7 @@ if $ARGS[0] = 'dream':
 	InSleep = 1
 	gs 'stat'
 	gs 'dreams', 'start'
-
+	wake_up = 0
 !! to avoid sleeping the whole day I decide to calcululate the duration of the sleep in advance
 !! the quality of the sleep depends on many factors, so the time of sleep can be modify later, especially the part when the time of sleep is shortened
 
@@ -328,80 +328,82 @@ if $ARGS[0] = 'dream':
 		varsleep['minutes to wakeup'] = varsleep['time_to_full']
 		varsleep['minutes to wakeup end'] = varsleep['time_to_full']
 	end
-
 	:loopson_bed
-	minut += 1
-	stime += 1
-	if recuperation = 0:pcs_health += 5
+		minut += 1
+		stime += 1
+		if recuperation = 0:pcs_health += 5
 
-	if vibratorIN = 1:
-		vtime += 1
-		if vtime >= 5:
-			pcs_horny +=1
-			vtime = 0
-		end
-
-		if pcs_horny = 100:
-			*clr & cla
-			pcs_horny = 0
-			orgasm += 1
-			minut += 5
-			gs 'stat'
-			'<center><img <<$set_imgh>> src="images/shared/sex/oface/o_face.jpg"></center>'
-			*nl
-			'You abruptly wake up in the throes of an orgasm. As you recover, you check the time, <b><<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>></b>.'
-
-			act 'Go back to sleep':
-				*clr & cla
-				gt 'bed2', 'dream'
+		if vibratorIN = 1:
+			vtime += 1
+			if vtime >= 5:
+				pcs_horny +=1
+				vtime = 0
 			end
 
-			act 'Give up trying to sleep':
+			if pcs_horny = 100:
 				*clr & cla
-				'<center><img <<$set_imgh>> src="images/shared/sex/oface/kotovfirst1.jpg"></center>'
+				pcs_horny = 0
+				orgasm += 1
+				minut += 5
+				gs 'stat'
+				'<center><img <<$set_imgh>> src="images/shared/sex/oface/o_face.jpg"></center>'
 				*nl
-				'Maybe trying to sleep with a vibrator in your pussy wasn''t such a good idea.'
-				gs 'bed2', 'wake'
+				'You abruptly wake up in the throes of an orgasm. As you recover, you check the time, <b><<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>></b>.'
+
+				act 'Go back to sleep':
+					*clr & cla
+					gt 'bed2', 'dream'
+				end
+
+				act 'Give up trying to sleep':
+					*clr & cla
+					'<center><img <<$set_imgh>> src="images/shared/sex/oface/kotovfirst1.jpg"></center>'
+					*nl
+					'Maybe trying to sleep with a vibrator in your pussy wasn''t such a good idea.'
+					gs 'bed2', 'wake'
+				end
+
+				exit
 			end
-
-			exit
+		!! Exclusions for succubus dreams as they set horny to 100 and will always get overridden otherwise
+		elseif pcs_horny > 80 and pcs_sleep >= 30 and rand (1,300) = 300 and succubusQW ! 1 and succubusQW ! 2:
+			gs 'stat'
+			$waketext = 'You glance at your alarm clock. It reads <b><<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>></b>.'
+			gt 'bed2', 'wake_horny'
 		end
-	!! Exclusions for succubus dreams as they set horny to 100 and will always get overridden otherwise
-	elseif pcs_horny > 80 and pcs_sleep >= 30 and rand (1,300) = 300 and succubusQW ! 1 and succubusQW ! 2:
-		gs 'stat'
-		$waketext = 'You glance at your alarm clock. It reads <b><<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>></b>.'
-		gt 'bed2', 'wake_horny'
-	end
 
-	if stime >= 60:
-		stime = 0
-		pcs_sleep += 15
-		if pcs_sleep >= 100:
-			pcs_condition['lack_of_sleep'] = 0
-		elseif pcs_condition['lack_of_sleep'] > 0:
-			pcs_condition['lack_of_sleep'] -= 1
+		if stime >= 60:
+			stime = 0
+			pcs_sleep += 15
+			if pcs_sleep >= 100:
+				pcs_condition['lack_of_sleep'] = 0
+			elseif pcs_condition['lack_of_sleep'] > 0:
+				pcs_condition['lack_of_sleep'] -= 1
+			end
+			gs 'stat'
 		end
-		gs 'stat'
-	end
 
-	
-	varsleep['minutes to wakeup'] -= 1
-	varsleep['minutes to wakeup end'] -= 1
+		
+		varsleep['minutes to wakeup'] -= 1
+		varsleep['minutes to wakeup end'] -= 1
 
-	if alarm_holiday = 1 and kanikuli > 0:
-	!! use weekend time alarm
-		varsleep['alarm_time'] = daystart*1440 + timerEnd * 60 + timerEndM
-		if varsleep['minutes to wakeup end'] > 0:jump 'loopson_bed'
-	elseif week > 5:
-	!! use weeken time alarm 
-		varsleep['alarm_time'] = daystart*1440 + timerEnd * 60 + timerEndM
-		if varsleep['minutes to wakeup end'] > 0:jump 'loopson_bed'
-	else 
-		varsleep['alarm_time'] = daystart*1440 + timer * 60 + timerM
-		if varsleep['minutes to wakeup'] > 0:jump 'loopson_bed'
-	end
+		if alarm_holiday = 1 and kanikuli > 0:
+		!! use weekend time alarm
+			varsleep['alarm_time'] = daystart*1440 + timerEnd * 60 + timerEndM
+			if varsleep['minutes to wakeup end'] = 0: wake_up = 1
+		elseif week > 5:
+		!! use weeken time alarm 
+			varsleep['alarm_time'] = daystart*1440 + timerEnd * 60 + timerEndM
+			if varsleep['minutes to wakeup end'] = 0: wake_up = 1
+		else 
+			varsleep['alarm_time'] = daystart*1440 + timer * 60 + timerM
+			if varsleep['minutes to wakeup'] = 0: wake_up = 1
+		end
 
-	varsleep['time_now'] = daystart*1440 + hour * 60 + minut
+		varsleep['time_now'] = daystart*1440 + hour * 60 + minut
+
+	!! Ensuring single exit point instead of multiple ones.
+	if wake_up = 0: jump 'loopson_bed'
 
 	if stime < 300:
 	!!Worsening of skin quality if you do not sleep enough.
@@ -433,6 +435,8 @@ if $ARGS[0] = 'dream':
 	gs 'bed2', 'wake'
 	*nl
 	'<<$waketext>>'
+
+	killvar 'wake_up'
 end
 
 if $ARGS[0] = 'wake_horny':
