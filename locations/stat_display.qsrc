@@ -259,31 +259,42 @@ else
 	$stat_court_msg = ''
 end
 
-if therapistday ! daystart and hypnoSchedule = 1 and hour < 18:
-	$stat_hypno_msg = 'You have a meeting scheduled with your therapist today at 18:00.'
-elseif therapistday ! daystart and hypnoSchedule = 1 and hour < 19 and hour > 18:
-	$stat_hypno_msg = 'You have a meeting scheduled with your therapist right now.'
-else
-	$stat_hypno_msg = ''
+killvar '$stat_hypno_msg'
+killvar '$stat_hypno_tooltip'
+if hypnoAddict > 0:
+	if hypnoWithdrawal = 2:
+		if missCum >= timeTresh:
+			$stat_hypno_msg = 'You want some sperm inside of you NOW! You have to talk to your therapist, immediately.'
+			$stat_hypno_tooltip = 'You have to talk to your therapist, immediately.'
+		else
+			$stat_hypno_msg = 'You need to talk to your therapist. You feel unbalanced without your sessions.'
+			$stat_hypno_tooltip = 'You feel unbalanced without your sessions.'
+		end
+	elseif hypnoWithdrawal = 1:
+		if missCum >= timeTresh:
+			$stat_hypno_msg = 'You really miss the feeling of sperm in your body, you are strangely craving it. You should talk to your therapist about it.'
+			$stat_hypno_tooltip = 'You should talk to your therapist.'
+		else
+			$stat_hypno_msg = 'You feel like talking to your therapist. You miss your sessions.'
+			$stat_hypno_tooltip = 'You miss your sessions.'
+		end
+	elseif missCum > 0:
+		$stat_hypno_msg = 'You miss the feeling of sperm in your body, and you feel moody.'
+		$stat_hypno_tooltip = 'You feel moody for some reason.'
+	end
 end
-
-if hypnoAddict > 0 and hypnoWithdrawal = 1 and missCum >= timeTresh:
-	$stat_hypno_msg += ' You really miss the feeling of sperm in your body, you are strangely craving it. You should talk to your therapist about it.'
-	$stat_hypno_tooltip = 'Talk to your therapist.'
-elseif hypnoAddict > 0 and hypnoWithdrawal = 1 and missCum < timeTresh:
-	$stat_hypno_msg += ' You feel like talking to your therapist. You miss your sessions.'
-	$stat_hypno_tooltip = 'Maybe visit your therapist.'
-elseif hypnoAddict > 0 and hypnoWithdrawal = 2 and missCum >= timeTresh:
-	$stat_hypno_msg += ' You want some sperm inside of you NOW! You have to talk to your therapist, immediately.'
-	$stat_hypno_tooltip = 'Talk to your therapist, immediately.'
-elseif hypnoAddict > 0 and hypnoWithdrawal = 1 and missCum < timeTresh:
-	$stat_hypno_msg += ' You need to talk to your therapist. You feel unbalanced without your sessions.'
-	$stat_hypno_tooltip = 'Talk to your therapist.'
-elseif hypnoAddict > 0:
-	$stat_hypno_msg += ' You miss the feeling of sperm in your body, and you feel moody.'
-	$stat_hypno_tooltip = 'Maybe visit your therapist.'
-else
-	$stat_hypno_tooltip = 'Maybe visit your therapist.'
+if therapistday ! daystart and hypnoSchedule = 1:
+	if $stat_hypno_msg ! '': 
+		$stat_hypno_msg += '<br>'
+		$stat_hypno_tooltip += '<br>'
+	end
+	if hour < 18:
+		$stat_hypno_msg += 'You have a meeting scheduled with your therapist today at 18:00.'
+		$stat_hypno_tooltip += 'Session at 18:00!'
+	elseif hour < 19 and hour > 18:
+		$stat_hypno_msg += 'You have a meeting scheduled with your therapist right now.'
+		$stat_hypno_tooltip += 'Session right now!'
+	end
 end
 
 if frost > 0 and frost < 6:
@@ -1162,7 +1173,7 @@ if cheatStatusIcons = 0:
 
 	$statusIconBarTab += '</tr><tr>'
 
-	!!Row 4: Status, Jobs, School, Clothes,...
+	!!Row 4: Status, Jobs, School
 
 
 	if bimbolevel > 0: $statusIconBarTab += '<td><a href="exec:msg $bimbostatus"><img title="<<$bimbo_tooltip>>" height = <<set_siconht>> src="images/system/icons/status/bimbo.png"></a></td>'
@@ -1188,7 +1199,26 @@ if cheatStatusIcons = 0:
 
 	if $stat_game_night_msg ! '': $statusIconBarTab += '<td><a href="exec:msg $stat_game_night_msg"><img title="<<$stat_game_night_tooltip>>" height = <<set_siconht>> src="images/system/icons/status/game_night.png"></a></td>'
 
+	!!maybe we should remove this one, and create specialized icons for all the jobs? This one is not informative
 	if work > 0: $statusIconBarTab += '<td><a href="exec: gt ''journal'', ''records''"><img title="You have a job. Click to find out more." height = <<set_siconht>> src="images/system/icons/status/work.png"></a></td>'
+
+	if masseuse['jobtype'] > 0:
+		if (masseuse['<<week>>_shift_1'] = 1 and hour <= 9) or (masseuse['<<week>>_shift_2'] = 1 and hour <= 13) or (masseuse['<<week>>_shift_3'] = 1 and hour <= 17):
+			$stat_masseuse_msg = 'You work at the beauty salon today, at '
+			if masseuse['<<week>>_shift_1'] = 1 and hour <= 9:
+				$stat_masseuse_msg += '9:00, '
+			end
+			if masseuse['<<week>>_shift_2'] = 1 and hour <= 13:
+				$stat_masseuse_msg += '13:00, '
+			end
+			if masseuse['<<week>>_shift_3'] = 1 and hour < 17:
+				$stat_masseuse_msg += '17:00, '
+			end
+			$stat_masseuse_msg += 'and you have worked <<masseuse[''shifts_worked'']>> of the required <<masseuse[''shifts_required'']>> shifts.'
+		
+			$statusIconBarTab += '<td><a href="exec: msg $stat_masseuse_msg"><img title="<<$stat_masseuse_msg>>" height = <<set_siconht>> src="images/system/icons/status/masseuse.png"></a></td>'
+		end
+	end
 
 	if model['icon'] = 1:
 		if model['status'] > 0 and model_week < (daystart - week) / 7 and model_job_week = 1:
@@ -1233,6 +1263,10 @@ if cheatStatusIcons = 0:
 			end
 		end
 	end
+	
+	$statusIconBarTab += '</tr><tr>'
+
+	!!Row 5: Clothes,...
 
 	if $stat_bfgf_msg_0 ! '': $statusIconBarTab += '<td><a href="exec: $stat_bfgf_msg_0"><img title="<<$stat_bfgf_tooltip_0>>" height = <<set_siconht>> src="images/system/icons/status/date.png"></a></td>'
 
