@@ -1,0 +1,278 @@
+# emp_functions
+
+!! Employmnent and Event Systems
+!! 2022-09-30
+!! Author: Hooded Silence
+!!
+!! v.01 - Initial code base
+!! v.02 - Event generator partially integrated
+!! v.03 - Job management system integrated
+!! 
+
+!! --------------------- UI Interface for Journal
+
+if $ARGS[0] = 'gen_schedule':
+	*clr & cla 
+		if night_mode = 1 or night_mode = 2:
+		$header_theme = '#91B0B4'
+		$body_theme = '#303030'
+		$body_theme_alt  = '#474747'
+		$font_theme = '#000000'
+	else
+		$header_theme = '#e27c00'
+		$body_theme = '#E0DED4'
+		$body_theme_alt  = '#D58B32'
+		$font_theme = '#FFFFFF'
+	end
+	if  function_sw = 1:	'<center><h2>' + $npc_firstname['A<<mod_npc_id>>'] + ' ' + $npc_lastname['A<<mod_npc_id>>'] + '</h2></center>'
+	if function_sw = 2: 
+		gs 'journal', 'journalmenu'
+		'<center><h2>Work</h2></center>'
+	end
+	!! Enable selector if attending school or Uni by NPC group type or by character and set default to School
+	if (npc_grupTipe['A<<mod_npc_id>>']>= 1 and npc_grupTipe['A<<mod_npc_id>>']<= 5) or mod_npc_id = 34 and function_sw <= 1: 
+		if flag_schedule = 0: flag_schedule = 1
+		school_group = 1
+		'<center>Change to: <a href="exec: flag_schedule = 1 & gs ''emp_functions'', ''gen_schedule''">School</a> | <a href="exec: flag_schedule = 2 &  gs ''emp_functions'', ''gen_schedule''">University</a> | <a href="exec: flag_schedule = 3 &  gs ''emp_functions'', ''gen_schedule''">Holiday</a> </center>'
+	else
+		!! Set schedule to holiday / non-edu NPCs
+		flag_schedule = 3
+	end
+
+	!! Initiate loop variables
+
+	i_day = 1
+    mod_max_day = 7
+	i_hour = ARGS[1]
+    mod_max_hour = ARGS[1] + 8 
+    header_switch = 1
+	killvar '$tablebody'   
+	killvar '$tableheader'
+
+	!! create header, using header switch to fill in :00 or :30 automatically using mod to determine odd/even and set display hour automatically.
+
+	$tableheader = '<tr border="1" align="center"  bgcolor="<<$header_theme>>"><th style="padding: 10px;"></th>'
+	:jmp_header_create
+		if (i_hour mod 2) = 0:
+			display_hour = i_hour/ 2
+		end
+		if display_hour = 24: Display_hour = 0
+		if header_switch = 1:
+			header_switch += 1
+			$tableheader += '<th style="padding: 10px;"><font color="<<$font_theme>>">' + iif(display_hour < 10, '0<<display_hour >>', display_hour) + ':00</font></th>'
+		elseif header_switch=2: 
+			header_switch = 1
+			$tableheader += '<th style="padding: 10px;"><font color="<<$font_theme>>">' + iif(display_hour < 10, '0<< display_hour>>', display_hour) + ':30</font></th>'
+		end		
+		i_hour += 1
+	if i_hour <=  mod_max_hour: jump 'jmp_header_create'
+	! Reset i_hour for next loop	
+	killvar 'display_hour'
+	killvar 'header_switch'
+	i_hour = ARGS[1]
+	header_switch = 1
+	!! Close out table header
+	$tableheader += '</tr>'
+	!! Create table body, with alternating colour rows for legibility
+    :jmp_day_create
+
+        !Set day
+        if i_day = 1 or i_day = 3 or i_day = 5 or i_day = 7:
+			$tablebody += '<tr><td  style="padding: 10px;" bgcolor="<<$header_theme>>"><b><font color="<<$font_theme>>">' + $week[i_day] + '</font></b></td>'
+		else
+			$tablebody += '<tr bgcolor="<<$body_theme_alt>>"><td  style="padding: 10px;" bgcolor="<<$header_theme>>"><b><font color="<<$font_theme>>">' + $week[i_day] + '</font></b></td>'
+		end
+		!! fill the slots from the NPC schedule
+
+        :jmp_hour_create 
+			if i_day >= 1:
+
+				!! Create function switcher:
+				!! 1: NPC tracker
+				!! 2: Job tracker
+				!! 3: Event Tracker
+
+				if function_sw = 1 or function_sw = 0:
+					dynamic $schedule_tracker 
+				elseif function_sw = 2:
+                    flag_active  = 1
+                    j_id = emp_rota_week[i_day +  '_' + i_hour]
+                    if emp_rota_week[i_day +  '_' + i_hour] ! 0:							
+                        $transient_tb =  '<a  href="exec:gs ''emp_functions'', ''job_info'', <<j_id>>">' + $emp_job_title[j_id] + '</a>'
+                    else
+                        $transient_tb  = 'Free'
+                    end
+				elseif function_sw = 3:
+				else
+					msg 'Error - Failed to create body. Please set content switch.'
+				end
+
+				if flag_active = 0:
+					$tablebody += '<td style="padding: 10px;">Slot: ' + i_hour +'</td>'
+				else
+					$tablebody +=  '<td style="padding: 10px;">' + $transient_tb +'</td>'
+					flag_active = 0
+					killvar '$transient_tb'
+				end	
+			else
+				 i_day += 1
+				 jump 'jmp_day_create'
+			end
+			i_hour += 1
+            if i_hour <=  mod_max_hour: jump 'jmp_hour_create'
+			$tablebody +='</tr>'
+			i_day += 1
+			i_hour = ARGS[1]
+        if i_day <= mod_max_day: jump 'jmp_day_create'	
+	!! Create navigaton bars
+	if (mod_max_hour + 8)  <= 48:
+		set_hour = ARGS[1] + 8
+		$msg_forward = '<a  href="exec:gs ''emp_functions'', ''gen_schedule'', <<set_hour>>"><b>Forward 4 hours</b></a>'
+	else
+		$msg_forward = 'End of Day'
+	end
+    if (mod_max_hour  - 8) >0 :
+		set_hour = ARGS[1] - 8
+        $msg_back = '<a  href="exec:gs ''emp_functions'', ''gen_schedule'', <<set_hour>>"><b>Back 4 hours</b></a>'
+    else
+		$msg_back = 'Start of day'
+    end
+
+    !! Start the table constuction    
+    '<center><table border=0 cellpadding=1 bgcolor="<<$body_theme>>" width="95%" align="center"><<$tableheader>><<$tablebody>></table>'
+    '<<$msg_back>> | <<$msg_forward>>'
+    *nl
+    if  function_sw = 1:
+	'<b>Note:</b> Times are approximate, some characters will appear at quarter past or quarter to the hour.</center>' 
+	end
+	if  function_sw = 2:
+		'<b>Note:</b> Times are approximate, some jobs may extend past the allotted time or have flexi-starts.</center>' 
+	end
+    act 'Back':
+		killvar 'flag_schedule'
+		killvar 'school_group'
+		killvar 'j_id'
+		gt $loc, $loc_arg
+	end
+end
+
+!! Job Info popup
+if $ARGS[0] = 'job_info':
+	j_id = ARGS[1]
+	killvar '$msg_body'
+	$msg_body +=  '<p>Job Title: ' + $emp_job_title[j_id] + '</p>'
+	$msg_body += '<p>Location: ' + $emp_job_loc[j_id] + '</p>'
+	$msg_body += '<p>Notes: ' + $emp_job_notes[j_id]+ '</p>'
+	$msg_body += '<p>Wages: ' +emp_job_wages[j_id] + '<b>₽</b></p>'
+	
+	msg '<<$msg_body>>'
+end
+
+!!  Removed event generation for initial code review and to make job integration easier.
+
+!! --------------------- Event Generator
+
+!! Author - Hooded Silence
+!! Date created - 26 Aug 22
+!! Event Generator - filler content only for one off events or recurring work from NPCs
+!!
+!! v. 01 - Initial code base
+!! v. 02 - UI improvements and feature feedback
+
+
+!! --------------------- Job management system
+
+
+!! book role, creates a time slot for emp_rota_week in format day_hour to be used in schedule mode.
+
+if $ARGS[0] = 'emp_booking':
+	gs 'emp_functions', 'emp_chk_clk'
+	if emp_rota_fail  = 0:	
+		gs 'emp_functions', 'loop_configure'
+		j_finish = emp_job_end[j_id]
+		:jmp_daily_book
+			j_idx = emp_job_start[j_id]
+			:jmp_hour_book
+				emp_rota_week[d_idx + '_' + j_idx]  = j_id
+				j_idx += 1
+			if j_idx <= j_finish: jump 'jmp_hour_book'	
+			d_idx += 1
+		if d_idx <= d_end: jump 'jmp_daily_book'
+		emp_job_status[j_id] = 1
+		emp_job[active] += 1
+		killvar 'j_idx'
+		killvar 'j_finish'
+		killvar 'd_idx'
+		killvar 'd_end'
+	else
+		msg 'Sorry, you''ve already got a job for this time period.'
+	end
+
+	killvar 'emp_rota_fail'
+end
+
+!! check if time slots are avaialble for this role. 
+
+if $ARGS[0] = 'emp_chk_clk':	
+	gs 'emp_functions', 'loop_configure'
+	j_finish = emp_job_end[j_id]
+	:jmp_daily_chk
+		j_idx = emp_job_start[j_id]
+		:jmp_job_chk
+			if emp_rota_week[d_idx + '_' + j_idx]  >  0:
+				!! booking failed					
+				emp_rota_fail = 1
+			else
+				!! booking passed
+				emp_rota_fail = 0
+			end	
+			j_idx +=1
+		if j_idx <= j_finish and emp_rota_fail = 0: jump 'jmp_job_chk'	
+		d_idx += 1
+	if d_idx <= d_end and emp_rota_fail = 0: jump 'jmp_daily_chk'
+end
+
+if $ARGS[0] = 'emp_terminate':
+	if ARGS[1] >= 4:
+		gs 'emp_functions', 'loop_configure'
+		j_finish = emp_job_end[j_id]
+		:jmp_daily_book
+			j_idx = emp_job_start[j_id]
+			:jmp_hour_book
+				emp_rota_week[d_idx + '_' + j_idx] = 0
+				j_idx += 1
+			if j_idx <= j_finish: jump 'jmp_hour_book'	
+			d_idx += 1
+		if d_idx <= d_end: jump 'jmp_daily_book'
+		!! Set the termination value
+		emp_job_status[j_id] = ARGS[1]
+		emp_job[active] -= 1
+	else
+		msg 'Job termination failed. Please ensure you set to  4 - Terminated or 5 - Fired'
+	end
+	killvar 'j_idx'
+	killvar 'j_finish'
+	killvar 'd_idx'
+	killvar 'd_end'	
+end
+
+if $ARGS[0] = 'loop_configure':	
+	if  j_day= 0 or j_day = 1 or j_day = 2:
+		d_idx = 1
+	else
+		d_idx= 6
+	end
+	if  j_day <= 1:
+		d_end = 5
+	else
+		d_end= 7
+	end	
+end
+--- emp_functions ---------------------------------
+
+
+
+
+
+
+

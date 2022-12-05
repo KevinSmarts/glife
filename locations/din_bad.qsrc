@@ -423,9 +423,16 @@ $d_tabletkied = {
 	tabloc = 0
 	if tabletkiday < daystart and thinkpreg = 0 and knowpreg = 0: '<a href="exec:dynamic $d_tabletkieda, 1">Take the birth control pill now.</a>'
 	if tabletkicheck = 0 and thinkpreg = 0 and knowpreg = 0:
+		if (tabletki > 0 or pillsleft[ptype] > 0) and birth_control['remind_hour'] = 0: 
+			'<a href="exec:gs ''din_bad'', ''set_bc_reminder''">Set a reminder to take your birth control pills.</a>'
+		elseif (tabletki > 0 or pillsleft[ptype] > 0) and birth_control['remind_hour'] > 0: 
+			'<a href="exec:gs ''din_bad'', ''set_bc_reminder''">Change your birth control reminder.</a>'
+			'<a href="exec:gs ''din_bad'', ''turn_off_bc_reminder''">Turn off your birth control reminder.</a>'
+		end
 		'<a href="exec:dynamic $d_tabletkieda, 2">Automatically take your birth control pills.</a>'
 	elseif tabletkicheck = 1:
 		'<a href="exec:dynamic $d_tabletkieda, 3">Stop automatically taking your birth control pills.</a>'
+		if birth_control['remind_hour'] > 0:'<a href="exec:*clr & birth_control[''remind_hour''] = 0 & dynamic $d_tabletkieda, 3">Stop automatically taking your birth control pills.</a>'
 	end
 	'<a href="exec:dynamic $d_tabletkieda, 4">Examine the birth control pills.</a>'
 	if tabletkioddk = 1: '<a href="exec:dynamic $d_tabletkieda, 5">Dump the strange pills.</a>'
@@ -440,10 +447,17 @@ $d_tabletkiedt = {
 	*nl
 	tabloc = 1
 	if tabletkiday < daystart and thinkpreg = 0 and knowpreg = 0: '<a href="exec:*clr & dynamic $d_tabletkieda, 1">Take the birth control pill now.</a>'
+	
 	if tabletkicheck = 0 and thinkpreg = 0 and knowpreg = 0:
+		if (tabletki > 0 or pillsleft[ptype] > 0) and birth_control['remind_hour'] = 0: 
+			'<a href="exec:gs ''din_bad'', ''set_bc_reminder''">Set a reminder to take your birth control pills.</a>'
+		elseif (tabletki > 0 or pillsleft[ptype] > 0) and birth_control['remind_hour'] > 0: 
+			'<a href="exec:gs ''din_bad'', ''set_bc_reminder''">Change your birth control reminder.</a>'
+			'<a href="exec:gs ''din_bad'', ''turn_off_bc_reminder''">Turn off your birth control reminder.</a>'
+		end
 		'<a href="exec:*clr & dynamic $d_tabletkieda, 2">Automatically take your birth control pills.</a>'
 	elseif tabletkicheck = 1 and therapistFuckedPussyStage < 2:
-		'<a href="exec:*clr & dynamic $d_tabletkieda, 3">Stop automatically taking your birth control pills.</a>'
+		'<a href="exec:*clr & birth_control[''remind_hour''] = 0 & dynamic $d_tabletkieda, 3">Stop automatically taking your birth control pills.</a>'
 	end
 	'<a href="exec:*clr & dynamic $d_tabletkieda, 4">Examine the birth control pills.</a>'
 	if tabletkioddk = 1: '<a href="exec:*clr & dynamic $d_tabletkieda, 5">Dump the strange pills.</a>'
@@ -465,7 +479,7 @@ $d_tabletkieda = {
 		pilldaychk = 1
 		*clr
 		dynamic $d_tabletkied
-		'You take the birth control pill.'
+		'You take your birth control pill.'
 		gs 'stat'
 	elseif ARGS[0] = 2:
 		'You will do your best to remember to take your birth control pills every day.'
@@ -505,6 +519,10 @@ $d_tabletkieda = {
 		tabletkioddp = 0
 		gs 'stat'
 	end
+	
+	if tabletki = 0 and pillsleft[ptype] = 0:
+		msg 'That was your last birth control pill. You need to buy some more.'
+	end
 
 	if tabloc = 0:
 		act 'Return':gs 'din_bad', 'd_bag'
@@ -512,6 +530,22 @@ $d_tabletkieda = {
 		act 'Return':gt 'stol', 'bc'
 	end
 }
+
+if $ARGS[0] = 'set_bc_reminder':
+	:invalid_bc_reminder_loop
+	birth_control['remind_hour'] = input ("When do you want to set your reminder? (Pick an hour 1 - 22. A reminder icon will appear in the stat display during that hour.)")
+	if birth_control['remind_hour'] < 1 or birth_control['remind_hour'] > 22:
+		msg 'Invalid reminder input. Pick an hour between 1 and 22.'
+		jump 'invalid_bc_reminder'
+	else
+		msg 'You set a reminder on your phone to take your birth control pill at <<birth_control[''remind_hour'']>>.'
+	end
+end
+
+if $ARGS[0] = 'turn_off_bc_reminder':
+	birth_control['remind_hour'] = 0
+	msg 'You turn off your reminder to take your birth control pills.'
+end
 
 $d_cycreport_choice = {
 	*clr & cla
@@ -734,11 +768,11 @@ $d_cycreport_update = {
 					$cycreport_txt = 'It has been <<temp[1]>> days since the start of your last period. <font color=green>Your implant protects you from getting pregnant.</font>'
 				elseif birth_control['implant_status'] > 1 and pillcon2 < 30000:
 					$cycreport_txt = 'It has been <<temp[1]>> days since the start of your last period. <font color=red>Your implant is not yet effective.</font>'				
-				elseif pillcon2 > 30000:
+				elseif pillcon2 > 0 and birth_control['think_safe'] = 1:
 					$cycreport_txt = 'It has been <<temp[1]>> days since the start of your last period. <font color=green>You are currently on the birth control pill.</font>'
-				elseif pillcon2 > 8000 and ((FocH > (Foch_Max - 96)) or ovulate > 0):
+				elseif pillcon2 > 0 and ((FocH > (Foch_Max - 96)) or ovulate > 0) and birth_control['think_safe'] = 0:
 					$cycreport_txt = 'It has been <<temp[1]>> days since the start of your last period. You are currently on the pill but it is not yet effective. <font color=red>It is currently a dangerous day.</font>'
-				elseif pillcon2 > 8000:
+				elseif pillcon2 > 0 and birth_control['think_safe'] = 0:
 					$cycreport_txt = 'It has been <<temp[1]>> days since the start of your last period. You are currently on the pill but it is not yet effective.'
 				elseif daystart = tabletkiday:
 					$cycreport_txt = 'It has been <<temp[1]>> days since the start of your last period. You have taken the pill but it will be several weeks before it is fully effective.'
@@ -746,6 +780,12 @@ $d_cycreport_update = {
 					$cycreport_txt = 'It has been <<temp[1]>> days since the start of your last period. <font color=red>It is currently your fertile stage.</font>'
 				elseif birth_control['implant_status'] = 1:
 					$cycreport_txt = 'It has been <<temp[1]>> days since the start of your last period. <font color=red>Your implant stopped working. You need a new one.</font>'
+				elseif birth_control['think_safe'] ! 1 and stat['safe_day'] = 1:
+					$cycreport_txt = 'It has been <<temp[1]>> days since the start of your last period. <font color=green>Today is a safe day to have unprotected sex.</font>'
+				elseif birth_control['think_safe'] ! 1 and stat['probably_safe_day'] = 1:
+					$cycreport_txt = 'It has been <<temp[1]>> days since the start of your last period. <font color=blue>Today is <i>probably</i> a safe day to have unprotected sex.</font>'
+				elseif birth_control['think_safe'] ! 1 and stat['dangerous_day'] = 1:
+					$cycreport_txt = 'It has been <<temp[1]>> days since the start of your last period. <font color=red>Today is a dangerous day to have unprotected sex.</font>'
 				else
 					$cycreport_txt = 'It has been <<temp[1]>> days since the start of your last period.'
 				end
@@ -1036,6 +1076,28 @@ if $ARGS[0] = 'takepill':
 		if pillcon2 > 40000: pillcon2 = 40000
 		if pillcon > 40000: pillcon = 40000
 	end
+end
+
+if $ARGS[0] = 'quick_takepill':
+	tabletkipd += tabletkipt
+	if tabletkiday ! daystart:
+		gs 'din_bad','takepill'
+		tabletkiday = daystart
+		tabletkipt = 0
+		tabletkipi = 0
+	else
+		pcs_health -= 1
+	end
+	pilldaychk = 1
+	
+	if birth_control['message_skip'] ! daystart:
+		if tabletki = 0 and pillsleft[ptype] = 0:
+			msg 'That was your last birth control pill. You need to buy some more.'
+		else
+			msg 'You take your birth control pill.'
+		end
+	end
+	gs 'stat'
 end
 
 if $ARGS[0] = 'p_deodorant':
