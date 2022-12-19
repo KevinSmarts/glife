@@ -4,46 +4,62 @@ if $ARGS[0] = 'scheduler':
 	!! clear schedule
 	killvar 'booty_call_time'
 	i = 0
-	:booty_call_time_sched_loop
-	if i < ARRSIZE('$FuckBuddy'):
-		if ((rand(1,10) <= npc_sexdrive[$FuckBuddy[i]] or npc_booty_call[$FuckBuddy[i]] = daystart) and (rand(1,npc_rel[$FuckBuddy[i]]) > 0)) and npc_no_booty_call[$FuckBuddy[i]] ! daystart and npc_big_fight[$FuckBuddy[i]] < daystart - 7:
-			if npc_start_free_time[$FuckBuddy[i]] = 0: 
-				$boy = $FuckBuddy[i]
-				gs 'saveupdater', 'npc_stat_update'
-			end
-			if npc_booty_call[$FuckBuddy[i]] = daystart:
-				npc_booty_call_time[$FuckBuddy[i]] = hour * 60 + rand(0,120)
-			elseif week = npc_day_off[$FuckBuddy[i]]:
-				booty_call_time[$FuckBuddy[i]] = 600 + rand(0,720)
-			elseif week ! npc_day_off[$FuckBuddy[i]]:
-				booty_call_time[$FuckBuddy[i]] = rand((npc_start_free_time[$FuckBuddy[i]] * 60), (npc_end_free_time[$FuckBuddy[i]] - 1) * 60)
-			else
-				booty_call_time[$FuckBuddy[i]] = 2000
+	gs 'booty_call', 'scheduler2'
+end
+
+if $ARGS[0] = 'scheduler2':
+	if i <= arrsize('$FuckBuddy'):
+		gs 'booty_call', 'npc_stat_update'
+		if (rand(1,10) <= npc_sexdrive[$FuckBuddy[i]] or npc_booty_call[$FuckBuddy[i]] = daystart) and npc_rel[$FuckBuddy[i]] > 0 and npc_no_booty_call[$FuckBuddy[i]] ! daystart and npc_big_fight[$FuckBuddy[i]] < daystart - 7:
+			gs 'booty_call', 'scheduler3'
+		else
+			npc_no_booty_call[$FuckBuddy[i]] = daystart
+		end
+		i += 1
+		gs 'booty_call', 'scheduler2'
+	end
+end
+
+
+if $ARGS[0] = 'scheduler3':
+	if npc_booty_call[$FuckBuddy[i]] = daystart:
+		booty_call_time[$FuckBuddy[i]] = ((npc_booty_call_time[$FuckBuddy[i]] * 60) + rand(0,180))
+	elseif week = npc_day_off[$FuckBuddy[i]]:
+		booty_call_time[$FuckBuddy[i]] = (600 + rand(0,720))
+	elseif week ! npc_day_off[$FuckBuddy[i]]:
+		booty_call_time[$FuckBuddy[i]] = (rand(npc_start_free_time[$FuckBuddy[i]],(npc_end_free_time[$FuckBuddy[i]] - 1)) * 60) + rand(0,180)
+	else
+		booty_call_time[$FuckBuddy[i]] = 2000
+	end
+end
+
+!!	if npc_start_free_time[$FuckBuddy[i]] = 0 or npc_day_off[$FuckBuddy[i]] = 0 or npc_end_free_time[$FuckBuddy[i]] = 0: 
+!!		$boy = $FuckBuddy[i]
+		
+!!	end
+
+!!		if ((rand(1,10) <= npc_sexdrive[$FuckBuddy[i]] or npc_booty_call[$FuckBuddy[i]] = daystart) and (rand(1,npc_rel[$FuckBuddy[i]]) > 0)) and npc_no_booty_call[$FuckBuddy[i]] ! daystart and npc_big_fight[$FuckBuddy[i]] < daystart - 7:
+
 !!			elseif week < 6:
 !!				booty_call_time[$FuckBuddy[i]] = 900 + rand(0,210)
 !!			else
 !!				booty_call_time[$FuckBuddy[i]] = 600 + rand(0,720)
-			end
-		end
-		i += 1
-		jump 'booty_call_time_sched_loop'
-	end
-end
 
 if $ARGS[0] = 'set_booty_call_date':
-	if booty_call['sleepover'] = 1:
+	if booty_call['invite_today'] = 1:
 		npc_booty_call[$boy] = daystart
-	else
+	elseif booty_call['invite_tomorrow'] = 1:
 		npc_booty_call[$boy] = daystart + 1
 	end
 	npc_booty_call_time[$boy] = npc_start_free_time[$boy]
 end
 
 if $ARGS[0] = 'block_booty_calls':
-	if booty_call['sleepover'] = 1:
+	if booty_call['invite_today'] = 1:
 		npc_booty_call[$boy] = 0
 		npc_no_booty_call[$boy] = daystart
-	else
+		npc_booty_call_time[$boy] = 0
+	elseif booty_call['invite_tomorrow'] = 1:
 		npc_no_booty_call[$boy] = daystart + 1
 	end
 end
@@ -51,12 +67,12 @@ end
 if $ARGS[0] = 'SMS raiser':
 	i = 0
 	:booty_call_sms_raiser_loop
-	if i < ARRSIZE('$FuckBuddy'):
-		if booty_call_time[$FuckBuddy[i]] < hour*60+minut:
-			gs 'booty_call_sms', 'start',$FuckBuddy[i]
+	if i < arrsize('$FuckBuddy'):
+		if booty_call_time[$FuckBuddy[i]] < ((hour * 60) + minut) and npc_no_booty_call[$FuckBuddy[i]] ! daystart:
+			gs 'booty_call_sms', 'start', $FuckBuddy[i]
 			gs 'booty_call_sms', 'Add SMS', $FuckBuddy[i]
-			booty_call_time[$FuckBuddy[i]] = 2000
-			!! this is a bit superfluous, but it makes the code run fater.
+			booty_call_time[$FuckBuddy[i]] = 2399
+			!! this is a bit superfluous, but it makes the code run faster.
 			booty_call_time['A0'] = daystart
 		end
 		i += 1
@@ -341,6 +357,40 @@ if $ARGS[0] = 'get_invited':
 	end
 
 
+end
+
+!! ------------ NPC Stat Updater ------------------------
+
+if $ARGS[0] = 'npc_stat_update':
+	if npc_start_free_time[$FuckBuddy[i]] = 0 or npc_day_off[$FuckBuddy[i]] = 0:
+		if npc_finance[$FuckBuddy[i]] = 0:
+			if rand(1,3) = 1:
+				npc_start_free_time[$FuckBuddy[i]] = 9
+				npc_end_free_time[$FuckBuddy[i]] = 12
+			elseif rand(1,2) = 1:
+				npc_start_free_time[$FuckBuddy[i]] = 16
+				npc_end_free_time[$FuckBuddy[i]] = 20
+			else
+				npc_start_free_time[$FuckBuddy[i]] = 20
+				npc_end_free_time[$FuckBuddy[i]] = 23
+			end
+		elseif npc_finance[$FuckBuddy[i]] = 1:
+			if rand(1,2) = 1:
+				npc_start_free_time[$FuckBuddy[i]] = 9
+				npc_end_free_time[$FuckBuddy[i]] = 12
+			else
+				npc_start_free_time[$FuckBuddy[i]] = 20
+				npc_end_free_time[$FuckBuddy[i]] = 23
+			end
+		elseif npc_finance[$FuckBuddy[i]] = 2:
+			npc_apt_type[$FuckBuddy[i]] = 5
+			!!npc_apt_type[$npclastgenerated] = rand(5,6)
+			!! apt_type 6 is disabled until pictures are added
+			npc_occupation[$FuckBuddy[i]] = rand(14,18)
+			npc_car[$FuckBuddy[i]] = rand(0,1)
+		end
+		npc_day_off[$FuckBuddy[i]] = rand(1,7)
+	end
 end
 
 --- booty_call ---------------------------------
