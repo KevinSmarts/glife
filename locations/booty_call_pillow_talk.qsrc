@@ -3,7 +3,7 @@
 if $ARGS[0] = 'start':
 	cla & *clr
 	'<center><img <<$set_imgh>> src="images/shared/sex/after/pillow_talk1.jpg"></center>'
-	booty_call['pillow_talk'] = 1
+	booty_call['pillow_talking'] = 1
 	'You and <<$npc_firstname[$boy]>> relax on the bed together, basking in the afterglow as you idly chit chat about things.'
 	if booty_call['virgin'] = 1 and booty_call['virgin_talk'] = 0:
 		gs'booty_call_virgin', 'first_time_talk'
@@ -180,8 +180,8 @@ if $ARGS[0] = 'ran_out_of_condoms':
 			else
 				if birth_control['think_safe'] = 0:
 					'"You really need to buy more condoms," you sigh. "We shouldn''t be taking chances like this."'
-					if booty_call['creampie_count'] > 0:
-						gs'booty_call_pillow_talk', 'boy_accidental_creampie'
+					if booty_call['surprise_creampie_count'] > 0 and booty_call['accidental_creampie_convo'] = 0:
+						gs'booty_call_talk', 'boy_accidental_creampie'
 					else
 						if npc_argumentative[$boy] > 0:
 							gs'booty_call_pillow_talk', 'condom_buy_fight'
@@ -412,15 +412,18 @@ if $ARGS[0] = 'better_without':
 						'"So was your dick," you smile.'
 					end
 					if npc_know_not_bc[$boy] = 0 and npc_know_bc[$boy] = 0:
-						if booty_call['plan_b'] = 1:
-							'"Good thing you have that morning after pill."'
-						elseif booty_call['plan_b'] = 2:
-							'"Good thing you had that morning after pill."'
+						if booty_call['plan_b'] > 0:
+							if booty_call['plan_b'] = 1:
+								'"Good thing you have that morning after pill."'
+							elseif booty_call['plan_b'] = 2:
+								'"Good thing you had that morning after pill."'
+							end
+							'"Yeah," you nod. "So, no harm done."'
+							gs'booty_call_pillow_talk', 'topics'
 						else
 							'"Is it okay that I... you know...?" <<$npc_firstname[$boy]>> eyes your pussy, his cum still leaking from it.'
-						end
-						
-						gs 'booty_call_pillow_talk', 'creampie_okay'
+							gs 'booty_call_pillow_talk', 'creampie_okay'
+						end						
 					elseif npc_know_bc[$boy] = 1:
 						'"But you''re on birth control, right?"'
 						'"Yeah," you nod. "So, no harm done."'
@@ -567,26 +570,10 @@ if $ARGS[0] = 'creampie_okay':
 	if birth_control['think_safe'] = 1:
 		gs'booty_call_pillow_talk', 'on_birth_control'
 	else
-		gs'booty_call_pillow_talk', 'pc_have_morning_after'
+		gs'booty_call_talk', 'pc_have_morning_after'
 	end
 end
 
-if $ARGS[0] = 'pc_have_morning_after':
-	if morning_after_pill = 0:
-		act'I''ll buy a morning after pill':
-			cla & *nl
-			'"It''s okay," you murmur reassuringly. "I''ll get a morning after pill tomorrow. No big deal."'
-			'He nods, seeming to relax a bit.'
-			gs'booty_call_pillow_talk', 'topics'
-		end
-	else
-		act'I''ve got a morning after pill':
-			cla & *nl
-			'"It''s okay," you smile reassuringly. "I have a morning after pill. It''s no big deal."'
-			gs'booty_call_pillow_talk', 'topics'
-		end
-	end
-end
 
 if $ARGS[0] = 'on_birth_control':
 	if tabletkishot > 0 or birth_control['think_safe'] = 1:
@@ -604,14 +591,28 @@ if $ARGS[0] = 'on_birth_control':
 		end
 	else
 		act'I''m on birth control (lie)':
-			gs'booty_call_stats', 'birth_control_know'
-			npc_know_not_bc[$boy] = 0
 			cla & *nl
-			'"It''s okay," you smile, telling a barefaced lie. "I''m on birth control."'
-			'<<$npc_firstname[$boy]>> seems to relax, relieved that you''re not upset.'
-			*nl
-			'<i>I wonder if his baby is going to be swimming around inside me after this?</i>'
-			gs'booty_call_pillow_talk', 'topics'
+			if npc_know_not_bc[$boy] = 1:
+				'"It''s okay," you smile, telling a barefaced lie. "I''m on birth control."'
+				'<<$npc_firstname[$boy]>> seems to relax, relieved that you''re not upset.'
+			else
+				'"It''s okay," you smile, telling a barefaced lie. "I''m on birth control."'
+				'<<$npc_firstname[$boy]>> seems to relax, relieved that you''re not upset.'
+			end
+			
+			act'<i>It''ll be fine</i>':
+				cla & *nl
+				'<i>I''m not gonna get pregnant,</i> you think to yourself. <i>Why bother stressing <<$npc_firstname[$boy]>> out about it?</i>'
+				gs'booty_call_stats', 'birth_control_know'
+				gs'booty_call_pillow_talk', 'topics'
+			end
+			
+			act'<i>Wonder if I''ll get pregnant</i>':
+				cla & *nl
+				'<i>I wonder if his baby is going to be swimming around inside me after this?</i>'
+				gs'booty_call_stats', 'birth_control_know'
+				gs'booty_call_pillow_talk', 'topics'
+			end
 		end
 
 		act'If I get pregnant, you better take responsibility (tease)':
@@ -1653,169 +1654,6 @@ if $ARGS[0] = 'pubes_other_lovers':
 	end
 end
 
-if $ARGS[0] = 'boy_accidental_creampie':
-	if $booty_call['convo'] ! 'used_all_condoms': 
-		cla & *clr
-		'<center><img <<$set_imgh>> src="images/shared/sex/after/pillow_talk1.jpg"></center>'
-	end
-	if cum_loc['vagina'] > 0:
-		'"Are you gonna be okay...?" <<$npc_firstname[$boy]>> asks, looking intently at the cum slowly draining from your pussy.'
-	else
-		'"Are you gonna be okay...?" <<$npc_firstname[$boy]>> asks, looking intently at your pussy, clearly referencing when he came inside you earlier.'
-	end
-	
-	if birth_control['think_safe'] = 1:
-		gs'booty_call_pillow_talk', 'on_birth_control'
-	else
-		if stat['safe_day'] = 1:
-			act'I should be':
-				cla & *nl
-				if $booty_call['convo'] = 'used_all_condoms':
-					'"It''s a safe day," you nod. "I''ll be okay. This time anyways," you smile teasingly.'
-				else
-					'"I should be. It''s a safe day, so I''ll be okay. This time anyways," you smile teasingly.'
-				end
-				gs'booty_call_pillow_talk', 'topics'
-			end
-		elseif stat['probably_safe_day'] = 1:
-			act'I think so':
-				if $booty_call['convo'] = 'used_all_condoms':
-					'"I think so," you say. "I should be a safe day for me as long as I''m keeping track of my cycle correctly..."'
-				else
-					'"I think so," you say. "I should be a safe day for me as long as I''m keeping track of my cycle correctly..."'
-				end
-				gs'booty_call_pillow_talk', 'topics'
-			end
-		else
-			if stat['dangerous_day'] = 1:
-				act'Probably not':
-					cla & *nl
-					if $booty_call['convo'] = 'used_all_condoms':
-						'"Probably not..." you say hesitantly, grimacing as you do. "Which is why it''s so important we don''t run out of condoms in the future...'
-					else
-						'"Probably not..." you say hesitantly, grimacing as you do. "It''s a pretty risky day for me...'
-					end
-					if npc_childfree[$boy] = 1 or npc_caretaker[$boy] = 1:
-						gs'booty_call_pillow_talk', 'morning_after_money'
-					else
-						gs'booty_call_pillow_talk', 'topics'
-					end
-				end
-			end
-			
-			act'I''m not sure':
-				cla & *nl
-				'"I''m... not sure..." you say hesitantly.'
-				if npc_childfree[$boy] = 1 or npc_caretaker[$boy] = 1:
-					gs'booty_call_pillow_talk', 'morning_after_money'
-				else
-					gs'booty_call_pillow_talk', 'topics'
-				end
-			end
-			
-			act'Roll the dice?':
-				cla & *nl
-				'"I''m not sure... Maybe we can just roll the dice?" you say with a hesitant smile.'
-				if npc_childfree[$boy] = 1 or npc_caretaker[$boy] = 1:
-					gs'booty_call_pillow_talk', 'morning_after_money'
-				else
-					gs'booty_call_pillow_talk', 'topics'
-				end
-			end
-			
-			act'Need plan B':
-				cla & *nl
-				'"Not really," you grimace. "I''m definitely going to need some plan B tomorrow."'
-				if npc_childfree[$boy] = 1 or npc_caretaker[$boy] = 1:
-					gs'booty_call_pillow_talk', 'morning_after_money'
-				else
-					gs'booty_call_pillow_talk', 'topics'
-				end
-			end
-			
-			act'Need plan B (safety)':
-				cla & *nl
-				'"I''ll get some plan B tomorrow just to be safe," you say.'
-				if npc_childfree[$boy] = 1 or npc_caretaker[$boy] = 1:
-					gs'booty_call_pillow_talk', 'morning_after_money'
-				else
-					gs'booty_call_pillow_talk', 'topics'
-				end
-			end
-		end
-		gs'booty_call_pillow_talk', 'pc_have_morning_after'
-	end
-end
-
-if $ARGS[0] = 'morning_after_money':
-	'<<$npc_firstname[$boy]>> looks at you for a moment before reaching down into his discarded trousers to grab his wallet, pulling 800<b>₽</b> out.'
-	'"Here," he says, offering the cash to you. "Get a morning after pill tomorrow.'
-	act'No, you don''t have to':
-		cla & *nl
-		'"No," you shake your head. "I can''t ask you to do that."'
-		if npc_childfree[$boy] = 1:
-			'"Take it," he says insistently. "I don''t want any kids running around. You can thank me by making sure you take that pill tomorrow."'
-		else
-			'"Don''t worry about it," he says, smiling gently. "I think it would suck for both of us if you got pregnant right now."'
-		end
-		
-		act'Refuse':
-			cla & *clr
-			$npc_apt_bedroom
-			'"No, I don''t want your money," you say, shaking your head and pushing the money away.'
-			if npc_childfree[$boy] = 1:
-				'<<$npc_firstname[$boy]>> stares at you for a moment, looking almost angry.'
-				'"Just don''t fucking get pregnant, okay?" he says, tossing the cash onto his bedside table.'
-			else
-				'"If you''re sure..." <<$npc_firstname[$boy]>> says hesitantly, withdrawing his hand.'
-			end
-			gs'booty_call_pillow_talk', 'topics'
-		end
-		
-		act'Take it':
-			take_morning_after[$boy] = daystart
-			cla & *clr
-			'You take the money from him, warmed by the gesture.'
-			'"Thanks," you say, giving him the most grateful smile you can.'
-			if npc_childfree[$boy] = 1:
-				'"Seriously," <<$npc_firstname[$boy]>> says. "Take that pill."'
-			else
-				'He just nods back in return'
-			end
-			gs'booty_call_pillow_talk', 'topics'
-		end
-	end
-	
-	act'Take the money':
-		take_morning_after[$boy] = daystart
-		cla & *clr
-		$npc_apt_bedroom
-		'You take the money from him, warmed by the gesture.'
-		'"Thanks," you say, giving him the most grateful smile you can.'
-		if npc_childfree[$boy] = 1:
-			'"Don''t thank me," he says, shaking his head. "I just don''t want any bastard kids running around. You can thank me by making sure you take that pill tomorrow."'
-		else
-			'"Don''t worry about it," he says, grinning. "I think it would suck for both of us if you got pregnant right now."'
-		end
-		gs'booty_call_pillow_talk', 'topics'
-	end
-	
-	
-	if money >= 740:
-		act'I have enough money':
-			take_morning_after[$boy] = daystart
-			cla & *nl
-			'"No," you shake your head. "You don''t have to do that. I have enough money to buy a pill myself."'
-			if npc_childfree[$boy] = 1:
-				'"Just make sure you do," he replies. "I don''t want any kids running around."'
-			else
-				'"If you''re sure..." <<$npc_firstname[$boy]>> says hesitantly, withdrawing his hand.'
-			end
-			gs'booty_call_pillow_talk', 'topics'
-		end
-	end
-end
-
 if $ARGS[0] = 'boy_condom_rule':
 	if booty_call['condom'] ! 1:
 	
@@ -1897,6 +1735,13 @@ if $ARGS[0] = 'angry_end':
 	cla & *nl
 	booty_call['angry_after'] = 1
 	'Your initial comment has escalated into a full blown shouting match, leaving both of you visibly fuming.'
+	gs'booty_call_after', 'after_sex2'
+end
+
+if $ARGS[0] = 'angry_end2':
+	cla & *nl
+	booty_call['angry_after'] = 1
+	'Your initial comment has strayed into unhappy territory and both of you are visibly fuming.'
 	gs'booty_call_after', 'after_sex2'
 end
 
