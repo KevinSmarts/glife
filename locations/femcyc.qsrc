@@ -15,11 +15,11 @@
 !!
 !!------------------------------------------------------------------------------------------------------------
 !!
-!!	$ChildFath : array for names of the childs biological father
+!!	$ChildFath : array for names of the childs biological father. This should be the absolute truth, not readily available information for the characters.
 !!	$ChildFathDNA : array for the DNA of the childs father
-!!	$ChildThFath : array for the names of the childs believed father (can be different from the biological father)
+!!	$ChildThFath : array for the IDs of the childs believed father (can be different from the biological father and should be in form of ID ie. 'A34' or 'unknown' if Sveta has no idea) Don't use for pregnancy events as it is only updated when going to labor. This is probably the variable you want to work with when doing paternity tests, or if father reacts to physical traits not matching despite Sveta claiming they are the dad.
 !!	$childtype : child type. single child, fraternal twin, identical twin ...
-!!	$cumfthname : the name of the father if sveta is sure
+!!	$cumfthname : Array of IDs of the possible fathers (conscious acts) 'unknown' if otherwise empty
 !!	$cycreport_txt : Text for the current menstruation cycle. e.g. In labour.
 !!	$d_cycreport_update : Dynamic variable to update cycle report
 !!	$d_pregmovement : Dynamic variable for kid movement
@@ -29,7 +29,10 @@
 !!	$pcs_dna : Svetas DNA
 !!	$wombDNA : sperm in womb potent enough to cause pregnancy
 !!	$wombName : the identifier of the NPC
-!!	$wombpotfath : the used name of the potential father, if sveta is not sure
+!!	$wombpotfath : the array of IDs of the potential fathers
+!!	$wombthfath : The name of the person Sveta believes to be the father of ongoing pregnancy, updated from the cycle menu decision.
+!!	$wombthfathID : The ID of the person Sveta believes to be the father of ongoing pregnancy, updated from the cycle menu decision. - Might be best variable for pregnancy events with the dad
+!!	if arrpos('$wombpotfath', 'A34') >= 0: can be tested to see if the person 'A34' (Kolka, for example) is in the list of potential fathers
 !!	arrmodtmp : temp array used in pregnancy progression
 !!	babyembryo : used during implant phase. if the fertegg successfully nests, babyembryo is +1. BabyEmbryo is for how many unborn babies are inside Sveta.
 !!	Babyptype : pregnancy type of unborn babies. they might be unimplanted 0, healthy 1, or Ectopic 2.
@@ -112,7 +115,6 @@
 !!	succubusflag : used for succubus story arc. If Sveta is a succubus, the sperm will be absorbed
 !!	succubxp : succubus experience
 !!	succycletmp : succubus cycle temp var. Used during sperm absorption function.
-!!	tempbabyi : temp var for baby variable removal.
 !!	tempovbonus : temp var for ovulation bonus. Fertility bonus.
 !!	temprand : used as temp var for randomizer
 !!	tempwbbonus : temp variable for womb bonus during egg implant function
@@ -641,11 +643,6 @@ if $ARGS[0] = 'cyc2':
 				$kid_dna[nextbaby] = func('DNA', 'generate', $pcs_dna, $npc_dna[$cumfathlotto[lotto_idx]])
 				$ChildFath[nextbaby] = $cumfathlotto[lotto_idx]
 				$ChildFathDNA[nextbaby] = $cumfatherDNA[lotto_idx]
-				if arrsize('$wombpotfath') = 1:
-					$ChildThFath[nextbaby] = $wombpotfath[0]
-				else
-					$ChildThFath[nextbaby] = 'unknown'
-				end
 				hairkid[nextbaby] = rand(0, 3)
 				eyeskid[nextbaby] = rand(0, 3)
 				ChildConType[nextbaby] = cumarrcon[nextbaby]
@@ -787,18 +784,17 @@ if $ARGS[0] = 'cyc3':
 		:lutcycloop
 		if rej_idx < rej_sz:
 			if Babyptype[rej_idx] = 0:
-				killvar 'polkid',tempbabyi
-				killvar '$kidname',tempbabyi
-				killvar 'kidage',tempbabyi
-				killvar 'daykid',tempbabyi
-				killvar 'monthkid',tempbabyi
-				killvar 'yearkid',tempbabyi
-				killvar 'Babyptype',tempbabyi
-				killvar '$ChildFath',tempbabyi
-				killvar '$ChildThFath',tempbabyi
-				killvar 'hairkid',tempbabyi
-				killvar 'eyeskid',tempbabyi
-				killvar 'cumarrcon',tempbabyi
+				killvar 'polkid',rej_idx
+				killvar '$kidname',rej_idx
+				killvar 'kidage',rej_idx
+				killvar 'daykid',rej_idx
+				killvar 'monthkid',rej_idx
+				killvar 'yearkid',rej_idx
+				killvar 'Babyptype',rej_idx
+				killvar '$ChildFath',rej_idx
+				killvar 'hairkid',rej_idx
+				killvar 'eyeskid',rej_idx
+				killvar 'cumarrcon',rej_idx
 				FertEgg -= 1
 			end
 			rej_idx += 1
@@ -906,7 +902,15 @@ if $ARGS[0] = 'preg':
 		:babyfinalpreploop
 		if arrmodtmp < arrsize('$ChildFath') and daykid[arrmodtmp] = 0:
 			daykid[arrmodtmp] = 42
-			$ChildThFath[arrmodtmp] = $wombthfath
+			!! $wombthfathID is the ID of the character Sveta has chosen as believed father in the cycle menu
+			!! checking the there's a valid ID that resolves into a name, if yes then applying that ID as believed father
+			if $npc_usedname[$wombthfathID] ! '':
+				$ChildThFath[arrmodtmp] = $wombthfathID
+			else
+			!! if the ID does not resolve into a name then it's probably some legacy event father
+			!! like 'A sperm donor' or else 'unknown'. In either case it should not cause issues if all outliers are designated 'unknown'
+				$ChildThFath[arrmodtmp] = 'unknown'
+			end
 			arrmodtmp += 1
 			jump 'babyfinalpreploop'
 		end
