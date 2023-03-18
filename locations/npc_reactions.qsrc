@@ -5,7 +5,7 @@
 !! It has functions that can be called from an interaction with an npc to add a line of text that reacts to some aspect of the player character.
 !! The following are thing that need to have reactions, fell free to fill out any of these you like:
 !{Clothing:
-- Style = bimbo, goth, punk, etc
+- Style = bimbo, punk, etc
 - Thinness
 - Bra/Braless (if applicable)
 - Skirt length
@@ -37,7 +37,12 @@ Physical traits:
 - exposed breast
 }
 
+if $ARGS[0] = 'stat':
+	killvar 'npc_reaction_hourly'
+end
+
 if $ARGS[1] = 'cikl':
+	killvar 'npc_reaction_daily'
 	if week = 1:
 		killvar 'npc_reaction_weekly'
 	end
@@ -47,12 +52,80 @@ end
 !! $ARGS[1] is either the npc_identifirer for a npc with entry in npc_startic or the name of the npc.
 !! $ARGS[2] is npc''s opinion of the player character and is only used for npc's that don't have an identifier. It set to either 'love', 'like', 'indifferent' or 'dislike', if it is not set it will default to the opinion of hate. So remember to set it unless the npc hate the player character.
 if $ARGS[0] = 'general':
-	if bimbo_flag = 1 and dyneval( 'RESULT = npc_reaction_weekly[''<<$ARGS>>_bimbo'']') = 0:
-		dynamic 'npc_reaction_weekly[''<<$ARGS>>_bimbo''] = 1'
-		$result = func('npc_reactions', 'bimbo_look', $ARGS[1], $ARGS[2])
-	end
+	!! This reset the npc expectation about that player character is tanned if the player character is no longer tanned.
+	if dyneval( 'RESULT =npc_reaction_first_time[''<<$ARGS[1]>>_tan'']') = 1 and pcs_tan = 0: dynamic 'npc_reaction_first_time[''<<$ARGS[1]>>_tan''] = 0'
 	
-	killvar 'npc_reactions_temp_preferences'
+	if (cumloc[11] = 1 or cumloc[16] = 1) and dyneval( 'RESULT =npc_reaction_hourly[''<<$ARGS[1]>>_cum_on_face'']') = 0:
+		$result = func('npc_reactions', 'cum_on_face', $ARGS[1], $ARGS[2])
+	elseif (cumloc[6] = 1 or cumloc[7] = 1) and dyneval( 'RESULT =npc_reaction_hourly[''<<$ARGS[1]>>_cum_on_clothes'']') = 0:
+		$result = func('npc_reactions', 'cum_on_clothes', $ARGS[1], $ARGS[2])
+	else
+		if func('body_din','pregnancyVisibility') = 1 and dyneval( 'RESULT =npc_reaction_pregnant[''<<$ARGS[1]>>'']') = 0:
+			$result = func('npc_reactions', 'pregnant', $ARGS[1], $ARGS[2])
+		else
+			i = 0
+			if bimbo_flag = 1 and dyneval( 'RESULT = npc_reaction_weekly[''<<$ARGS[1]>>_bimbo'']') = 0:
+				i += 1
+				$npc_reaction_choice[i] = 'bimbo_look'
+			end
+
+			if goth_flag = 1 and dyneval( 'RESULT = npc_reaction_weekly[''<<$ARGS[1]>>_goth'']') = 0:
+				i += 1
+				$npc_reaction_choice[i] = 'goth_look'
+			end
+
+			if punk_flag = 1 and dyneval( 'RESULT = npc_reaction_weekly[''<<$ARGS[1]>>_punk'']') = 0:
+				i += 1
+				$npc_reaction_choice[i] = 'punk_look'
+			end
+
+			if CloThinness > 4 and dyneval( 'RESULT = npc_reaction_daily[''<<$ARGS[1]>>_clothes_thinnes'']') = 0:
+				i += 1
+				$npc_reaction_choice[i] = 'clothes_thinnes'
+			end
+
+			if CloSkirtShortness > 4 and dyneval( 'RESULT = npc_reaction_daily[''<<$ARGS[1]>>_short_skirt'']') = 0:
+				i += 1
+				$npc_reaction_choice[i] = 'short_skirt'
+			end
+
+			if ((pirsA > 0 and pirsA < 10000) or (pirsB > 0 and pirsB < 10000)  or (pirsD > 0 and pirsD < 10000)  or (pirsE > 0 and pirsE < 10000)  or (pirsE > 0 and pirsE < 10000 and (PCloBra > 0 or CloThinness > 5))) and dyneval( 'RESULT = npc_reaction_weekly[''<<$ARGS[1]>>_piercing'']') = 0:
+				i += 1
+				$npc_reaction_choice[i] = 'piercing'
+			end
+
+			if pcs_makeup > 1 and dyneval( 'RESULT = npc_reaction_weekly[''<<$ARGS[1]>>_makeup'']') = 0:
+				i += 1
+				$npc_reaction_choice[i] = 'makeup'
+			end
+
+			if (tatarm >= 1 or tatlip >= 1 or tatneck >= 1 or tathand >= 1 or  tatfce >= 1 or ((tatback >= 1 or tatblly >= 1 or tatside >= 1 or tatlech >= 1 or tatwrist >= 1) and (PCloBra > 0 or CloThinness > 5)) or (tatankle >= 1 and (CloSkirtShortness > 1 or CloPantsShortness > 1)) or (tatleg >= 1 and (CloSkirtShortness > 2 or CloPantsShortness > 2))) and dyneval( 'RESULT = npc_reaction_first_time[''<<$ARGS[1]>>_tatoo'']') = 0:
+				i += 1
+				$npc_reaction_choice[i] = 'tatoo'
+			end
+
+			if pcs_tan > 5 and dyneval( 'RESULT =npc_reaction_first_time[''<<$ARGS[1]>>_tan'']') = 0:
+				i += 1
+				$npc_reaction_choice[i] = 'tan'
+			end
+
+			if pcs_stren > 100 and dyneval( 'RESULT = npc_reaction_weekly[''<<$ARGS[1]>>_strong'']') = 0:
+				i += 1
+				$npc_reaction_choice[i] = 'strong'
+			end
+
+			if pcs_bmi >= 19 and pcs_bmi < 25 and (pcs_vital*2 + pcs_agil + pcs_stren)/4 >= 60 and dyneval( 'RESULT = npc_reaction_weekly[''<<$ARGS[1]>>_fit'']') = 0:
+				i += 1
+				$npc_reaction_choice[i] = 'fit'
+			end
+
+			$result = func('npc_reactions', $npc_reaction_choice[rand(1,i)], $ARGS[1], $ARGS[2])
+
+	
+			killvar 'npc_reactions_temp_preferences'
+			killvar 'npc_reaction_choice'
+		end
+	end
 end
 
 !! This is an example for how the reaction should be done. Feel free to improve the text if you have a better version.
@@ -60,7 +133,8 @@ end
 !! The preference for an npc with entries in npcstatic is set there. If you want to set the preference for an npc that in not in npcstatic then you have to set npc_reactions_temp_preferences['bimbo'] equal to 1 for like and -1 for dislike before you call the function that gives the reaction.
 !! This also means the for some combination of these there might  be an reaction, which is done by having $result = ''
 if $ARGS[0] = 'bimbo_look':
-	!! Thisd is out comoneted since we don''t have special reactions from Katja and Dimka yet, it is just to show how the code will be when special reactions is added.
+	dynamic 'npc_reaction_weekly[''<<$ARGS[1]>>_bimbo''] = 1'
+	!! This is out commented since we don''t have special reactions from Katja and Dimka yet, it is just to show how the code will be when special reactions is added.
 	!!if $ARGS[1] = 'A01'
 	!!	!!Special text for Dimka
 	!!	$result = func('dimca_reaction', 'bimbo')
@@ -72,55 +146,668 @@ if $ARGS[0] = 'bimbo_look':
 			!!text if the npc likes the bimbo look
 			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'love':
 				!!if the npc likes the bimbo looks and love the player character
-				$result = '"I love how you look." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+				$result = '"You''re gorgeous! I adore your fashion sense!" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
 			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
 				!!if the npc likes the bimbo looks and likes the player character
-				$result = '"I that look suits you." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+				$result = '"That''s a great look. It should never be changed!" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
 			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
 				!!if the npc likes the bimbo looks and is indifferent to  the player character
-				$result = '"I  like your look." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+				$result = '"At the very least, you know how to dress correctly" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
 			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
 				!!if the npc like the bimbo looks and dislikes the player character
-				$result = '"I think that would look good on somebody else." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+				$result = '"You''re putting forth too much effort. That look is pointless on you." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
 			else
 				!!if the npc like the bimbo looks and hates the player character
-				$result = '"Why the fuck do you think you can wear something like that, you are way to ugly to pull of a great look like that" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+				$result = '"That outfit is really wasted on a slut like you!" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
 			end
 		elseif dyneval( 'RESULT = npc_preference[''<<$ARGS[1]>>_bimbo'']') = -1 or npc_reactions_temp_preferences['bimbo'] = -1:
 			!!text if the npc dislikes the bimbo look
 			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'love':
 				!!if the npc dislikes the bimbo looks and love the player character
-				$result = '"I love you, but I am not sure I agree with you look." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+				$result = '"Don''t get me wrong! You''re always as stunning as ever! It''s just that look isn''t for me" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
 			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
 				!!if the npc dislikes the bimbo looks and likes the player character
-				$result = '"I think we need to go shopping together, so we can get you some real good clothes." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+				$result = '"You''re quite nice; I simply believe a different style might fit you more" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
 			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
 				!!if the npc dilikes the bimbo looks and is indifferent to  the player character
-				$result = ''
+				$result = '"I don''t give a damn about how you look. It has no effect on me" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
 			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
 				!!if the npc dislike the bimbo looks and dislikes the player character
-				$result = '"Well at least the look match you intelligence." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+				$result = '"That look is perfect for you! That is, I despise both" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
 			else
 				!!if the npc like the bimbo looks and hates the player character
-				$result = '"You at least dress like the dumb cow you are." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+				$result = '"At least the appearance corresponds to the personality: cheap and superficial" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
 			end
 		else
 			!!text if the npc is indifferent to the bimbo look
 			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'indifferent':
 				!!if the  npc is indifferent to the bimbo looks and love the player character
-				$result = '"You look nice." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+				$result = '"You''re always stunning, no matter what you''re wearing!" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
 			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
 				!!if the  npc is indifferent to the bimbo looks and likes the player character
-				$result = ''
+				$result = '"You''re very nice. And that style suits you" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
 			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
 				!!if the  npc is indifferent to the bimbo looks and is indifferent to  the player character
-				$result = ''
+				$result = '"I don''t mind. Simply put on whatever you want." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
 			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
 				!!if the  npc is indifferent to the bimbo looks and dislikes the player character
-				$result = ''
+				$result = '"What are you trying to do? Maybe you should care less about looks and more about not being a bitch?" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
 			else
 				!!if the  npc is indifferent to the bimbo looks and hates the player character
-				$result = '"What the fuck are you wearing?" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+				$result = '"A slut remains a slut. It doesn''t matter how she dresses" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			end
+		end
+	!!end
+end
+
+if $ARGS[0] = 'goth_look':
+	dynamic 'npc_reaction_weekly[''<<$ARGS[1]>>_goth''] = 1'
+	!! This is out commented since we don''t have special reactions from Katja and Dimka yet, it is just to show how the code will be when special reactions is added.
+	!!if $ARGS[1] = 'A01'
+	!!	!!Special text for Dimka
+	!!	$result = func('dimca_reaction', 'bimbo')
+	!!elseif $ARGS[1] = 'A14'
+	!!	!!Special text for Katja
+	!!	$result = func('katja_procedural', 'bimbo')
+	!!else
+		if dyneval( 'RESULT = npc_preference[''<<$ARGS[1]>>_goth'']') = 1 or npc_reactions_temp_preferences['goth'] = 1:
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'love':
+				$result = '"Wow, <<$pcs_nickname>>, you really pull off the goth look well!" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says while looking you up and down.'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = '"You know, <<$pcs_nickname>>, not many people can pull off goth, but I think you look really great," '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says.'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = '"Goth is certainly an interesting look for you, <<$pcs_nickname>>," '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says.'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = '"Ugh, you can''t pull off the goth look at all!" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says, waving at you dismissively.'
+			else
+				$result = '"You look like a wet dog, <<$pcs_nickname>>! The goth style isn''t for wannabe losers like you!" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says, sneering at you.'
+			end
+		elseif dyneval( 'RESULT = npc_preference[''<<$ARGS[1]>>_goth'']') = -1 or npc_reactions_temp_preferences['goth'] = -1:
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'love':
+				$result = '"Even on you, <<$pcs_nickname>>, I''m just not a fan of this goth thing," '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says, looking over your outfit.'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = '"Are you sure about this, <<$pcs_nickname>>?" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says while poking at your outfit. "It''s so dark and gloomy, I don''t think it suits you."'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = '"That is one ugly outfit, <<$pcs_nickname>>," '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says. "You should find a trendier style to wear, it''ll make you look better."'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = '"Seeing you in that terrible outfit reminds me of why I don''t like you, <<$pcs_nickname>>," '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says, rolling their eyes at you.'
+			else
+				$result = '"Wow, you found an equally ugly style to match your ugly face!" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says, laughing at you.'
+			end
+		else
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'indifferent':
+				$result = '"Yeah, still amazing. Don''t care what you wear" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = '"Yeah, it''s a nice look for you, if you''re into all that goth stuff" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = '"Don''t worry, it''s not the goth look. I just don''t care about you" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = '"It''s not what you wear. I just don''t like you. So stop trying to be edgy with that goth style" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			else
+				$result = '"The fuck are you wearing? You know what, don''t answer. I think the problem it''s not the dress, it''s just you" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			end
+		end
+	!!end
+end
+
+!{
+if $ARGS[0] = '':
+	dynamic 'npc_reaction_[''<<$ARGS[1]>>_''] = 1'
+	!!else
+		if dyneval( 'RESULT = npc_preference[''<<$ARGS[1]>>_'']') = 1 or npc_reactions_temp_preferences[''] = 1:
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'love':
+				$result = ' '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = ' '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = ' '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = ' '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			else
+				$result = ' '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			end
+		elseif dyneval( 'RESULT = npc_preference[''<<$ARGS[1]>>_'']') = -1 or npc_reactions_temp_preferences[''] = -1:
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'love':
+				$result = ' '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = ' '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = ' '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = ' '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			else
+				$result = ' '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			end
+		else
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'indifferent':
+				$result = ' '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = ' '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = ' '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = ' '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			else
+				$result = ' '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			end
+		end
+	!!end
+end
+}
+
+if $ARGS[0] = 'punk_look':
+	dynamic 'npc_reaction_weekly[''<<$ARGS[1]>>_punk''] = 1'
+	!!else
+		if dyneval( 'RESULT = npc_preference[''<<$ARGS[1]>>_punk'']') = 1 or npc_reactions_temp_preferences['punk'] = 1:
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'love':
+				$result = '"Wow, I love your style! You have such a cool edge to you, I admire it." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = '"I like your punk style, it''s different and unique. You have a good sense of fashion." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = '"The punk style is cool, but I don''t really have an opinion on the person wearing it." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = '"I like the punk look, but I don''t like the attitude that usually comes with it. You need to tone it down a bit." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			else
+				$result = ' "I can''t stand people like you who try to act tough with that punk style. It''s just a front for insecurity." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			end
+		elseif dyneval( 'RESULT = npc_preference[''<<$ARGS[1]>>_punk'']') = -1 or npc_reactions_temp_preferences['punk'] = -1:
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'love':
+				$result = '"I''m not a fan of the punk style, but I love you anyway. You''re such a kind person." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = '"I don''t like your punk style, but I still think you''re a decent person." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = ' "I don''t like the punk style, but it doesn''t really affect my opinion of you." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = '"I really don''t like the punk look on you. It doesn''t suit you at all." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			else
+				$result = '"I hate that punk style, and I hate that you''re wearing it. You''re bringing down the whole community." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			end
+		else
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'indifferent':
+				$result = '"I don''t have a strong opinion on punk style, but I love you no matter what you wear." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = '"I don''t care about your punk style, but I still like you as a person." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = '"The punk style is just a style to me, it doesn''t impact my thoughts on you." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = '"I don''t have a strong feeling about punk style, but I don''t like it on you." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			else
+				$result = '"I don''t have an opinion on punk style, but I hate your attitude and behavior." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			end
+		end
+	!!end
+end
+
+
+if $ARGS[0] = 'clothes_thinnes':
+	dynamic 'npc_reaction_daily[''<<$ARGS[1]>>_clothes_thinnes''] = 1'
+	!!else
+		if dyneval( 'RESULT = npc_preference[''<<$ARGS[1]>>_clothes_thinnes'']') = 1 or npc_reactions_temp_preferences['clothes_thinnes'] = 1:
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'love':
+				$result = '"Wow, you look amazing in that thin '+iif(CloDress  =  1, 'dress', 'outfit')+'! You always know how to dress to impress." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = '"Nice '+iif(CloDress  =  1, 'dress', 'outfit')+'! You have a great sense of style." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = '"I see you''re wearing a thin '+iif(CloDress  =  1, 'dress', 'outfit')+'today." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = '"That '+iif(CloDress  =  1, 'dress', 'outfit')+' is a bit too revealing for my taste, but I suppose it''s your choice." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			else
+				$result = '"What were you thinking wearing something so revealing in public?" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			end
+		elseif dyneval( 'RESULT = npc_preference[''<<$ARGS[1]>>_clothes_thinnes'']') = -1 or npc_reactions_temp_preferences['clothes_thinnes'] = -1:
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'love':
+				$result = '"Oh, I see you''re wearing a thin '+iif(CloDress  =  1, 'dress', 'outfit')+' today! I love you regardless of what you wear." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = '"You look nice in that thin '+iif(CloDress  =  1, 'dress', 'outfit')+', but I always thought you looked great no matter what." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = '"The thin '+iif(CloDress  =  1, 'dress', 'outfit')+' is interesting. It doesn''t really impact my opinion of you." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = '"I''m not a fan of thin '+iif(CloDress  =  1, 'dresses', 'skirts')+', but it''s not my place to judge what you wear." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			else
+				$result = '"I can''t stand seeing you in that thin '+iif(CloDress  =  1, 'dress', 'outfit')+'. It''s disrespectful and shows poor judgement." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+
+			end
+		else
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'indifferent':
+				$result = '"Oh, they look nice and comfortable in that '+iif(CloDress  =  1, 'dress', 'outfit')+'. I adore them." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = '"The '+iif(CloDress  =  1, 'dress', 'outfit')+' suits them well, I like it." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = '"It''s just a '+iif(CloDress  =  1, 'dress', 'outfit')+', doesn''t affect my opinion of them." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = '"I personally prefer more coverage, but to each their own." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			else
+				$result = '"I can''t stand how revealing that '+iif(CloDress  =  1, 'dress', 'outfit')+' is, it''s disrespectful." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			end
+		end
+	!!end
+end
+
+if $ARGS[0] = 'short_skirt':
+	dynamic 'npc_reaction_daily[''<<$ARGS[1]>>_short_skirt''] = 1'
+	!!else
+		if dyneval( 'RESULT = npc_preference[''<<$ARGS[1]>>_short_skirt'']') = 1 or npc_reactions_temp_preferences['short_skirt'] = 1:
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'love':
+				$result = '"Such a lovely skirt for such lovely legs!" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = '"That is a lovely skirt! Without it, it would be even better!" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = '"That''s a nice skirt" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = '"Could you please spare us the sight of your legs by not wearing a skirt so short?" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			else
+				$result = '"Why would you waste such a skirt on a cow like you?" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			end
+		elseif dyneval( 'RESULT = npc_preference[''<<$ARGS[1]>>_short_skirt'']') = -1 or npc_reactions_temp_preferences['short_skirt'] = -1:
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'love':
+				$result = '"That skirt does not do you credit! You''re better than that!" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = '"Why ruin your perfect look with a skirt like that?" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = '"Yeah, that skirt is not for you. Or anybody else" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = '"What a perfect look. A shitty skirt for a shitty person" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			else
+				$result = ' "I had no idea someone could look that bad in such a little skirt" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			end
+		else
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'indifferent':
+				$result = '"You''re always beautiful. That skirt it''s just the cherry on top!" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = '"It''s not the skirt, it''s what beneath that counts!" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = '"That''s skirt it''s ok. Don''t get too excited" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = ' "It''s not that I don''t like the skirt. It''s that I don''t like you" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			else
+				$result = '"Shitty skirt. Shitty person. Can you go away? Please?" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			end
+		end
+	!!end
+end
+
+if $ARGS[0] = 'piercing':
+	dynamic 'npc_reaction_weekly[''<<$ARGS[1]>>_piercing''] = 1'
+	!!else
+		if dyneval( 'RESULT = npc_preference[''<<$ARGS[1]>>_piercing'']') = 1 or npc_reactions_temp_preferences['piercing'] = 1:
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'love':
+				$result = '"Wow, that''s a cool piercing! It really suits you." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = '"I really like your piercing, it''s so unique." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = '"Interesting piercing, it definitely makes a statement." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = '"I''m not a fan of piercings, but I can see why some people would like them. I guess it''s just not my style." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			else
+				$result = '"What kind of person would do that to their body? Only a stupid cow like you." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			end
+		elseif dyneval( 'RESULT = npc_preference[''<<$ARGS[1]>>_piercing'']') = -1 or npc_reactions_temp_preferences['piercing'] = -1:
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'love':
+				$result = '"I''m not a fan of piercings, but I still love you just the same." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = '"I don''t care for the piercing, but I still think you''re a great person." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = ''
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = '"I don''t like piercings, and the fact that you have one makes me dislike you a little." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			else
+				$result = '"That piercing is just offensive to me. I can''t stand being around people who express themselves like that." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			end
+		else
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'indifferent':
+				$result = '"I don''t have an opinion on piercings, but I love you regardless." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = '"I don''t have an opinion on piercings, but I love you regardless." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = '"It''s just a piercing, doesn''t make a difference to me either way." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = '"I don''t have a strong feeling about piercings, but it does make me think less of you." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			else
+				$result = '"Indifference towards piercings is fine, but hate towards you is another matter." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			end
+		end
+	!!end
+end
+
+if $ARGS[0] = 'makeup':
+	dynamic 'npc_reaction_weekly[''<<$ARGS[1]>>_makeup''] = 1'
+	!!else
+		if dyneval( 'RESULT = npc_preference[''<<$ARGS[1]>>_makeup'']') = 1 or npc_reactions_temp_preferences['makeup'] = 1:
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'love':
+				$result = '"Wow! You''re so beautiful! And with flawless makeup!" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = '"That''s a nice makeup! A perfect natural look!" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = '"Nice makeup" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = '"At the very least, all that makeup conceals your ugly face." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			else
+				$result = '"Even with all that makeup a pig is still a pig" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			end
+		elseif dyneval( 'RESULT = npc_preference[''<<$ARGS[1]>>_makeup'']') = -1 or npc_reactions_temp_preferences['makeup'] = -1:
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'love':
+				$result = '"Maybe a touch too much cosmetics, but you''re still stunning." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = '"Why not try a more natural look? Why hide your lovely face?" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = '"I prefer girl without makeup, sorry" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = '"If you were trying to look like a clown, you succeeded" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			else
+				$result = '"Wow, shitty makeup, for a shitty person" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			end
+		else
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'indifferent':
+				$result = '"I''m not an expert, but I believe that makeup is perfect for you" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = '"It''s not your makeup that is lovely, it''s your face" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = '"Nah, a natural look would suit you better" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = '"I really don''t care about makeup, you''re still a pig" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			else
+				$result = '"Makeup is not enough to cover your stupid face" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			end
+		end
+	!!end
+end
+
+if $ARGS[0] = 'tatoo':
+	dynamic 'npc_reaction_first_time[''<<$ARGS[1]>>_tatoo''] = 1'
+	!!else
+		if dyneval( 'RESULT = npc_preference[''<<$ARGS[1]>>_tatoo'']') = 1 or npc_reactions_temp_preferences['tatoo'] = 1:
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'love':
+				$result = ' "I really like your ink! The only thing that could make it better would be to add my name on it" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = '"I adore your tats! They''re pretty wonderful!" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = '"Yeah, the tattoos are nice, even on you." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = ' "Tattoos are OK. It''s only you that I dislike" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			else
+				$result = '"I''m sorry, but tattoos on people like you are like putting lipstick on a fucking pig and expecting it would make things better" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			end
+		elseif dyneval( 'RESULT = npc_preference[''<<$ARGS[1]>>_tatoo'']') = -1 or npc_reactions_temp_preferences['tatoo'] = -1:
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'love':
+				$result = '"Don''t get me wrong: I adore you; I simply don''t believe your tattoos do you credit" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = '"Why would you tattoo your body? I prefer it without tattoos" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = '"It''s not your fault; I simply dislike tattoos." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = '"I dislike tattoos and dislike you. Please leave" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			else
+				$result = '"Sluts and tattoos. I dislike both of these things" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			end
+		else
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'indifferent':
+				$result = '"Although I don''t particularly like tattoos, they are incredibly attractive when you have them." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = '"Tattoos look great on you even if I don''t really like them." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = '"I''m not interested in tattoos, and I''m not interested in you. So, what keeps you here?" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = '"No, not at all. Tattoos alone will not make me like you." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			else
+				$result = '"You are aware that tattoos are not a replacement for personality, correct? You are still a useless piece of shit" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			end
+		end
+	!!end
+end
+
+if $ARGS[0] = 'cum_on_face':
+	dynamic 'npc_reaction_hourly[''<<$ARGS[1]>>_cum_on_face''] = 1'
+	!!else
+		if dyneval( 'RESULT = npc_preference[''<<$ARGS[1]>>_cum_on_face'']') = 1 or npc_reactions_temp_preferences['cum_on_face'] = 1:
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'love':
+				$result = '"You know you''re a bad girl? Maybe next time I''ll moisturize your face?" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = '"Maybe you could invite me to the next facial party?" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = '"What piques my interest? A woman who let her lover to come on her face!" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = '"Who was so anxious to use you as a cum bucket, c''mon?" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			else
+				$result = '"How much did you beg for someone to come on your ugly face?" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			end
+		elseif dyneval( 'RESULT = npc_preference[''<<$ARGS[1]>>_cum_on_face'']') = -1 or npc_reactions_temp_preferences['cum_on_face'] = -1:
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'love':
+				$result = '"Why would you let someone ruin such a beautiful face with their cum?" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = '"I''m not that confortable seeing cum on that lovely face" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = '"Maybe wash you face before coming and talking to me?" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = '"Of couse someone like you wouldn''t take one minutes to wash her face after sucking someone dick" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			else
+				$result = '"You''re ugly enough, could you not come here with fucking cum on your stupid face?" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			end
+		else
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'indifferent':
+				$result = '"I think you should get a napkin and wash your face. Your still lovely, but shit, that is nasty" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = '"You should really go and wash your face before anyone sees you" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = '"Didn''t your mum ever told you to wash you face after use?" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = '"Maybe next time swallow? You''re even uglier now with cum on your face" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			else
+				$result = '"Who wasted an orgasm on that ugly face?" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			end
+		end
+	!!end
+end
+
+if $ARGS[0] = 'cum_on_clothes':
+	dynamic 'npc_reaction_hourly[''<<$ARGS[1]>>_cum_on_clothes''] = 1'
+	!!else
+		if dyneval( 'RESULT = npc_preference[''<<$ARGS[1]>>_cum_on_clothes'']') = 1 or npc_reactions_temp_preferences['cum_on_clothes'] = 1:
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'love':
+				$result = '"I believe someone had a good time! You should probably wash your clothes" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = '"Maybe you should wash your clothes? I don''t mind of course, but others might" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = '"I''m not against having fun, but perhaps you could wash your clothes afterward?" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = '"Who had the stomach to cum on you?" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			else
+				$result = '"Who wasted an orgasm on your shitty clothes?" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			end
+		elseif dyneval( 'RESULT = npc_preference[''<<$ARGS[1]>>_cum_on_clothes'']') = -1 or npc_reactions_temp_preferences['cum_on_clothes'] = -1:
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'love':
+				$result = '"Don''t get me wrong, you''re always lovely, but cum on clothed is such a turn-off" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = '"That is not a very nice... look. Wash that cum from your clothes and you''ll be perfect" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = '"Could you at least be presentable before going out? And wash that nasty shit from your clothes?" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = '"Cum on your shitty clothes? Of course, nobody would ever want to see you naked" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			else
+				$result = '"Who wasted an orgasm on your shitty clothes?" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			end
+		else
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'indifferent':
+				$result = '"Don''t get me wrong, you''re always lovely, but cum on clothed is such a turn-off" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = '"That is not a very nice... look. Wash that cum from your clothes and you''ll be perfect" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = '"Could you at least be presentable before going out? And wash that nasty shit from your clothes?" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = '"Cum on your shitty clothes? Of course, nobody would ever want to see you naked" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			else
+				$result = '"Who wasted an orgasm on your shitty clothes?" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			end
+		end
+	!!end
+end
+
+if $ARGS[0] = 'pregnant':
+	dynamic 'npc_reaction_pregnant[''<<$ARGS[1]>>''] = 1'
+	!!else
+		if dyneval( 'RESULT = npc_preference[''<<$ARGS[1]>>_pregnant'']') = 1 or npc_reactions_temp_preferences['pregnant'] = 1:
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'love':
+				$result = ' "How can you be pregnant and still look so beautiful?" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = '"You''re still lovely even when you''re pregnant!" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = '"Congratulations on you pregnancy!" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = '"Who knocked-up the cow?" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			else
+				$result = '"Of course the slut is pregnant! At least that''s a good use of your cunt" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			end
+		elseif dyneval( 'RESULT = npc_preference[''<<$ARGS[1]>>_pregnant'']') = -1 or npc_reactions_temp_preferences['pregnant'] = -1:
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'love':
+				$result = '"You''re pregnant? Wow... I mean, wow..."'+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = '"Aren''t you a little young to be pregnant? Well, if you''re ok with it, I''m too" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = '"I think you''re too young to be pregnant" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = '"Now that you''re pregnant you''re even worse!" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			else
+				$result = '"Who the hell had the stomach to cum inside of you and cram a baby into your belly?" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			end
+		else
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'indifferent':
+				$result = '"Beautiful. And pregnant. Wow!" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = '"You''re pregnant! I hope everything is going well!" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = '"Shouldn''t you have waited before becoming pregnant?" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = '"That''s why I never cum inside whores. They tend to get pregnant" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			else
+				$result = '"You''re pregnant? I''m sure you don''t even know who the father is, you whore" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			end
+		end
+	!!end
+end
+
+if $ARGS[0] = 'tan':
+	dynamic 'npc_reaction_first_time[''<<$ARGS[1]>>_tan''] = 1'
+	!!else
+		if dyneval( 'RESULT = npc_preference[''<<$ARGS[1]>>_tan'']') = 1 or npc_reactions_temp_preferences['tan'] = 1:
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'love':
+				$result = ' "Wow, that tan really suits you! It brings out the color in your eyes and gives you a healthy glow. Keep it up, it looks great on you" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = '"Wow, that tan really suits you! It brings out the color in your eyes" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = '"Oh, you have a tan. That''s nice" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = ' "I have to admit, the tan does look good on you. But I still can''t stand you" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			else
+				$result = '"Even with the tan, I still find your presence repulsive." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			end
+		elseif dyneval( 'RESULT = npc_preference[''<<$ARGS[1]>>_tan'']') = -1 or npc_reactions_temp_preferences['tan'] = -1:
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'love':
+				$result = '"I''m not a fan of tans, but I still love you regardless. Your inner beauty shines through no matter what" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = ' "I don''t care much for tans, but I still think you''re great. Your personality outshines any physical characteristic "'+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = '"Tans aren''t really my thing, but you seem to like it. To each their own I suppose" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = ' "The tan might look good to some, but it doesn''t change my opinion of you, slut" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			else
+				$result = '"The tan may be in style, but it doesn''t change my feelings towards you. I still can''t stand you and everything you represent" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			end
+		else
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'indifferent':
+				$result = '"Tans are okay, I suppose. But it doesn''t matter to me because I love you no matter what" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = '"A tan is fine, I guess. You seem to be happy with it, and that''s what''s important to me" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = '"You have a tan now. That''s interesting" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = '"The tan may make you look different, but it doesn''t change my feelings towards you. I still don''t like you" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			else
+				$result = '"The tan may be new, but it doesn''t change my hatred towards you. I still fucking hate you" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			end
+		end
+	!!end
+end
+
+if $ARGS[0] = 'strong':
+	dynamic 'npc_reaction_weekly[''<<$ARGS[1]>>_strong''] = 1'
+	!!else
+		if dyneval( 'RESULT = npc_preference[''<<$ARGS[1]>>_strong'']') = 1 or npc_reactions_temp_preferences['strong'] = 1:
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'love':
+				$result = '"Wow, you''re so strong! I love girls who take care of their bodies!" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = '"You''re very strong! Nice!" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = '"I would never have guessed you were this strong" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = '"At least the cow can lift some weight" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			else
+				$result = ' "A strong bitch remains a bitch, sorry" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			end
+		elseif dyneval( 'RESULT = npc_preference[''<<$ARGS[1]>>_strong'']') = -1 or npc_reactions_temp_preferences['strong'] = -1:
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'love':
+				$result = '"I usually don''t like girls who can lift more than me. But you''re an exception!" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = '"Muscles on a girl are usually a turn-off. But you still look fantastic!" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = '"Nah, strong girls are just not for me" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = '"Holy fuck, you look like a monkey who lift weights" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			else
+				$result = '"You know that girls should be cute? And they should not look like an Austrian fucking bodybuilder!" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			end
+		else
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'indifferent':
+				$result = '"I never knew strong girls could be so cute" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = '"Nice muscles. You have to spend a lot of time in the gym" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = '"Wow, you''re so strong" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = '"I don''t care how much you can lift. I still don''t like you" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			else
+				$result = ' "Strong or not, you''re still a whore. Please leave me alone!" '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			end
+		end
+	!!end
+end
+
+if $ARGS[0] = 'fit':
+	dynamic 'npc_reaction_weekly[''<<$ARGS[1]>>_fit''] = 1'
+	!!else
+		if dyneval( 'RESULT = npc_preference[''<<$ARGS[1]>>_fit'']') = 1 or npc_reactions_temp_preferences['fit'] = 1:
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'love':
+				$result = '"Wow, you''re in great shape! I admire your dedication to fitness." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = '"Nice physique! You''re looking good." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = '"You''re certainly fit, but I don''t have any particular feelings about you one way or another." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = '"You''re in good shape, but I don''t like your personality." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			else
+				$result = '"You''re in good physical condition, but I hate everything about you." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			end
+		elseif dyneval( 'RESULT = npc_preference[''<<$ARGS[1]>>_fit'']') = -1 or npc_reactions_temp_preferences['fit'] = -1:
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'love':
+				$result = '"I know I don''t typically like fit people, but there''s something about you that''s just so charming and endearing." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = '"I''m not a fan of overly fit people, but you seem pretty cool." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = '"Your fitness doesn''t really impress me, but it also doesn''t bother me." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = '"I don''t really like overly fit people, and to be honest, I don''t really like you either. Something about you just rubs me the wrong way." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			else
+				$result = '"Ugh, I can''t stand you. You''re way too fit for your own good, and you act like you''re better than everyone else because of it. Give me a break." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			end
+		else
+			if npc_rel[$ARGS[1]] > 80 or $ARGS[2] = 'indifferent':
+				$result = '"Your fitness level doesn''t really matter to me, to be honest. I''m just really drawn to your personality and charm. I love spending time with you." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 60 or $ARGS[2] = 'like':
+				$result = '"I don''t really care one way or the other about your fitness level, but I do think you''re a pretty cool person. I enjoy your company." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 40 or $ARGS[2] = 'indifferent':
+				$result = '"Your fitness is fine, but it doesn''t really factor into my opinion of you one way or the other. You seem like an okay person, I guess." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			elseif npc_rel[$ARGS[1]] > 25 or $ARGS[2] = 'dislike':
+				$result = '"Your fitness level doesn''t matter to me, but I can''t say I''m a big fan of you as a person. Something about you just rubs me the wrong way." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
+			else
+				$result = '"I don''t really care about your fitness level, but I absolutely can''t stand you as a person. You just seem so arrogant and entitled." '+iif(mid($ARGS[1],1,1) = 'A', '<<$npc_firstname[$ARGS[1]]>>', '<<$ARGS[1]>>')+' says'
 			end
 		end
 	!!end

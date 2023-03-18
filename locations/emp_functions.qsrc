@@ -1,12 +1,13 @@
 # emp_functions
 
 !! Employmnent and Event Systems
-!! 2022-09-30
+!! 2023-02-12
 !! Author: Hooded Silence
 !!
 !! v.01 - Initial code base
 !! v.02 - Event generator partially integrated
 !! v.03 - Job management system integrated
+!! v. 04 - Start of event generation code integration
 !! 
 
 !! --------------------- UI Interface for Journal
@@ -168,8 +169,6 @@ if $ARGS[0] = 'job_info':
 	msg '<<$msg_body>>'
 end
 
-!!  Removed event generation for initial code review and to make job integration easier.
-
 !! --------------------- Event Generator
 
 !! Author - Hooded Silence
@@ -178,13 +177,338 @@ end
 !!
 !! v. 01 - Initial code base
 !! v. 02 - UI improvements and feature feedback
+!! V. 03 - Initial integration into mainline code
 
+if $ARGS[0] = 'evt_init' :
+	!! Placeholder, pending integration
+	gt $loc, $loc_arg
+end
+
+if $ARGS[0] = 'disp_evt':	
+	if ARGS[1] = 1:
+		gs 'emp_functions','evt_day_suffix'
+
+		'I have this job for you do you want to acccept it?'
+		*nl
+		'Event Scheduled for: ' + transient_evt_day + $evt_suffix + ', '+ $monthName[transient_evt_month] +' '+ '20' + transient_evt_year
+		'Job: ' + $evt_job[transient_evt_type]  			
+		'Pay: ' + transient_evt_wages
+		'Time: ' + transient_evt_hour + ':' +  iif(transient_evt_minutes  >= 0 and transient_evt_minutes <= 4, '00',  '30')
+		'Duration: ' + transient_evt_duration  + iif(transient_evt_duration  = 1, ' hour',  ' hours')
+		'Location reminder: ' + $transient_mc_locat
+		'Job Details: ' + $transient_desc
+		
+		act 'Accept the job' : gs 'emp_functions', 'cat_evt'
+		act 'Decline the job': 
+			gs 'emp_functions',  'del_evt', 1
+			gt 'emp_functions', 'evt_init'
+		end
+	end
+
+	!! create table for all jobs:
+	if ARGS[1] = 2:	
+		if evt_event[0] ! '':			
+			killvar '$evtbody'
+			job_idx = 0		
+			*nl
+			:jmp_list_create
+				!!if evt_silent[job_idx] = 1:
+					$evtbody += '<tr><td>' +$week[evt_dow[job_idx]]+' '+ evt_day[job_idx] + $evt_suffix + ', '+ $monthName[evt_month[job_idx]] +' 20'+ evt_year[job_idx] + '</td><td>' + $evt_job[evt_event[job_idx]] + '</td>' 
+					$evtbody += '<td>' + evt_wages[job_idx] + '₽</td><td>' + evt_hour[job_idx] + ':' +  iif(evt_minutes[job_idx] >= 0 and evt_minutes[job_idx] <= 4, '00', '30') + '</td>'
+					$evtbody += '<td>' + evt_duration[job_idx] + iif(evt_duration[job_idx]  = 1, ' hour',  ' hours') + '</td><td>' + $evt_mc_locat[job_idx] + '</td>'
+					$evtbody += '<td><a  href="exec: gs ''emp_functions'',''del_evt'', 2, <<job_idx>>"><img src="images\system\icons\evt_del.png"></a></a></td></tr>'
+				!!end
+				job_idx += 1
+				if job_idx < arrsize('evt_event') : jump 'jmp_list_create'
+				!!if evt_silent[job_idx] = 1: 
+					'<center><h2>Current Task List</h2></center>'		
+					$evtheader = '<tr><th>Date</th><th>Task</th><th>Pay</th><th>Time</th><th>Duration</th><th>Location</th><th>Cancel Job</th></tr>'
+					'<center><table width="90%" align="center" width="90%" cellspacing="5" cellpadding="5" valign="top"><tr><<$evtheader>><<$evtbody>></tr></table></center>'
+				!!end
+				killvar '$evtbody'
+				killvar '$evtheader'
+			else
+				'You haven''t taken on any jobs yet.'
+			end
+	end
+
+	!! Display the location acts
+	if ARGS[1] = 3 and evt_chk = '1':
+		act_idx = 0
+		act_tracker = 0
+		act_found = 0
+		:jmp_act_create			
+			 if evt_hour[act_tracker] = hour or evt_hour[act_tracker] = (hour -1): 
+				act_found = 1
+				act_idx = act_tracker 				
+			 end
+			 act_tracker +=1 
+		if act_tracker < arrsize('evt_event') or act_found = 0: jump 'jmp_act_create'
+		if ((evt_hour[act_idx] = hour and evt_minutes[act_idx] <= minut) or evt_hour[act_idx] = (hour - 1)) and $loc = $evt_loc[act_idx]:
+			act 'Attend your ' + $evt_job[evt_event[act_idx]] + ' event':
+				gs 'emp_functions', 'array_init'
+				if $evt_trigger_exec ! '':
+					gt $evt_trigger_exec[act_idx], $evt_trigger[act_idx]
+				else
+					gt $evt_loc[act_idx], $evt_loc_arg[act_idx]
+				end
+				killvar 'act_tracker'
+				killvar 'act_found'
+			end
+		end
+	end
+end
+
+if $ARGS[0] = 'gen_evt':	
+	!! Get the current year - remove 2000 to get the right year for search function.
+	transient_evt_year = year - 2000
+	
+	!! Figure out the month for the seed and ensure it rolls over into new calendar year.
+	if month = 12:			
+		evt_mseed = 1
+		transient_evt_year += 1
+	else
+		evt_mseed = month + 1
+	end
+
+	!! randomise the month and month + 1 	
+	transient_evt_month = rand(month,  evt_mseed)      
+	:jmp_job_create
+		if transient_evt_month = month:
+			if (day + 7) > monthsend[transient_evt_month]:
+				transient_evt_month += 1
+				evt_dseed = 1
+			end	
+		else
+			evt_dseed = day + 1
+		end	
+		rnd_day = rand(evt_dseed, monthsend[transient_evt_month])	
+	if transient_evt_month  = month and rnd_day <= day: jump 'jmp_job_create'	
+					
+	!! Set event transients - will be deleted upon completion
+	transient_evt_hour = rand(9, 20)
+	
+	!! For simplicity sake make minutes on the hour or at half hour intervals, store as a single int.
+	transient_evt_minutes = rand(0, 9)
+	
+	!! Set as multiples of 60 	
+	transient_evt_duration = rand(1,8)
+	
+	!! logic check for when randomising event duration
+	
+	if transient_evt_duration + transient_evt_hour >= 22:
+		transient_evt_hour = 22 - transient_evt_duration
+	end
+
+	!! find a suitable date
+
+	srch_day_u = rnd_day + 7
+	if srch_day_u >= monthsend[transient_evt_month]:
+		srch_day_u = monthsend[transient_evt_month]
+		srch_day_l = monthsend[transient_evt_month]  - rand(7,14)
+	else
+		srch_day_l = rnd_day
+	end
+
+	:setdayloop
+	gs 'shortgs', 'dow',  transient_evt_year, transient_evt_month,  srch_day_l
+	if result =  transient_evt_dow: 
+		transient_evt_day = srch_day_l
+	srch_day_l = 99
+	else	        
+	srch_day_l += 1					
+	end 	
+
+	if srch_day_l <= srch_day_u: jump 'setdayloop'	
+end
+
+! ------ Helper Functions ------
+
+if $ARGS[0] = 'job_evt':
+	!! Jobs ID list
+	$evt_job[1] = 'Photography'
+	$evt_job[2] = 'Modelling'
+	$evt_job[3] = 'Music Gig'
+	$evt_job[4] = 'Dance Show'
+	$evt_job[5] = 'Ballet Performance'
+	$evt_job[6] = 'Acting'
+	$evt_job[50] = 'Sport'
+end
+
+if $ARGS[0] = 'wage_evt':
+	!! calculate wages
+	!! Assume you''ll never earn less than 100 roubles
+	!! 0 for none, 1 - for a small payment (100-500),  2 - moderate payment (500-1000), 3 - large payment (1000-2000),  4 - huge payment (2000-4000)
+	!! 5 is for custom payments
+	if ARGS[1] = 0:
+		transient_evt_wages = 0
+	elseif ARGS[1] = 1:
+		transient_evt_wages =  func('shortgs','round_tool',rand(100,500), 50)
+	elseif ARGS[1] = 2:
+		transient_evt_wages =  func('shortgs','round_tool',rand(500,1000), 50)
+	elseif ARGS[1] = 3:
+		transient_evt_wages =  func('shortgs','round_tool',rand(1000,2000), 50)
+	elseif ARGS[1] = 4:
+		transient_evt_wages =  func('shortgs','round_tool',rand(2000,4000), 50)
+	elseif ARGS[1] = 5:
+		transient_evt_wages  = ARGS[2]
+	end
+end
+
+if $ARGS[0] = 'cat_evt':
+	!! Construct Array Table  and clear transients when an event is created and accepted.
+	!! Create global variables for the current live event.
+	!! Use 0 to create hidden events, 1 to show in journal
+	evt_silent[] = transient_evt_silent
+	!! Event type used in Journal
+	evt_event[] = transient_evt_type
+	!! Additional ID if required 
+	evt_event_sub[] = transient_evt_sub_type 
+	!! Day of Week used in Journal and content areas
+	evt_dow[] = transient_evt_dow
+	!! Event Date to check against current date & used in Journal and content areas
+	evt_day[] = transient_evt_day
+	!! Event month to check against current month & used in Journal and content areas
+	evt_month[] =  transient_evt_month
+	!! Event Year to check against year & used in Journal and content areas
+	evt_year[] = transient_evt_year
+	!! Event hour to check against hour & used in Journal and content areas
+	evt_hour[] = transient_evt_hour
+	!! Event minutes to check against minut & used in Journal and content areas
+	evt_minutes[] = transient_evt_minutes
+	!! How long the event is to last
+	evt_duration[] = transient_evt_duration
+	!! How much wages, generated or manual using function
+	evt_wages[] = transient_evt_wages
+	!! Journal location as reminder
+	$evt_mc_locat[] = $transient_mc_locat
+	!! The following are event location triggers to allow the content to appear in areas such as community centre but host their content elsewhere such as Photography shop
+	!! 	Event area triggers such as city_residential
+	$evt_loc[] = $transient_loc
+	$evt_loc_arg[] = $transient_arg 
+	!! Content location - optional
+	$evt_trigger_exec = $transient_evt_exec
+	$evt_trigger[] = $transient_trigger
+	!! Journal and event description
+	$evt_desc[] = $transient_desc
+	if transient_evt_silent = 1:
+		*clr & cla
+		'Job accepted, you currently have ' + arrsize('evt_event') + ' jobs assigned to you. Please look at your journal for more information.'
+		gs 'emp_functions',  'del_evt', 1
+		act 'Return': gt 'emp_functions', 'evt_init'
+	end
+end
+!! delete event after firing or cancelled
+
+if $ARGS[0] = 'del_evt':
+	!! Delete transients
+	if ARGS[1] = 1:
+		killvar 'transient_evt_silent'
+		killvar 'transient_event_type'
+		killvar 'transient_evt_year'
+		killvar 'transient_evt_month'
+		killvar 'transient_evt_hour'	
+		killvar 'transient_evt_minutes'
+		killvar 'transient_evt_duration'
+		killvar 'transient_evt_wages'
+		killvar '$transient_loc '
+		killvar '$transient_arg'
+		killvar '$transient_trigger'	
+		killvar '$transient_img'
+		killvar '$transient_desc'
+		killvar 'rnd_min'	
+		killvar 'mseed'
+		killvar 'dseed' 
+	end
+
+	! Delete array entry
+
+	if ARGS[1] = 2:
+		!! delete event after firing or cancelled.
+		!! killvar 'arr_name', index 
+		if ARGS[2] >= 0:
+			evt_idx = ARGS[2]
+			cla
+			'You''re about to delete this job: ' 
+			'Delete: ' + evt_event 
+			'Index: ' + evt_idx
+			Act 'Confirm?':
+				cla
+				'Are you sure?'
+				act 'Deleting': 
+					cla
+					killvar 'evt_silent', evt_idx
+					killvar 'evt_event', evt_idx
+					killvar 'evt_dow', evt_idx
+					killvar 'evt_day', evt_idx
+					killvar 'evt_month', evt_idx
+					killvar 'evt_year', evt_idx
+					killvar 'evt_hour', evt_idx
+					killvar 'evt_minutes', evt_idx
+					killvar 'evt_duration', evt_idx
+					killvar 'evt_wages', evt_idx
+					killvar '$evt_mc_locat', evt_idx
+					killvar '$evt_loc', evt_idx
+					killvar '$evt_loc_arg', evt_idx
+					killvar '$evt_exec', evt_idx
+					killvar '$evt_media', evt_idx
+					killvar '$evt_desc', evt_idx
+
+					act 'Return': gs 'journal_work', 'start'
+				end 	 
+				act 'Cancel': gs 'journal_work', 'start'
+			end
+		else
+			'<<evt_idx>> - Invalid record - please check your index'
+		end
+	end 
+end
+
+if $ARGS[0] = 'evt_day_suffix':
+
+	if ARGS[1] ! '': 
+		query_day = ARGS[1]
+	else
+		query_day = transient_evt_day
+	end
+	if query_day => 20 and query_day <= 29:
+		test_day = query_day - 20
+	else
+		test_day = query_day
+	end
+
+	if test_day => 4 and test_day <= 10:
+		$evt_suffix = 'th'
+	elseif test_day = 1 or test_day = 31:
+		$evt_suffix = 'st'
+	elseif test_day = 2:
+		$evt_suffix = 'nd'    
+	elseif test_day= 3: 
+		$evt_suffix = 'rd'
+	else
+		$evt_suffix = 'th'
+	end
+
+	killvar 'test_day'
+	killvar 'query_day'
+end
+
+if $ARGS[0] = 'evt_day_chk':
+	!! Daily event trigger to check if there is an event at currently location to reduce calls/overheads
+	evt_chk = 0
+	if evt_daily_chk ! daystart:
+		evt_daily_chk = daystart
+		job_idx = 0
+		:evt_day_chk		
+			if month = evt_month and day = evt_day: evt_chk = '1'
+			job_idx += 1
+		if job_idx < arrsize('evt_event') : jump 'evt_day_chk'
+	end
+end
+!! --------------------- End Event Generator
 
 !! --------------------- Job management system
-
-
 !! book role, creates a time slot for emp_rota_week in format day_hour to be used in schedule mode.
-
 if $ARGS[0] = 'emp_booking':
 	gs 'emp_functions', 'emp_chk_clk'
 	if emp_rota_fail  = 0:	
@@ -212,7 +536,6 @@ if $ARGS[0] = 'emp_booking':
 end
 
 !! check if time slots are avaialble for this role. 
-
 if $ARGS[0] = 'emp_chk_clk':	
 	gs 'emp_functions', 'loop_configure'
 	j_finish = emp_job_end[j_id]
@@ -269,10 +592,3 @@ if $ARGS[0] = 'loop_configure':
 	end	
 end
 --- emp_functions ---------------------------------
-
-
-
-
-
-
-

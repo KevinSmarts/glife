@@ -7,6 +7,7 @@ if $ARGS[0] = 'girl_cum':
 !!	if pcs_horny < 30:pcs_horny = 30
 	booty_call['orgasm'] = orgasm
 	booty_call['orgasm_count'] += 1
+		
 	if $booty_call['position'] = 'miss':
 		gt'booty_call_cum', 'miss_cum'
 	elseif $booty_call['position'] = 'doggy':
@@ -212,6 +213,7 @@ if $ARGS[0] = 'cowgirl_cum':
 end
 
 if $ARGS[0] = 'fuck_cum_random':
+	booty_call['his_choice'] = 0
 	booty_call['cum_choice'] = rand(1,10)
 	booty_call['fuck_count'] += 1
 	booty_call['cum_count'] += 1
@@ -225,8 +227,16 @@ if $ARGS[0] = 'fuck_cum_random':
 !!	if npc_generous[$boy] = 1 and booty_call['cum_choice'] <= 9:
 	if booty_call['cum_choice'] > 1 and booty_call['cum_choice'] < 10: booty_call['cum_warn'] = 1
 	
-	if booty_call['cum_choice'] = 10 and booty_call['extra_caution'] = 0:
-		$booty_call['cum_choice'] = 'creampie_surprise'
+!!	if booty_call['cum_choice'] = 10 and booty_call['fucking'] = 1:
+	if booty_call['cum_choice'] = 10:
+		if booty_call['extra_caution'] = 1 and booty_call['no_condom'] = 1 and booty_call['creampie_allowance'] ! 1:
+			$booty_call['cum_choice'] = 'pullout'
+		else
+			$booty_call['cum_choice'] = 'creampie_surprise'
+		end
+	elseif booty_call['virgin_creampie_request'] = 1 and booty_call['creampie_count'] = 0 and booty_call['no_condom'] = 1:
+		booty_call['cum_where'] = 1
+		!! add something later?
 	elseif booty_call['cum_choice'] > 7:
 		gs'booty_call_cum', 'random_cum_choice'
 	elseif booty_call['cum_choice'] > 5:
@@ -234,15 +244,16 @@ if $ARGS[0] = 'fuck_cum_random':
 	elseif booty_call['cum_choice'] > 1:
 		$booty_call['cum_choice'] = $npc_cum_pref[$boy]
 		if $booty_call['cum_choice'] = 'creampie':
-			if (npc_free_creampies[$boy] = 1 and (booty_call['safe_day'] = 1 or booty_call['probably_safe_day'] = 1)) or npc_free_creampies[$boy] = 2 or npc_know_bc[$boy] = 1:
+			if (npc_free_creampies[$boy] = 1 and (booty_call['safe_day'] = 1 or booty_call['probably_safe_day'] = 1)) or npc_free_creampies[$boy] = 2 or booty_call['creampie_allowance'] = 1:
 				booty_call['cum_warn'] = 0
 				$booty_call['cum_choice'] = 'creampie_surprise'
 			end
 		end
 	else
+		!! boy will cum where he wants without asking
 		booty_call['his_choice'] = 1
 		if rand(1,10) >= 9:
-			gt'booty_call_cum', 'cum_mouth'
+			gs'booty_call_cum', 'cum_mouth'
 		elseif rand(1,8) >= 7:
 			gs'booty_call_cum', 'cum_facial'
 		elseif rand(1,6) >= 5:
@@ -257,7 +268,7 @@ end
 
 if $ARGS[0] = 'random_cum_choice':
 	if rand(1,5) = 1 and (npc_childfree[$boy] ! 1 or npc_know_bc[$boy] = 1):
-		if (npc_free_creampies[$boy] = 1 and (booty_call['safe_day'] = 1 or booty_call['probably_safe_day'] = 1)) or npc_free_creampies[$boy] = 2:
+		if (npc_free_creampies[$boy] = 1 and (booty_call['safe_day'] = 1 or booty_call['probably_safe_day'] = 1)) or npc_free_creampies[$boy] = 2 or booty_call['creampie_allowance'] = 1:
 			booty_call['cum_warn'] = 0
 			$booty_call['cum_choice'] = 'creampie_surprise'
 		else
@@ -275,9 +286,14 @@ if $ARGS[0] = 'random_cum_choice':
 end
 
 if $ARGS[0] = 'fuck_cum':
+	cla
 	!! flags to remember what kind of fucking happened during sex
 	if booty_call['morning_after'] = 1:booty_call['morning_fuck'] = 1
 	booty_call['fuck'] = 1
+	booty_call['cock_inserted'] = 1
+	booty_call['no_sex'] = 0
+	booty_call['fuck_again'] = 0
+	booty_call['must_fuck'] = 0
 	if booty_call['speed'] = 1: booty_call['gentle_fuck'] = 1
 	if booty_call['speed'] = 2: booty_call['steady_fuck'] = 1
 	if booty_call['speed'] = 3: booty_call['rough_fuck'] = 1
@@ -319,13 +335,13 @@ if $ARGS[0] = 'fuck_cum':
 	end
 	
 !!	if (rand(0,1) = 1 or npc_selfish[$boy] = 1) and ($npc_cum_pref[$boy] = 'creampie' and booty_call['condom'] ! 1) and $npc_cum_pref[$boy] ! 'pullout' and $npc_cum_pref[$boy] ! '':
-	if booty_call['cum_warn'] = 1:	
+	if booty_call['cum_warn'] = 1 and booty_call['his_choice'] = 0:	
 		if booty_call['cum_where'] = 1:
 			'"What should I do?" <<$npc_firstname[$boy]>> asks.'
 		elseif $booty_call['cum_choice'] = 'creampie':
 			booty_call['he_ask'] = 1
 			booty_call['he_ask_creampie'] = 1
-			if npc_free_creampies[$boy] = 1 and booty_call['safe_day'] = 0 and booty_call['probably_safe_day'] = 0 and mesec <= 0 and booty_call['condom'] ! 1 and npc_know_bc[$boy] < 1:
+			if npc_free_creampies[$boy] = 1 and booty_call['safe_day'] = 0 and booty_call['probably_safe_day'] = 0 and mesec <= 0 and booty_call['condom'] ! 1:
 				'"Can I come inside you? Is it safe today?" <<$npc_firstname[$boy]>> whimpers almost pleadingly.'
 			elseif booty_call['orgasm'] < orgasm:
 				'"Let''s come together," <<$npc_firstname[$boy]>> says, smiling at you.'
@@ -349,7 +365,7 @@ if $ARGS[0] = 'fuck_cum':
 		act'Come wherever you want':
 			cla & *nl
 			booty_call['cum_wherever'] = 1
-			if booty_call['he_ask'] ! 1:
+			if booty_call['he_ask'] ! 1 or booty_call['cum_warn'] = 1:
 				if $booty_call['position'] = 'doggy':
 					if booty_call['speed'] = 1:
 						'You turn your head over your shoulder to smile at <<$npc_firstname[$boy]>>.'
@@ -360,7 +376,11 @@ if $ARGS[0] = 'fuck_cum':
 						'"Come-! Wherever-! You want-!" you barely manage to get out as <<$npc_firstname[$boy]>> keeps smashing into you from behind.'
 					end
 				else
-					if booty_call['speed'] = 1:
+					if booty_call['virgin'] = 1 and booty_call['virgin_enjoyment'] = -1:
+						'"Come~! Wherever~! You~! Want~!" you whimper pathetically, squeaking in pain with every thrust.'
+					elseif booty_call['virgin'] = 1 and booty_call['virgin_feel_good'] ! 1:
+						'"Come~! Wherever~! You~! Want~!" you grunt uncomfortably with every thrust.'
+					elseif booty_call['speed'] = 1:
 						'"Come wherever you want," you smile at <<$npc_firstname[$boy]>>.'
 					elseif booty_call['speed'] = 2:
 						'"Come wherever you want!" you moan loudly as <<$npc_firstname[$boy]>> keeps fucking you.'
@@ -379,7 +399,7 @@ if $ARGS[0] = 'fuck_cum':
 		act'Finish him with your hand':gt 'booty_call_cum', 'cum_jerkoff'
 		
 		if booty_call['he_ask_facial'] = 1:
-			act'You can cum on my face':gs 'booty_call_cum', 'cum_facial'
+			act'You can come on my face':gs 'booty_call_cum', 'cum_facial'
 		else
 			act'On my face!':
 				if booty_call['cum_where'] = 1:
@@ -390,9 +410,9 @@ if $ARGS[0] = 'fuck_cum':
 		end
 		
 		if booty_call['he_ask_mouth'] = 1:
-			act'Let him come in your mouth':gt 'booty_call_cum', 'cum_mouth'
+			act'Let him come in your mouth':gs 'booty_call_cum', 'cum_mouth'
 		else
-			act'In my mouth!':booty_call['his_choice'] = 0 & booty_call['mouth_ask'] = 1 & gt 'booty_call_cum', 'cum_mouth'
+			act'In my mouth!':booty_call['his_choice'] = 0 & booty_call['mouth_ask'] = 1 & gs 'booty_call_cum', 'cum_mouth'
 		end
 		
 		if booty_call['he_ask_tits'] = 1:
@@ -410,12 +430,13 @@ if $ARGS[0] = 'fuck_cum':
 		else
 			!!if booty_call['orgasm'] < orgasm or pcs_horny >= 85:
 			if booty_call['he_ask_creampie'] = 1:
-				if npc_free_creampies[$boy] = 1 and booty_call['safe_day'] = 0 and booty_call['probably_safe_day'] = 0 and mesec <= 0 and booty_call['condom'] ! 1 and npc_know_bc[$boy] < 1:
+				if booty_call['orgasm'] < orgasm:
+					act'Come together':booty_call['he_ask_creampie_yes'] = 1 & gs 'booty_call_cum', 'cum_together'
+				elseif npc_free_creampies[$boy] = 1 and booty_call['safe_day'] = 0 and booty_call['probably_safe_day'] = 0 and mesec <= 0 and booty_call['condom'] ! 1 and (npc_know_not_bc[$boy] = 1 or npc_know_bc[$boy] = 0):
 					if birth_control['think_safe'] = 1:
 						act'I''m on birth control':
 							cla & *nl
-							npc_know_bc[$boy] = 1
-							npc_creampie_okay[$boy] = 1
+							gs'booty_call_stats', 'birth_control_know'
 							if tabletkishot > 0:
 								'"I''m on the shot now," you smile at him. "Go ahead."'
 							else
@@ -427,7 +448,6 @@ if $ARGS[0] = 'fuck_cum':
 						act'It''s a safe day':
 							cla & *nl
 							booty_call['safe_day'] = 1
-							npc_creampie_okay[$boy] = 1
 							'"It''s a safe day," you smile at him. "Go ahead."'
 							act'Continue':gt 'booty_call_cum', 'cum_inside'
 						end
@@ -435,7 +455,6 @@ if $ARGS[0] = 'fuck_cum':
 						act'It''s probably a safe day':
 							cla & *nl
 							booty_call['probably_safe_day'] = 1
-							npc_creampie_okay[$boy] = 1
 							'"It should be," you smile at him. "Go ahead."'
 							act'Continue':gt 'booty_call_cum', 'cum_inside'
 						end
@@ -443,7 +462,6 @@ if $ARGS[0] = 'fuck_cum':
 						act'It''s a safe day (lie)':
 							cla & *nl
 							booty_call['safe_day'] = 1
-							npc_creampie_okay[$boy] = 1
 							'"It''s a safe day," you say with a deceitful smile. "Go ahead."'
 							act'Continue':gt 'booty_call_cum', 'cum_inside'
 						end
@@ -452,7 +470,6 @@ if $ARGS[0] = 'fuck_cum':
 					act'Let him come inside you':
 						cla & *nl
 						booty_call['he_ask_creampie_yes'] = 1
-						npc_creampie_okay[$boy] = 1
 						'"Go ahead," you smile. "Fill me up."'
 						act'Continue':gt 'booty_call_cum', 'cum_inside'
 					end
@@ -469,7 +486,11 @@ if $ARGS[0] = 'fuck_cum':
 				act'Come inside me!':
 					cla & *nl
 					booty_call['creampie_ask'] = 1
-					'"Come inside me!" you cry. "Fill me up!"'
+					if booty_call['speed'] = 1:
+						'"Come inside me," you smile. "Fill me up."'
+					else
+						'"Come inside me!" you cry. "Fill me up!"'
+					end
 					act'Continue':gt 'booty_call_cum', 'cum_inside'
 				end
 				
@@ -491,6 +512,8 @@ if $ARGS[0] = 'fuck_cum':
 !!		else
 			act'Continue':gt 'booty_call_cum', 'creampie_surprise'
 !!		end
+	elseif $booty_call['cum_choice'] = 'pullout':
+		act'Continue':gt 'booty_call_cum', 'cum_pullout'
 	elseif booty_call['his_choice'] = 2:
 		act'Continue':gt 'booty_call_cum', 'cum_his_choice'
 	end
@@ -530,7 +553,7 @@ if $ARGS[0] = 'cum_his_choice':
 			gt'booty_call_cum', 'creampie_surprise'
 		elseif $npc_cum_pref[$boy] = 'mouth':
 			booty_call['mouth_cum'] += 1
-			gt'booty_call_cum', 'cum_mouth'
+			gs'booty_call_cum', 'cum_mouth'
 		elseif $npc_cum_pref[$boy] = 'face':
 			booty_call['facial'] += 1
 			gs'booty_call_cum', 'cum_facial'
@@ -548,7 +571,7 @@ if $ARGS[0] = 'cum_his_choice':
 			gt'booty_call_cum', 'creampie_surprise'
 		elseif $npc_cum_pref[$boy] = 'mouth':
 			booty_call['mouth_cum'] += 1
-			gt'booty_call_cum', 'cum_mouth'
+			gs'booty_call_cum', 'cum_mouth'
 		elseif $npc_cum_pref[$boy] = 'face':
 			booty_call['facial'] += 1
 			gs'booty_call_cum', 'cum_facial'
@@ -572,7 +595,7 @@ if $ARGS[0] = 'cum_his_choice2':
 			gt'booty_call_cum', 'creampie_surprise'
 		elseif $npc_cum_pref[$boy] = 'mouth':
 			booty_call['mouth_cum'] += 1
-			gt'booty_call_cum', 'cum_mouth'
+			gs'booty_call_cum', 'cum_mouth'
 		elseif $npc_cum_pref[$boy] = 'face':
 			booty_call['facial'] += 1
 			gs'booty_call_cum', 'facial_he_jerks'
@@ -589,7 +612,7 @@ if $ARGS[0] = 'cum_his_choice2':
 	if rand(1,12) >= 11:
 		gt'booty_call_cum', 'creampie_surprise'
 	elseif rand(1,10) >= 9:
-		gt'booty_call_cum', 'cum_mouth'
+		gs'booty_call_cum', 'cum_mouth'
 	elseif rand(1,8) >= 7:
 		gs'booty_call_cum', 'cum_facial'
 	elseif rand(1,6) >= 5:
@@ -603,10 +626,10 @@ end
 
 if $ARGS[0] = 'cum_wherever':
 !!	if $booty_call['cum_choice'] = 'creampie' and (npc_childfree[$boy] ! 1 or npc_know_bc[$boy] = 1):
-	if $booty_call['cum_choice'] = 'creampie':
+	if $booty_call['cum_choice'] = 'creampie' and booty_call['danger_day'] ! 1:
 		gt'booty_call_cum', 'creampie_surprise'
 	elseif $booty_call['cum_choice'] = 'mouth':
-		gt'booty_call_cum', 'cum_mouth'
+		gs'booty_call_cum', 'cum_mouth'
 	elseif $booty_call['cum_choice'] = 'facial':
 		gs'booty_call_cum', 'facial_he_jerks'
 	elseif $booty_call['cum_choice'] = 'tits':
@@ -618,7 +641,7 @@ if $ARGS[0] = 'cum_wherever':
 			gt'booty_call_cum', 'creampie_surprise'
 		elseif $npc_cum_pref[$boy] = 'mouth':
 			booty_call['mouth_cum'] += 1
-			gt'booty_call_cum', 'cum_mouth'
+			gs'booty_call_cum', 'cum_mouth'
 		elseif $npc_cum_pref[$boy] = 'face':
 			booty_call['facial'] += 1
 			gs'booty_call_cum', 'facial_he_jerks'
@@ -630,7 +653,7 @@ if $ARGS[0] = 'cum_wherever':
 			gt'booty_call_cum', 'cum_pullout'
 		else
 			if rand(1,10) >= 9:
-				gt'booty_call_cum', 'cum_mouth'
+				gs'booty_call_cum', 'cum_mouth'
 			elseif rand(1,8) >= 7:
 				gs'booty_call_cum', 'cum_facial'
 			elseif rand(1,6) >= 5:
@@ -645,7 +668,7 @@ if $ARGS[0] = 'cum_wherever':
 end
 
 if $ARGS[0] = 'cum_jerkoff':
-	booty_call['cock_remove'] = 1
+	booty_call['cock_inserted'] = 0
 	$booty_call['cum_describe1'] = 'Sorry,'
 	$booty_call['cum_describe2'] = 'looking down at the strands of cum coating your fingers'
 	$booty_call['last_cum'] = 'hand'
@@ -674,7 +697,7 @@ if $ARGS[0] = 'cum_jerkoff':
 end
 
 if $ARGS[0] = 'cum_facial':
-	booty_call['cock_remove'] = 1
+	booty_call['cock_inserted'] = 0
 	$booty_call['cum_choice'] = 'facial'
 	$booty_call['last_cum'] = 'facial'
 	booty_call['cum_face'] += 1
@@ -712,15 +735,16 @@ if $ARGS[0] = 'cum_facial':
 		gs'booty_call_cum', 'facial_brace'
 		act'Jerk him yourself':gt'booty_call_cum', 'facial_jerk_him'
 		
-		
-		
 !!		act'Let him jerk off on your face':gt'booty_call_cum', 'facial_he_jerks'
 !!	end
 end
 
 if $ARGS[0] = 'facial_jerk_him':
-	booty_call['cock_remove'] = 1
+	booty_call['cock_inserted'] = 0
 	booty_call['cum_face'] += 1
+	booty_call['facial'] += 1
+	booty_call['pc_facial_jerk'] += 1
+	$booty_call['last_cum'] = 'facial'
 	if booty_call['he_ask_creampie'] = 1:
 		$booty_call['cum_describe1'] = 'Sorry,'
 	else
@@ -748,11 +772,11 @@ if $ARGS[0] = 'facial_jerk_him':
 		'The warm liquid making contact with your skin is the only thing left you need and you come with him, getting caught in the throes of orgasm as you keep working his shaft, emptying his balls all over your face.'
 	end
 	gs'booty_call_cum', 'facial_wipe_eyes'
-	gs'booty_call_talk', 'cum_react'
+	gs'booty_call_reactions', 'cum_react'
 end
 
 if $ARGS[0] = 'facial_he_jerks':
-	booty_call['cock_remove'] = 1
+	booty_call['cock_inserted'] = 0
 
 	gs'booty_call_cum', 'facial_close_eyes'
 	gs'booty_call_cum', 'facial_tongue_swallow'
@@ -777,6 +801,8 @@ end
 
 if $ARGS[0] = 'facial_close_eyes':
 	act'Close your eyes':
+		booty_call['cum_face'] += 1
+		$booty_call['last_cum'] = 'facial'
 		$booty_call['cum_describe1'] = 'Thanks,'
 		$booty_call['cum_describe2'] = 'wiping the cum from your eyes'
 		cla & *clr
@@ -788,7 +814,7 @@ if $ARGS[0] = 'facial_close_eyes':
 			'The warm cum making contact with your skin is the only thing left you need and you come with him, quivering in orgasm as he empties his balls all over your face.'
 		end
 		gs'booty_call_cum', 'facial_wipe_eyes'
-		gs'booty_call_talk', 'cum_react'
+		gs'booty_call_reactions', 'cum_react'
 	end
 end
 
@@ -799,13 +825,25 @@ if $ARGS[0] = 'facial_tongue_swallow':
 		booty_call['cum_mouth'] += 1
 		booty_call['swallow'] = 1
 		booty_call['swallow_count'] += 1
+		booty_call['facial_swallow'] += 1
 		cla & *clr
 		gs'cum_call', 'mouth',$boy,1
 		gs'cum_call', 'breasts',$boy,1
 		$booty_call['last_cum'] = 'face_mouth'
 		gs'stat'
 		'<center><video autoplay loop src="images/shared/sex/cum/facial/facial25.mp4"></video></center>'
-		'You hop off the bed and kneel down, closing your eyes, opening your mouth, and sticking out your tongue as far as it can go. Moments later, you feel a hot glob of bitter liquid land directly on your tongue, followed by more that spatters across your face, running down your cheek and dripping onto your breasts. The rest spray across your lips and fill your mouth.'
+		if booty_call['his_choice'] ! 2:
+			if booty_call['mouth_ask'] = 1:
+				'"In my mouth!"'
+			elseif booty_call['he_ask_mouth'] = 1:
+				'"Okay," you say.'
+			elseif booty_call['he_ask'] = 1:
+				'"Cum in my mouth instead!"'
+			elseif booty_call['not_inside'] = 1:
+				'"Not inside me!" you yelp frantically.'
+			end
+		end
+		'You hop off the bed and kneel down, opening your mouth wide and sticking out your tongue as far as it can go. Moments later, you feel a hot glob of salty liquid land directly on your tongue, followed by more that spatters across your face, running down your cheek and dripping onto your breasts. The rest spray across your lips and fill your mouth.'
 		if orgasm > booty_call['orgasm']:
 			*nl
 			'The warm cum making contact with your tongue is the only thing left you need and you come with him, struggling to catch the rest of his load as you quiver in orgasm.'
@@ -831,7 +869,7 @@ if $ARGS[0] = 'facial_tongue_swallow':
 			npc_seen_swallow[$boy] = 1
 			
 			gs'booty_call_cum', 'facial_wipe_eyes'
-			gs'booty_call_talk', 'cum_react'
+			gs'booty_call_reactions', 'cum_react'
 		end
 	end
 end
@@ -856,12 +894,13 @@ if $ARGS[0] = 'facial_tongue_spit':
 			'The warm cum making contact with your tongue is the only thing left you need and you come with him, even as more cum continues to splash against your cheeks and dribble down your chin.'
 		end
 		gs'booty_call_cum', 'facial_wipe_eyes'
-		gs'booty_call_talk', 'cum_react'
+		gs'booty_call_reactions', 'cum_react'
 	end
 end
 
 if $ARGS[0] = 'facial_brace':
 	act'Brace yourself (disgust)':
+		$booty_call['last_cum'] = 'facial'
 		booty_call['react'] = 1
 		cla & *clr
 		gs'stat'
@@ -884,7 +923,7 @@ if $ARGS[0] = 'facial_brace':
 			gs'booty_call_sex', 'sex_end'
 		end
 		if $npc_cum_pref[$boy] = 'facial' and booty_call['facial_ask'] = 1 and booty_call['facial_hate_comment'] ! daystart:
-			'"You hate it so much," he says "but you still asked me to do it."'
+			'"You hate it so much," he says "But you still asked me to do it?"'
 			act'I know you like it':
 				cla & *clr
 				'<center><video autoplay loop src="images/shared/sex/cum/facial/facial_after1.mp4"></video></center>'
@@ -923,7 +962,7 @@ if $ARGS[0] = 'facial_brace':
 			'"You asked me to do it."'
 			if booty_call['he_ask_creampie'] = 1:
 				$booty_call['cum_describe1'] = 'Because,'
-				gs 'booty_call_talk', 'no_cum_inside'
+				gs 'booty_call_reactions', 'no_cum_inside'
 			elseif booty_call['he_ask_mouth'] = 1:
 				act'Swallowing is gross':
 					cla & *clr
@@ -940,42 +979,58 @@ if $ARGS[0] = 'facial_brace':
 				act'Feels weird':
 					cla & *clr
 					'"I don''t like the feeling of that on my skin," you grimace, <<$booty_call[''cum_describe2'']>>.'
-					'"So you had me cum on your face instead?"'
+					'"So you had me come onyour face instead?"'
 					'"... Shut up!"'
 					gs'booty_call_sex', 'sex_end'
 				end
 				
-				act'I should''ve let you cum on my tits':
+				act'I should''ve let you come on my tits':
 					cla & *clr
-					'"I should''ve let you cum on my tits," you grimace, <<$booty_call[''cum_describe2'']>>. "This was a mistake!"'
+					'"I should''ve let you come on my tits," you grimace, <<$booty_call[''cum_describe2'']>>. "This was a mistake!"'
 					gs'booty_call_sex', 'sex_end'
 				end
 			else
 				'You grin at him as he comes all over your hand, continuing to jerk him until his cock stops twitching and nothing else comes out. After a couple more tugs for good measure, you pull back.'
+				gs'booty_call_sex', 'sex_end'
 			end
 		end
 	end
 end
 if $ARGS[0] = 'cum_mouth':
-	booty_call['cock_remove'] = 1
-	$booty_call['cum_choice'] = 'mouth'
-	$booty_call['last_cum'] = 'mouth'
-	booty_call['cum_mouth'] += 1
-	gs'cum_call', 'mouth',$boy,1
+	cla
+	booty_call['cock_inserted'] = 0
 	!! differing descriptions based on position
 	!!'<center><video autoplay loop src="images/shared/sex/blowjob/bj47.mp4"></video></center>'
-	'<center><video autoplay loop src="images/shared/sex/cum/mouth/swallow5.mp4"></video></center>'
-	if booty_call['his_choice'] ! 2:
+	if booty_call['his_choice'] = 1:
+		'"I''m gonna come in your mouth!" is the only warning your receive before <<$npc_firstname[$boy]>> yanks his cock from your pussy and shoves it between your lips.'
+		act'Continue':gt'booty_call_cum', 'cum_mouth1'
+	else
 		if booty_call['mouth_ask'] = 1:
 			'"In my mouth!"'
 		elseif booty_call['he_ask_mouth'] = 1:
-			'"Okay," you say.'
+			if $booty_call['position'] = 'blowjob':
+				'"<i>Mm-kaahh</i>," you mumble around his cock, continuing to suck.'
+			else
+				'"Okay," you say.'
+			end
 		elseif booty_call['he_ask'] = 1:
-			'"Cum in my mouth instead!"'
+			'"Come in my mouth instead!"'
+			act'Put his cock in your mouth':gt'booty_call_cum', 'cum_mouth1'
 		elseif booty_call['not_inside'] = 1:
-			'"Not inside me!" you yelp frantically.'
+			'"Not inside me!" you yelp frantically. In response, <<$npc_firstname[$boy]>> yanks his cock from your pussy and moves it towards your mouth.'
 		end
+		act'Put his cock in your mouth':gt'booty_call_cum', 'cum_mouth1'
+		gs'booty_call_cum', 'facial_tongue_swallow'
 	end
+end
+
+if $ARGS[0] = 'cum_mouth1':
+	booty_call['cock_inserted'] = 0
+	$booty_call['cum_choice'] = 'mouth'
+	$booty_call['last_cum'] = 'mouth'
+	booty_call['cum_mouth'] += 1
+	'<center><video autoplay loop src="images/shared/sex/cum/mouth/swallow5.mp4"></video></center>'
+
 	*nl
 	if booty_call['his_choice'] = 2 and booty_call['condom'] = 1:
 		if $booty_call['position'] = 'miss':
@@ -1002,15 +1057,28 @@ if $ARGS[0] = 'cum_mouth':
 			'You jump off <<$npc_firstname[$boy]>>''s cock and turn around, ripping the condom off. Wrapping your lips around his girth, you begin sucking him off, you begin sucking him off until you feel hot globs of liquid spurt into your mouth.'
 		end
 	else
-		if $booty_call['position'] = 'miss':
-			'You push <<$npc_firstname[$boy]>> off of you on to his back and dive between his legs. Wrapping your lips around his cock, you begin sucking him off until you feel hot globs of liquid spurt into your mouth.'
-		elseif $booty_call['position'] = 'doggy':
-			'You feel <<$npc_firstname[$boy]>>''s cock pull out of you and you quickly turn around, pushing him onto his back. Wrapping your lips around his girth, you suck him off until you feel hot globs of liquid spurt into your mouth.'
-		elseif $booty_call['position'] = 'cowgirl':
-			'You jump off <<$npc_firstname[$boy]>>''s cock and turn around, diving between his legs. Wrapping your lips around his girth, you begin sucking him off until you feel hot globs of liquid spurt into your mouth.'
+		if mesec > 0:
+			if $booty_call['position'] = 'miss':
+				'You push <<$npc_firstname[$boy]>> off of you on to his back and dive between his legs, wrapping your lips around his girth. The taste of your own period fills your mouth as you suck, sucking hard until hot globs of salty liquid spurt.'
+			elseif $booty_call['position'] = 'doggy':
+				'You feel <<$npc_firstname[$boy]>>''s cock pull out of you and you quickly turn around, wrapping your lips around his girth and sucking hard until hot globs of liquid spurt into your mouth.'
+			elseif $booty_call['position'] = 'cowgirl':
+				'You jump off <<$npc_firstname[$boy]>>''s cock and turn around, diving between his legs, wrapping your lips around his girth and sucking hard until hot globs of liquid spurt into your mouth.'
+			end
+		else
+			if $booty_call['position'] = 'miss':
+				'You push <<$npc_firstname[$boy]>> off of you on to his back and dive between his legs, wrapping your lips around his girth and sucking hard until hot globs of liquid spurt into your mouth.'
+			elseif $booty_call['position'] = 'doggy':
+				'You feel <<$npc_firstname[$boy]>>''s cock pull out of you and you quickly turn around, wrapping your lips around his girth and sucking hard until hot globs of liquid spurt into your mouth.'
+			elseif $booty_call['position'] = 'cowgirl':
+				'You jump off <<$npc_firstname[$boy]>>''s cock and turn around, diving between his legs, wrapping your lips around his girth and sucking hard until hot globs of liquid spurt into your mouth.'
+			end
 		end
 	end
-	
+	gs'booty_call_cum', 'cum_mouth2'
+end
+
+if $ARGS[0] = 'cum_mouth2':
 	act'Gather it in your mouth':
 		cla & *clr
 		'<center><img <<$set_imgh>> src="images/shared/sex/cum/mouth/cum51.jpg"></center>'
@@ -1021,7 +1089,7 @@ if $ARGS[0] = 'cum_mouth':
 			booty_call['spit'] = 1
 			booty_call['spit_count'] += 1
 			$booty_call['last_cum'] = 'spit'
-			gs'cum_call', 'face', $boy, 1
+			gs'cum_call', 'mouth', $boy, 1
 			gs'stat'
 			cla & *clr
 			'<center><video autoplay loop src="images/shared/sex/cum/mouth/spit1.mp4"></video></center>'
@@ -1035,13 +1103,27 @@ if $ARGS[0] = 'cum_mouth':
 			booty_call['swallow'] = 1
 			booty_call['swallow_count'] += 1
 			$booty_call['last_cum'] = 'swallow'
-			stat['swallow'] += 1
+			gs'cum_call', 'mouth_swallow', $boy, 1
 			cla & *clr
 			'<center><video autoplay loop src="images/shared/sex/cum/mouth/swallow3.mp4"></video></center>'
 			'Taking a step back, you open your mouth again to show <<$npc_firstname[$boy]>> how much cum is still inside it. With a deep breath, you swallow the entire load in one gulp, sticking your tongue back out again to show him that it''s all gone.'
 			act'Continue':cla & gs'booty_call_sex', 'sex_end'
-			gs'booty_call_talk', 'cum_react'
+			gs'booty_call_reactions', 'cum_react'
 		end
+	end
+	
+	act'Spit':
+		booty_call['cum_mouth'] = 1
+		booty_call['spit'] = 1
+		booty_call['swallow'] = 0
+		booty_call['cum_count'] += 1
+		$booty_call['last_cum'] = 'spit'
+		gs 'cum_call', 'mouth', $boy, 1
+		gs 'stat'
+		cla & *clr
+		'<center><video autoplay loop src="images/shared/sex/cum/mouth/spit6.mp4"></video></center>'
+		'You draw yourself back up <<$npc_firstname[$boy]>>''s cock, keeping your lips tightly sealed, allowing the cum to pool at the front of your mouth. You hold it there for a few moments and then unpurse your lips, and letting all his cum dribble out of your mouth and down your chin.'
+		gs 'booty_call_sex', 'sex_end'
 	end
 	
 	if npc_like_cum_taste[$boy] < 1:
@@ -1049,10 +1131,12 @@ if $ARGS[0] = 'cum_mouth':
 			cla & *clr
 			npc_cum_gag[$boy] += 1
 			booty_call['spit_count'] += 1
+			booty_call['mouth_cum_gross'] = 1
 			booty_call['gag'] = 1
 			booty_call['react'] = 1
+			gs'cum_call', 'mouth', $boy, 1
 			'<center><video autoplay loop src="images/shared/sex/cum/mouth/gag2.mp4"></video></center>'
-			'The intensity of the bitter flavor is far more than you expect and you immediately pull your mouth off, spitting out the first load. You stick your tongue out, tryiing to soldier through and at least take the rest of it but as soon as the next shot hits your tongue your gag reflex kicks in instead, causing you to retch.'
+			'The intensity of the bitter flavor is far more than you expect and you immediately pull your mouth off, spitting out the first load. You stick your tongue out, trying to soldier through and at least take the rest of it but as soon as the next shot hits your tongue your gag reflex kicks in instead, causing you to retch.'
 			'Still holding onto <<$npc_firstname[$boy]>>''s cock with one hand, you clamp your other hand over your mouth, throat convulsing. It smears the cum on your lips all over your face, but you somehow manage to stop yourself from throwing up all over the bed.'
 			
 			if npc_cum_gag[$boy] = 1:
@@ -1061,7 +1145,7 @@ if $ARGS[0] = 'cum_mouth':
 					cla & *clr
 					'<center><img <<$set_imgh>> src="images/shared/sex/cum/cum112.jpg"></center>'
 					'"I- uhh, it went down the wrong pipe," you wheeze, covering your lie up with a cough.'
-					'"Careful girl, that''s not usually what a means when he says he wants to see you choke on his cock."'
+					'"Careful girl, that''s not usually what a guy means when he says he wants to see you choke on his cock."'
 					'He laughs at his own joke and you give a weak smile, eyes still watering from how bad his cum tasted.'
 					gs'booty_call_sex', 'sex_end'
 				end
@@ -1152,19 +1236,18 @@ if $ARGS[0] = 'cum_mouth_after':
 end
 
 if $ARGS[0] = 'cum_tits1':
-	booty_call['cock_remove'] = 1
-	$booty_call['cum_choice'] = 'tits'
+	booty_call['cock_inserted'] = 0
 	$booty_call['last_cum'] = 'tits'
 	booty_call['cum_tits'] += 1
 	gs'cum_call', 'face',$boy,1
 	!! differing descriptions based on position
 	cla & *nl
 	if booty_call['tits_ask'] = 1:
-		'"Cum on my tits!"'
+		'"Come on my tits!"'
 	elseif booty_call['he_ask_tits'] = 1:
 		'"Go ahead," you say.'
 	elseif booty_call['he_ask'] = 1:
-		'"Cum on my tits instead!"'
+		'"Come on my tits instead!"'
 	elseif booty_call['not_inside'] = 1:
 		'"Not inside me!" you yelp frantically.'
 	end
@@ -1190,15 +1273,18 @@ if $ARGS[0] = 'cum_tits1':
 	if booty_call['not_inside'] = 1:
 		act'Continue':gt 'booty_call_cum', 'cum_tits3'
 	else
+		act'Let him do it':gt 'booty_call_cum', 'cum_tits3'
+		
 		act'Finish him yourself':gt 'booty_call_cum', 'cum_tits2'
 		
-		act'Let him do it':gt 'booty_call_cum', 'cum_tits3'
+		gs 'booty_call_cum', 'cum_tits4'
 	end
 end
 
 if $ARGS[0] = 'cum_tits2':
-	booty_call['cock_remove'] = 1
+	booty_call['cock_inserted'] = 0
 	cla & *clr
+	booty_call['pc_titcum_jerk'] = 1
 	$booty_call['last_cum'] = 'tits'
 	gs 'cum_call', 'breasts', $boy, 1
 	'<center><video autoplay loop src="images/shared/sex/cum/chest/tits2.mp4"></video></center>'
@@ -1211,7 +1297,7 @@ if $ARGS[0] = 'cum_tits2':
 end
 
 if $ARGS[0] = 'cum_tits3':
-	booty_call['cock_remove'] = 1
+	booty_call['cock_inserted'] = 0
 	cla & *clr
 	$booty_call['last_cum'] = 'tits'
 	gs 'cum_call', 'breasts', $boy, 1
@@ -1240,13 +1326,42 @@ if $ARGS[0] = 'cum_tits3':
 		if $booty_call['position'] = 'miss':
 			'You open up your legs to let him out and he scooches forward. After just a few pumps from his fingers, cum spurts out from the tip of his cock, sending the white fluid spattering across your skin as, <<$npc_firstname[$boy]>> blows his load all over your tits.'
 		elseif $booty_call['position'] = 'doggy':
-			'You hurridely pull yourself off of him, turning around and laying down on the bed. He scooches forward. After just a few pumps from his fingers, cum spurts out from the tip of his cock, sending the white fluid spattering across your skin as, <<$npc_firstname[$boy]>> blows his load all over your tits.'
+			'You hurriedly pull yourself off of him, turning around and laying down on the bed. He scooches forward. After just a few pumps from his fingers, cum spurts out from the tip of his cock, sending the white fluid spattering across your skin as, <<$npc_firstname[$boy]>> blows his load all over your tits.'
 		elseif $booty_call['position'] = 'cowgirl':
-			'You hurridely jump off of him, laying down on the bed. After just a few pumps from his fingers, cum spurts out from the tip of his cock, sending the white fluid spattering across your skin as, <<$npc_firstname[$boy]>> blows his load all over your tits.'
+			'You hurriedly jump off of him, laying down on the bed. After just a few pumps from his fingers, cum spurts out from the tip of his cock, sending the white fluid spattering across your skin as, <<$npc_firstname[$boy]>> blows his load all over your tits.'
 		end
 	end
 	'<<$npc_firstname[$boy]>> quickly moves over to you, holding his cock in his hand. As you sit up, cum bursts from the tip, thick white droplets spattering across your breasts as <<$npc_firstname[$boy]>> shudders in pleasure.'
 	gs'booty_call_sex', 'sex_end'
+end
+
+if $ARGS[0] = 'cum_tits4':
+	if tits > 1:
+		act'Finish him with your tits':
+			booty_call['cock_inserted'] = 0
+			booty_call['cum_tits'] = 1
+			$booty_call['last_cum'] = 'tits'
+			booty_call['cum_count'] += 1
+			gs 'cum_call', 'breasts', $boy, 1
+			gs 'cum_call', 'hands', $boy, 1
+			gs 'stat'
+			cla & *clr
+			'<center><video autoplay loop src="images/shared/sex/cum/chest/tits1.mp4"></video></center>'
+			if booty_call['cum_choice'] = 'tits':
+				'"I can do you one better than that," you grin.'
+			else
+				'"I''ve got an even better idea," you grin.'
+			end
+			if booty_call['fucking'] = 1:
+				'You jump off his cock and kneel between his legs, smooshing your breasts together around his cock and start working them up and down his shaft. Within seconds, cum erupts from the tip, smearing it across your still bouncing tits and all over your fingers.'
+			else
+				'You kneel between his legs, smooshing your breasts together around his cock and start working them up and down his shaft. Within seconds, cum erupts from the tip, smearing it across your still bouncing tits and all over your fingers.'
+			end
+			!! reactions?
+			gs 'booty_call_sex', 'sex_end'
+			gs 'booty_call_after', 'wipe_tits'
+		end
+	end
 end
 
 if $ARGS[0] = 'cum_tits_end':
@@ -1254,7 +1369,7 @@ if $ARGS[0] = 'cum_tits_end':
 	!! missing code
 	!! sex_end?
 	!! clean code?
-	gs'booty_call_talk', 'cum_react'
+	gs'booty_call_reactions', 'cum_react'
 end
 
 if $ARGS[0] = 'creampie_code':
@@ -1264,13 +1379,12 @@ if $ARGS[0] = 'creampie_code':
 	booty_call['cum_pussy'] += 1
 	
 	if birth_control['think_safe'] = 0 and stat['dangerous_day'] = 1: 
-		booty_call['risky_creampie'] = 1
+		booty_call['risky_creampie'] += 1
 		npc_risky_creampie_count[$boy] += 1
 	end
 !!	if birth_control['think_safe'] = 0: booty_call['risky_creampie'] = 1
 	
 	gs'cum_call', '',$boy,1
-	$booty_call['cum_choice'] = 'creampie'
 	$booty_call['last_cum'] = 'creampie'
 	if $npc_cum_pref = 'creampie': npc_rel[$boy] += 2
 	gs'stat'
@@ -1279,6 +1393,7 @@ end
 if $ARGS[0] = 'cum_inside':
 	if booty_call['condom'] = 1 and booty_call['no_condom'] ! 1:gt 'booty_call_cum', 'cum_condom'
 	gs 'booty_call_cum', 'creampie_code'
+!!	npc_creampie_okay[$boy] = 1
 	!! differing descriptions based on position
 	if $booty_call['position'] = 'miss':
 		'<center><video autoplay loop src="images/shared/sex/cum/vagcreampie/creampie1.mp4"></video></center>'
@@ -1291,7 +1406,7 @@ if $ARGS[0] = 'cum_inside':
 			booty_call['simultaneous_orgasm_count'] += 1
 			'<<$npc_firstname[$boy]>> drives himself inside you with a grunt and you feel cum spurting out inside you. The sensation pushes you over the edge, gasping as waves of orgasm wash through you. The two of come together, each of your orgasms fueling the other''s until eventually they''ve run their course, and both of you are breathing hard.'
 			gs 'booty_call_cum', 'cum_inside_pull_away'
-			gs 'booty_call_talk', 'creampie_react'
+			gs'booty_call_reactions', 'react_menu'
 		else
 			'<<$npc_firstname[$boy]>> drives himself inside you, grunting. His cock pulses inside you and warmth fills your pussy.'
 			act'Ride it out':
@@ -1313,7 +1428,7 @@ if $ARGS[0] = 'cum_inside':
 				'You gasp, the sensation triggering your own climax, and get sent over the edge yourself. The two of come together, each of your orgasms fueling the other''s until eventually they''ve run their course and both of you lay there panting.'
 				act'Continue':cla & gs'booty_call_sex', 'sex_end'
 				gs 'booty_call_cum', 'cum_inside_pull_away'
-				gs 'booty_call_talk', 'creampie_react'
+				gs'booty_call_reactions', 'react_menu'
 			end
 			
 			act'Tolerate it (disgust)':
@@ -1332,27 +1447,25 @@ if $ARGS[0] = 'cum_inside':
 			gs'stat'
 			booty_call['orgasm_count'] += 1
 			booty_call['came_together'] = 2
-			'<center><video autoplay loop src="images/shared/sex/cum/vagcreampie/doggy3.mp4"></video></center>'
-			if booty_call['creampie_ask'] = 1:'"Come inside me!" you cry. "Fill me up!"'
+			'<center><video autoplay loop src="images/shared/sex/vag/doggy/orgasm2.mp4"></video></center>'
 			'<<$npc_firstname[$boy]>> grunts and you feel him come, cock pulsing inside you. The sensation pushes you over the edge, and you groan, tensing as waves of orgasm wash through you. The two of come together, both of your orgasms fueling the other''s until eventually they both end.'
 			gs 'booty_call_cum', 'cum_inside_pull_away'
-			gs 'booty_call_talk', 'creampie_react'
+			gs'booty_call_reactions', 'react_menu'
 		else
 			'<center><video autoplay loop src="images/shared/sex/cum/vagcreampie/doggy4.mp4"></video></center>'
-			if booty_call['creampie_ask'] = 1:'"Come inside me!" you cry. "Fill me up!"'
 			'<<$npc_firstname[$boy]>> drives himself inside you, grunting. His cock pulses inside you and warmth fills your pussy.'
 			act'Ride it out':
 				cla & *nl
 				'You stay there patiently, letting <<$npc_firstname[$boy]>> empty himself into your womb, waiting until you no longer feel him twitching inside you.'
 				gs 'booty_call_cum', 'cum_inside_pull_away'
-			gs 'booty_call_talk', 'creampie_react'
+				gs'booty_call_reactions', 'react_menu'
 			end
 			
 			act'Tolerate it (disgust)':
 				cla & *nl
 				'You stay there, trying not to squirm in discomfort, feeling <<$npc_firstname[$boy]>>''s spunk fill your womb. Despite your disgust, you don''t move, waiting until you no longer feel him twitching inside you.'
 				gs 'booty_call_cum', 'cum_inside_pull_away'
-				gs 'booty_call_talk', 'creampie_react'
+				gs'booty_call_reactions', 'react_menu'
 			end
 			
 			act'Come with him':
@@ -1366,13 +1479,12 @@ if $ARGS[0] = 'cum_inside':
 				booty_call['simultaneous_orgasm_count'] += 1
 				'You gasp, the sensation triggering your own climax, and get sent over the edge yourself. The two of come together, each of your orgasms fueling the other''s until eventually they''ve run their course and both of you collapse.'
 				gs 'booty_call_cum', 'cum_inside_pull_away'
-				gs 'booty_call_talk', 'creampie_react'
+				gs'booty_call_reactions', 'react_menu'
 			end
 		end
 	elseif $booty_call['position'] = 'cowgirl':
 		'<center><video autoplay loop src="images/shared/sex/cum/vagcreampie/cumvaginal.mp4"></video></center>'
 		if booty_call['creampie_ask'] = 1:
-			'"Come inside me!" you cry. "Fill me up!"'
 			if pcs_horny > 90:
 				$orgasm_or = 'yes'
 				gs 'arousal', 'vaginal', 1, 'no_orgasm_msg'
@@ -1380,11 +1492,31 @@ if $ARGS[0] = 'cum_inside':
 				booty_call['orgasm_count'] += 1
 				booty_call['came_together'] = 2
 				'You drop your hips, impaling yourself on <<$npc_firstname[$boy]>>''s cock. He thrusts his hips upward, driving himself deep inside you and you feel cum spurt out inside you. The sensation pushes you over the edge, causing your pussy to clamp down onto his cock even more and your body to spasm uncontrollably. The two of come together, holding each other tight, both of your orgasms fueling the other''s. After some time, your orgasm fades, leaving both of you panting.'
+				gs 'booty_call_cum', 'cum_inside_pull_away'
+				gs'booty_call_reactions', 'react_menu'
 			else
 				'You drop your hips, impaling yourself on <<$npc_firstname[$boy]>>''s cock. He grabs you and holds you tight, thrusting humself upward, driving his cock in deep into you as he can manage. As he does, you feel him stiffen up and groan, and his cock pulses inside you.'
 			end
-			gs 'booty_call_cum', 'cum_inside_pull_away'
-			gs 'booty_call_talk', 'creampie_react'
+			act'Ride it out':
+				cla & *nl
+				'You keep gently rocking your hips, letting <<$npc_firstname[$boy]>> empty himself into your womb, waiting until you no longer feel him twitching inside you.'
+				gs 'booty_call_cum', 'cum_inside_pull_away'
+				gs'booty_call_reactions', 'react_menu'
+			end
+			
+			act'Come with him':
+				cla & *clr
+				'<center><video autoplay loop src="images/shared/sex/vag/cowgirl/orgasm1.mp4"></video></center>'
+				$orgasm_or = 'yes'
+				gs 'arousal', 'vaginal', 1, 'no_orgasm_msg'
+				gs'stat'
+				booty_call['came_together'] = 2
+				booty_call['orgasm_count'] += 1
+				booty_call['simultaneous_orgasm_count'] += 1
+				'You gasp, the sensation triggering your own climax, and get sent over the edge yourself. The two of come together, each of your orgasms fueling the other''s until eventually they''ve run their course and both of you collapse.'
+				gs 'booty_call_cum', 'cum_inside_pull_away'
+				gs'booty_call_reactions', 'react_menu'
+			end
 		else
 			if pcs_horny > 90:
 				$orgasm_or = 'yes'
@@ -1394,21 +1526,21 @@ if $ARGS[0] = 'cum_inside':
 				booty_call['came_together'] = 2
 				'<<$npc_firstname[$boy]>> grabs you and pulls you down onto his cock, thrusting his hips upward at the same time, driving himself deep inside you and you feel cum spurt out inside you. The sensation pushes you over the edge, causing your pussy to clamp down onto his cock even more and your body to spasm uncontrollably. The two of come together, holding each other tight, both of your orgasms fueling the other''s. After some time, your orgasm fades, leaving both of you panting.'
 				gs 'booty_call_cum', 'cum_inside_pull_away'
-				gs 'booty_call_talk', 'creampie_react'
+				gs'booty_call_reactions', 'react_menu'
 			else
 				'<<$npc_firstname[$boy]>> grabs you and pulls you down onto his cock. He holds you tight, thrusting humself upward, driving his cock in deep into you as he can manage. As he does, you feel him stiffen up and groan, and his cock pulses inside you.'
 				act'Ride it out':
 					cla & *nl
 					'You keep gently rocking your hips, letting <<$npc_firstname[$boy]>> empty himself into your womb, waiting until you no longer feel him twitching inside you.'
 					gs 'booty_call_cum', 'cum_inside_pull_away'
-					gs 'booty_call_talk', 'creampie_react'
+					gs'booty_call_reactions', 'react_menu'
 				end
 				
 				act'Tolerate it (disgust)':
 					cla & *nl
 					'You stay there, trying not to squirm in discomfort, feeling <<$npc_firstname[$boy]>>''s spunk fill your womb. Despite your disgust, you don''t move, waiting until you no longer feel him twitching inside you.'
 					gs 'booty_call_cum', 'cum_inside_pull_away'
-					gs 'booty_call_talk', 'creampie_react'
+					gs'booty_call_reactions', 'react_menu'
 				end
 				
 				act'Come with him':
@@ -1422,7 +1554,7 @@ if $ARGS[0] = 'cum_inside':
 					booty_call['simultaneous_orgasm_count'] += 1
 					'You gasp, the sensation triggering your own climax, and get sent over the edge yourself. The two of come together, each of your orgasms fueling the other''s until eventually they''ve run their course and both of you collapse.'
 					gs 'booty_call_cum', 'cum_inside_pull_away'
-					gs 'booty_call_talk', 'creampie_react'
+					gs'booty_call_reactions', 'react_menu'
 				end
 			end
 		end
@@ -1430,37 +1562,24 @@ if $ARGS[0] = 'cum_inside':
 end
 
 if $ARGS[0] = 'cum_inside_pull_away':
-	if $booty_call['position'] = 'miss':
-		act'Pull away':
-			booty_call['cock_remove'] = 1
-			cla & *clr
+	act'Pull away':
+		booty_call['cock_inserted'] = 0
+		cla & *clr
+		if $booty_call['position'] = 'miss':
 			'<center><video autoplay loop src="images/shared/sex/cum/vagcreampie/drip3.mp4"></video></center>'
-			'You carefully scooch backwards, allowing <<$npc_firstname[$boy]>> to remove his cock from your pussy. It slips from your snatch with a <i>pop</i>, a slurry of cum trickling out after it, running down your ass and into the bedsheets.'
-			act'Continue':cla & gs 'booty_call_sex', 'sex_end'
-			gs 'booty_call_talk', 'cum_react'
-		end
-	elseif $booty_call['position'] = 'doggy':
-		act'Pull away':
-			booty_call['cock_remove'] = 1
-			cla & *clr
+			'You carefully scooch backwards, allowing <<$npc_firstname[$boy]>> to remove his cock from your pussy. It slips from your snatch with a <i>pop</i>, a slurry of cum streaming out after it, running down your ass and into the bedsheets.'
+		elseif $booty_call['position'] = 'doggy':
 			'<center><video autoplay loop src="images/shared/sex/cum/vagcreampie/drip3.mp4"></video></center>'
-			'You lean forward, letting <<$npc_firstname[$boy]>>''s cock slip from your snatch and roll onto your back breathing hard. As you do, you feel a slurry of cum trickling from your pussy, running down your ass and into the bedsheets.'
-			act'Continue':cla & gs 'booty_call_sex', 'sex_end'
-			gs 'booty_call_talk', 'cum_react'
-		end
-	elseif $booty_call['position'] = 'cowgirl':
-		act'Climb off of him':
-			booty_call['cock_remove'] = 1
-			cla & *clr
+			'You lean forward, letting <<$npc_firstname[$boy]>>''s cock slip from your snatch and roll onto your back breathing hard. As you do, you feel a slurry of liquid stream from your pussy, running down your ass and into the bedsheets.'
+		elseif $booty_call['position'] = 'cowgirl':
 			'<center><video autoplay loop src="images/shared/sex/cum/vagcreampie/cowgirl3.mp4"></video></center>'
 			'Raising your hips up, you pull yourself off <<$npc_firstname[$boy]>>''s cock. It flops from your pussy and you feel a thick glob of liquid immediately begin to leak from your snatch.'
-			act'Continue':cla & gs 'booty_call_sex', 'sex_end'
-			gs 'booty_call_talk', 'cum_react'
 		end
+		gs 'booty_call_sex', 'sex_end'
 	end
 	
 !!{	act'Let him pull out':
-		booty_call['cock_remove'] = 1
+		booty_call['cock_inserted'] = 0
 		cla & *clr
 		if $booty_call['position'] = 'miss':
 			'<center><video autoplay loop src="images/shared/sex/cum/vagcreampie/miss1.mp4"></video></center>'
@@ -1482,7 +1601,7 @@ if $ARGS[0] = 'cum_together':
 	cla & *nl
 	if booty_call['he_ask_creampie'] = 1:
 		if $booty_call['position'] = 'miss':
-			'You just nod, unable to say anything and grab hold of him tightly. You can feel <<$npc_firstname[$boy]>>''s cock swelling inside you, right on the edge of bursting. The tension in your pussy feels the same way. It feels like any moment you might just-'
+			'You just nod, unable to say anything, and grab hold of him tightly. You can feel <<$npc_firstname[$boy]>>''s cock swelling inside you, right on the edge of bursting. The tension in your pussy feels the same way. It feels like any moment you might just-'
 		elseif $booty_call['position'] = 'doggy':
 			'You just nod, unable to say anything, eagerly throwing your hips back into his thrusts. You can feel <<$npc_firstname[$boy]>>''s cock swelling inside you, right on the edge of bursting. The tension in your pussy feels the same way. It feels like any moment you might just-'
 		elseif $booty_call['position'] = 'cowgirl':
@@ -1520,7 +1639,7 @@ if $ARGS[0] = 'cum_together':
 		end
 		'<<$npc_firstname[$boy]>>''s cock pulses inside you and something warm spills into your pussy. His hot cum filling you up is the last thing you need to get off and suddenly you''re right there with him, muscles going taut and quivering uncontrollably as the two of you come together.'
 		gs 'booty_call_cum', 'cum_inside_pull_away'
-		gs 'booty_call_talk', 'creampie_react'
+		gs'booty_call_reactions', 'react_menu'
 	end
 end
 
@@ -1562,9 +1681,10 @@ end
 
 if $ARGS[0] = 'cum_force':
 	booty_call['creampie_force'] = 1
-	gs 'booty_call_cum', 'creampie_code'
+	
 	!! differing descriptions based on position
-	if booty_call['condom'] = 1:
+	if booty_call['condom'] = 1 and booty_call['no_condom'] = 0:
+		gs'cum_call', '',$boy,1,3
 		if pcs_horny > 90:
 			$orgasm_or = 'yes'
 			gs 'arousal', 'vaginal', 1, 'no_orgasm_msg'
@@ -1587,6 +1707,7 @@ if $ARGS[0] = 'cum_force':
 			gs'booty_call_sex', 'sex_end'
 		end
 	else
+		gs 'booty_call_cum', 'creampie_code'
 		if pcs_horny > 90:
 			$orgasm_or = 'yes'
 			gs 'arousal', 'vaginal', 1, 'no_orgasm_msg'
@@ -1594,25 +1715,44 @@ if $ARGS[0] = 'cum_force':
 			booty_call['orgasm_count'] += 1
 			booty_call['came_together'] = 1
 			'<center><video autoplay loop src="images/shared/sex/cum/vagcreampie/cowgirl2.mp4"></video></center>'
-			'With a devilish grin, you suddenly speed up your movements, riding <<$npc_firstname[$boy]>> as hard as you can. Seconds later, you feel him come inside the condom, pulsing within you, and it sends you over the edge. But you don''t stop, not for a second, and you continue to plunge yourself up and down even as you shudder in climax together.'
+			'With a devilish grin, you suddenly speed up your movements, riding <<$npc_firstname[$boy]>> as hard as you can. Seconds later, you feel him pulse within you and warmth explodes through your hips. It sends you over the edge but you don''t stop for a second, continuing to plunge yourself up and down even as you shudder in climax together.'
 			act'Continue':
 				cla & *clr
 				'<center><video autoplay loop src="images/shared/sex/cum/vagcreampie/cowgirl1.mp4"></video></center>'
 				'Finally, your orgasm fades and his seems to have finished as well. Still wearing your grin, you drive your hips down as far as they can go one last time, clenching your pussy around his cock on the way back up, and try to milk him for every last drop. You can feel his cum overflowing from around your pussy''s lips and when you draw back up to the top, it spills from your snatch, dribbling down the length of his manhood.'
 				*nl
 				'Judging by the expression on his face, you just rocked his world finishing him like that.'
-				gs'booty_call_sex', 'sex_end'
+				gs 'booty_call_cum', 'cum_inside_pull_away'
+				gs'booty_call_reactions', 'react_menu'
 			end
 		else
 			'<center><video autoplay loop src="images/shared/sex/cum/vagcreampie/cowgirl2.mp4"></video></center>'
-			'With a devilish grin, you suddenly speed up your movements and seconds later, you feel <<$npc_firstname[$boy]>> come inside you. You don''t even slow down for a second, continuing to ride him as hard as you can until you''re sure he''s completely finished with his orgasm. Only then do you slow down and come to a halt on top of him.'
-			act'Continue':
-				cla & *clr
-				'<center><video autoplay loop src="images/shared/sex/cum/vagcreampie/cowgirl1.mp4"></video></center>'
-				'Still wearing your grin, you drive your hips down as far as they can go one last time, clenching your pussy around his cock on the way back up, and try to milk him for every last drop. You can feel his cum overflowing from around your pussy''s lips and when you draw back up to the top, it spills from your snatch, dribbling down the length of his manhood.'
-				*nl
-				'Judging by the expression on his face, you just rocked his world finishing him like that.'
-				gs'booty_call_sex', 'sex_end'
+			'With a devilish grin, you suddenly speed up your movements and seconds later, you feel <<$npc_firstname[$boy]>> pulse inside you.'
+			act'Milk him dry':
+				cla & *nl
+				'You don''t even slow down for a second, continuing to ride him as hard as you can until you''re sure he''s completely finished with his orgasm. Only then do you slow down and come to a halt on top of him.'
+				act'Continue':
+					cla & *clr
+					'<center><video autoplay loop src="images/shared/sex/cum/vagcreampie/cowgirl1.mp4"></video></center>'
+					'Still wearing your grin, you drive your hips down as far as they can go one last time, clenching your pussy around his cock on the way back up, and try to milk him for every last drop. You can feel his cum overflowing from around your pussy''s lips and when you draw back up to the top, it spills from your snatch, dribbling down the length of his manhood.'
+					*nl
+					'Judging by the expression on his face, you just rocked his world finishing him like that.'
+					gs 'booty_call_cum', 'cum_inside_pull_away'
+					gs'booty_call_reactions', 'react_menu'
+				end
+			end
+			act'Creampie induced orgasm':
+				cla & *nl
+				'Heat floods through your hips as <<$npc_firstname[$boy]>> comes inside you, making you come as well but you don''t even slow down for a second, desperately pounding your shuddering pussy with his cock until you''re past the brink of insanity and your climax finally ends. Only then do you slow down, as your muscles are on the verge of giving out.'
+				act'Continue':
+					cla & *clr
+					'<center><video autoplay loop src="images/shared/sex/cum/vagcreampie/cowgirl1.mp4"></video></center>'
+					'You give <<$npc_firstname[$boy]>> a tired grin, feeling his cum overflowing from your pussy, unable to be contained by the imperfect plug of his cock.'
+					*nl
+					'Both of you are breathing hard, unable to do anything but pant wordlessly until the aftershocks subside.'
+					gs 'booty_call_cum', 'cum_inside_pull_away'
+					gs'booty_call_reactions', 'react_menu'
+				end
 			end
 		end
 	end
@@ -1620,7 +1760,8 @@ end
 
 
 if $ARGS[0] = 'cum_pullout':
-	booty_call['cock_remove'] = 1
+	if booty_call['cum_choice'] > 9 and booty_call['extra_caution'] = 0: gt'booty_call_cum', 'creampie_surprise'
+	booty_call['cock_inserted'] = 0
 	$booty_call['cum_choice'] = 'pullout'
 	$booty_call['last_cum'] = 'pullout'
 	if booty_call['pullout_ask'] = 1:
@@ -1638,10 +1779,10 @@ if $ARGS[0] = 'cum_pullout':
 			gs'cum_call', 'butt',$boy,1
 			gs'cum_call', 'back',$boy,1
 			$booty_call['cum_describe2'] = 'looking back at the white liquid glazing your ass'
-			'<center><img <<$set_imgh>> src="images/shared/sex/cum/back1.jpg"></center>'
+			'<center><video autoplay loop src="images/shared/sex/cum/pullout_doggy1.mp4"></video></center>'
 			'"Pull out!"'
 			*nl
-			'At your words, he yanks himself from your pussy and begins furiously jacking off over your ass. Moments later, you feel hot viscious liquid spatter all over it and across your back.'
+			'Not even a second passes between feeling <<$npc_firstname[$boy]>>''s cock slip from your snatch and when hot liquid spatters across your back and dribbles onto your ass.'
 		elseif $booty_call['position'] = 'cowgirl':
 			$booty_call['cum_describe2'] = 'looking back at the white liquid glazing your ass'
 			gs'cum_call', 'butt',$boy,1
@@ -1663,13 +1804,13 @@ if $ARGS[0] = 'cum_pullout':
 				if booty_call['condom'] = 1:
 					'<<$npc_firstname[$boy]>> pulls himself out of your pussy and tears off the condom, furiously jacking off over you. Moments later, he ejaculates, sending cum flying all over your body, spattering across your belly.'
 				else
-					'He barely follows your instructions in time. No sooner does his cock slip from your pussy than cum bursts from the tip, spattering all across your stomach.'
+					'"Oh fuck!" <<$npc_firstname[$boy]>> barely follows your instructions in time. No sooner does his cock slip from your pussy than cum bursts from its tip, spattering all across your stomach.'
 				end
 			else
 				if booty_call['condom'] = 1:
 					'<<$npc_firstname[$boy]>> pulls himself out of your pussy and tears off the condom, furiously jacking off over you. Moments later, he ejaculates, sending cum flying all over your body, spattering across your belly.'
 				else
-					'<<$npc_firstname[$boy]>> grunts and his cock slips from your pussy. The moment it does, <<$npc_firstname[$boy]>> comes, spattering your stomach with his sticky, white cum.'
+					'"Oh fuck!" <<$npc_firstname[$boy]>> suddenly cries out. His cock slips from your pussy. The moment it does, <<$npc_firstname[$boy]>> comes, spattering your stomach with his sticky, white cum.'
 				end
 			end
 		elseif $booty_call['position'] = 'doggy':
@@ -1678,17 +1819,17 @@ if $ARGS[0] = 'cum_pullout':
 			booty_call['cum_back'] += 1
 			booty_call['cum_ass'] += 1
 			$booty_call['cum_describe2'] = 'looking back at the white liquid glazing your ass'
-			'<center><img <<$set_imgh>> src="images/shared/sex/cum/back1.jpg"></center>'
+			'<center><video autoplay loop src="images/shared/sex/cum/pullout_doggy1.mp4"></video></center>'
 			if booty_call['not_inside'] = 1:
 				'"Not inside me!" you yelp frantically.'
 				*nl
-				if booty_call['condom'] = 1:
+				if booty_call['condom'] = 1 and booty_call['no_condom'] = 0:
 					'<<$npc_firstname[$boy]>> yanks himself from your pussy and you hear a <i>snap</i> as he rips the condom off of his cock and moments later, you feel hot liquid spatter all over ass and across your back.'
 				else
-					'At your words, he yanks himself from your pussy and begins furiously jacking off over your ass. Moments later, you feel hot liquid spatter all over it and across your back.'
+					'"Oh fuck!" Not even a second passes between feeling <<$npc_firstname[$boy]>>''s cock vacate your pussy and when hot liquid spatters across your back and dribbles onto your ass.'
 				end
 			else
-				'<<$npc_firstname[$boy]>> grunts and you feel his cock slip from your pussy. Not a moment later, you feel something hot and wet spattering across your ass and back.'
+				'"Oh fuck!" <<$npc_firstname[$boy]>> suddenly cries out. His cock slips from your snatch and not even a moment later do you feel hot liquid spattering across your back and dribbling onto your ass.'
 			end
 		elseif $booty_call['position'] = 'cowgirl':
 			if booty_call['not_inside'] = 1:
@@ -1701,7 +1842,7 @@ if $ARGS[0] = 'cum_pullout':
 				if booty_call['condom'] = 1:
 					'<<$npc_firstname[$boy]>> suddenly pushes you backwards, eliciting a yelp as you fall onto your back, his cock popping out from your pussy along the way. He rips the condom off his cock and moments later, he ejaculates, sending cum spattering across your belly.'
 				else
-					'<<$npc_firstname[$boy]>> suddenly pushes you backwards, eliciting a yelp as you fall onto your back, his cock popping out from your pussy along the way. Moments later, he ejaculates, sending cum spattering across your belly.'
+					'"Oh fuck!" <<$npc_firstname[$boy]>> suddenly cries out. He pushes you backwards, eliciting a yelp as you fall onto your back, his cock popping out from your pussy along the way. Moments later, he ejaculates, sending cum spattering across your belly.'
 				end
 			else
 				gs'cum_call', 'butt',$boy,1
@@ -1713,7 +1854,7 @@ if $ARGS[0] = 'cum_pullout':
 				if booty_call['condom'] = 1:
 					'<<$npc_firstname[$boy]>> suddenly pushes you backwards, eliciting a yelp as you fall onto your back, his cock popping out from your pussy along the way. He rips the condom off his cock and moments later, he ejaculates, sending cum spattering across your belly.'
 				else
-					'<<$npc_firstname[$boy]>> grunts, his cock slipping from your pussy and sliding up between your ass cheeks. You reach around to put it back in when you feel something hot and wet spattering across your ass and back.'
+					'"Oh fuck!" <<$npc_firstname[$boy]>> grunts, his cock slipping from your pussy and sliding up between your ass cheeks. You reach around to put it back in when you feel something hot and wet spattering across your ass and back.'
 				end
 			end
 		end
@@ -1729,23 +1870,28 @@ if $ARGS[0] = 'creampie_surprise':
 		'<center><video autoplay loop src="images/shared/sex/cum/vagcreampie/creampie1.mp4"></video></center>'
 		if booty_call['not_inside'] = 1:
 			'"Not insi-!"'
-			*nl
+		elseif booty_call['pullout_ask'] = 1:
+			'"Pull ou-!"'
 		end
-		'<<$npc_firstname[$boy]>> grabs you tight and plunges his full length into you. His cock pulses inside you and something warm floods into your pussy.'
+		*nl
+		'<<$npc_firstname[$boy]>> grabs you tight and plunges his full length into you. His cock pulses and you gasp as warmth floods your pussy.'
 	elseif $booty_call['position'] = 'doggy':
 		'<center><video autoplay loop src="images/shared/sex/cum/vagcreampie/doggy3.mp4"></video></center>'
 		if booty_call['not_inside'] = 1:
 			'"Not insi-!"'
-			*nl
+		elseif booty_call['pullout_ask'] = 1:
+			'"Pull ou-!"'
 		end
-		'Suddenly, <<$npc_firstname[$boy]>> drives his cock into you. His cock pulses inside you and something warm floods into your pussy.'
+		*nl
+		'Suddenly, <<$npc_firstname[$boy]>> drives his cock into you. His cock pulses and you gasp as warmth floods your pussy.'
 	elseif $booty_call['position'] = 'cowgirl':
 		'<center><video autoplay loop src="images/shared/sex/cum/vagcreampie/cumvaginal.mp4"></video></center>'
 		if booty_call['not_inside'] = 1:
 			'"Not insi-!"'
-			*nl
+		elseif booty_call['pullout_ask'] = 1:
+			'"Pull ou-!"'
 		end
-		'Suddenly, <<$npc_firstname[$boy]>> grabs you tight, pulling you down against his chest and thrusting himself deep into you. His cock pulses inside you and something warm floods into your pussy.'
+		'Suddenly, <<$npc_firstname[$boy]>> grabs you tight, pulling you down against his chest and thrusting himself deep into you. His cock pulses and warmth floods your pussy.'
 	end
 	
 	gs'booty_call_cum', 'creampie_surprise_react'
@@ -1753,14 +1899,8 @@ end
 
 if $ARGS[0] = 'creampie_surprise_react':
 		
-	act'Take it in stride':
-		booty_call['take_in_stride'] = 1
-		cla & *nl
-		'You''re a bit surprised, but you take it in stride, waiting patiently until his cock no longer twitches inside your pussy.'
-		act'Continue':cla & gs'booty_call_sex', 'sex_end'
-		gs 'booty_call_cum', 'cum_inside_pull_away'
-		gs'booty_call_talk', 'cum_react'
-	end
+	gs'booty_call_reactions', 'take_in_stride1'
+	
 	if orgasm = booty_call['orgasm']:
 		act'Creampie induced orgasm':
 			booty_call['orgasm_count'] += 1
@@ -1824,8 +1964,9 @@ if $ARGS[0] = 'creampie_surprise_react':
 		end
 	end
 	
-	gs 'booty_call_talk', 'creampie_wtf'
-	gs 'booty_call_talk', 'creampie_accident_oh_shit'
+	gs 'booty_call_reactions', 'creampie_pc_startled'
+	gs 'booty_call_reactions', 'creampie_wtf'
+	gs 'booty_call_reactions', 'creampie_accident_oh_shit'
 end
 
 if $ARGS[0] = 'creampie_surprise_cum_together':
@@ -1842,19 +1983,15 @@ if $ARGS[0] = 'creampie_surprise_cum_together':
 	end
 	if npc_know_love_creampie[$boy] = 1:
 		'He stares into your eyes, smiling.'
-	else
+	elseif booty_call['came_together'] = 2:
+		booty_call['did_we_cum_together'] = 1
 		'"Did... did we... did you...?" he pants.'
 	end
 	
-	gs'booty_call_talk', 'bask_satisfaction'
-	gs'booty_call_talk', 'cum_together_yeah'
-	gs'booty_call_talk', 'feel_full'
-	gs'booty_call_talk', 'love_creampies'
-	gs'booty_call_talk', 'creampie_ask_next_time'
-	gs'booty_call_talk', 'told_you_not_to_creampie'
-	gs'booty_call_talk', 'cum_together_kiss'
-	gs'booty_call_talk', 'cum_together_no_bc'
-	if (booty_call['orgasm_count'] >= 5 or pcs_sleep < 20) and (hour >= 20 or hour < 4):
+!!	gs'booty_call_reactions', 'creampie_react'
+	gs'booty_call_reactions', 'react_menu'
+
+	if (booty_call['orgasm_count'] >= 5 or pcs_sleep < 20) and (hour >= 20 or hour =< 4):
 		act'Collapse':gt'booty_call_after', 'black_out'
 	end
 end
@@ -1886,35 +2023,56 @@ if $ARGS[0] = 'what_now':
 		act'Foreplay':cla & gs 'booty_call_start', 'foreplay_choose'
 		act'Sex':cla & gs'booty_call_sex', 'position_change' & gs 'booty_call_condoms', 'condoms'
 	end
-	
-	act'Keep going (no condoms)':
-		cla & *clr
-		'<center><video autoplay loop src="images/shared/sex/misc/wait.mp4"></video></center>'
-		if daystage >= 3:
-			'"I guess there''s no point in using any more condoms tonight," you grin wickedly.'
-		else
-			'"I guess there''s no point in using any more condoms today," you grin wickedly.'
+	if booty_call['condom'] = 1 and booty_call['no_condoms'] ! 1:
+		act'Keep going (no condoms)':
+			cla & *clr
+			'<center><video autoplay loop src="images/shared/sex/misc/wait.mp4"></video></center>'
+			if daystage >= 3:
+				'"I guess there''s no point in using any more condoms tonight," you grin wickedly.'
+			else
+				'"I guess there''s no point in using any more condoms today," you grin wickedly.'
+			end
+			if npc_condom_conscious[$boy] = 2:
+				'"No reason to increase the risk either," <<$npc_firstname[$boy]>> frowns and keeps more condoms within arm''s reach.'
+			else
+				booty_call['no_condom'] = 1
+				'<<$npc_firstname[$boy]>> grins back at you and his cock immediately starts to stiffen again, apparently getting hard just at the thought of fucking you bareback.'
+			end
+			gs'booty_call_sex', 'reset'
+			act'Let him lead':cla & gs 'booty_call_sex', 'he_choose_position'
+			act'Foreplay':cla & gs 'booty_call_start', 'foreplay_choose'
+			act'Sex':cla & gs'booty_call_sex', 'position_change' & gs 'booty_call_condoms', 'condoms'
 		end
-		if npc_condom_conscious[$boy] = 2:
-			'"No reason to increase the risk either," <<$npc_firstname[$boy]>> frowns and keeps more condoms within arm''s reach.'
-		else
-			booty_call['no_condom'] = 1
-			'<<$npc_firstname[$boy]>> grins back at you and his cock immediately starts to stiffen again, apparently getting hard just at the thought of fucking you bareback.'
+	elseif booty_call['creampie_count'] > 0:
+		act'Keep going (free creampies)':
+			cla & *clr
+			'<center><video autoplay loop src="images/shared/sex/misc/wait.mp4"></video></center>'
+			if daystage >= 3:
+				'"Well I''m already full of cum so I guess there''s no point in telling you not to come inside me tonight," you grin wickedly. "Blow your load in me whenever you want"'
+			else
+				'"Well I''m already full of cum so I guess there''s no point in telling you not to come inside me today," you grin wickedly. "Blow your load in me whenever you want"'
+			end
+			if npc_childfree[$boy] = 2:
+				'"No reason to increase the risk either," <<$npc_firstname[$boy]>> frowns. "I''m going to try to keep pulling out anyways."'
+				'"Boo," you moan. "You''re no fun."'
+			else
+				booty_call['creampie_allowance'] = 1
+				'<<$npc_firstname[$boy]>> grins back at you seeming to be excited he has permission.'
+			end
+			gs'booty_call_sex', 'reset'
+			act'Let him lead':cla & gs 'booty_call_sex', 'he_choose_position'
+			act'Foreplay':cla & gs 'booty_call_start', 'foreplay_choose'
+			act'Sex':cla & gs'booty_call_sex', 'position_change' & gs 'booty_call_condoms', 'condoms'
 		end
-		gs'booty_call_sex', 'reset'
-		act'Let him lead':cla & gs 'booty_call_sex', 'he_choose_position'
-		act'Foreplay':cla & gs 'booty_call_start', 'foreplay_choose'
-		act'Sex':cla & gs'booty_call_sex', 'position_change' & gs 'booty_call_condoms', 'condoms'
 	end
 end
 
 if $ARGS[0] = 'cum_not_inside':
 	if booty_call['cum_choice'] > 9:
-		gs'cum_call', '',$boy,1
 		gt'booty_call_cum', 'creampie_surprise'
 	else		
 		if booty_call['cum_choice'] >= 8:
-			gt'booty_call_cum', 'cum_mouth'
+			gs'booty_call_cum', 'cum_mouth'
 		elseif booty_call['cum_choice'] >= 6:
 			gs'booty_call_cum', 'cum_facial'
 		else
@@ -1926,26 +2084,24 @@ end
 if $ARGS[0] = 'cum_condom':
 	cla & *clr
 	gs'cum_call', '',$boy,1,3
-	$booty_call['cum_choice'] = 'condom'
 	$booty_call['last_cum'] = 'condom'
 	!! remove later when reactions are written
 !!	booty_call['react'] = 1
 	if $booty_call['position'] = 'miss':
 		'<center><img <<$set_imgh>> src="images/shared/sex/cum/cum61.jpg"></center>'
 		$booty_call['cum_describe2'] = 'looking between your legs as he removes his cock, the rubber casing around it bulging with liquid'
-		booty_call['cock_remove'] = 1
 	elseif $booty_call['position'] = 'doggy':
 		'<center><img <<$set_imgh>> src="images/shared/sex/cum/cum71.jpg"></center>'
 		$booty_call['cum_describe2'] = 'looking over your shoulder as you let his rubber encased cock slip from your pussy'
-		booty_call['cock_remove'] = 1
 	elseif $booty_call['position'] = 'cowgirl':
 		'<center><video autoplay loop src="images/shared/sex/cum/vagcreampie/cumvaginal.mp4"></video></center>'
 		$booty_call['cum_describe2'] = 'settling your self down onto his rubber encased cock'
 	end
 	if condom_break > 0:
+		$booty_call['last_cum'] = 'broken_condom'
 		booty_call['broken_condom'] = 1
 		if booty_call['orgasm'] < orgasm:
-			booty_call['came_together'] = 1
+			booty_call['came_together'] = 2
 			'<<$npc_firstname[$boy]>> buries his cock inside your pussy. It throbs inside you through the condom, causing you to come as well. You ride out your orgasms together, oblivious to everything except the pleasure.'
 			act'Continue':gs'booty_call_cum', 'broken_condom2'
 		else
@@ -1971,11 +2127,11 @@ if $ARGS[0] = 'broken_condom1':
 		cla & *clr
 		'<center><img <<$set_imgh>> src="images/shared/sex/cum/cum111.jpg"></center>'
 		'Your eyes go wide in shock and you jump off the bed, looking between your legs. As you feared, thick, white strands of cum leak from your snatch, running down your thighs. The condom must have broken.'
-		gs 'booty_call_talk', 'oh_shit_options'
+		gs 'booty_call_reactions', 'oh_shit_options'
 	end
 	
 	act'Take it in stride':
-		booty_call['cock_remove'] = 1
+		booty_call['cock_inserted'] = 0
 		cla & *clr
 		if $booty_call['position'] = 'cowgirl':
 			'<center><video autoplay loop src="images/shared/sex/cum/vagcreampie/creampie2.mp4"></video></center>'
@@ -1989,8 +2145,9 @@ if $ARGS[0] = 'broken_condom1':
 				'You blink in surprise but wait patiently without making a fuss until <<$npc_firstname[$boy]>> withdraws his cock from you. The moment it slips free, something wet gushes from your pussy and you turn around to visually confirm what you suspected: the condom broke.'
 			end
 		end
-		gs'booty_call_talk', 'oh_shit_options'
-		gs'booty_call_talk', 'creampie_accident_birth_control'
+		gs'booty_call_reactions', 'oh_shit_options'
+		gs'booty_call_reactions', 'creampie_accident_birth_control'
+		gs'booty_call_reactions', 'creampie_safe_day'
 	end
 	
 	act'Come':
@@ -2021,8 +2178,9 @@ if $ARGS[0] = 'broken_condom1':
 				'Eventually your orgasm comes down and you let yourself collapse on top of <<$npc_firstname[$boy]>>, feeling your breasts pressed against his chest, which rises and falls with the same laboured breathing as your own.'
 				'"I think... the condom... broke..." you pant laying on his chest.'
 			end
-			gs'booty_call_talk', 'oh_shit_options'
-			gs'booty_call_talk', 'creampie_accident_birth_control'
+			gs'booty_call_reactions', 'oh_shit_options'
+			gs'booty_call_reactions', 'creampie_accident_birth_control'
+			gs'booty_call_reactions', 'creampie_safe_day'
 		end
 	end
 end
@@ -2031,10 +2189,8 @@ if $ARGS[0] = 'broken_condom2':
 	cla & *clr
 	if $booty_call['position'] = 'miss':
 		'<center><img <<$set_imgh>> src="images/shared/sex/cum/cum61.jpg"></center>'
-		booty_call['cock_remove'] = 1
 	elseif $booty_call['position'] = 'doggy':
 		'<center><img <<$set_imgh>> src="images/shared/sex/cum/cum71.jpg"></center>'
-		booty_call['cock_remove'] = 1
 	elseif $booty_call['position'] = 'cowgirl':
 		'<center><img <<$set_imgh>> src="images/shared/sex/cum/cum81.jpg"></center>'
 	end
@@ -2042,7 +2198,7 @@ if $ARGS[0] = 'broken_condom2':
 	*nl
 	'Something feels...'
 	act'Continue':
-		booty_call['cock_remove'] = 1
+		booty_call['cock_inserted'] = 0
 		cla & *clr
 		if $booty_call['position'] = 'doggy':
 			'<center><img <<$set_imgh>> src="images/shared/sex/cum/vagcreampie/doggy1.jpg"></center>'
@@ -2053,10 +2209,10 @@ if $ARGS[0] = 'broken_condom2':
 			'<center><img <<$set_imgh>> src="images/shared/sex/cum/vagcreampie/miss1.jpg"></center>'
 			'<<$npc_firstname[$boy]>> slips his cock out from inside you and something wet trickles out after it.'
 			*nl
-			'Turning around, you look at his cock and confirm your suspicions: the condom broke.'
+			'Looking down between your legs, you see his cock and confirm your suspicions: the condom broke.'
 		end
-		gs'booty_call_talk', 'oh_shit_options'
-		gs'booty_call_talk', 'creampie_accident_birth_control'
+		gs'booty_call_reactions', 'oh_shit_options'
+		gs'booty_call_reactions', 'creampie_accident_birth_control'
 	end
 end
 
