@@ -264,7 +264,14 @@ if $ARGS[0] = 'fuck_cum_random':
 	if sex_ev['cum_choice'] > 1 and sex_ev['cum_choice'] < 10: sex_ev['cum_warn'] = 1
 	
 !!	if sex_ev['cum_choice'] = 10 and sex_ev['fuck'] = 1:
-	if sex_ev['cum_choice'] = 10:
+	if sex_ev['two_pump'] = 1:
+		sex_ev['two_pump'] = 2
+		if sex_ev['extra_caution'] = 1 and sex_ev['no_condom'] = 1 and sex_ev['creampie_allowance'] ! 1:
+			$sex_ev['cum_choice'] = 'pullout'
+		else
+			$sex_ev['cum_choice'] = 'creampie_surprise'
+		end
+	elseif sex_ev['cum_choice'] = 10:
 		if sex_ev['extra_caution'] = 1 and sex_ev['no_condom'] = 1 and sex_ev['creampie_allowance'] ! 1:
 			$sex_ev['cum_choice'] = 'pullout'
 		else
@@ -337,6 +344,10 @@ if $ARGS[0] = 'fuck_cum':
 	if sex_ev['dirty_talk'] = 1: sex_ev['dirty_talk_talk'] = 1
 	sex_ev['cycle_limit'] += 1
 	if sex_ev['cycle_limit'] >= npc_sex_stamina[$boy] or sex_ev['boy_cum'] = rand(1,npc_sex_stamina[$boy]):sex_ev['boy_cum'] = 1
+	if npc_two_pump[$boy] = 1 and sex_ev['two_pump'] = 0:
+		sex_ev['two_pump'] = 1
+		sex_ev['boy_cum'] = 1
+	end
 	if sex_ev['boy_cum'] >= 1 and sex_ev['cycle_limit'] > 1:
 		cla
 		gs 'sex_ev_cum', 'fuck_cum_random'
@@ -1787,7 +1798,6 @@ end
 if $ARGS[0] = 'cum_pullout':
 	if sex_ev['cum_choice'] > 9 and sex_ev['extra_caution'] = 0: gt'sex_ev_cum', 'creampie_surprise'
 	sex_ev['cock_inserted'] = 0
-	$sex_ev['cum_choice'] = 'pullout'
 	$sex_ev['last_cum'] = 'pullout'
 	if sex_ev['pullout_ask'] = 1:
 		!! differing descriptions based on position
@@ -2039,7 +2049,7 @@ if $ARGS[0] = 'what_now':
 		else
 			'<<$npc_firstname[$boy]>> nods in somber agreement.'
 		end
-		gs'sex_ev_after', 'finish'
+		gs'sex_ev_after', 'after_sex1'
 	end
 	
 	act'Keep going':
@@ -2077,9 +2087,13 @@ if $ARGS[0] = 'what_now':
 			cla & *clr
 			'<center><video autoplay loop src="images/shared/sex/misc/wait.mp4"></video></center>'
 			if daystage >= 3:
-				'"Well I''m already full of cum so I guess there''s no point in telling you not to come inside me tonight," you grin wickedly. "Blow your load in me whenever you want"'
+				if sex_ev['plan_b'] = 1:
+					'"Well if I''m already going to take a pill tomorrow, I guess there''s no point in telling you not to come inside me tonight," you say. "Come wherever you want."'
+				else
+					'"Well I''m already full of cum so I guess there''s no point in telling you not to come inside me tonight," you say. "Come wherever you want."'
+				end
 			else
-				'"Well I''m already full of cum so I guess there''s no point in telling you not to come inside me today," you grin wickedly. "Blow your load in me whenever you want"'
+				'"Well I''m already full of cum so I guess there''s no point in telling you not to come inside me today," you say. "Come wherever you want."'
 			end
 			if npc_childfree[$boy] = 2:
 				'"No reason to increase the risk either," <<$npc_firstname[$boy]>> frowns. "I''m going to try to keep pulling out anyways."'
@@ -2127,21 +2141,7 @@ if $ARGS[0] = 'cum_condom':
 		$sex_ev['cum_describe2'] = 'settling your self down onto his rubber encased cock'
 	end
 	if condom_break > 0:
-		sex_ev['creampie_count'] += 1
-		if birth_control['think_safe'] = 0 and stat['dangerous_day'] = 1 and knowpreg = 0: 
-			sex_ev['risky_creampie'] += 1
-			npc_risky_creampie_count[$boy] += 1
-		end
-		$sex_ev['last_cum'] = 'broken_condom'
-		sex_ev['broken_condom'] = 1
-		if sex_ev['orgasm'] < orgasm:
-			sex_ev['came_together'] = 2
-			'<<$npc_firstname[$boy]>> buries his cock inside your pussy. It throbs inside you through the condom, causing you to come as well. You ride out your orgasms together, oblivious to everything except the pleasure.'
-			act'Continue':gs'sex_ev_cum', 'broken_condom2'
-		else
-			'<<$npc_firstname[$boy]>> buries his cock inside your pussy and you can feel it pulse inside you, straining against the rubber coat around it.'
-			act'Continue':gs'sex_ev_cum', 'broken_condom1'
-		end
+		gs'sex_ev_cum', 'broken_condom0'
 	else
 		if sex_ev['orgasm'] < orgasm:
 			sex_ev['came_together'] = 1
@@ -2154,67 +2154,87 @@ if $ARGS[0] = 'cum_condom':
 	end
 end
 
+if $ARGS[0] = 'broken_condom0':
+	sex_ev['creampie_count'] += 1
+	if birth_control['think_safe'] = 0 and stat['dangerous_day'] = 1 and knowpreg = 0: 
+		sex_ev['risky_creampie'] += 1
+		npc_risky_creampie_count[$boy] += 1
+	end
+	$sex_ev['last_cum'] = 'broken_condom'
+	sex_ev['broken_condom'] = 1
+	if sex_ev['orgasm'] < orgasm:
+		sex_ev['came_together'] = 2
+		'<<$npc_firstname[$boy]>> buries his cock inside your pussy. It throbs inside you through the condom, causing you to come as well. You ride out your orgasms together, oblivious to everything except the pleasure.'
+		gs'sex_ev_cum', 'broken_condom2'
+	else
+		'<<$npc_firstname[$boy]>> buries his cock inside your pussy and you can feel it pulse inside you, straining against the rubber coat around it.'
+		gs'sex_ev_cum', 'broken_condom1'
+	end
+end
+
 if $ARGS[0] = 'broken_condom1':
-	cla & *nl
-	'Right as it seems like <<$npc_firstname[$boy]>>''s finished, you feel a <i>pop</i> inside you and a sudden rush of warmth <i>floods</i> through your hips.'
-	act'Oh shit!':
-		cla & *clr
-		'<center><img <<$set_imgh>> src="images/shared/sex/cum/cum111.jpg"></center>'
-		'Your eyes go wide in shock and you jump off the bed, looking between your legs. As you feared, thick, white strands of cum leak from your snatch, running down your thighs. The condom must have broken.'
-		gs 'sex_ev_reactions', 'oh_shit_options'
-	end
-	
-	act'Take it in stride':
-		sex_ev['cock_inserted'] = 0
-		cla & *clr
-		if $sex_ev['position'] = 'cowgirl':
-			'<center><video autoplay loop src="images/shared/sex/cum/vagcreampie/creampie2.mp4"></video></center>'
-			'You blink in surprise and slowly raise your hips to remove yourself from his cock. The moment it slips free, cum gushes from your pussy and you visually confirm what you suspected: the condom broke.'
-		else
-			if $sex_ev['position'] = 'miss':
-				'<center><img <<$set_imgh>> src="images/shared/sex/cum/vagcreampie/miss1.jpg"></center>'
-				'You blink in surprise but wait patiently without making a fuss until <<$npc_firstname[$boy]>> withdraws his cock from you. The moment it slips free, cum gushes from your pussy and you visually confirm what you suspected: the condom broke.'
-			else
-				'<center><img <<$set_imgh>> src="images/shared/sex/cum/vagcreampie/doggy1.jpg"></center>'
-				'You blink in surprise but wait patiently without making a fuss until <<$npc_firstname[$boy]>> withdraws his cock from you. The moment it slips free, something wet gushes from your pussy and you turn around to visually confirm what you suspected: the condom broke.'
-			end
-		end
-		gs'sex_ev_reactions', 'oh_shit_options'
-		gs'sex_ev_reactions', 'creampie_accident_birth_control'
-		gs'sex_ev_reactions', 'creampie_safe_day'
-	end
-	
-	act'Come':
-		$orgasm_or = 'yes'
-		sex_ev['came_together'] = 1
-		gs'arousal', 'vaginal',-1,'no_orgasm_msg'
-		cla & *clr
-		if $sex_ev['position'] = 'miss':
-			'<center><video autoplay loop src="images/shared/sex/vag/miss/orgasm1.mp4"></video></center>'
-		elseif $sex_ev['position'] = 'doggy':
-			'<center><video autoplay loop src="images/shared/sex/vag/doggy/orgasm2.mp4"></video></center>'
-		elseif $sex_ev['position'] = 'cowgirl':
-			'<center><video autoplay loop src="images/shared/sex/vag/cowgirl/orgasm1.mp4"></video></center>'
-		end
-		'The sudden explosion of warmth inside you overwhelms your senses and you gasp. It causes you to orgasm and your whole body shudders around <<$npc_firstname[$boy]>>''s cock as heat fills you to the brim.'
-		act'Continue':
+	act'Continue':
+		cla & *nl
+		'Right as it seems like <<$npc_firstname[$boy]>>''s finished, you feel a <i>pop</i> inside you and a sudden rush of warmth <i>floods</i> through your hips.'
+		act'Oh shit!':
 			cla & *clr
-			if $sex_ev['position'] = 'miss':
-				'<center><img <<$set_imgh>> src="images/shared/sex/vag/miss/2.jpg"></center>'
-				'Eventually your orgasm comes down and you look up at <<$npc_firstname[$boy]>>, still quivering with his cock inside you.'
-				'"I think... the condom... broke..." you pant.'
-			elseif $sex_ev['position'] = 'doggy':
-				'<center><img <<$set_imgh>> src="images/shared/sex/vag/doggy/1.jpg"></center>'
-				'Eventually your orgasm comes down and your knees give out underneath you, falling down to the bed with <<$npc_firstname[$boy]>> on top of you.'
-				'"I think... the condom... broke..." you pant from beneath him.'
-			elseif $sex_ev['position'] = 'cowgirl':
-				'<center><img <<$set_imgh>> src="images/shared/sex/vag/cowgirl/1.jpg"></center>'
-				'Eventually your orgasm comes down and you let yourself collapse on top of <<$npc_firstname[$boy]>>, feeling your breasts pressed against his chest, which rises and falls with the same laboured breathing as your own.'
-				'"I think... the condom... broke..." you pant laying on his chest.'
+			'<center><img <<$set_imgh>> src="images/shared/sex/cum/cum111.jpg"></center>'
+			'Your eyes go wide in shock and you jump off the bed, looking between your legs. As you feared, thick, white strands of cum leak from your snatch, running down your thighs. The condom must have broken.'
+			gs 'sex_ev_reactions', 'oh_shit_options'
+		end
+		
+		act'Take it in stride':
+			sex_ev['cock_inserted'] = 0
+			cla & *clr
+			if $sex_ev['position'] = 'cowgirl':
+				'<center><video autoplay loop src="images/shared/sex/cum/vagcreampie/creampie2.mp4"></video></center>'
+				'You blink in surprise and slowly raise your hips to remove yourself from his cock. The moment it slips free, cum gushes from your pussy and you visually confirm what you suspected: the condom broke.'
+			else
+				if $sex_ev['position'] = 'miss':
+					'<center><img <<$set_imgh>> src="images/shared/sex/cum/vagcreampie/miss1.jpg"></center>'
+					'You blink in surprise but wait patiently without making a fuss until <<$npc_firstname[$boy]>> withdraws his cock from you. The moment it slips free, cum gushes from your pussy and you visually confirm what you suspected: the condom broke.'
+				else
+					'<center><img <<$set_imgh>> src="images/shared/sex/cum/vagcreampie/doggy1.jpg"></center>'
+					'You blink in surprise but wait patiently without making a fuss until <<$npc_firstname[$boy]>> withdraws his cock from you. The moment it slips free, something wet gushes from your pussy and you turn around to visually confirm what you suspected: the condom broke.'
+				end
 			end
 			gs'sex_ev_reactions', 'oh_shit_options'
 			gs'sex_ev_reactions', 'creampie_accident_birth_control'
 			gs'sex_ev_reactions', 'creampie_safe_day'
+		end
+		
+		act'Come':
+			$orgasm_or = 'yes'
+			sex_ev['came_together'] = 1
+			gs'arousal', 'vaginal',-1,'no_orgasm_msg'
+			cla & *clr
+			if $sex_ev['position'] = 'miss':
+				'<center><video autoplay loop src="images/shared/sex/vag/miss/orgasm1.mp4"></video></center>'
+			elseif $sex_ev['position'] = 'doggy':
+				'<center><video autoplay loop src="images/shared/sex/vag/doggy/orgasm2.mp4"></video></center>'
+			elseif $sex_ev['position'] = 'cowgirl':
+				'<center><video autoplay loop src="images/shared/sex/vag/cowgirl/orgasm1.mp4"></video></center>'
+			end
+			'The sudden explosion of warmth inside you overwhelms your senses and you gasp. It causes you to orgasm and your whole body shudders around <<$npc_firstname[$boy]>>''s cock as heat fills you to the brim.'
+			act'Continue':
+				cla & *clr
+				if $sex_ev['position'] = 'miss':
+					'<center><img <<$set_imgh>> src="images/shared/sex/vag/miss/2.jpg"></center>'
+					'Eventually your orgasm comes down and you look up at <<$npc_firstname[$boy]>>, still quivering with his cock inside you.'
+					'"I think... the condom... broke..." you pant.'
+				elseif $sex_ev['position'] = 'doggy':
+					'<center><img <<$set_imgh>> src="images/shared/sex/vag/doggy/1.jpg"></center>'
+					'Eventually your orgasm comes down and your knees give out underneath you, falling down to the bed with <<$npc_firstname[$boy]>> on top of you.'
+					'"I think... the condom... broke..." you pant from beneath him.'
+				elseif $sex_ev['position'] = 'cowgirl':
+					'<center><img <<$set_imgh>> src="images/shared/sex/vag/cowgirl/1.jpg"></center>'
+					'Eventually your orgasm comes down and you let yourself collapse on top of <<$npc_firstname[$boy]>>, feeling your breasts pressed against his chest, which rises and falls with the same laboured breathing as your own.'
+					'"I think... the condom... broke..." you pant laying on his chest.'
+				end
+				gs'sex_ev_reactions', 'oh_shit_options'
+				gs'sex_ev_reactions', 'creampie_accident_birth_control'
+				gs'sex_ev_reactions', 'creampie_safe_day'
+			end
 		end
 	end
 end
@@ -2256,7 +2276,96 @@ end
 
 
 if $ARGS[0] = '2pumpchump':
+	act'Continue':
+		if sex_ev['condom'] = 1 and sex_ev['no_condom'] = 0:
+			$sex_ev['last_cum'] = 'condom'
+			gs'cum_call', '',$boy,1,3
+			!! remove later when reactions are written
+		!!	sex_ev['react'] = 1
+			if $sex_ev['position'] = 'miss':
+				'<center><img <<$set_imgh>> src="images/shared/sex/cum/cum61.jpg"></center>'
+				'<<$npc_firstname[$boy]>> thrusts into you no more than <<rand(1,5)>> times total when his body suddenly stiffens up and groans, "Oh fuck!"'
+			elseif $sex_ev['position'] = 'doggy':
+				'<center><img <<$set_imgh>> src="images/shared/sex/cum/cum71.jpg"></center>'
+				'<<$npc_firstname[$boy]>> thrusts into from behind you no more than <<rand(1,5)>> times total when his body suddenly stiffens up and you hear him groan, "Oh fuck!"'
+			elseif $sex_ev['position'] = 'cowgirl':
+				'<center><video autoplay loop src="images/shared/sex/cum/vagcreampie/cumvaginal.mp4"></video></center>'
+				'You bounce on top of <<$npc_firstname[$boy]>> no more than <<rand(1,5)>> times total when his body suddenly stiffens beneath you and he grabs your hips, groaning, "Oh fuck!"'
+			end
+			'<<$npc_firstname[$boy]>>''s cock throbs inside you, as well as something distinct moving beneath the latex of the condom. Seems like he''s already come.'
+			if condom_break > 0:
+				gs'sex_ev_cum', 'broken_condom1'
+			else
+				gs'sex_ev_cum', '2pumpchump_condom'
+			end
+		elseif rand(1,2) = 1 and sex_ev['extra_caution'] = 0 and sex_ev['no_condom'] = 1 and sex_ev['creampie_allowance'] ! 1:
+			sex_ev['creampie_surprise'] = 1
+			gs 'sex_ev_cum', 'creampie_code'
+			if $sex_ev['position'] = 'miss':
+				'<center><video autoplay loop src="images/shared/sex/cum/vagcreampie/creampie1.mp4"></video></center>'
+				'<<$npc_firstname[$boy]>> thrusts into you no more than <<rand(1,5)>> times total when he suddenly grabs you tight as his body stiffens up, groaning, "Oh fuck!"'
+			elseif $sex_ev['position'] = 'doggy':
+				'<center><video autoplay loop src="images/shared/sex/cum/vagcreampie/doggy3.mp4"></video></center>'
+				'<<$npc_firstname[$boy]>> thrusts into you from behind no more than <<rand(1,5)>> times total when he suddenly grabs you tight as his body stiffens up, groaning, "Oh fuck!"'
+			elseif $sex_ev['position'] = 'cowgirl':
+				'<center><video autoplay loop src="images/shared/sex/cum/vagcreampie/cumvaginal.mp4"></video></center>'
+				'You bounce on top of <<$npc_firstname[$boy]>> no more than <<rand(1,5)>> times total when he suddenly grabs you tight and his body stiffens beneath you, groaning, "Oh fuck!"'
+			end
+			*nl
+			'His cock pulses within you and warmth floods your pussy.'
+			gs'sex_ev_cum', '2pumpchump_creampie'
+		else
+			$sex_ev['last_cum'] = 'pullout'
+			sex_ev['cock_inserted'] = 0
+			if $sex_ev['position'] = 'miss':
+				gs'cum_call', 'stomach',$boy,1
+				$sex_ev['cum_describe2'] = 'looking at the white liquid glazing your stomach'
+				sex_ev['cum_stomach'] += 1
+				'<center><img <<$set_imgh>> src="images/shared/sex/cum/stomach/bellycum2.jpg"></center>'
+				'<<$npc_firstname[$boy]>> thrusts into you no more than <<rand(1,5)>> times total when he suddenly suddenly cries out, "Oh fuck!"'
+				*nl
+				'His cock slips from your pussy and immediately sticky white liquid erupts from the tip, spattering across your stomach.'
+			elseif $sex_ev['position'] = 'doggy':
+				gs'cum_call', 'butt',$boy,1
+				gs'cum_call', 'back',$boy,1
+				sex_ev['cum_back'] += 1
+				sex_ev['cum_ass'] += 1
+				$sex_ev['cum_describe2'] = 'looking back at the white liquid glazing your ass'
+				'<center><video autoplay loop src="images/shared/sex/cum/pullout_doggy1.mp4"></video></center>'
+				'<<$npc_firstname[$boy]>> thrusts into you from behind no more than <<rand(1,5)>> times total when he suddenly suddenly cries out, "Oh fuck!"'
+				*nl
+				'His cock slips from your snatch and not even a moment later, hot sticky liquid spatters across your ass and back.'
+			elseif $sex_ev['position'] = 'cowgirl':
+				if sex_ev['not_inside'] = 1:
+					gs'cum_call', 'stomach',$boy,1
+					sex_ev['cum_stomach'] += 1
+					$sex_ev['cum_describe2'] = 'looking at the white liquid glazing your stomach'
+					'<center><img <<$set_imgh>> src="images/shared/sex/cum/stomach/bellycum2.jpg"></center>'
+					'You bounce on top of <<$npc_firstname[$boy]>> no more than <<rand(1,5)>> times total when he suddenly groans, "Oh fuck!"'
+					*nl
+					'He pushes you off him and onto your back, his cock popping out of you along the way. The second it clears your pussy, sticky white liquid erupts from the tip and spatters across your stomach.'
+				end
+			end
+			gs'sex_ev_cum', '2pumpchump_pullout'
+		end
+	end
+end
 
+if $ARGS[0] = '2pumpchump_condom':
+	act'Continue':
+		cla & *clr
+		'<center><img <<$set_imgh>> src="images/shared/sex/cum/condom1.jpg"></center>'
+		if $sex_ev['position'] = 'miss':
+			'As <<$npc_firstname[$boy]>> withdraws his cock from your pussy, you can see that the latex covering it is sagging and filled with white liquid. Any doubt you had that he hadn''t just nutted immediately is erased by the visual evidence.'
+		elseif $sex_ev['position'] = 'doggy':
+			'As <<$npc_firstname[$boy]>> withdraws his cock from your pussy, you look over your shoulder and can see that the latex covering it is sagging and filled with white liquid. Any doubt you had that he hadn''t just nutted immediately is erased by the visual evidence.'
+		elseif $sex_ev['position'] = 'cowgirl':
+			'As you pull yourself off of <<$npc_firstname[$boy]>>, his cock flops from your pussy you can see clearly that the latex covering it is sagging and filled with white liquid. Any doubt you had that he hadn''t just nutted immediately is erased by the visual evidence.'
+		end
+		*nl
+		'He looks incredibly uncomfortable and embarrassed.'
+		gs'sex_ev_reactions', '2pump_react'
+	end
 end
 
 if $ARGS[0] = 'orgasm_check':

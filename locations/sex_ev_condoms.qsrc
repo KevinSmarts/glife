@@ -6,7 +6,7 @@
 !! sex_ev['out_of_condoms'] = 2 - npc has run out of condoms, will use players
 
 if $ARGS[0] = 'setup':
-	if npc_condom_conscious[$boy] > 0 and $sex_ev['loc'] = 'lover_home':
+	if npc_condom_conscious[$boy] > 0 and $sex_ev['loc'] = 'npc_home':
 		sex_ev['condom_count'] = 100
 	elseif npc_condom_conscious[$boy] > 0:
 		sex_ev['condom_count'] = rand(5,10)
@@ -63,12 +63,35 @@ if $ARGS[0] = 'condoms':
 				if stat['think_virgin'] = 1 and sex_ev['fuck_count'] = 0: gs 'sex_ev_condoms', 'virgin_condom_ask1'
 			end
 		elseif sex_ev['using_pc_condoms'] = 1:
-			gs 'sex_ev_condoms', 'pc_condoms'
+			if sex_ev['condom'] = 1:
+				gs 'sex_ev_condoms', 'pc_use_condoms'
+			else
+				gs 'sex_ev_condoms', 'pc_condoms'
+			end
 		elseif sex_ev['condom'] = 1:
 			if sex_ev['condoms_used'] >= sex_ev['condom_count']:
 				gs 'sex_ev_condoms', 'npc_out_of_condoms'
 			else
 				act'Continue':gs 'sex_ev_condoms', 'npc_condom_use'
+			end
+		end
+	end
+end
+
+if $ARGS[0] = 'condom_wait':
+	act'Wait! (condoms)':
+		cla
+		act'Ask him to use one':
+			cla & *nl
+			'"Wait!" you yelp. "You need to use a condom!"'
+			gs 'sex_ev_condoms', 'pc_condom_ask3'
+		end
+		
+		if prezik > 0:
+			act'Pull one out':
+				cla & *nl
+				'"Wait!" you yelp and scramble for your bag to pull out a condom, holding it between you. "You need to use a condom. Please?"'
+				gs 'sex_ev_condoms', 'pc_condoms2'
 			end
 		end
 	end
@@ -94,6 +117,32 @@ if $ARGS[0] = 'pc_need_condoms':
 end
 
 if $ARGS[0] = 'pc_condoms':
+	if prezik > 0:
+		act'Pull out a condom':
+			sex_ev['using_pc_condoms'] = 1
+			cla & *nl
+			'Before <<$npc_firstname[$boy]>> can penetrate you, you take a swift moment to grab a condom out of your bag.'
+			'"Condom first?" you ask, holding it up between you.'
+			gs 'sex_ev_condoms', 'pc_condoms2'
+		end
+	end
+end
+
+if $ARGS[0] = 'pc_condoms2':
+	if npc_no_condoms[$boy] = 1:
+		'"Come on," he moans. "Do we have to? I hate condoms."'
+		gs 'sex_ev_condoms', 'no_condom1'
+	elseif rand(1,10) >= 7 and npc_bareback[$boy] ! 2:
+		'"Come on," he moans. "Do we have to use one today?"'
+		gs 'sex_ev_condoms', 'no_condom1'
+	else
+		'<<$npc_firstname[$boy]>> nods and you sigh in relief as he takes it from you, tearing open the package and clumsily rolling the little rubber onto his cock.'
+		gs 'sex_ev_condoms', 'pc_condom_use_stats'
+		act'Let <<$npc_firstname[$boy]>> fuck you':gt 'sex_ev_<<$sex_ev[''position'']>>', '<<$sex_ev[''position'']>>_goto'
+	end
+end
+
+if $ARGS[0] = 'pc_use_condoms':
 	if prezik > 0:
 		act'Put a condom on him':
 			gs 'sex_ev_condoms', 'pc_condom_use_stats'
@@ -130,7 +179,6 @@ if $ARGS[0] = 'pc_condoms':
 	elseif sex_ev['using_pc_condoms'] = 1 and sex_ev['pc_out_of_condoms'] ! 1:
 		sex_ev['pc_out_of_condoms'] = 1
 		cla
-
 		if sex_ev['out_of_condoms'] = 1:
 			'"I think that was my last condom..." you say. "I guess that means we''re both out...?"'
 			'"I guess so," <<$npc_firstname[$boy]>> shrugs.'
@@ -180,6 +228,10 @@ if $ARGS[0] = 'pc_condom_ask':
 		'<<$npc_firstname[$boy]>> takes your silence as consent and begins maneuvering into position.'
 		gs 'sex_ev_sex', 'position_choose'
 	end
+	gs 'sex_ev_condoms', 'pc_condom_ask2'
+end
+
+if $ARGS[0] = 'pc_condom_ask2':
 	act'Ask him to put on a condom':
 		cla & *nl
 		sex_ev['pc_wants_condoms'] = 1
@@ -190,27 +242,29 @@ if $ARGS[0] = 'pc_condom_ask':
 		end
 !!			if npc_no_condoms[$boy] = 1:
 !!				gs 'sex_ev_condoms', 'npc_doesnt_use_condoms'
-		if rand(1,10) >= 7 and npc_bareback[$boy] ! 2:
-			if sex_ev['condom_count'] > sex_ev['condoms_used']:
-				'"Come on, do we have to? We don''t need to use a condom."'
-				gs 'sex_ev_condoms', 'no_condom1'
-			else
-				'"Don''t have any left. I''m all out."'
-				gs 'sex_ev_condoms', 'no_condom2'
-			end
+		gs 'sex_ev_condoms', 'pc_condom_ask3'
+	end
+end
+
+if $ARGS[0] = 'pc_condom_ask3':
+	if rand(1,10) >= 7 and npc_bareback[$boy] ! 2:
+		if sex_ev['condom_count'] > sex_ev['condoms_used']:
+			'"Come on," he moans. "Do we have to use one today?"'
+			gs 'sex_ev_condoms', 'no_condom1'
 		else
-			sex_ev['condom'] = 1
-			sex_ev['condoms_used'] += 1
-			sex_ev['must_fuck'] = 1
-			if $sex_ev['loc'] = 'lover_home':
-				'He nods, reaching over to his nightstand to retrieve one.'
-			elseif $sex_ev['loc'] = 'hotel_room':
-				'He nods, reaching into his suitcase to retrieve one.'
-			else
-				'He nods, reaching to retrieve one from his wallet.'
-			end
-			gs 'sex_ev_condoms', 'npc_condom_put_on'
+			'"I''m all out. Don''t have any left."'
+			gs 'sex_ev_condoms', 'no_condom2'
 		end
+	else
+		gs 'sex_ev_condoms', 'npc_condom_use_stats'
+		if $sex_ev['loc'] = 'npc_home':
+			'He nods, reaching over to his nightstand to retrieve one.'
+		elseif $sex_ev['loc'] = 'hotel_room':
+			'He nods, reaching into his suitcase to retrieve one.'
+		else
+			'He nods, reaching to retrieve one from his wallet.'
+		end
+		gs 'sex_ev_condoms', 'npc_condom_put_on'
 	end
 end
 
@@ -547,7 +601,7 @@ if $ARGS[0] = 'no_condom_leave':
 end
 
 if $ARGS[0] = 'no_condom1':
-	!! he says he doesnt want to use a condom
+	!! he says he doesn''t want to use a condom
 	act'No way':
 		cla & *clr
 		$sex_ev['bed_room']
@@ -562,13 +616,24 @@ if $ARGS[0] = 'no_condom1':
 		
 		if booty_call['danger_day'] = 1 and npc_childfree[$boy] > 0:
 			sex_ev['condom'] = 1
-			'"What the fuck! Why didn''t you say so!" he says, immediately reaching for a condom.'
-			act'Continue':gs 'sex_ev_condoms', 'npc_condom_use'
+			if sex_ev['using_pc_condoms'] = 1 and prezik > 0:
+				'"What the fuck! Why didn''t you say so!" he says, immediately taking the condom from you and clumsily rolling the little rubber onto his cock.'
+				gs 'sex_ev_condoms', 'pc_condom_use_stats'
+				act'Let <<$npc_firstname[$boy]>> fuck you':gt 'sex_ev_<<$sex_ev[''position'']>>', '<<$sex_ev[''position'']>>_goto'
+			else
+				'"What the fuck! Why didn''t you say so!" he says, immediately reaching for a condom.'
+				act'Continue':gs 'sex_ev_condoms', 'npc_condom_use'
+			end
 		elseif rand(1,10) < 8:
 			sex_ev['condom'] = 1
-			'"Ugh, fine."'
-			'He reaches for a condom.'
-			act'Continue':gs 'sex_ev_condoms', 'npc_condom_use'
+			if sex_ev['using_pc_condoms'] = 1 and prezik > 0:
+				'"Ugh, fine," <<$npc_firstname[$boy]>> grumbles, taking the condom from you and clumsily rolling the little rubber onto his cock.'
+				gs 'sex_ev_condoms', 'pc_condom_use_stats'
+				act'Let <<$npc_firstname[$boy]>> fuck you':gt 'sex_ev_<<$sex_ev[''position'']>>', '<<$sex_ev[''position'']>>_goto'
+			else
+				'"Ugh, fine," <<$npc_firstname[$boy]>> grumbles, reaching for a condom.'
+				act'Continue':gs 'sex_ev_condoms', 'npc_condom_use'
+			end
 		else
 			sex_ev['dont_need_condom'] = 1
 			'"Come on," he complains. "It''ll be fine. Let''s skip it. Just this once."'
@@ -591,7 +656,8 @@ if $ARGS[0] = 'no_condom1':
 				sex_ev['promise_no_creampie'] = 1
 				sex_ev['must_fuck'] = 1
 				cla & *nl
-				'"Well... Alright..." you say hesitantly. "But don''t you dare come inside me, okay?"'
+				'You hesitate, mulling it over for a moment'
+				'"Well... Alright..." you say somewhat reluctantly. "But don''t you dare come inside me, okay?"'
 				gs 'sex_ev_sex', 'position_choose'
 			end
 		end
@@ -1302,7 +1368,7 @@ if $ARGS[0] = 'need_condoms_today':
 			if sex_ev['condom_count'] > sex_ev['condoms_used']:
 				sex_ev['condom'] = 1
 				sex_ev['must_fuck'] = 1
-				if $sex_ev['loc'] = 'lover_home':
+				if $sex_ev['loc'] = 'npc_home':
 					'He nods, reaching over to his nightstand for a condom.'
 				elseif $sex_ev['loc'] = 'hotel_room':
 					'He nods, reaching into his suitcase to retrieve one.'
