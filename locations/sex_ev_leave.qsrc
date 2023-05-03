@@ -1,0 +1,2099 @@
+# sex_ev_leave
+
+if $ARGS[0] = 'exit':
+	minut += 2
+	!! exit should be based on type of apartment and location
+	if $sex_ev['loc'] = 'npc_home':
+			gs 'sex_ev_leave', 'ending'
+		if npc_residence[$boy] = 1:
+			!! Pav residential exit
+			gt 'pav_residential'
+		elseif npc_residence[$boy] = 2:
+			!! Student dorms exit
+			gt 'city_island'
+		elseif npc_residence[$boy] = 3:
+			!! St. Petersburg Residential exit
+			gt 'city_residential'
+		elseif npc_residence[$boy] = 4:
+			!! St. Petersburg City Center exit
+			gt 'city_center'
+	!!{ disabled for bug testing
+		else
+			if $region = 'pav':
+				gt 'pav_residential'
+			elseif $region = 'pav':
+				gt 'pav_commercial'
+			elseif $region = 'pav_park':
+				gt 'pav_park', 'start'
+			elseif $region = 'city':
+				gt 'city_residential'
+			elseif $region = 'city_center':
+				gt 'city_center'
+			elseif $region = 'city_park':
+				gt 'city_park', 'start'
+			elseif $region = 'city_island':
+				gt 'city_island'
+			end}
+		end
+	elseif $sex_ev['loc'] = 'hotel':
+		gs 'sex_ev_leave', 'ending'
+		gt $sex_ev_exit['exit_file'], $sex_ev_exit['exit_arg']
+	elseif $sex_ev['loc'] = 'pc_home':
+		gs 'sex_ev_leave', 'ending'
+		if $sex_ev_exit['loc'] = 'bedroom':
+			gt 'bedr'
+		elseif $sex_ev_exit['loc'] = 'hallway':
+			gt 'korr'
+		end
+	end
+end
+
+if $ARGS[0] = 'break_up':
+	if $npc_rel_type[$boy] = 'fuckbuddy':
+		gs 'lover', 'remove fuckbuddy', $boy
+	elseif $npc_rel_type[$boy] = 'sugar_daddy':
+		gs 'lover', 'remove sugardaddy', $boy
+	else
+		gs 'lover', 'remove', $boy
+	end
+	act'Leave':gt'sex_ev_leave', 'exit'
+end
+
+if $ARGS[0] = 'fuckbuddy_add':
+	gs 'lover', 'add fuckbuddy', $boy
+	npc_fuckbuddy[$boy] = 1
+	npc_no_booty_call[$boy] = daystart
+end
+
+if $ARGS[0] = 'lover_add':
+	gs 'lover', 'add', $boy
+end
+
+if $ARGS[0] = 'ending':
+!!	gs 'sex_ev_stats', 'save'
+	gs 'arousal', 'end'
+	if $clothingworntype = 'nude': gs'sex_ev_leave', 'dress'
+	if sex_ev['fuck'] > 0: know_virgin[$boy] = 0
+	if sex_ev['creampie_orgasm'] = 1: stat_memory['creampie_orgasm'] = daystart
+	npc_last_sex[$boy] = daystart
+	killvar 'sex_ev'
+end
+
+if $ARGS[0] = 'leaving_dialogue':
+	'"I gotta get going," you say.'
+	'"Okay, see you later."'
+	act'"Bye"':
+		$sex_ev['leave_dialogue'] = 'Bye'
+		gs'sex_ev_leave', 'leaving_action'
+	end
+
+	act'"See ya"':
+		$sex_ev['leave_dialogue'] = 'See ya'
+		gs'sex_ev_leave', 'leaving_action'
+	end
+	
+	act'"Toodles"':
+		$sex_ev['leave_dialogue'] = 'Toodles'
+		gs'sex_ev_leave', 'leaving_action'
+	end
+	if $npc_rel_type[$boy] ! '':
+		act'"Text me"':
+			$sex_ev['leave_dialogue'] = 'Text me'
+			gs'sex_ev_leave', 'leaving_action'
+		end
+		
+		if npc_sex_ev_date[$boy] = daystart and sex_ev['sleepover'] = 1:
+			act'"See you soon"':
+				$sex_ev['leave_dialogue'] = 'See you soon'
+				gs'sex_ev_leave', 'leaving_action'
+			end
+		elseif npc_sex_ev_date[$boy] = daystart + 1:
+			act'"See you tomorrow"':
+				$sex_ev['leave_dialogue'] = 'See you tomorrow'
+				gs'sex_ev_leave', 'leaving_action'
+			end
+		else
+			act'"Till next time"':
+				$sex_ev['leave_dialogue'] = 'Till next time'
+				gs'sex_ev_leave', 'leaving_action'
+			end
+		end
+	end
+end
+
+if $ARGS[0] = 'leaving_action':
+	cla
+	act'Nonchalant':
+		$sex_ev['leave_action'] = ' nonchalantly and head out the door without a second glance'
+		gs'sex_ev_leave', 'leaving_end'
+	end
+	
+	act'Wave goodbye':
+		$sex_ev['leave_action'] = ', waggling your fingers at him and head out the door'
+		gs'sex_ev_leave', 'leaving_end'
+	end
+
+	act'Wink':
+		$sex_ev['leave_action'] = ' with a wink as you close the door behind you'
+		gs'sex_ev_leave', 'leaving_end'
+	end
+	
+	act'Blow him a kiss':
+		$sex_ev['leave_action'] = ', blowing him a kiss just before the door closes behind you'
+		gs'sex_ev_leave', 'leaving_end'
+	end
+	
+	act'Shake your ass':
+		$sex_ev['leave_action'] = ', giving him a teasing shake of your ass just before you close the door behind you'
+		gs'sex_ev_leave', 'leaving_end'
+	end
+end
+
+if $ARGS[0] = 'leaving_end':
+	cla & *nl
+	'"<<$sex_ev[''leave_dialogue'']>>," you say<<$sex_ev[''leave_action'']>>.'
+	act'Leave':gt'sex_ev_leave', 'exit'
+end
+
+if $ARGS[0] = 'npc_leave':
+	cla & *clr
+	$sex_ev['bed_room']
+	if npc_latesleeper[$boy] = 1 and sex_ev['boy_wakeup'] = 0:
+		'Not wanting to wake <<$npc_firstname[$boy]>>, you sneak over to the door and let yourself out, closing it as gently as you can behind you.'
+		act'Leave':gt'sex_ev_leave', 'exit'
+	else
+		if sex_ev['angry_after'] = 1 or sex_ev['annoyed'] > 0:
+			'"You should go," you say flatly.'
+			'<<$npc_firstname[$boy]>> stiffly gets out of bed and gets dressed, neither of you really looking the other in the eye as he does. After a minute or two, he''s finished and leaves without another word.'
+			act'Finish':gt'sex_ev_leave', 'exit'
+		else
+			'"This was fun, but you should probably go," you say to <<$npc_firstname[$boy]>>, who nods and moves to start picking up his clothes and get dressed.'
+			gt'sex_ev_leave', 'npc_leaving_action'
+		end
+	end
+end
+
+if $ARGS[0] = 'npc_leaving_action':
+	cla
+	if $clothingworntype = 'nude':
+		act'Stay in bed (covers on)':
+			$sex_ev_exit['loc'] = 'bedroom'
+			$sex_ev['leave_action1'] = 'You stay sat on the bed, demurely pulling the sheets up around you to preserve some modesty as you watch <<$npc_firstname[$boy]>> get dressed. As he finishes, you say,'
+			$sex_ev['leave_action2'] = 'He flashes you a quick smile and then gathers the rest of his stuff to leave, closing the door behind him.'
+			gs'sex_ev_leave', 'npc_leaving_dialogue'
+		end
+		
+		act'Stay in bed (covers off)':
+			$sex_ev_exit['loc'] = 'bedroom'
+			$sex_ev['leave_action'] = 'You stay sat on the bed, casually laying nude atop the sheets as you watch <<$npc_firstname[$boy]>> get dressed. He throws more than a few admiring glances your way as he does and when he finishes you say,'
+			$sex_ev['leave_action2'] = 'He flashes you a quick smile and then gathers the rest of his stuff to leave, closing the door behind him.'
+			gs'sex_ev_leave', 'npc_leaving_dialogue'
+		end
+	end
+	
+	act'Kiss goodbye':
+		$sex_ev_exit['loc'] = 'bedroom'
+		$sex_ev['leave_action'] = 'You sit on the bed, waiting patiently for <<$npc_firstname[$boy]>> to get dressed. Once he''s finished you move over to him and give him a gentle kiss on the lips, saying,'
+		$sex_ev['leave_action2'] = 'He flashes you a quick smile and then gathers the rest of his stuff to leave, closing the door behind him.'
+		gs'sex_ev_leave', 'npc_leaving_dialogue'
+	end
+
+	act'See <<$npc_firstname[$boy]>> to the door':
+		if $clothingworntype = 'nude':
+			$sex_ev_exit['loc'] = 'hallway'
+			$sex_ev['leave_action'] = 'You sit on the bed, waiting patiently for <<$npc_firstname[$boy]>> to get dressed. Once he''s finished you move to take him to the door, making no move to get dressed yourself. Opening it for him, he steps out and you stand completely nude in the frame and say,'
+			$sex_ev['leave_action2'] = 'He flashes you a quick smile in return before stepping off. You watch him go for a few moments before heading back inside and closing the door behind you.'
+		else
+			$sex_ev['leave_action'] = 'You sit on the bed, waiting patiently for <<$npc_firstname[$boy]>> to get dressed. Once he''s finished you move to take him to the door. As he steps out, you say,'
+			$sex_ev['leave_action2'] = 'He flashes you a quick smile in return before stepping off. You watch him go for a few moments before heading back inside and closing the door behind you.'
+		end
+		gs'sex_ev_leave', 'npc_leaving_dialogue'
+	end
+	
+	act'Kiss <<$npc_firstname[$boy]>> at the door':
+		$sex_ev_exit['loc'] = 'hallway'
+		if $clothingworntype = 'nude':
+			$sex_ev['leave_action'] = 'You sit on the bed, waiting patiently for <<$npc_firstname[$boy]>> to get dressed. Once he''s finished you move to take him to the door, making no move to get dressed yourself. Just as <<$npc_firstname[$boy]>> steps out, you grab hold of his shirt to drag him back into a passionate kiss, pulling him tight against your naked body, a sight to be seen by anyone who has a view of your front door. After several long seconds, you break the kiss, saying,'
+			if rand(1,1) = 5:
+				$sex_ev['leave_action2'] = 'You pull <<$npc_firstname[$boy]>> back in for another kiss, but softer and quicker. As you pull back somebody walks past behind him, staring wide eyed at your chest. '
+			else
+				$sex_ev['leave_action2'] = 'You pull <<$npc_firstname[$boy]>> back in for another kiss, but softer and quicker. He flashes you a quick smile in return before stepping off. You watch him go for a few moments before heading back inside and closing the door behind you.'
+			end
+		else
+			$sex_ev['leave_action'] = 'You sit on the bed, waiting patiently for <<$npc_firstname[$boy]>> to get dressed. Once he''s finished you move to take him to the door, making no move to get dressed yourself. Just as <<$npc_firstname[$boy]>> steps out, you grab hold of his shirt to pull him into a passionate kiss. After several long seconds, you break the kiss, saying,'
+			$sex_ev['leave_action2'] = 'You pull <<$npc_firstname[$boy]>> back in for another kiss, but softer and quicker. He flashes you a quick smile in return before stepping off. You watch him go for a few moments before heading back inside and closing the door behind you.'
+		end
+		gs'sex_ev_leave', 'npc_leaving_dialogue'
+	end
+end
+
+if $ARGS[0] = 'npc_leaving_dialogue':
+	act'"Thanks for coming over."':
+		if sex_ev['sleepover'] = 1:
+			$sex_ev['leave_dialogue'] = '"Thanks for coming over last night. It was fun."'
+		else
+			$sex_ev['leave_dialogue'] = '"Thanks for coming over. It was fun."'
+		end
+		
+		gs'sex_ev_leave', 'npc_leaving_end'
+	end
+
+	act'"See ya"':
+		$sex_ev['leave_dialogue'] = '"See ya."'
+		gs'sex_ev_leave', 'npc_leaving_end'
+	end
+	
+	if $npc_rel_type[$boy] ! '':
+		act'"Text me"':
+			$sex_ev['leave_dialogue'] = '"Text me."'
+			gs'sex_ev_leave', 'npc_leaving_end'
+		end
+		
+		if npc_sex_ev_date[$boy] = daystart and sex_ev['sleepover'] = 1:
+			act'"See you soon"':
+				$sex_ev['leave_dialogue'] = '"See you soon."'
+				gs'sex_ev_leave', 'npc_leaving_end'
+			end
+		elseif npc_sex_ev_date[$boy] = daystart + 1:
+			act'"See you tomorrow"':
+				$sex_ev['leave_dialogue'] = '"See you tomorrow."'
+				gs'sex_ev_leave', 'npc_leaving_end'
+			end
+		else
+			act'"Till next time"':
+				$sex_ev['leave_dialogue'] = '"Till next time."'
+				gs'sex_ev_leave', 'npc_leaving_end'
+			end
+	!!{		if sex_ev['sleepover'] = 1 or hour < 5:
+				act'"Wanna do this again?"':
+					sex_ev['invite_today'] = 1
+					gs'sex_ev_leave', 'npc_leaving_end'
+				end
+			else
+				act'"Wanna do this again? tomorrow?"':
+					sex_ev['invite_tomorrow'] = 1
+					gs'sex_ev_leave', 'npc_leaving_end'
+				end
+			end}
+		end
+	end
+end
+
+if $ARGS[0] = 'npc_leaving_end':
+	cla & *nl
+	if sex_ev['invite_today'] = 0 and sex_ev['invite_tomorrow'] = 0:
+		'<<$sex_ev[''leave_action1'']>> <<$sex_ev[''leave_dialogue'']>> <<$sex_ev[''leave_action2'']>>'
+	elseif sex_ev['invite_today'] = 1:
+		'<<$sex_ev[''leave_action1'']>>'
+		*nl
+		'"Want to do this again later?" you ask.'
+		*nl
+		'<<$sex_ev[''leave_action2'']>>'
+	elseif sex_ev['invite_tomorrow'] = 1:
+	
+	end
+	act'Leave':gt'sex_ev_leave', 'exit'
+end
+
+if $ARGS[0] = 'hurry_leave':
+	act'No time for goodbyes':
+		cla & *nl
+		npc_rel[$boy] -= 1
+		$sex_ev['leave_dialogue'] = ' without even saying goodbye'
+		gs'sex_ev_leave', 'hurry_leave2'
+	end
+	
+	act'"See you later!"':
+		cla & *nl
+		$sex_ev['leave_dialogue'] = ', calling, "See you later!" just before it slams behind you.'
+		gs'sex_ev_leave', 'hurry_leave2'
+	end
+	
+	act'"Text me!"':
+		cla & *nl
+		$sex_ev['leave_dialogue'] = ', calling, "Text me!" just before it slams behind you.'
+		gs'sex_ev_leave', 'hurry_leave2'
+	end
+	
+	if $sex_ev['type'] = 'hookup':
+		act'Leave your number (fuckbuddy)':
+			sex_ev['fuckbuddy_invite'] = 1
+			cla & *nl
+			if sex_ev['fuck_count'] > 0:
+				$sex_ev['leave_dialogue'] = ', stopping to scribble your number on a random piece of paper. "Text me if you want to fuck again!" you call over your shoulder as you dash out the door, slamming it behind you.'
+			else
+				$sex_ev['leave_dialogue'] = ', stopping to scribble your number on a random piece of paper. "Text me if you want to fool around again!" you call over your shoulder as you dash out the door, slamming it behind you.'
+			end
+			gs'sex_ev_leave', 'hurry_leave2'
+		end
+		
+		act'Leave your number (date)':
+			cla & *nl
+			sex_ev['date_invite'] = 1
+			$sex_ev['leave_dialogue'] = ', stopping to scribble your number on a random piece of paper. "Text me if you want to go out on a date some time!" you call over your shoulder as you dash out the door, slamming it behind you.'
+			gs'sex_ev_leave', 'hurry_leave2'
+		end
+	end
+	
+	if npc_sex_ev_date[$boy] = daystart and sex_ev['sleepover'] = 1 and $npc_rel_type[$boy] ! 'husband':
+		act'"See you soon"':
+			$sex_ev['leave_dialogue'] = ', shouting, "See you soon!" just before it slams behind you.'
+			gs'sex_ev_leave', 'hurry_leave2'
+		end
+	elseif npc_sex_ev_date[$boy] = daystart + 1:
+		act'"See you tomorrow"':
+			$sex_ev['leave_dialogue'] = ', shouting, "See you tomorrow!" just before it slams behind you.'
+			gs'sex_ev_leave', 'hurry_leave2'
+		end
+	end
+end
+
+if $ARGS[0] = 'hurry_leave2':
+	cla
+	act'Run!':
+		cla & *nl
+		$sex_ev['leave_action'] = 'You make sure all your clothes are in place with one last quick check and dash to the door'
+		gs'sex_ev_leave', 'hurry_leave_finish'
+	end
+	
+	act'Peck on the cheek':
+		cla & *nl
+		$sex_ev['leave_action'] = 'You make sure all your clothes are in place with one last quick check and dash over to <<$npc_firstname[$boy]>> to give him a quick kiss on the cheek'
+		gs'sex_ev_leave', 'hurry_leave_finish'
+	end
+	
+	act'Peck on the lips':
+		cla & *nl
+		$sex_ev['leave_action'] = 'You make sure all your clothes are in place with one last quick check and dash over to <<$npc_firstname[$boy]>> to give him a quick kiss on the lips'
+		act'Leave':gs'sex_ev_leave', 'hurry_leave_finish'
+	end
+	
+	act'Passionate kiss':
+		cla & *nl
+		$sex_ev['leave_action'] = 'You make sure all your clothes are in place with one last quick check and dash over to <<$npc_firstname[$boy]>> to kiss him. Despite your rush, you savour this moment, breathing in the taste of <<$npc_firstname[$boy]>>''s lips even as you force your tongue into his mouth to dance with his. A full five seconds go by until you break the kiss'
+		act'Leave':gs'sex_ev_leave', 'hurry_leave_finish'
+	end
+end
+
+if $ARGS[0] = 'hurry_leave_finish':
+	cla & *nl
+	'"<<$sex_ev[''leave_action'']>><<$sex_ev[''leave_dialogue'']>>.'
+	if (rand(1,3) = 1 or npc_goal[$boy] = 3) and sex_ev['fuckbuddy_invite'] = 1:
+		act'Leave':msg 'Unfortunately, he never ends up texting you.' & gt'sex_ev_leave', 'exit'
+	elseif (rand(1,3) = 1 or npc_goal[$boy] = 1) and sex_ev['date_invite'] = 1:
+		act'Leave':msg 'Unfortunately, he never ends up texting you.' & gt'sex_ev_leave', 'exit'
+	else
+		if sex_ev['fuckbuddy_invite'] = 1:
+			gs 'sex_ev_leave', 'fuckbuddy_add'
+		elseif sex_ev['date_invite'] = 1:
+			gs 'sex_ev_leave', 'lover_add'
+		end
+		act'Leave':gt'sex_ev_leave', 'exit'
+	end
+end
+
+if $ARGS[0] = 'breakup_start':
+	if $npc_rel_type[$boy] ! 'husband' and $sex_ev['type'] ! 'hookup':
+		act'Break things off':
+			cla & *clr
+			$sex_ev['bed_room']
+			iif($sex_ev['loc'] ! 'pc_home','"This is the last time I''m coming over," you say, abruptly.','"This is the last time you can come over," you say abruptly.')
+			'"Huh?" <<$npc_firstname[$boy]>> looks at you oddly. "What are you talking about?"'
+			if $npc_rel_type[$boy] = 'boyfriend':
+				'"I''m breaking up with you."'
+				'"What?!" he asks.'
+				act'Don''t explain':
+					cla & *clr
+					'<center><video autoplay loop src="images/shared/romance/misc/depart_annoyed1.mp4"></video></center>'
+					'"I just can''t be with you anymore," you say. "I''m sorry."'
+					'You grab your things and leave.'
+					gs'sex_ev_leave', 'break_up'
+				end
+!!				gs'sex_ev_leave', 'found_someone_else_breakup'
+!!				gs'sex_ev_leave', 'cheating_on_you_breakup'
+				
+			else
+				'"Don''t text me to come over anymore."'
+				'"Why not?" he asks.'
+				act'Don''t explain':
+					cla & *clr
+					'<center><video autoplay loop src="images/shared/romance/misc/depart_annoyed1.mp4"></video></center>'
+					'"I just can''t do this any longer," you say. "I''m sorry."'
+					'You grab your things and leave.'
+					gs'sex_ev_leave', 'break_up'
+				end
+				gs'sex_ev_leave', 'unsatisfied_breakup'
+				gs'sex_ev_leave', 'no_more_cheating_breakup'
+			end
+		end
+	end
+end
+
+if $ARGS[0] = 'unsatisfied_breakup':
+	act'You don''t satisfy me':
+		cla & *clr
+		$sex_ev['bed_room']
+		'"You''re just not what I want out of a fuckbuddy," you say flatly.'
+		act'Sexually incompatible':
+			cla & *clr
+			'<center><video autoplay loop src="images/shared/romance/misc/depart_annoyed1.mp4"></video></center>'
+			'"You''re just not what I want out of a fuckbuddy," you say flatly. "I just don''t think we''re sexually compatible."'
+			*nl
+			'You shrug once, grab your things, and leave without another word.'
+			gs'sex_ev_leave', 'break_up'
+		end
+		if npc_sexdrive[$boy] = 1 or npc_two_pump[$boy] = 1:
+			act'You''re a two pump chump':
+				cla & *clr
+				$sex_ev['bed_room']
+				'"You''re just not what I want out of a fuckbuddy," you say flatly. "You come too fast. I can''t trust you to get me off."'
+				*nl
+				'"Wait but-"'
+				gs'sex_ev_leave', 'isnt_going_to_work'
+			end
+		elseif npc_sexdrive[$boy] < 5:
+			act'You don''t last long enough for me':
+				cla & *clr
+				$sex_ev['bed_room']
+				'"You''re just not what I want out of a fuckbuddy," you say flatly. "You can''t keep it up and I can''t trust you to get me off."'
+				*nl
+				'"Wait but-"'
+				gs'sex_ev_leave', 'isnt_going_to_work'
+			end
+		else
+			act'You last too long':
+				cla & *clr
+				$sex_ev['bed_room']
+				'"You''re just not what I want out of a fuckbuddy," you say flatly. "Honestly, your sex drive is way too high. By the time you''re satisfied, my pussy is sore."'
+				*nl
+				'"Wait but-"'
+				gs'sex_ev_leave', 'isnt_going_to_work'
+			end
+		end
+		
+!!		act'You''re boring':
+	end
+end
+
+if $ARGS[0] = 'no_more_cheating_breakup':
+	if pcs_lovers > 0 and (npc_know_have_boyfriend + npc_know_have_girlfriend = 0):
+		act'I''ve started seeing somebody':
+			cla & *clr
+			npc_know_cheat[$boy] = 1
+			$sex_ev['bed_room']
+			'"The truth is, I''ve started seeing somebody. The sex has been good, but..." You shake your head, grabbing your purse. "I can''t keep doing this. I don''t want to fuck things up."'
+			if npc_fidelity[$boy] < 7:
+				'"Come on," he says. "We''re just having fun. It''s not cheating if it''s just physical. When you masturbate in the shower, you''re not cheating on him with your showerhead are you?"'
+				act'No means no':
+					cla & *clr
+					'<center><video autoplay loop src="images/shared/romance/misc/depart_annoyed1.mp4"></video></center>'
+					'"You''re not going to change my mind," you say. "We''re done."'
+					*nl
+					'And with that, you head out the door.'
+					gs'sex_ev_leave', 'break_up'
+				end
+				
+				act'Well...':
+					cla & *nl
+					'You pause, biting your lip in consideration.'
+					act'As long as it''s just physical':
+						cla & *clr
+						$sex_ev['bed_room']
+						'"Well..." you say slowly. "As long as it''s <i>just</i> physical..."'
+						'"Thatta girl," <<$npc_firstname[$boy]>> grins from bed.'
+						gs'sex_ev_after', 'cheating_end'
+					end
+					
+					act'Set some rules':
+						cla & *nl
+						'"Okay..." you say. "But there have to be rules!"'
+						gs'sex_ev_talk', 'cheating_rules'
+					end
+				end
+			else
+				'"Oh." <<$npc_firstname[$npclastsaved]>> looks at you. "I guess that''s fair. So... I''ll see you around?"'
+				act'See you':
+					cla & *nl
+					'"Yeah," you mumble wistfully. "See you..."'
+					*nl
+					'And with that, you head out the door.'
+					gs'sex_ev_leave', 'break_up'
+				end
+				
+				act'No I won''t':
+					cla & *clr
+					'<center><video autoplay loop src="images/shared/romance/misc/depart_annoyed1.mp4"></video></center>'
+					'"No, I won''t," you frown. "That''s the point."'
+					*nl
+					'And with that, you head out the door.'
+					gs'sex_ev_leave', 'break_up'
+				end
+			end
+		end
+		
+		if pcs_lovers - pcs_girlfriends > 0:
+			act'I can''t keep cheating on my boyfriend':
+				cla & *clr
+				'<center><video autoplay loop src="images/shared/romance/misc/depart_annoyed1.mp4"></video></center>'
+				if npc_know_cheat[$boy] = 1:
+					'"I can''t keep cheating on my boyfriend like this," you say, hanging your head shamefully. "It''s wrong, and I just can''t do this anymore. I have to go."'
+				else
+					'"The truth is, I''m in a relationship with somebody," you say, hanging your head shamefully. "I''ve been cheating on them with you this whole time. It''s wrong, and I— I just can''t do this anymore!"'
+				end
+				'You grab your things and rush out the door.'
+				gs'sex_ev_leave', 'break_up'
+			end
+		end
+		if pcs_girlfriends > 0:
+			act'I can''t keep cheating on my girlfriend':
+				cla & *clr
+				'<center><video autoplay loop src="images/shared/romance/misc/depart_annoyed1.mp4"></video></center>'
+				if npc_know_cheat[$boy] = 1:
+					'"I can''t keep cheating on my girlfriend like this," you say, hanging your head shamefully. "It''s wrong, and I just can''t do this anymore. I have to go."'
+				else
+					'"The truth is, I''m in a relationship with somebody," you say, hanging your head shamefully. "I''ve been cheating on them with you this whole time. It''s wrong, and I— I just can''t do this anymore!"'
+				end
+				'You grab your things and rush out the door.'
+				gs'sex_ev_leave', 'break_up'
+			end
+		end
+	end
+end
+
+if $ARGS[0] = 'isnt_going_to_work':
+	act'Grab your things':
+		cla & *clr
+		'<center><video autoplay loop src="images/shared/romance/misc/depart_annoyed1.mp4"></video></center>'
+		'"This just isn''t going to work," you say, cutting him off. "We''re done."'
+		*nl
+		'And with that, you head out the door.'
+		gs'sex_ev_leave', 'break_up'
+	end
+end
+
+if $ARGS[0] = 'no_condom_breakoff':
+	if npc_no_condoms_know[$boy] = 1:
+		act'I can''t do this (break things off)':
+			!! add in rape chance later
+			cla & *clr
+			'<center><video autoplay loop src="images/shared/romance/misc/depart_annoyed1.mp4"></video></center>'
+			'"Fuck this," you say, getting up and grabbing your clothes.'
+			'"Where the fuck are you going?" <<$npc_firstname[$boy]>> asks in bewilderment.'
+			'"I''m not gonna be fuckbuddies with a guy who never uses condoms," you sneer at him. "<i>Don''t</i> text me again."'
+			*nl
+			'The second you''re dressed you stalk out the door and slam it behind you.'
+			gs'sex_ev_leave', 'break_up'
+		end
+	end
+end
+
+if $ARGS[0] = 'sneak_out1':
+	act'Sneak out': gt'sex_ev_leave', 'sneak_out2'
+	act'Leave a note':
+		cla & *clr
+		$sex_ev['hall_way']
+		'Not wanting to leave without saying goodbye but not wanting to wake <<$npc_firstname[$boy]>> either, you find a piece of paper and a pen and scribble out a quick message.'
+		gs'sex_ev_leave', 'sneak_out_note1'
+	end
+	if $pantyworntype ! 'none':
+		act'Leave your panties':
+			npc_panty_give[$boy] += 1
+			gs 'panties', 'dispose'
+			cla & *clr
+			$sex_ev['hall_way']
+			if CloSkirtShortness > 0:
+				'Suddenly feeling naughty, you quickly slip your panties down your legs, leaving your pussy bare underneath your skirt. You loop your warm underwear around the handle of <<$npc_firstname[$boy]>>''s bedroom door and then quietly sneak out of his apartment, leaving only your gift behind.'
+			else
+				'Suddenly feeling naughty, you pull down your trousers down and spend a minute untangling your legs before pulling your bottoms back up back up, sans panties. You loop your warm underwear around the handle of <<$npc_firstname[$boy]>>''s bedroom door and then quietly sneak out of his apartment, leaving only your gift behind.'
+			end
+			act'Leave':gt'sex_ev_leave', 'exit'
+		end
+		
+		act'Leave your a note on your panties':
+			sex_ev['panty_note'] = 1
+			npc_panty_give[$boy] += 1
+			gs 'panties', 'dispose'
+			cla & *clr
+			$sex_ev['hall_way']
+			if CloSkirtShortness > 0:
+				'Not wanting to leave without saying goodbye but not wanting to wake <<$npc_firstname[$boy]>> either, you start to look for a piece of paper when a naughty thought runs through your mind. Unable to resist the thought, you quickly slip your panties down from underneath your skirt and then rummage for a big marker.'
+			else
+				'Not wanting to leave without saying goodbye but not wanting to wake <<$npc_firstname[$boy]>> either, you start to look for a piece of paper when a naughty thought runs through your mind. Unable to resist the thought, you quickly pull down your trousers down and spend a minute untangling your legs before pulling your bottoms back up, sans panties. Then you rummage for a big marker.'
+			end
+			*nl
+			'You pop the cap with a grin and start scribbling.'
+			gs'sex_ev_leave', 'sneak_out_note1'
+		end
+
+	end
+end
+
+if $ARGS[0] = 'sneak_out_note1':
+	act'Thanks for letting me stay over':
+		cla & *clr
+		$sex_ev['hall_way']
+		$sex_ev['note_desc1'] = '<i>Thanks for letting me spend the night.</i>'
+		$sex_ev['note_desc1']
+		gs'sex_ev_leave', 'sneak_out_note2'
+	end
+	
+	act'I had a good time':
+		cla & *clr
+		$sex_ev['hall_way']
+		$sex_ev['note_desc1'] = '<i>I had a good time last night.</i>'
+		$sex_ev['note_desc1']
+		gs'sex_ev_leave', 'sneak_out_note2'
+	end
+	
+	if sex_ev['fuck_count'] > 0:
+		act'Thanks for the fuck':
+			cla & *clr
+			$sex_ev['hall_way']
+			$sex_ev['note_desc1'] = '<i>Thanks for the fuck.</i>'
+			$sex_ev['note_desc1']
+			gs'sex_ev_leave', 'sneak_out_note2'
+		end
+	end
+end
+
+if $ARGS[0] = 'sneak_out_note2':
+	act'It was fun':
+		$sex_ev['note_desc2'] = '<i>It was fun.</i>'
+		gs'sex_ev_leave', 'sneak_out_note3'
+	end
+
+	act'See ya':
+		$sex_ev['note_desc2'] = '<i>See ya later.</i>'
+		gs'sex_ev_leave', 'sneak_out_note3'
+	end
+	if $sex_ev['type'] = 'hookup':
+		act'Text me (fuckbuddies)':
+			sex_ev['fuckbuddy_invite'] = 1
+			if sex_ev['fuck_count'] > 0:
+				$sex_ev['note_desc2'] = '<i>Text me if you want to fuck again.</i>'
+			else
+				$sex_ev['note_desc2'] = '<i>Text me if you want to fool around again.</i>'
+			end
+			gs'sex_ev_leave', 'sneak_out_note3'
+		end
+		
+		act'Text me (date)':
+			sex_ev['date_invite'] = 1
+			$sex_ev['note_desc2'] = '<i>Text me if you want to go out on a date sometime.</i>'
+			gs'sex_ev_leave', 'sneak_out_note3'
+		end
+	else
+		act'Text me':
+			$sex_ev['note_desc2'] = '<i>Don''t forget to text me.</i>'
+			gs'sex_ev_leave', 'sneak_out_note3'
+		end
+	end
+	
+	act'Till next time':
+		$sex_ev['note_desc2'] = '<i>Until next time.</i>'
+		gs'sex_ev_leave', 'sneak_out_note3'
+	end
+end
+
+if $ARGS[0] = 'sneak_out_note3':
+	cla & *clr
+	$sex_ev['hall_way']
+	'<<$sex_ev[''note_desc1'']>> <<$sex_ev[''note_desc2'']>>'
+	'You sign it with...'
+	act'Just your name':
+		cla & *clr
+		$sex_ev['hall_way']
+		'<<$sex_ev[''note_desc1'']>> <<$sex_ev[''note_desc2'']>> - <<$pcs_nickname>>'
+		gs'sex_ev_leave', 'sneak_out_note_end'
+	end
+	
+	act'A smiley face':
+		cla & *clr
+		$sex_ev['hall_way']
+		'<<$sex_ev[''note_desc1'']>> <<$sex_ev[''note_desc2'']>> <b><i>:)</i></b>'
+		*nl
+		'You leave a little face, unable to keep yourself from smiling as you dot two little eyes over the mouth.'
+		gs'sex_ev_leave', 'sneak_out_note_end'
+	end
+	
+	act'A winky face':
+		cla & *clr
+		$sex_ev['hall_way']
+		'<<$sex_ev[''note_desc1'']>> <<$sex_ev[''note_desc2'']>> <b><i>;)</i></b>'
+		*nl
+		'You leave a little face, unable to keep yourself from smiling as you dot little winky eyes over the mouth.'
+		gs'sex_ev_leave', 'sneak_out_note_end'
+	end
+	
+	act'A heart':
+		cla & *clr
+		$sex_ev['hall_way']
+		'<<$sex_ev[''note_desc1'']>> <<$sex_ev[''note_desc2'']>> <b><i><3</i></b>'
+		*nl
+		'You punctuate the note with a tiny little heart, feeling warmth in your chest as you do.'
+		gs'sex_ev_leave', 'sneak_out_note_end'
+	end
+	
+	if pcs_makeup > 2:
+		act'A kiss':
+			cla & *clr
+			$sex_ev['hall_way']
+			'<<$sex_ev[''note_desc1'']>> <<$sex_ev[''note_desc2'']>>'
+			*nl
+			if sex_ev['panty_note'] = 1:
+				'You run your tongue over your lips and press them together a moment before signing your note with a big sloppy wet smooch. As you pull back, your lipstick leaves a large kiss mark across your discarded panties. Good thing you did your makeup before you left.'
+			else
+				'You run your tongue over your lips and press them together a moment before signing your note with a big sloppy wet smooch. As you pull back, your lipstick leaves large kiss on the page. Good thing you did your makeup before you left.'
+			end
+			gs'sex_ev_leave', 'sneak_out_note_end'
+		end
+	end
+end
+
+if $ARGS[0] = 'sneak_out_note_end':
+	*nl
+	if sex_ev['panty_note'] = 1:
+		'Satisfied, you leave your panties on the counter and quietly slip out the door, wondering what <<$npc_firstname[$boy]>> will think when he discovers them.'
+	else
+		'Satisfied, you leave your note on the counter and quietly slip out the door, letting it click shut behind you.'
+	end
+	
+	if (rand(1,3) = 1 or npc_goal[$boy] = 3) and sex_ev['fuckbuddy_invite'] = 1:
+		act'Leave':msg 'Unfortunately, he never ends up texting you.' & gt'sex_ev_leave', 'exit'
+	elseif (rand(1,3) = 1 or npc_goal[$boy] = 1) and sex_ev['date_invite'] = 1:
+		act'Leave':msg 'Unfortunately, he never ends up texting you.' & gt'sex_ev_leave', 'exit'
+	else
+		if sex_ev['fuckbuddy_invite'] = 1:
+			gs 'sex_ev_leave', 'fuckbuddy_add'
+		elseif sex_ev['date_invite'] = 1:
+			gs 'sex_ev_leave', 'lover_add'
+		end
+		act'Leave':gt'sex_ev_leave', 'exit'
+	end
+end
+
+if $ARGS[0] = 'sneak_out2':
+	$sex_ev['hall_way']
+	'You tip toe your way to the door, turning the handle as gently as you can so you don''t disturb <<$npc_firstname[$boy]>>, closing it with a soft click behind you.'
+	act'Leave':gt'sex_ev_leave', 'exit'
+end
+
+if $ARGS[0] = 'dress':
+	if $clothingworntype = 'nude': gs 'clothing', 'wear_last_worn'
+!!	if $pantyworntype = 'none' and $lastwornpantytype ! 'none' and $lastwornpantytype ! '':
+	if $pantyworntype = 'none' and $lastwornpantytype ! 'none':
+		gs 'panties', 'wear', $lastwornpantytype, lastwornpantynumber
+	end
+!!	if $braworntype = 'none' and $lastwornbratype ! 'none' and $lastwornbratype ! '':
+	if $braworntype = 'none' and $lastwornbratype ! 'none':
+		gs 'bras', 'wear', $lastwornbratype, lastwornbranumber
+	end
+	gs 'stat'
+end
+
+if $ARGS[0] = 'dressing_image':
+	
+!!	elseif $sex_ev['dress_describe'] = 'pulling your panties up your legs and fastening your bra around your chest':
+!!		'<center><video autoplay loop src="images/pc/activities/misc/dress_underwear1.mp4"></video></center>'
+	if $sex_ev['dress_describe'] = 'fastening your bra around your chest':
+		'<center><video autoplay loop src="images/pc/activities/misc/dress_bra1.mp4"></video></center>'
+	elseif $sex_ev['dress_describe'] = 'slipping your skirt up your legs':
+		'<center><video autoplay loop src="images/pc/activities/misc/dress_skirt1.mp4"></video></center>'
+!!	elseif $sex_ev['dress_describe'] = 'zipping your skirt up over your panties':
+!!		'<center><video autoplay loop src="images/pc/activities/misc/dress_skirt1.mp4"></video></center>'
+	elseif $sex_ev['dress_describe'] = 'pulling your panties up':
+		'<center><video autoplay loop src="images/pc/activities/misc/dress_panties1.mp4"></video></center>'
+	elseif $sex_ev['dress_describe'] = 'pulling your top over your breasts':
+		'<center><video autoplay loop src="images/pc/activities/misc/dress_top1.mp4"></video></center>'
+!!	elseif $sex_ev['dress_describe'] = 'pulling your top over your bra':
+!!		'<center><video autoplay loop src="images/pc/activities/misc/dress_top1.mp4"></video></center>'
+	elseif $sex_ev['dress_describe'] = 'tugging your pants over your hips':
+		'<center><video autoplay loop src="images/pc/activities/misc/dress_1.mp4"></video></center>'
+	elseif sex_ev['CloDress'] = 1 and sex_ev['dress_end'] = 0:
+		'<center><img <<$set_imgh>> src="images/shared/romance/lovers/misc/bed_dress.jpg"></center>'
+	elseif sex_ev['hotel'] = 1:
+		!! IMAGE HERE
+		!! hotel room image
+	else
+		$sex_ev['bed_room']
+	end
+end
+
+if $ARGS[0] = 'pc_or_npc_dressing':
+	if sex_ev['dressing_start'] ! 1:
+	
+	else
+	
+	end
+end
+
+if $ARGS[0] = 'dress_start_desc':
+	if sex_ev['towel'] = 1:
+		!!sex_ev['towel'] = 0
+		'You drop the towel and reach down for your clothes and start to pick them up.'
+	else
+		'You reach down for where you left your clothes and start to pick them up.'
+	end
+end
+
+if $ARGS[0] = 'dressing1':
+	cla & *clr
+!!	gs'sex_ev_leave', 'dress'
+	gs'sex_ev_leave', 'dress_loop'
+	
+	if sex_ev['sleepover'] = 1 and npc_latesleeper[$boy] = 1 and sex_ev['boy_asleep'] ! 0:
+		if sex_ev['towel'] = 1:
+			sex_ev['towel'] = 0
+			'You drop the towel and quietly reach down for your clothes and try to pick them up without waking <<$npc_firstname[$boy]>>.'
+		else
+			'You quietly reach down for where you left your clothes and try to pick them up without waking <<$npc_firstname[$boy]>>.'
+		end
+		
+		gs'sex_ev_leave', 'dressing2'
+	else
+		gs'sex_ev_leave', 'dress_start_desc'
+		if sex_ev['angry_after'] = 1 or sex_ev['annoyed'] > 0:
+			'"I have to go," you say flatly, reaching down for your clothes without looking at <<$npc_firstname[$boy]>>.'
+			gs'sex_ev_leave', 'dressing2'
+		elseif sex_ev['cant_stay'] = 1:
+			!! there is an additional dress_loop here to make it possible to give panties here
+			gs'sex_ev_leave', 'dress_loop_code' 
+			'"Guess I''ll go then," you sigh, <<$sex_ev[''dress_describe'']>>.'
+			gs'sex_ev_leave', 'dressing2'
+			gs 'sex_ev_leave', 'panty_gift'
+		elseif sex_ev['npc_late'] = 0:
+			'"You heading out?" <<$npc_firstname[$boy]>> asks as you are <<$sex_ev[''dress_describe'']>>.'
+			gs'sex_ev_leave', 'not_leaving'
+			gs'sex_ev_leave', 'leaving_soon'
+			gs'sex_ev_leave', 'something_to_do'
+			gs'sex_ev_leave', 'see_a_friend'
+			gs'sex_ev_leave', 'another_fuckbuddy'
+			if sex_ev['sleepover'] < 1:
+				gs'sex_ev_leave', 'going_disco'
+				gs'sex_ev_leave', 'mom_late'
+				gs'sex_ev_leave', 'need_homework'
+				gs'sex_ev_leave', 'school_night'
+			else
+				gs'sex_ev_leave', 'going_school'
+			end
+!!			gs'sex_ev_leave', 'dress_talk'
+		else
+			'<<$npc_firstname[$boy]>> starts getting dressed next to you.'
+			gs'sex_ev_leave', 'dressing2'
+		end
+
+	!!	act'Talk while you dress':
+	!!		gs'sex_ev_leave', 'dress_talk'
+	!!	end
+	end
+end
+
+if $ARGS[0] = 'dressing2':
+	sex_ev['leaving'] = 1
+	if sex_ev['sleepover'] = 1:
+		gs'sex_ev_morning', 'end_morning'
+	
+		gs'sex_ev_hookup_leave', 'end_morning'
+	else
+		gs'sex_ev_leave', 'dressing_finish'
+	end
+	act'Talk while you dress':cla & gs'sex_ev_leave', 'dress_talk'
+end
+
+if $ARGS[0] = 'dressing_finish':
+!!	if sex_ev['dress_end'] ! 1:
+	act'Finish getting dressed':
+		cla & *clr
+	!!			$sex_ev['bed_room']
+		gs'sex_ev_leave', 'dress_loop'
+		'You finish <<$sex_ev[''dress_describe'']>>.'
+		gs'sex_ev_after', 'after_sex_dressed'
+	end
+end
+
+if $ARGS[0] = 'not_leaving':
+	act'Not yet':
+		cla & *clr
+		gs'sex_ev_leave', 'dress_loop'
+		gs'sex_ev_leave', 'dress_start_desc'
+		'"You heading out?" <<$npc_firstname[$boy]>> asks.'
+		'"Not yet," you say, <<$sex_ev[''dress_describe'']>>. "Just tired of hanging out naked."'
+		'"I''m never tired of seeing you naked."'
+		act'Roll your eyes':
+			cla & *nl
+			'"Whatever," you sigh, rolling your eyes to the heavens.'
+			gs 'sex_ev_leave', 'dressing2'
+		end
+	end
+end
+
+if $ARGS[0] = 'leaving_soon':
+	act'Yeah':
+		sex_ev['leaving'] = 1
+		cla & *clr
+		gs'sex_ev_leave', 'dress_loop'
+		gs'sex_ev_leave', 'dress_start_desc'
+		'"You heading out?" <<$npc_firstname[$boy]>> asks.'
+		if sex_ev['sleepover'] < 1:
+			
+			'"Yeah," you say, <<$sex_ev[''dress_describe'']>>.' + iif($sex_ev['loc'] = 'pc_home', ' "Get your clothes on so I can get out of here."', ' ')
+			gs 'sex_ev_leave', 'dressing2'
+			gs 'sex_ev_leave', 'panty_gift'
+		else
+			'"Yeah," you say, <<$sex_ev[''dress_describe'']>>.'
+			if rand(1,3) = 3 and (npc_day_off[$boy] = week or (npc_day_off[$boy] = week + 1) or (week = 7 and npc_day_off[$boy] = 1)):
+				gs'sex_ev_morning', 'sex_ev_invite_later'
+			else
+				gs 'sex_ev_leave', 'dressing2'
+				gs 'sex_ev_leave', 'panty_gift'
+			end
+		end
+	end
+end
+
+if $ARGS[0] = 'going_disco':
+	if hour >= 18 and (week = 5 or week = 6):
+		if $region = 'pav':
+			act'Going to the disco':
+				cla & *clr
+				gs'sex_ev_leave', 'dress_loop'
+				gs'sex_ev_leave', 'dress_start_desc'
+				'"You heading out?" <<$npc_firstname[$boy]>> asks.'
+				if sex_ev['disco_after'] = 1:
+					'"Weren''t you listening to me?" you say, <<$sex_ev[''dress_describe'']>>. "I told you, I''m going to the disco tonight.' + iif($sex_ev['loc'] = 'pc_home', 'So get your clothes on already so I can make it!"','"')
+				else
+					'"Yeah," you say, <<$sex_ev[''dress_describe'']>>. "I want to go to the disco.' + iif($sex_ev['loc'] = 'pc_home', 'So get your clothes on already so I can make it!"','"')
+				end
+				!! add spontaneous disco date
+				gs 'sex_ev_leave', 'dressing2'
+				
+				gs 'sex_ev_leave', 'panty_gift'
+			end
+		else
+			act'Going to the club':
+				cla & *clr
+				gs'sex_ev_leave', 'dress_loop'
+				gs'sex_ev_leave', 'dress_start_desc'
+				'"You heading out?" <<$npc_firstname[$boy]>> asks.'
+				if sex_ev['club_after'] = 1:
+					'"Weren''t you listening to me?" you say, <<$sex_ev[''dress_describe'']>>. "I told you, I''m going clubbing tonight."' + iif($sex_ev['loc'] = 'pc_home', 'So get your clothes on already so I can make it before it closes!"','"')
+				else
+					'"Yeah," you say, <<$sex_ev[''dress_describe'']>>. "I want to hit the club tonight."' + iif($sex_ev['loc'] = 'pc_home', 'So get your clothes on already so I can make it before it closes!"','"')
+				end
+				!! add spontaneous club date
+				gs 'sex_ev_leave', 'dressing2'
+				
+				gs 'sex_ev_leave', 'panty_gift'
+			end
+		end
+	end
+end
+
+if $ARGS[0] = 'mom_late':
+	if mid($start_type,1,2) = 'sg' and hour >= 20 and $sex_ev['loc'] ! 'pc_home':
+		act'Mom will kill me':
+			sex_ev['mom_kill'] = 1
+			cla & *clr
+			gs'sex_ev_leave', 'dress_loop'
+			gs'sex_ev_leave', 'dress_start_desc'
+			'"You heading out?" <<$npc_firstname[$boy]>> asks.'
+			if hour < 3:
+				'"Yeah," you say, <<$sex_ev[''dress_describe'']>>. "I''m already going to be in trouble as it is, but if I don''t come home at all tonight, my mom will kill me."'
+			else
+				'"Yeah," you say, <<$sex_ev[''dress_describe'']>>. "My mom will kill me if I don''t come home before curfew."'
+			end			
+			gs 'sex_ev_leave', 'dressing2'
+			
+			gs 'sex_ev_leave', 'panty_gift'
+		end
+	end
+end
+
+if $ARGS[0] = 'need_homework':
+	if lernHome > 0:
+		act'Need to finish my homework':
+			cla & *clr
+			gs'sex_ev_leave', 'dress_loop'
+			gs'sex_ev_leave', 'dress_start_desc'
+			'"You heading out?" <<$npc_firstname[$boy]>> asks.'
+			'"Yeah," you say, <<$sex_ev[''dress_describe'']>>. "I need to do my homework.' + iif($sex_ev['loc'] = 'pc_home', 'So get dressed and skedaddle so I can get it done."','"')
+!!			if rand(0,1) = 1:
+			if npc_intel[$boy] < 30 and npc_finance[$boy] < 2:
+				'"Seriously? That''s what you''re in a rush for?"'
+				act'I want to go to uni':
+					cla & *clr
+					gs'sex_ev_leave', 'dress_loop'
+					gs'sex_ev_leave', 'dress_start_desc'
+					'"I want to go to uni," you say, <<$sex_ev[''dress_describe'']>>. "Can''t do that if I fail out of school for not doing my homework."'
+					gs 'sex_ev_leave', 'dressing2'
+				end
+				act'Don''t be an asshole':
+					cla & *clr
+					gs'sex_ev_leave', 'dress_loop'
+					gs'sex_ev_leave', 'dress_start_desc'
+					'"Don''t be an asshole," you glare, <<$sex_ev[''dress_describe'']>>. "My grades are important to me. More important than spending more time fucking you."'
+					gs 'sex_ev_leave', 'dressing2'
+				end
+			else
+				'"I guess your future after school is pretty important," <<$npc_firstname[$boy]>> says.'
+				act'Thanks for understanding':
+					gs'sex_ev_leave', 'dress_loop'
+					gs'sex_ev_leave', 'dress_start_desc'
+					'"Thanks," you say, <<$sex_ev[''dress_describe'']>>. "It means a lot to me that you get it."'
+					gs 'sex_ev_leave', 'dressing2'
+				end
+				
+				act'Want to go to uni':
+					gs'sex_ev_leave', 'dress_loop'
+					gs'sex_ev_leave', 'dress_start_desc'
+					'"I really want to go to uni," you say, <<$sex_ev[''dress_describe'']>>. "So keeping up with my classes is really important."'
+					gs 'sex_ev_leave', 'dressing2'
+				end
+				
+				act'Damn straight':
+					gs'sex_ev_leave', 'dress_loop'
+					gs'sex_ev_leave', 'dress_start_desc'
+					'"Damn straight it is," you say, <<$sex_ev[''dress_describe'']>>. "Skipping schoolwork to fuck you could end up fucking me for life!"'
+					gs 'sex_ev_leave', 'dressing2'
+				end
+				
+				act'No hard feelings':
+					gs'sex_ev_leave', 'dress_loop'
+					gs'sex_ev_leave', 'dress_start_desc'
+					'"No hard feelings, right?" you ask, <<$sex_ev[''dress_describe'']>>. "I really like you, I just can''t afford to get kicked out of school."'
+					gs 'sex_ev_leave', 'dressing2'
+				end
+			end
+			gs 'sex_ev_leave', 'panty_gift'
+		end
+	end
+end
+
+if $ARGS[0] = 'something_to_do':
+	act'Gotta do something':
+		sex_ev['leaving'] = 1
+		cla & *clr
+		gs'sex_ev_leave', 'dress_loop'
+		gs'sex_ev_leave', 'dress_start_desc'
+		'"You heading out?" <<$npc_firstname[$boy]>> asks.'
+		if sex_ev['sleepover'] < 1:
+			'"Yeah," you say, <<$sex_ev[''dress_describe'']>>. "Have a few things I need to get done.' + iif($sex_ev['loc'] = 'pc_home', 'Sorry to kick you out so quickly."','"')
+			gs 'sex_ev_leave', 'dressing2'
+			gs 'sex_ev_leave', 'panty_gift'
+		else
+			'"Yeah," you say, <<$sex_ev[''dress_describe'']>>. "Have a few things I need to get done.'  + iif($sex_ev['loc'] = 'pc_home','Sorry to kick you out so quickly."','Thanks for letting me spend the night."')
+			
+			if rand(1,3) = 3 and (npc_day_off[$boy] = week or (npc_day_off[$boy] = week + 1) or (week = 7 and npc_day_off[$boy] = 1)):
+				gs'sex_ev_morning', 'sex_ev_invite_later'
+			else
+				iif($sex_ev['loc'] = 'pc_home','"It''s fine. I get it."','"No problem. It was fun."')
+				gs'sex_ev_morning', 'end_morning'
+			end
+		end
+	end
+end
+
+if $ARGS[0] = 'see_a_friend':
+	act'Meeting a friend':
+		sex_ev['leaving'] = 1
+		cla & *clr
+		gs'sex_ev_leave', 'dress_loop'
+		gs'sex_ev_leave', 'dress_start_desc'
+		'"You heading out?" <<$npc_firstname[$boy]>> asks.'
+		if sex_ev['sleepover'] < 1:
+			'"Yeah," you say, <<$sex_ev[''dress_describe'']>>. "Need to see a friend later.' + iif($sex_ev['loc'] = 'pc_home', 'Sorry to kick you out so quickly."','"')
+			gs 'sex_ev_leave', 'dressing2'
+			gs 'sex_ev_leave', 'panty_gift'
+		else
+			'"Yeah," you say, <<$sex_ev[''dress_describe'']>>. "Need to see a friend later.' + iif($sex_ev['loc'] = 'pc_home','Sorry to kick you out so quickly."','Thanks for letting me spend the night."')
+			
+			if rand(1,3) = 3 and (npc_day_off[$boy] = week or (npc_day_off[$boy] = week + 1) or (week = 7 and npc_day_off[$boy] = 1)):
+				gs'sex_ev_morning', 'sex_ev_invite_later'
+			else
+				'"No problem."'
+				gs'sex_ev_morning', 'end_morning'
+			end
+		end
+	end
+end
+
+if $ARGS[0] = 'another_fuckbuddy':
+	if arrsize('$fuckbuddy') > 1:
+		act'Another booty call':
+			sex_ev['leaving'] = 1
+			cla & *clr
+			gs'sex_ev_leave', 'dress_loop'
+			gs'sex_ev_leave', 'dress_start_desc'
+			'"You heading out?" <<$npc_firstname[$boy]>> asks.'
+			'"Yeah," you smirk, <<$sex_ev[''dress_describe'']>>. "Got another booty call to show up to."'
+			'"You really get around don''t you?" <<$npc_firstname[$boy]>> smirks back.'
+			gs 'sex_ev_leave', 'dressing2'
+			gs 'sex_ev_leave', 'panty_gift'
+		end
+	end
+end
+
+if $ARGS[0] = 'going_school':
+	if kanikuli = 0 and mid($start_type,1,2) = 'sg' and SchoolAtestat = 0 and SchoolBlock = 0 and week < 6: 
+		act'School':
+			cla & *clr
+			gs'sex_ev_leave', 'dress_loop'
+			gs'sex_ev_leave', 'dress_start_desc'
+			'"You heading out?" <<$npc_firstname[$boy]>> asks.'
+			if $sex_ev['loc'] = 'pc_home':
+				if sex_ev['late_for_school'] = 1 and hour >= 8:
+					'"I already told you, I''m late for school," you say, <<$sex_ev[''dress_describe'']>>. "You gotta get out of here so I can lock up."'
+				elseif sex_ev['late_for_school'] = 1:
+					'"I already told you, I''m gonna be late for school," you say, <<$sex_ev[''dress_describe'']>>. "You gotta get out of here so I can lock up."'
+				elseif hour = 7:
+					'"Gotta get to school," you say, <<$sex_ev[''dress_describe'']>>.  "And you gotta get out of here so I can lock up."'
+				else
+					'"Gotta get ready for school," you say, <<$sex_ev[''dress_describe'']>>.  "And you gotta get out of here so I can lock up."'
+				end
+				if rand(1,3) = 3 and (npc_day_off[$boy] = week or (npc_day_off[$boy] = week + 1) or (week = 7 and npc_day_off[$boy] = 1)):
+					gs'sex_ev_morning', 'sex_ev_invite_later'
+				else
+					'"No problem."'
+					gs'sex_ev_morning', 'end_morning'
+				end
+			else
+				if sex_ev['late_for_school'] = 1 and hour >= 8:
+					'"I already told you, I''m late for school," you say, <<$sex_ev[''dress_describe'']>>. "But thanks for letting me spend the night. And the second fuck," you add with a wink.'
+				elseif sex_ev['late_for_school'] = 1:
+					'"I already told you, I''m gonna be late for school," you say, <<$sex_ev[''dress_describe'']>>. "But thanks for letting me spend the night. And the second fuck," you add with a wink.'
+				elseif hour = 7:
+					'"Gotta get to school," you say, <<$sex_ev[''dress_describe'']>>. "Thanks for letting me spend the night."'
+				else
+					'"Gotta get ready for school," you say, <<$sex_ev[''dress_describe'']>>. "Thanks for letting me spend the night."'
+				end
+				if rand(1,3) = 3 and (npc_day_off[$boy] = week or (npc_day_off[$boy] = week + 1) or (week = 7 and npc_day_off[$boy] = 1)):
+					gs'sex_ev_morning', 'sex_ev_invite_later'
+				else
+					'"No problem."'
+					gs'sex_ev_morning', 'end_morning'
+				end
+			end
+			gs'sex_ev_leave', 'dress_talk'
+		end
+	end
+end
+
+if $ARGS[0] = 'school_night':
+	if kanikuli = 0 and mid($start_type,1,2) = 'sg' and SchoolAtestat = 0 and SchoolBlock = 0 and (week < 5 or week = 7): 
+		act'It''s a school night':
+			cla & *clr
+			gs'sex_ev_leave', 'dress_loop'
+			gs'sex_ev_leave', 'dress_start_desc'
+			'"You heading out?" <<$npc_firstname[$boy]>> asks.'
+			!! if schoolprogul = 1:
+			if $sex_ev['loc'] = 'pc_home':
+				'"It''s a school night," you say, <<$sex_ev[''dress_describe'']>>. "You gotta go so I can get up for class tomorrow."'
+				if rand(1,10) < 0:
+					'"Are you sure I can''t spend the night?'
+				else
+					'"Okay."'
+					if rand(1,3) = 3 and (npc_day_off[$boy] = week or (npc_day_off[$boy] = week + 1) or (week = 7 and npc_day_off[$boy] = 1)):
+						gs'sex_ev_morning', 'sex_ev_invite_later'
+					else
+						gs 'sex_ev_leave', 'dressing2'
+					end
+					gs'sex_ev_leave', 'dress_talk'
+				end
+			else
+				'"It''s a school night," you say, <<$sex_ev[''dress_describe'']>>. "Gotta get home so I can set my alarm and get up for class tomorrow."'
+				if rand(1,3) = 3 and (npc_day_off[$boy] = week or (npc_day_off[$boy] = week + 1) or (week = 7 and npc_day_off[$boy] = 1)):
+					gs'sex_ev_morning', 'sex_ev_invite_later'
+				else
+					gs 'sex_ev_leave', 'dressing2'
+				end
+				gs'sex_ev_leave', 'dress_talk'
+			end
+		end
+	end
+end
+
+if $ARGS[0] = 'panty_gift':
+	if $pantyworntype ! 'none' and $braworntype = 'none' and $clothingworntype = 'nude' and sex_ev['mad'] = 0 and sex_ev['fuck_count'] > 0 and $sex_ev['loc'] ! 'pc_home':
+		act'Give him your panties':
+			npc_panty_give[$boy] += 1
+			gs 'panties', 'dispose'
+			cla & *clr
+			'<center><video autoplay loop src="images/shared/romance/misc/panty_gift.mp4"></video></center>'
+			'Just after you put on your panties, a sexy thought pops into your head.'
+			*nl
+			'"But before I go," you say mischievously. "I have a gift for you."'
+			if npc_panty_give[$boy] = 1:
+				'"A gift?" <<$npc_firstname[$boy]>> asks curiously.'
+				*nl
+				'In one smooth motion, you slide your panties down your legs and daintily toss them onto the rumpled sheets of the bed on which you fucked <<$npc_firstname[$boy]>>.'
+				gs 'sex_ev_leave', 'panty_gift2'
+			else
+				'"Another pair of your panties?" <<$npc_firstname[$boy]>> grins.'
+				'"You guessed correctly," you grin back. "And your prize is-!"'
+				*nl
+				'In one smooth motion, you slide your panties down your legs and daintily toss them into the rumpled sheets of the bed you were just fucked in.'
+				*nl
+				!!'"Enjoy," you smirk.'
+				gs 'sex_ev_leave', 'panty_gift2'
+			end
+		end
+	end
+end
+
+if $ARGS[0] = 'panty_gift2':
+	act'You did a good job':
+		cla & *clr
+		gs'sex_ev_leave', 'dress_loop'
+		'"You did a good job," you smile, <<$sex_ev[''dress_describe'']>>. "Consider that your reward."'
+		if npc_girlfriend[$boy] = 1 and npc_fidelity[$boy] = 6:
+			if pc_know_npc_has_girlfriend[$boy] = 0: pc_know_npc_has_girlfriend[$boy] = 1
+			'"And what am I supposed to do with these when my girlfriend comes home?" he asks, looking at them amusedly.'
+			gs 'sex_ev_leave', 'panty_gift_girlfriend'
+		else
+			'<<$npc_firstname[$boy]>> doesn''t reply, but his expression says that he isn''t displeased.'
+			gs 'sex_ev_leave', 'dressing2'
+		end
+	end
+	
+	act'Something to remember the occasion':
+		cla & *clr
+		gs'sex_ev_leave', 'dress_loop'
+		if daystage > 3:
+			'"Something to remember the night," you smile, <<$sex_ev[''dress_describe'']>>. "Keep the good times in mind."'
+		else
+			'"Something to remember the day," you smile, <<$sex_ev[''dress_describe'']>>. "Keep the good times in mind."'
+		end
+		if npc_girlfriend[$boy] = 1 and npc_fidelity[$boy] = 6:
+			if pc_know_npc_has_girlfriend[$boy] = 0: pc_know_npc_has_girlfriend[$boy] = 1
+			'"And what am I supposed to do with these when my girlfriend comes home?" he asks, looking at them amusedly.'
+			gs 'sex_ev_leave', 'panty_gift_girlfriend'
+		else
+			'"Maybe I should frame it," <<$npc_firstname[$boy]>> snickers.'
+			gs 'sex_ev_leave', 'dressing2'
+		end
+	end
+	
+	act'Consider it a trophy':
+		cla & *clr
+		gs'sex_ev_leave', 'dress_loop'
+		'"A trophy," you smile, <<$sex_ev[''dress_describe'']>>. "Consider it proof of conquest."'
+		if npc_girlfriend[$boy] = 1 and npc_fidelity[$boy] = 6:
+			if pc_know_npc_has_girlfriend[$boy] = 0: pc_know_npc_has_girlfriend[$boy] = 1
+			'"And what am I supposed to do with these when my girlfriend comes home?" he asks, looking at them amusedly.'
+			gs 'sex_ev_leave', 'panty_gift_girlfriend'
+		else
+			'<<$npc_firstname[$boy]>> doesn''t reply, but his expression says that he isn''t displeased.'
+			gs 'sex_ev_leave', 'dressing2'
+		end
+	end
+	
+	if sex_ev['virgin'] = 1:
+		act'To remember my virginity':
+			cla & *clr
+			gs'sex_ev_leave', 'dress_loop'
+			'"To remember my virginity," you smile, <<$sex_ev[''dress_describe'']>>. "And that you made me a woman."'
+			if npc_girlfriend[$boy] = 1 and npc_fidelity[$boy] = 6:
+				if pc_know_npc_has_girlfriend[$boy] = 0: pc_know_npc_has_girlfriend[$boy] = 1
+				'"And what am I supposed to do with these when my girlfriend comes home?" he asks, looking at them amusedly.'
+				gs 'sex_ev_leave', 'panty_gift_girlfriend'
+			else
+				'<<$npc_firstname[$boy]>> doesn''t reply, but his expression says that he isn''t displeased.'
+				gs 'sex_ev_leave', 'dressing2'
+			end
+		end
+	end
+	
+	if sex_ev['orgasm_count'] > 0:
+		act'For making me orgasm':
+			cla & *clr
+			gs'sex_ev_leave', 'dress_loop'
+			'"For making me come," you smile, <<$sex_ev[''dress_describe'']>>. "That deserves an award."'
+			if npc_girlfriend[$boy] = 1:
+				if pc_know_npc_has_girlfriend[$boy] = 0: pc_know_npc_has_girlfriend[$boy] = 1
+				'"And what am I supposed to do with these when my girlfriend comes home?" he asks, looking at them amusedly.'
+				gs 'sex_ev_hookup_leave', 'panty_gift_girlfriend'
+			else
+				'<<$npc_firstname[$boy]>> doesn''t say anything in response, but given the lustful glint in his eyes, he seems pretty pleased.'
+				gs 'sex_ev_hookup_leave', 'later'
+			end
+		end
+		
+		act'For making me orgasm (tradition)':
+			cla & *clr
+			gs'sex_ev_leave', 'dress_loop'
+			if $sex_ev['type'] = 'hookup':
+				'"For making me come," you smile, <<$sex_ev[''dress_describe'']>>. "I always give a boy my panties if he makes me come."'
+			else
+				'"Cause you made me come," you smile, <<$sex_ev[''dress_describe'']>>. "You know I always give a boy my panties if he makes me come."'
+			end
+			if npc_girlfriend[$boy] = 1:
+				if pc_know_npc_has_girlfriend[$boy] = 0: pc_know_npc_has_girlfriend[$boy] = 1
+				'"And what am I supposed to do with these when my girlfriend comes home?" he asks, looking at them amusedly.'
+				gs 'sex_ev_hookup_leave', 'panty_gift_girlfriend'
+			else
+				'<<$npc_firstname[$boy]>> doesn''t say anything in response, but given the lustful glint in his eyes, he seems pretty pleased.'
+				gs 'sex_ev_hookup_leave', 'later'
+			end
+		end
+		
+	end
+end
+
+if $ARGS[0] = 'panty_gift_girlfriend':
+	act'Hide them':
+		cla & *nl
+		'"Just hide them," you say, <<$sex_ev[''dress_describe'']>>. "If you can hide a fucking a girl in your bed, surely you can hide a pair of panties."'
+		gs 'sex_ev_leave', 'dressing2'
+	end
+	
+	act'Say they''re hers':
+		cla & *nl
+		'"Tell her they''re hers," you shrug with a wry smirk, <<$sex_ev[''dress_describe'']>>. "Maybe she''ll think she bought them."'
+		gs 'sex_ev_leave', 'dressing2'
+	end
+	
+	act'Say they''re yours':
+		gs'sex_ev_leave', 'dress_loop_code'
+		cla & *nl
+		'"Tell her they''re yours," you shrug with a wry smirk, <<$sex_ev[''dress_describe'']>>. "A guy can''t wear a cute pair of panties now and then?"'
+		if npc_insecure[$boy] = 1:
+			gs'sex_ev_leave', 'dress_loop_code'
+			'<<$npc_firstname[$boy]>>''s face immediately reddens and he looks at you with an angry glare.'
+			'"What the fuck? I''m not some twink who puts on girlie panties like a fucking faggot!"'
+			act'I was kidding (amused)':
+				cla & *clr
+				$sex_ev['bed_room']
+				'"I was just kidding," you snicker, rolling your eyes. "Bad joke, sorry."'
+				'You move to <<$sex_ev[''dress_describe'']>> but <<$npc_firstname[$boy]>> continues to glare at you out of the corner of your eye for a few moments longer before looking away.'
+				gs 'sex_ev_leave', 'dressing2'
+			end
+			
+			act'I was kidding (acerbic)':
+				cla & *clr
+				$sex_ev['bed_room']
+				'"Christ, I was just kidding," you say, giving <<$npc_firstname[$boy]>> a look of exasperation. "Of course I wasn''t seriously suggesting that. Take a joke, dumbass."'
+				'You start <<$sex_ev[''dress_describe'']>> but <<$npc_firstname[$boy]>> continues to glare at you out of the corner of your eye for a few moments longer before looking away.'
+				gs 'sex_ev_leave', 'dressing2'
+			end
+		else
+			'<<$npc_firstname[$boy]>> laughs aloud.'
+			'"Yeah, I bet that''d get me off the hook."'
+			gs 'sex_ev_leave', 'dressing2'
+		end
+	end
+	
+	act'Give them to her':
+		cla & *nl
+		'"Gift them to her," you say mischievously, <<$sex_ev[''dress_describe'']>>. "Maybe she''ll put them on."'
+		gs 'sex_ev_leave', 'dressing2'
+	end
+	
+	act'Throw them away':
+		cla & *nl
+		'"Throw them away then," you shrug, <<$sex_ev[''dress_describe'']>>. "I don''t care. Do whatever you want with them.'
+		gs'sex_ev_leave', 'dress_loop_code'
+		'"After all, they''re your panties now," you add with a smirk, <<$sex_ev[''dress_describe'']>>.'
+		gs 'sex_ev_leave', 'dressing2'
+	end
+end
+
+if $ARGS[0] = 'dress_image':
+	cla & *clr
+	if sex_ev['CloDress'] = 1:
+		'<center><img <<$set_imgh>> src="images/shared/romance/lovers/misc/bed_dress.jpg"></center>'
+	else
+		'<center><video autoplay loop src="images/pc/activities/misc/dress_1.mp4"></video></center>'
+	end
+end
+
+if $ARGS[0] = 'dress_loop':
+	cla & *clr
+	gs'sex_ev_leave', 'dress_loop_code'
+	gs'sex_ev_leave', 'dressing_image'
+	gs'stat'
+end
+
+if $ARGS[0] = 'dress_loop_code':
+	:dress_loop_start
+	if sex_ev['dressing_start'] ! 1:
+		sex_ev['dressing_start'] = 1
+		$sex_ev['dress_describe'] = 'reaching down for your clothes'
+!!	elseif $lastwornpantytype ! 'none' and $lastwornbratype ! 'none'  and $pantyworntype = 'none' and sex_ev['panty_wear'] ! 1 and sex_ev['bra_wear'] ! 1:
+!!		gs 'panties', 'wear', $lastwornpantytype, lastwornpantynumber['sex_ev']
+!!		gs 'bras', 'wear', $lastwornbratype, lastwornbranumber['sex_ev']
+!!		sex_ev['panty_wear'] = 1
+!!		sex_ev['bra_wear'] = 1
+!!		killvar 'lastwornpantytype'
+!!		killvar 'lastwornpantynumber'
+!!		killvar 'lastwornbratype'
+!!		killvar 'lastwornbranumber'
+!!		$sex_ev['dress_describe'] = 'pulling your panties up your legs and fastening your bra around your chest'
+	elseif $lastwornpantytype ! 'none' and $pantyworntype = 'none' and sex_ev['panty_wear'] ! 1:
+		gs 'panties', 'wear', $lastwornpantytype, lastwornpantynumber['sex_ev']
+		killvar 'lastwornpantytype'
+		killvar 'lastwornpantynumber'
+		sex_ev['panty_wear'] = 1
+		$sex_ev['dress_describe'] = 'pulling your panties up'
+	elseif $lastwornbratype ! 'none' and $lastwornbratype ! '' and $braworntype = 'none' and sex_ev['bra_wear'] ! 1:
+		gs 'bras', 'wear', $lastwornbratype, lastwornbranumber['sex_ev']
+		killvar 'lastwornbratype'
+		killvar 'lastwornbranumber'
+		sex_ev['bra_wear'] = 1
+		$sex_ev['dress_describe'] = 'fastening your bra around your chest'
+	elseif $clothingworntype = 'nude':
+		gs'clothing', 'wear_last_worn'
+		jump 'dress_loop_start'
+	elseif $clothingworntype ! 'nude' and sex_ev['dress_end'] ! 1:
+		if CloDress = 1 and (sex_ev['dress_top_wear'] ! 1 or sex_ev['dress_skirt_wear'] ! 1):
+			if sex_ev['dress_top_wear'] ! 1:
+				sex_ev['dress_top_wear'] = 1
+				$sex_ev['dress_describe'] = 'pulling your dress over your shoulders'
+			elseif sex_ev['dress_skirt_wear'] ! 1:
+				sex_ev['dress_skirt_wear'] = 1
+				sex_ev['dress_end'] = 1
+				$sex_ev['dress_describe'] = 'smoothing your skirt out'
+			end
+		else
+			if CloSkirtShortness > 0 and sex_ev['skirt_wear'] ! 1 and sex_ev['dress_end'] ! 1:
+				sex_ev['skirt_wear'] = 1
+				if $pantyworntype = 'none':
+					$sex_ev['dress_describe'] = 'slipping your skirt up your legs'
+				else
+					$sex_ev['dress_describe'] = 'zipping your skirt up over your panties'
+				end
+			elseif CloSkirtShortness = 0 and sex_ev['dress_end'] ! 1 and sex_ev['pants_wear'] ! 1:
+				sex_ev['pants_wear'] = 1
+				$sex_ev['dress_describe'] = 'tugging your pants over your hips'
+			else
+				sex_ev['dress_end'] = 1
+				if $braworntype = 'none':
+					$sex_ev['dress_describe'] = 'pulling your top over your breasts'
+				else
+					$sex_ev['dress_describe'] = 'pulling your top over your bra'
+				end
+			end
+		end
+	elseif sex_ev['dress_end'] = 1:
+		if CloDress = 1:
+			$sex_ev['dress_describe'] = 'checking your dress'
+		elseif CloSkirtShortness > 0:
+			$sex_ev['dress_describe'] = 'smoothing your skirt'
+		else
+			$sex_ev['dress_describe'] = 'checking your clothes'
+		end
+	end
+end
+
+
+if $ARGS[0] = 'dress_talk':
+	cla
+	gs'sex_ev_leave', 'dressing_finish'
+	
+	gs 'sex_ev_leave', 'dress_talk_pc'
+	if sex_ev['dress_end'] ! 1 and sex_ev['plans_later_talk'] = 0 and rand(0,1) = 1 and $sex_ev['type'] ! 'hookup':
+		gs 'sex_ev_leave', 'npc_sex_ev_invite'
+!!{
+		!! he initiates
+		gs 'sex_ev_leave', 'dress_talk_boy'
+	else
+		!! player initiates
+		gs 'sex_ev_leave', 'dress_talk_pc'
+	}
+	else
+		gs 'sex_ev_after', 'after_sex_dressed'
+	end
+end
+
+if $ARGS[0] = 'dress_talk_boy':
+
+	if $sex_ev['type'] ! 'hookup':
+		gs 'sex_ev_leave', 'npc_sex_ev_invite'
+
+		if sex_ev['dress_talk2'] = 0:
+			'"What''re you up to later?"'
+			if date_variable > 0:
+				!! CHANGE THIS PLACEHOLDER VARIABLE
+				act'I have a date with my boyfriend':
+					cla
+					act'Embarrassed':
+						gs'sex_ev_after', 'dress_image'
+						'"I have a date with my boyfriend later," you say, blushing shyly.'
+						gs'sex_ev_after', 'npc_date_later_response'
+						'Your blush deepens in response.'
+					end
+					
+					act'Casual':
+						gs'sex_ev_after', 'dress_image'
+						'"I have a date with my boyfriend later,"'
+						gs'sex_ev_after', 'npc_date_later_response'
+					end
+					
+					act'Exhasperated':
+						gs'sex_ev_after', 'dress_image'
+						'"I have a date with my boyfriend later,"'
+						gs'sex_ev_after', 'npc_date_later_response'
+					end
+				end
+			end
+		end
+
+		if sex_ev['dress_talk3'] = 0:
+
+
+		end
+
+		if sex_ev['dress_talk4'] = 0:
+
+
+		end
+
+		if sex_ev['dress_talk5'] = 0:
+
+
+		end
+	end
+end
+
+
+if $ARGS[0] = 'dress_talk_pc':
+	if sex_ev['plans_later_talk'] = 0 and (hour < 16 or sex_ev['sleepover'] = 1):
+		act'Ask him what he''s doing later':
+			sex_ev['plans_later_talk'] = 1
+			gs'sex_ev_leave', 'dress_loop'
+			'"Got any plans for the rest day?" you ask, casually <<$sex_ev[''dress_describe'']>>.'
+			gs 'sex_ev_leave', 'dress_talk'
+			if npc_day_off[$boy] = week:
+				'"Not really," <<$npc_firstname[$boy]>> shrugs. "It''s my day off so I''m just chilling."'
+				gs'sex_ev_leave', 'pc_sex_ev_invite'
+			else
+				'"I have to go to work," <<$npc_firstname[$boy]>> replies.'
+				gs'sex_ev_leave', 'when_do_you_get_off'
+			end
+		end
+	end
+
+	if sex_ev['dress_talk2'] = 0:
+
+
+	end
+
+	if sex_ev['dress_talk3'] = 0:
+
+
+	end
+
+	if sex_ev['dress_talk4'] = 0:
+
+
+	end
+	
+	gs'sex_ev_leave', 'had_a_good_time'
+	gs'sex_ev_leave', 'stay_over_thanks'
+	gs'sex_ev_leave', 'walk_funny'
+!!	gs'sex_ev_leave', 'leak_all_day'
+	
+end
+
+!!if $ARGS[0] = '':
+
+!!end
+
+if $ARGS[0] = 'had_a_good_time':
+	if sex_ev['good_time'] = 0 and sex_ev['annoyed'] = 0:
+		act'I had a good time':
+			cla & *clr
+			sex_ev['good_time'] = 1
+			gs'sex_ev_leave', 'dress_loop'
+			if sex_ev['spend_night_thanks'] = 1:
+				'"Last night was really great," you smile at <<$npc_firstname[$boy]>>. "I had a lot of fun."'
+			elseif sex_ev['sleepover'] = 1:
+				'"I had a great time last night," you smile at <<$npc_firstname[$boy]>>.'
+			else
+				'"This was really fun," you smile at <<$npc_firstname[$boy]>>. "I had a great time."'
+			end
+			if sex_ev['blue_ball'] = 0:
+				'"Me too," he smirks back, watching you <<$sex_ev[''dress_describe'']>>.'
+			elseif npc_selfish[$boy] = 1:
+				'"Still bullshit that I didn''t get to finish properly," he mutters sourly.'
+			else
+				'"I just wish it didn''t have to end so soon," he replies, watching you <<$sex_ev[''dress_describe'']>>.'
+				'"Sorry," you say ruefully.'
+			end
+			gs'sex_ev_leave', 'dress_talk'
+			gs'sex_ev_leave', 'stay_over_thanks'
+		end
+	end
+end
+
+if $ARGS[0] = 'stay_over_thanks':
+	if sex_ev['spend_night_thanks'] = 0 and sex_ev['sleepover'] = 1:
+		act'Thanks for letting me stay over':
+			cla & *clr
+			sex_ev['spend_night_thanks'] = 1
+			gs'sex_ev_leave', 'dress_loop'
+			if sex_ev['good_time'] = 1:
+				'"Thanks for letting me stay over too," you tell <<$npc_firstname[$boy]>>. "I really appreciate it."'
+			else
+				'"Thanks for letting me spend the night," you tell <<$npc_firstname[$boy]>>. "I really appreciate it."'
+			end
+			if npc_girlfriend[$boy] = 1 and npc_fidelity[$boy] = 6:
+				pc_know_npc_has_girlfriend[$boy] = 1
+				'"Lucky my girlfriend wasn''t coming over," he smirks back, watching you <<$sex_ev[''dress_describe'']>>.'
+			elseif npc_caretaker[$boy] = 1 or npc_generous[$boy] = 1:
+				'"Yeah no problem," he smiles back, watching you <<$sex_ev[''dress_describe'']>>.'
+			elseif sex_ev['pass_out'] = 1:
+				'"You passed out on me," he shrugs, watching you <<$sex_ev[''dress_describe'']>>. "What was I supposed to do? Wake you up and kick you out?"'
+			else
+				'He shrugs in a "whatever" manner while he watches you <<$sex_ev[''dress_describe'']>>.'
+			end
+			gs'sex_ev_leave', 'dress_talk'
+			gs'sex_ev_leave', 'had_a_good_time'
+		end
+	end
+end
+
+if $ARGS[0] = 'walk_funny':
+	if sex_ev['fuck_count'] > 5 and $sex_ev['walk_funny_talk'] = '' and pain['vaginal'] > 10:
+		if hour >= 20: 
+			$sex_ev['walk_funny_day'] = 'day'
+		else
+			$sex_ev['walk_funny_day'] = 'day tomorrow'
+		end
+		act'I''m gonna walk funny because of you':
+			cla
+			act'Embarrassed':
+				cla & *clr
+				$sex_ev['walk_funny_talk'] = 'embarrassed'
+				gs'sex_ev_leave', 'dress_loop'
+				
+				if $sex_ev['dress_describe'] = 'pulling your panties up':
+					'"I''m going to walk funny all <<$sex_ev[''walk_funny_day'']>> because of you," you say, blushing slightly as you pull your panties up over your sore pussy.'
+				elseif $sex_ev['dress_describe'] = 'tugging your pants over your hips' and $pantyworntype = 'none':
+					'"I''m going to walk funny all <<$sex_ev[''walk_funny_day'']>> because of you," you say, blushing slightly as you pull your pants up over your sore pussy.'
+				else
+					'"I''m going to walk funny all <<$sex_ev[''walk_funny_day'']>> because of you," you say, blushing as you''re <<$sex_ev[''dress_describe'']>>.'
+				end
+				gs'sex_ev_leave', 'walk_funny2'
+			end
+			
+			act'Annoyed':
+				cla & *clr
+				$sex_ev['walk_funny_talk'] = 'annoyed'
+				gs'sex_ev_leave', 'dress_loop'
+				if $sex_ev['dress_describe'] = 'pulling your panties up':
+					'"I''m going to walk funny all <<$sex_ev[''walk_funny_day'']>> because of you," you scowl, wincing slightly as you pull your panties up over your sore pussy.'
+				elseif $sex_ev['dress_describe'] = 'tugging your pants over your hips' and $pantyworntype = 'none':
+					'"I''m going to walk funny all <<$sex_ev[''walk_funny_day'']>> because of you," you scowl, wincing slightly as you pull your pants up over your sore pussy.'
+				else
+					'"I''m going to walk funny all <<$sex_ev[''walk_funny_day'']>> because of you," you scowl, wincing slightly as you''re <<$sex_ev[''dress_describe'']>>.'
+				end
+				gs'sex_ev_leave', 'walk_funny2'
+			end
+			
+			act'Sexy':
+				cla & *clr
+				$sex_ev['walk_funny_talk'] = 'sexy'
+				gs'sex_ev_leave', 'dress_loop'
+				if $sex_ev['dress_describe'] = 'pulling your panties up':
+					'"I''m going to walk funny all <<$sex_ev[''walk_funny_day'']>> because of you," you say ruefully while also sexily rubbing your thighs together even as you pull your panties up over your sore pussy.'
+				elseif $sex_ev['dress_describe'] = 'tugging your pants over your hips' and $pantyworntype = 'none':
+					'"I''m going to walk funny all <<$sex_ev[''walk_funny_day'']>> because of you," you say ruefully while also sexily rubbing your thighs together even as you pull your pants up over your sore pussy.'
+				else
+					'"I''m going to walk funny all <<$sex_ev[''walk_funny_day'']>> because of you," you say ruefully while also sexily rubbing your thighs together even as you''re <<$sex_ev[''dress_describe'']>>.'
+				end
+				gs'sex_ev_leave', 'walk_funny2'
+			end
+		end
+	end
+end
+
+if $ARGS[0] = 'walk_funny2':
+	if sex_ev['rough_enjoy'] = 1:
+		'"I know you like it rough," <<$npc_firstname[$boy]>> smirks at your awkward stance.'
+		gs'sex_ev_leave', 'walk_funny3'
+	elseif npc_caretaker[$boy] = 1:
+		'"Sorry," <<$npc_firstname[$boy]>> says with a guilty smile.'
+		if $sex_ev['walk_funny_talk'] = 'embarrassed':
+			'"It''s okay," you reply. "It''s my fault too."'
+		elseif $sex_ev['walk_funny_talk'] = 'annoyed':
+			'"At least you have the decency to apologize," you reply with a rueful smirk.'
+		elseif $sex_ev['walk_funny_talk'] = 'sexy':
+			'"Don''t be. I loved it."'
+			'You flash a sexy smile back at him.'
+		end
+		gs'sex_ev_leave', 'dress_talk'
+	elseif npc_arrogant[$boy] = 1:
+		'"You know you liked it," <<$npc_firstname[$boy]>> says, proudly looking at your awkward stance.'
+		gs'sex_ev_leave', 'walk_funny3'
+	elseif npc_rough_lover[$boy] = 1:
+		'"It wasn''t good sex if you aren''t sore the next day," <<$npc_firstname[$boy]>> snickers, seemingly taking pleasure in your awkward stance.'
+		gs'sex_ev_leave', 'walk_funny3'
+	else
+		'"I''ll take credit for that," <<$npc_firstname[$boy]>> says, smirking at your awkward stance.'
+		gs'sex_ev_leave', 'walk_funny3'
+	end
+end
+
+if $ARGS[0] = 'walk_funny3':
+	if $sex_ev['walk_funny_talk'] = 'embarrassed':
+		'You can''t help but blush even deeper at his reply.'
+	elseif $sex_ev['walk_funny_talk'] = 'annoyed':
+		'Your scowl deepens at his reply.'
+	elseif $sex_ev['walk_funny_talk'] = 'sexy':
+		'You flash a sexy smile back at him.'
+	end
+	gs'sex_ev_leave', 'dress_talk'
+end
+
+
+if $ARGS[0] = 'leak_all_day':
+	if cum_vol['vagina'] > 100 and $sex_ev['cum_leak_talk'] = '' and hour < 10:
+		act'Gonna be leaking cum all day':
+			cla
+			act'Embarrassed':
+				cla & *clr
+				$sex_ev['cum_leak_talk'] = 'embarrassed'
+				gs'sex_ev_leave', 'dress_loop'
+				if kanikuli = 0 and week < 6:
+					if $sex_ev['dress_describe'] = 'pulling your panties up':
+						'"I can''t believe I have to go to class full of your cum," you say, blushing furiously as you pull your panties up over your dripping snatch. The aforementioned cum immediately seeps into the fabric, creating an uncomfortable damp spot. "I''m going to be sitting in it all day!"'
+					elseif $pantyworntype = 'none':
+						if $sex_ev['dress_describe'] = 'slipping your skirt up your legs':
+							'"I can''t believe I have to go to class full of your cum," you say, blushing furiously as you slip your skirt up over your hips, feeling the aforementioned cum trickle down your thighs. "I''m going to be leaking all day! It''s gonna stain my skirt!"'
+						elseif $sex_ev['dress_describe'] = 'tugging your pants over your hips':
+							'"I can''t believe I have to go to class full of your cum," you say, blushing furiously as you pull your pants up over your dripping snatch. The aforementioned cum immediately seeps into the fabric, creating an uncomfortable damp spot between your thighs. "I''m going to be leaking all day! It''s gonna stain my skirt!"'
+						elseif CloSkirtShortness > 0:
+							'"I can''t believe I have to go to class full of your cum," you say, blushing furiously as you''re <<$sex_ev[''dress_describe'']>>, suddenly feeling some trickle down your thighs beneath your skirt. "I''m going to be leaking all day! It''s gonna stain my skirt!"'
+						else
+							'"I can''t believe I have to go to class full of your cum," you say, blushing furiously as you''re <<$sex_ev[''dress_describe'']>>. The aforementioned cum has already seeped into the fabric of your pants, creating an uncomfortable damp spot between your thighs. "I''m going to be leaking all day! It''s gonna stain my skirt!"'
+						end
+					else
+						'"I can''t believe I have to go to class full of your cum," you say, blushing furiously as you''re <<$sex_ev[''dress_describe'']>>. The aforementioned cum has already seeped into your panties, creating an uncomfortable damp spot between your thighs. "I''m going to be leaking all day! It''s gonna stain my skirt!"'
+					end
+				else
+					if $sex_ev['dress_describe'] = 'pulling your panties up':
+						'"I''m so full of your cum, I''m going to have to sit in it all," you say, blushing furiously as you pull your panties up over your dripping snatch. The aforementioned cum immediately seeps into the fabric, creating an uncomfortable damp spot. "It''s gonna stain my panties!"'
+					elseif $pantyworntype = 'none':
+						if $sex_ev['dress_describe'] = 'slipping your skirt up your legs':
+							'"I''m so full of your cum, I''m going to be leaking all day," you say, blushing furiously as you slip your skirt up over your hips, feeling the aforementioned cum trickle down your thighs. "It''s gonna stain my skirt!"'
+						elseif $sex_ev['dress_describe'] = 'tugging your pants over your hips':
+							'"I''m so full of your cum, I''m going to have to sit in it all," you say, blushing furiously as you pull your pants up over your dripping snatch. The aforementioned cum immediately seeps into the fabric, creating an uncomfortable damp spot between your thighs.'
+						elseif CloSkirtShortness > 0:
+							'"I''m so full of your cum, I''m going to be leaking all day," you say, blushing furiously as you''re <<$sex_ev[''dress_describe'']>>, suddenly feeling some trickle down your thighs beneath your skirt. "It''s gonna stain my skirt!"'
+						else
+							'"I''m so full of your cum, I''m going to be sitting in it all day," you say, blushing furiously as you''re <<$sex_ev[''dress_describe'']>>. The aforementioned cum has already seeped into the fabric of your pants, creating an uncomfortable damp spot between your thighs.'
+						end
+					else
+						'"I''m so full of your cum, I''m going to be sitting in it all day," you say, blushing furiously as you''re <<$sex_ev[''dress_describe'']>>. The aforementioned cum has already seeped into your panties, creating an uncomfortable damp spot between your thighs. "It''s gonna stain my panties!"'
+					end
+				end
+				gs'sex_ev_leave', 'leak_all_day2'
+			end
+			
+			act'Annoyed':
+				cla & *clr
+				$sex_ev['cum_leak_talk'] = 'annoyed'
+				gs'sex_ev_leave', 'dress_loop'
+				if kanikuli = 0 and week < 6:
+					if $sex_ev['dress_describe'] = 'pulling your panties up':
+						'"I can''t believe I have to go to class full of your cum," you say, blushing furiously as you pull your panties up over your dripping snatch. The aforementioned cum immediately seeps into the fabric, creating an uncomfortable damp spot. "I''m going to be sitting in it all day!"'
+					elseif $pantyworntype = 'none':
+						if $sex_ev['dress_describe'] = 'slipping your skirt up your legs':
+							'"I can''t believe I have to go to class full of your cum," you say, blushing furiously as you slip your skirt up over your hips, feeling the aforementioned cum trickle down your thighs. "I''m going to be leaking all day! It''s gonna stain my skirt!"'
+						elseif $sex_ev['dress_describe'] = 'tugging your pants over your hips':
+							'"I can''t believe I have to go to class full of your cum," you say, blushing furiously as you pull your pants up over your dripping snatch. The aforementioned cum immediately seeps into the fabric, creating an uncomfortable damp spot between your thighs. "I''m going to be leaking all day! It''s gonna stain my skirt!"'
+						elseif CloSkirtShortness > 0:
+							'"I can''t believe I have to go to class full of your cum," you say, blushing furiously as you''re <<$sex_ev[''dress_describe'']>>, suddenly feeling some trickle down your thighs beneath your skirt. "I''m going to be leaking all day! It''s gonna stain my skirt!"'
+						else
+							'"I can''t believe I have to go to class full of your cum," you say, blushing furiously as you''re <<$sex_ev[''dress_describe'']>>. The aforementioned cum has already seeped into the fabric of your pants, creating an uncomfortable damp spot between your thighs. "I''m going to be leaking all day! It''s gonna stain my skirt!"'
+						end
+					else
+						'"I can''t believe I have to go to class full of your cum," you say, blushing furiously as you''re <<$sex_ev[''dress_describe'']>>. The aforementioned cum has already seeped into your panties, creating an uncomfortable damp spot between your thighs. "I''m going to be leaking all day! It''s gonna stain my skirt!"'
+					end
+				else
+					if $sex_ev['dress_describe'] = 'pulling your panties up':
+						'"I''m so full of your cum, I''m going to have to sit in it all," you say, blushing furiously as you pull your panties up over your dripping snatch. The aforementioned cum immediately seeps into the fabric, creating an uncomfortable damp spot. "It''s gonna stain my panties!"'
+					elseif $pantyworntype = 'none':
+						if $sex_ev['dress_describe'] = 'slipping your skirt up your legs':
+							'"I''m so full of your cum, I''m going to be leaking all day," you say, blushing furiously as you slip your skirt up over your hips, feeling the aforementioned cum trickle down your thighs. "It''s gonna stain my skirt!"'
+						elseif $sex_ev['dress_describe'] = 'tugging your pants over your hips':
+							'"I''m so full of your cum, I''m going to have to sit in it all," you say, blushing furiously as you pull your pants up over your dripping snatch. The aforementioned cum immediately seeps into the fabric, creating an uncomfortable damp spot between your thighs.'
+						elseif CloSkirtShortness > 0:
+							'"I''m so full of your cum, I''m going to be leaking all day," you say, blushing furiously as you''re <<$sex_ev[''dress_describe'']>>, suddenly feeling some trickle down your thighs beneath your skirt. "It''s gonna stain my skirt!"'
+						else
+							'"I''m so full of your cum, I''m going to be sitting in it all day," you say, blushing furiously as you''re <<$sex_ev[''dress_describe'']>>. The aforementioned cum has already seeped into the fabric of your pants, creating an uncomfortable damp spot between your thighs.'
+						end
+					else
+						'"I''m so full of your cum, I''m going to be sitting in it all day," you say, blushing furiously as you''re <<$sex_ev[''dress_describe'']>>. The aforementioned cum has already seeped into your panties, creating an uncomfortable damp spot between your thighs. "It''s gonna stain my panties!"'
+					end
+				end
+				gs'sex_ev_leave', 'leak_all_day2'
+			end
+			
+!!{			act'Sexy':
+				cla & *clr
+				$sex_ev['cum_leak_talk'] = 'sexy'
+				gs'sex_ev_leave', 'dress_loop'
+				if $sex_ev['dress_describe'] = 'pulling your panties up':
+					'"I''m going to walk funny all <<$sex_ev[''walk_funny_day'']>> because of you," you say ruefully while also sexily rubbing your thighs together even as you pull your panties up over your sore pussy.'
+				elseif $sex_ev['dress_describe'] = 'tugging your pants over your hips' and $pantyworntype = 'none':
+					'"I''m going to walk funny all <<$sex_ev[''walk_funny_day'']>> because of you," you say ruefully while also sexily rubbing your thighs together even as you pull your pants up over your sore pussy.'
+				else
+					'"I''m going to walk funny all <<$sex_ev[''walk_funny_day'']>> because of you," you say ruefully while also sexily rubbing your thighs together even as you''re <<$sex_ev[''dress_describe'']>>.'
+				end
+				gs'sex_ev_leave', 'walk_funny2'
+			end}
+		end
+	end
+end
+
+if $ARGS[0] = 'when_do_you_get_off':
+	act'Ask what time he gets off':
+		cla & *clr
+		gs'sex_ev_leave', 'dress_loop'
+		'"What time do you get off?" you ask while <<$sex_ev[''dress_describe'']>>.'
+		'"Around <<npc_start_free_time[$boy]>>. Why?"'
+		act'Just curious':
+			cla & *clr
+			gs'sex_ev_leave', 'dress_loop'
+			'"Just curious," you shrug, <<$sex_ev[''dress_describe'']>> next.'
+			gs'sex_ev_leave', 'dress_talk'
+		end
+		gs'sex_ev_leave', 'pc_sex_ev_invite'
+	end
+end
+
+if $ARGS[0] = 'ruined_panties':
+	if cum_loc['vagina'] > 0 and sex_ev['ruin_my_panties'] = 0 and $lastwornpantytype ! 'none' and sex_ev['panty_wear'] ! 1:
+		act'':
+			
+		end
+	end
+end
+
+if $ARGS[0] = 'npc_date_later_response':
+	if npc_know_cheat[$boy] = 1:
+		if npc_fidelity[$boy] < 7:
+			'"You''re still with that stick in the mud?" <<$npc_firstname[$boy]>> scoffs.'
+		else
+		
+		end
+	else
+		npc_know_cheat[$boy] = 1
+		if npc_fidelity[$boy] < 7:
+			'"And you''re fucking me right before your date?" <<$npc_firstname[$boy]>> snickers. "Hot."'
+		else
+			'"Oh." <<$npc_firstname[$boy]>> looks away uncomfortably.'
+		end
+		
+	end
+end
+
+if $ARGS[0] = 'pc_sex_ev_invite':
+	if $sex_ev['type'] = 'hookup':
+		gs 'sex_ev_hookup_leave', 'pc_fuckbuddy_request'
+	elseif sex_ev['sleepover'] = 1 or hour < 5:
+		act'Ask to come over later':
+			sex_ev['invite_today'] = 1
+			cla & *clr
+			gs'sex_ev_leave', 'dress_loop'
+			if sex_ev['sleepover'] = 1:
+				'"Want to do this again later?" you grin, <<$sex_ev[''dress_describe'']>>.'
+			else
+				'"Want to do this again later?" you grin, <<$sex_ev[''dress_describe'']>>. "In the daytime?"'
+			end
+			if npc_day_off[$boy] = week:
+				if rand(1,10)/2 <= npc_sexdrive[$boy]:
+					'"Maybe. What time were you thinking?"'
+					gs'sex_ev_leave', 'pc_sex_ev_timeset'
+				else
+					'"Twice in one day might be a little bit too much for me," <<$npc_firstname[$boy]>> smiles back ruefully.'
+					gs'sex_ev_leave', 'pc_sex_ev_invite_denied'
+				end
+			else
+				if rand(1,10)/2 <= npc_sexdrive[$boy]:
+					'"What time were you thinking?"'
+					gs'sex_ev_leave', 'pc_sex_ev_timeset'
+				else
+					'"Think I might be a little too tapped out from work," <<$npc_firstname[$boy]>> grunts.'
+					gs'sex_ev_leave', 'pc_sex_ev_invite_denied'
+				end
+			end
+		end
+	elseif hour >= 5:
+		act'Ask to come over tomorrow':
+			sex_ev['invite_tomorrow'] = 1
+			cla & *clr
+			gs'sex_ev_leave', 'dress_loop'
+			'"Want to do this again tomorrow?" you ask, flashing a smile while you''re <<$sex_ev[''dress_describe'']>>.'
+			if npc_day_off[$boy] = week + 1 or (npc_day_off[$boy] = 1 and week = 7):
+				if rand(1,10)/2 <= npc_sexdrive[$boy]:
+					'"Hmm... It''ll be my day off... What time were you thinking?"'
+					gs'sex_ev_leave', 'pc_sex_ev_timeset'
+				else
+					'"Sorry, I have some things I need to get done tomorrow."'
+					gs'sex_ev_leave', 'pc_sex_ev_invite_denied'
+				end
+			else
+				if rand(1,10)/2 <= npc_sexdrive[$boy]:
+					'"What time were you thinking?"'
+					gs'sex_ev_leave', 'pc_sex_ev_timeset'
+				else
+					'"Sorry, I have some things I need to get done tomorrow."'
+					gs'sex_ev_leave', 'pc_sex_ev_invite_denied'
+				end
+			end
+		end
+	end
+end
+
+if $ARGS[0] = 'pc_sex_ev_timeset':
+	act'How about...': 
+		:invalid_timeset
+		npc_sex_ev_time[$boy] = input ("When do you want to set your reminder? (Pick an hour 1 - 22. A reminder icon will appear in the stat display during that hour.)")
+		if npc_sex_ev_time[$boy] < npc_start_free_time[$boy] or npc_sex_ev_time[$boy] > 22:
+			msg 'Invalid input. Pick an hour between <<npc_start_free_time[$boy]>> and 22.'
+			jump 'invalid_timeset'
+		else
+			gs'sex_ev_leave', 'pc_sex_ev_invite2'
+		end
+	end
+end
+
+if $ARGS[0] = 'pc_sex_ev_invite2':
+	cla & *clr
+	gs'sex_ev_leave', 'dress_loop'
+	if sex_ev['invite_today'] = 1:
+		if npc_sex_ev_time[$boy] = npc_start_free_time[$boy]:
+			'"How about <<npc_sex_ev_time[$boy]>>?" you smirk <<$sex_ev[''dress_describe'']>>. "We can get off together."'
+			gs 'sex_ev_leave', 'pc_sex_ev_invite_accepted'
+		else
+			'"How about <<npc_sex_ev_time[$boy]>>?" you ask <<$sex_ev[''dress_describe'']>>.'
+			if npc_sex_ev_time[$boy] > npc_end_free_time[$boy]:
+				'"Sorry, that doesn''t work for me," <<$npc_firstname[$boy]>> grunts.'
+				gs'sex_ev_leave', 'pc_sex_ev_invite_denied'
+			else
+				gs 'sex_ev_leave', 'pc_sex_ev_invite_accepted'
+			end
+		end
+	else
+		'"How about <<npc_sex_ev_time[$boy]>>?" you ask <<$sex_ev[''dress_describe'']>>.'
+		if npc_sex_ev_time[$boy] > npc_end_free_time[$boy]:
+			'"Sorry, that doesn''t work for me," <<$npc_firstname[$boy]>> grunts.'
+			gs'sex_ev_leave', 'pc_sex_ev_invite_denied'
+		else
+			gs 'sex_ev_leave', 'pc_sex_ev_invite_accepted'
+		end
+	end
+end
+
+if $ARGS[0] = 'pc_sex_ev_invite_accepted':
+	'"That sounds good," <<$npc_firstname[$boy]>> grins back. "Okay, see you then."'
+	gs 'booty_call', 'set_booty_call_date'
+	gs 'sex_ev_leave', 'dress_talk'
+end
+
+if $ARGS[0] = 'pc_sex_ev_invite_denied':
+	gs'sex_ev_leave', 'dress_loop_code'
+	'"Damn," you sigh disappointedly, continuing <<$sex_ev[''dress_describe'']>>'
+	gs 'sex_ev', 'block_sex_evs'
+	gs 'sex_ev_leave', 'dress_talk'
+end
+
+if $ARGS[0] = 'npc_sex_ev_invite':
+	if sex_ev['plans_later_talk'] = 0:
+		gs 'sex_ev_leave', 'dress_loop'
+		sex_ev['plans_later_talk'] = 1
+		if npc_day_off[$boy] = week + 1 or (week = 7 and npc_day_off[$boy] = 1):
+			sex_ev['invite_tomorrow'] = 1
+			if npc_girlfriend[$boy] = 1 and npc_fidelity[$boy] = 6:
+				pc_know_npc_has_girlfriend[$boy] = 1
+				'"You busy tomorrow?" <<$npc_firstname[$boy]>> asks as you''re <<$sex_ev[''dress_describe'']>>. "It''ll be my day off and my girlfriend won''t be around. Want to come over and do this again?"'
+			else
+				'"You busy tomorrow?" <<$npc_firstname[$boy]>> asks as you''re <<$sex_ev[''dress_describe'']>>. "It''ll be my day off. Want to come by and do this again?"'
+			end
+		elseif npc_day_off[$boy] = week and (sex_ev['sleepover'] = 1 or hour < 5):
+			sex_ev['invite_today'] = 1
+			if npc_girlfriend[$boy] = 1 and npc_fidelity[$boy] = 6:
+				pc_know_npc_has_girlfriend[$boy] = 1
+				'"You busy later?" <<$npc_firstname[$boy]>> asks as you''re <<$sex_ev[''dress_describe'']>>. "Today''s my day off and my girlfriend won''t be around. Want to come over and do this again?"'
+			else
+				'"You busy later?" <<$npc_firstname[$boy]>> asks as you''re <<$sex_ev[''dress_describe'']>>. "It''s my day off. Want to come by and do this again?"'
+			end
+		else
+			sex_ev['invite_tomorrow'] = 1
+			if npc_girlfriend[$boy] = 1 and npc_fidelity[$boy] = 6:
+				pc_know_npc_has_girlfriend[$boy] = 1
+				'"You busy tomorrow?" <<$npc_firstname[$boy]>> asks as you''re <<$sex_ev[''dress_describe'']>>. "My girlfriend won''t be around. Want to come over and do this again?"'
+			else
+				'"You busy tomorrow?" <<$npc_firstname[$boy]>> asks as you''re <<$sex_ev[''dress_describe'']>>. "Want to come by and do this again?"'
+			end
+		end
+		
+		gs 'sex_ev_leave', 'busy_tomorrow'
+		
+		act'What time?':
+			gs 'sex_ev_leave', 'dress_loop'
+			'"That depends," you say, <<$sex_ev[''dress_describe'']>>. "What time were you thinking?"'
+			'"<<npc_start_free_time[$boy]>>?" <<$npc_firstname[$boy]>> asks.'
+			gs 'sex_ev_leave', 'busy_time'
+			gs 'sex_ev_leave', 'sex_ev_plan'
+		end
+	end
+end
+
+if $ARGS[0] = 'busy_tomorrow':
+	act'I''m busy':
+		gs 'sex_ev', 'block_sex_evs'
+		gs 'sex_ev_leave', 'dress_loop'
+		if sex_ev['invite_tomorrow'] = 1:
+			'"I can''t, sorry," you say, <<$sex_ev[''dress_describe'']>>. "I''m busy tomorrow."'
+		else
+			'"I can''t, sorry," you say, <<$sex_ev[''dress_describe'']>>. "I''m busy."'
+		end
+		'"Damn," <<$npc_firstname[$boy]>> says disappointedly.'
+		gs 'sex_ev_leave', 'dress_talk'
+	end
+end
+
+if $ARGS[0] = 'busy_time':
+	act'I''m busy':
+		gs 'sex_ev', 'block_sex_evs'
+		gs 'sex_ev_leave', 'dress_loop'
+		'"I can''t, sorry," you say, <<$sex_ev[''dress_describe'']>>. "I have something to do then."'
+		'"Damn," <<$npc_firstname[$boy]>> says disappointedly.'
+		gs 'sex_ev_leave', 'dress_talk'
+	end
+end
+
+if $ARGS[0] = 'sex_ev_plan':
+	act'Sounds good':
+		gs 'booty_call', 'set_booty_call_date'
+		gs 'sex_ev_leave', 'dress_loop'
+		'"Sounds good," you grin, <<$sex_ev[''dress_describe'']>>. "I''ll see you then."'
+		'"Great," <<$npc_firstname[$boy]>> grins back.'
+		gs 'sex_ev_leave', 'dress_talk'
+	end
+	
+	act'I''ve got nothing better to do':
+		gs 'booty_call', 'set_booty_call_date'
+		gs 'sex_ev_leave', 'dress_loop'
+		'"Sure," you smirk, <<$sex_ev[''dress_describe'']>>. "I got nothing better to do."'
+		'"Great," <<$npc_firstname[$boy]>> grins back.'
+		gs 'sex_ev_leave', 'dress_talk'
+	end
+	
+	act'I could fit it in':
+		gs 'booty_call', 'set_booty_call_date'
+		gs 'sex_ev_leave', 'dress_loop'
+		'"I think I can fit that in," you smirk, <<$sex_ev[''dress_describe'']>>.'
+		if npc_humor[$boy] = 2:
+			'"You sure can," <<$npc_firstname[$boy]>> grins lewdly at you.'
+		else
+			'"Great," <<$npc_firstname[$boy]>> grins back.'
+		end
+		gs 'sex_ev_leave', 'dress_talk'
+	end
+end
+
+--- sex_ev_leave ---------------------------------
