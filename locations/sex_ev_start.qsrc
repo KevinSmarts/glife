@@ -1,0 +1,581 @@
+# sex_ev_start
+!! ------------------------- Booty Call Content Start -----------------------
+
+if $ARGS[0] = 'neighborhood_image':
+	if $loc = 'pav_residential':
+		if month >= 11 or month <= 3:
+			if daystage = 2 or daystage = 3:
+				'<center><img <<$set_imgh>> src="images/locations/pavlovsk/pavreswinter.jpg"></center>'
+			else
+				'<center><img <<$set_imgh>> src="images/locations/pavlovsk/pavreswintern.jpg"></center>'
+			end
+		else
+			if daystage = 2 or daystage = 3:
+				'<center><img <<$set_imgh>> src="images/locations/pavlovsk/pavres.jpg"></center>'
+			else
+				'<center><img <<$set_imgh>> src="images/locations/pavlovsk/pavresn_'+ rand(1,2) +'.jpg"></center>' 
+			end
+		end
+	elseif $loc = 'city_residential':
+		if month >= 11 or month <= 3:
+			if daystage = 2 or daystage = 3:
+				'<center><img <<$set_imgh>> src="images/locations/city/residential/streetw.jpg"></center>'
+			else
+				'<center><img <<$set_imgh>> src="images/locations/city/residential/streetwn.jpg"></center>'
+			end
+		else
+			if daystage = 2 or daystage = 3:
+				'<center><img <<$set_imgh>> src="images/locations/city/residential/street.jpg"></center>'
+			else
+				'<center><img <<$set_imgh>> src="images/locations/city/residential/street_night.jpg"></center>'
+			end
+		end
+	elseif $loc = 'city_center':
+		if month >= 11 or month <= 3:
+			if daystage = 2 or daystage = 3:
+				'<center><img <<$set_imgh>> src="images/locations/city/citycenter/downw.jpg"></center>'
+			else
+				'<center><img <<$set_imgh>> src="images/locations/city/citycenter/downwn.jpg"></center>'
+			end
+		else
+			if daystage = 2 or daystage = 3:
+				'<center><img <<$set_imgh>> src="images/locations/city/citycenter/down.jpg"></center>'
+			else
+				'<center><img <<$set_imgh>> src="images/locations/city/citycenter/down_night.jpg"></center>'
+			end
+		end
+	end
+end
+
+if $ARGS[0] = 'exit_set':
+	!! exit should be based on type of apartment and location
+	if $sex_ev['loc'] ! 'pc_home':
+		if npc_residence[$boy] = 1:
+			!! Pav residential exit
+			gt 'pav_residential'
+		elseif npc_residence[$boy] = 2:
+			!! Student dorms exit
+			gt 'city_island'
+		elseif npc_residence[$boy] = 3:
+			!! St. Petersburg Residential exit
+			gt 'city_residential'
+		elseif npc_residence[$boy] = 4:
+			!! St. Petersburg City Center exit
+			gt 'city_center'
+	!!{ disabled for bug testing
+		else
+			if $region = 'pav':
+				gt 'pav_residential'
+			elseif $region = 'pav':
+				gt 'pav_commercial'
+			elseif $region = 'pav_park':
+				gt 'pav_park', 'start'
+			elseif $region = 'city':
+				gt 'city_residential'
+			elseif $region = 'city_center':
+				gt 'city_center'
+			elseif $region = 'city_park':
+				gt 'city_park', 'start'
+			elseif $region = 'city_island':
+				gt 'city_island'
+			end}
+		end
+	else
+		gt 'bedrPar'
+	end
+end
+
+if $ARGS[0] = 'initiate_pre':
+	gs 'boystat', $ARGS[1]
+!!	if $npc_rel_type[$boy] = 'husband' or $npc_rel_type[$boy] = 'boyfriend' or $npc_rel_type[$boy] = 'fuckbuddy':
+	if $npc_rel_type[$boy] ! '':
+		gs 'sex_ev_start', 'lover_initiate'
+	else
+		gs 'sex_ev_start', 'hookup_initiate'
+	end
+end
+
+if $ARGS[0] = 'boystat_init':
+	if sex_ev['boystat_done'] = 0:
+		gs 'boystat', $ARGS[1]
+		sex_ev['boystat_done'] = 1
+	end
+end
+
+if $ARGS[0] = 'lover_initiate':
+	if $npc_rel_type[$boy] = 'husband':
+		$sex_ev['type'] = 'married_sex'
+	elseif $npc_rel_type[$boy] = 'boyfriend':
+		$sex_ev['type'] = 'dating_sex'
+	elseif $npc_rel_type[$boy] = 'fuckbuddy':
+		$sex_ev['type'] = 'booty_call'
+		if (booty_call_invite[$boy] = daystart or npc_booty_call[$boy] = daystart or npc_booty_call_date[$boy] = daystart) and npc_last_booty_call[$boy] ! daystart:
+			gt 'sex_ev_start', 'fb_invited_start'
+		elseif npc_start_free_time[$boy] >= hour and hour <= npc_end_free_time[$boy] and npc_last_booty_call[$boy] ! daystart and npc_no_booty_call[$boy] ! daystart:
+			gt 'sex_ev_start', 'fb_uninvited_start'
+		else
+			gs 'sex_ev_start', 'neighborhood_image'
+			'You knock on <<$npc_firstname[$boy]>>''s door but there is no answer.'
+			act'Leave':gt $loc
+		end
+	end
+end
+
+if $ARGS[0] = 'hookup_initiate':
+	$sex_ev['type'] = 'hookup'
+	if $boy ! $npclastgenerated and $boy ! $npclastsaved:
+		if npcgen_lastrun = 1:
+			gs 'boystat', $npclastgenerated
+		elseif npcgen_lastrun = 2:
+			gs 'boystat', $npclastsaved
+		end
+	end
+end
+
+if $ARGS[0] = 'lover_home_start':
+	$sex_ev['loc'] = 'npc_home'
+	$sex_ev['bed_room'] = $npc_apt_bedroom[$boy]
+	$sex_ev['bath_room'] = $npc_apt_bathroom[$boy]
+	$sex_ev['kitchen_room'] = $npc_apt_kitchen[$boy]
+	$sex_ev['living_room'] = $npc_apt_livingroom[$boy]
+	$sex_ev['hall_way'] = $npc_apt_hall[$boy]
+end
+
+if $ARGS[0] = 'fb_npc_home_start':
+!!	gs 'boystat', $ARGS[1]
+	$sex_ev['type'] = 'booty_call'
+	if (booty_call_invite[$boy] = daystart or npc_booty_call[$boy] = daystart or npc_booty_call_date[$boy] = daystart) and npc_last_booty_call[$boy] ! daystart:
+		gt 'sex_ev_start', 'fb_invited_start'
+	elseif npc_start_free_time[$boy] >= hour and hour <= npc_end_free_time[$boy] and npc_last_booty_call[$boy] ! daystart and npc_no_booty_call[$boy] ! daystart:
+		gt 'sex_ev_start', 'fb_uninvited_start'
+	else
+		gs 'sex_ev_start', 'neighborhood_image'
+		'You knock on <<$npc_firstname[$boy]>>''s door but there is no answer.'
+		act'Leave':gt $loc
+	end
+end
+
+if $ARGS[0] = 'hookup_npc_home_start':
+	gs 'sex_ev_start', 'hookup_initiate'
+	gs 'sex_ev_start', 'lover_home_start'
+	gs 'sex_ev_start', 'begin'
+	gs 'sex_ev_start', 'undress'
+end
+
+if $ARGS[0] = 'begin':
+	$location_type = 'event'
+	gs 'themes', 'indoors'
+	if minut > 45:
+		sex_ev['start_hour'] = hour + 1
+	else
+		sex_ev['start_hour'] = hour
+	end
+	gs 'sex_ev_stats', 'starting_stats'
+	gs 'sex_ev_stats', 'npc_update'
+	npc_last_booty_call[$boy] = daystart
+end
+
+if $ARGS[0] = 'fb_invited_start':
+	$sex_ev['loc'] = 'npc_home'
+	$loc = 'sex_ev_start'
+	$loc_arg = 'fb_invited_start'
+!!	savegame 'autosave_sex_ev.sav'
+	gs 'sex_ev_start', 'begin'
+	gs 'sex_ev_start', 'lover_home_start'
+	$sex_ev['hall_way']
+	'You knock on the door and <<$npc_firstname[$boy]>> opens up.'
+	if pcs_sweat > 29:
+!!		if AlbinaQW['startletsday'] = daystart:
+			act'Didn''t have time':
+				cla & *nl
+				'"I didn''t have time," you smile. "I came as soon as I saw your message."'
+				gs 'sex_ev_start', 'fuck_or_what'
+				gs 'sex_ev_shower', 'before_borrow_shower'
+			end
+			if stat['dance_day'] = daystart:
+				act'Came from dance':
+					cla & *nl
+					'"I came straight from dance practice," you shrug.'
+					'"And you couldn''t take a shower first?"'
+					gs 'sex_ev_start', 'couldnt_wait'
+					gs 'sex_ev_shower', 'before_borrow_shower'
+				end
+			end
+			
+!!{			act'Came from football':
+				cla & *nl
+				'"I was playing football when I saw your message," you shrug.'
+				'"And you couldn''t take a shower first?"'
+				gs 'sex_ev_start', 'couldnt_wait'
+				gs 'sex_ev_shower', 'before_borrow_shower'
+			end}
+			
+			if stat['volleyball_day'] = daystart:
+				act'Came from volleyball':
+					cla & *nl
+					'"I came straight from volleyball practice," you shrug.'
+					'"And you couldn''t take a shower first?"'
+					gs 'sex_ev_start', 'couldnt_wait'
+					gs 'sex_ev_shower', 'before_borrow_shower'
+				end
+			end
+			if stat['run_day'] = daystart:
+				act'I was running':
+					cla & *nl
+					'"I was on a run when I saw your message," you shrug.'
+					'"And you couldn''t take a shower first?"'
+					gs 'sex_ev_start', 'couldnt_wait'
+					gs 'sex_ev_shower', 'before_borrow_shower'
+				end
+			end
+			
+			act'Came from work':
+				cla & *nl
+				'"I came straight from work," you shrug. "Didn''t want to go home and clean up first."'
+				gs 'sex_ev_start', 'fuck_or_what'
+				gs 'sex_ev_shower', 'before_borrow_shower'
+			end
+			
+			gs 'sex_ev_start', 'couldnt_wait'
+!!		end
+		if pcs_sweat > 39:
+			'"What the fuck?" he says, wrinkling his nose. "You stink."'
+		elseif pcs_sweat > 29:
+			'"Hey," he says, looking up and down at you in amusement. "You''re soaking wet."'
+			if pcs_horny >= 70:
+				act'Yeah':
+					cla & *nl
+					'"Yeah," you say huskily, letting your arousal seep into your voice. <<$npc_firstname[$boy]>> locks eyes with you for a split second.'
+					'"Bed?"'
+					'"Now," you pant and rush inside.'
+					act'Clothes. Off. Now.':gt 'sex_ev_foreplay', 'undress'
+				end
+			end
+		end
+	else
+		if npc_selfish[$boy] > 0 and rand(0,1) = 1:
+			'"About fucking time," he says.'
+		else
+			'"Hey," he grins at you.'
+		end
+		act'Hey':
+			cla & *nl
+			'"Hey," you smile back. "So..."'
+			if npc_selfish[$boy] > 0 and rand(0,1) = 1:
+				'"Let''s get you naked," <<$npc_firstname[$boy]>> says, pulling you inside and immediately tugging at your clothes.'
+			else
+				'"Come on in," he says, and leads you inside.'
+			end
+			act'Take it to the bed':gt 'sex_ev_foreplay', 'undress'
+		end
+
+		act'Shut up and let''s fuck':
+			cla & *nl
+			if npc_apt_type[$boy] < 3:
+				'"Shut up and fuck me already," you say, putting your hands on his chest and pushing him inside towards the bed. "I''m here to fuck. So let''s fuck."'
+			else
+				'"Shut up and fuck me already," you say, putting your hands on his chest and pushing him inside towards the bedroom. "I''m here to fuck. So let''s fuck."'
+			end
+			act'Undress':gt 'sex_ev_foreplay', 'undress'
+		end
+
+		if pcs_makeup > 1:
+			act'Don''t mess up my makeup':
+				sex_ev['dont_ruin_makeup'] = 1
+				cla & *clr
+				$sex_ev['hall_way']
+				if npc_apt_type[$boy] < 3:
+					'"Don''t mess up my makeup," you say, walking past him towards the bed.'
+				else
+					'"Don''t mess up my makeup," you say, walking past him towards the bedroom.'
+				end
+				act'Undress':gt 'sex_ev_foreplay', 'undress'
+				if date = daystart and date_hour_meet <= hour + 1:
+					act'I have a date soon':
+						cla & *clr
+						$sex_ev['hall_way']
+						sex_ev['date_soon'] = 1
+						if npc_apt_type[$boy] < 3:
+							'"Don''t mess up my makeup," you say, walking past him towards the bed. "I have a date right after this."'
+						else
+							'"Don''t mess up my makeup," you say, walking past him towards the bedroom. "I have a date right after this."'
+						end
+						act'Undress':gt 'sex_ev_foreplay', 'undress'
+					end
+				elseif date = daystart:
+					act'I have a date later':
+						cla & *clr
+						$sex_ev['hall_way']
+						sex_ev['date_soon'] = 1
+						if npc_apt_type[$boy] < 3:
+							'"Don''t mess up my makeup," you say, walking past him towards the bed. "I have a date later. I don''t want to do it again."'
+						else
+							'"Don''t mess up my makeup," you say, walking past him towards the bed. "I have a date later. I don''t want to do it again."'
+						end
+						act'Undress':gt 'sex_ev_foreplay', 'undress'
+					end
+				end
+				if hour >= 18 and $region = 'pav' and (week = 5 or week = 6):
+					act'I''m going to the disco':
+						cla & *clr
+						$sex_ev['hall_way']
+						sex_ev['disco_after'] = 1
+						!!if npc_apt_type[$boy] < 3:
+							'"Don''t mess up my makeup," you say as you let him pull you inside. "I''m going to the disco after this."'
+						!!else
+						!!	'"Don''t mess up my makeup," you say, walking past him towards the bedroom. "I''m going to the disco after this."'
+						!!end
+						act'Undress':gt 'sex_ev_foreplay', 'undress'
+					end
+				end
+			end
+		end
+				
+		if prezik > 0 and npc_bareback[$boy] = 0:
+			act'I brought condoms':
+				pc_buy_condoms[$boy] = 2
+				cla & *nl
+				'"I brought condoms," you grin, holding up the rubbers for him to see.'
+				if know_virgin[$boy] = 1:
+					'<<$npc_firstname[$boy]>> stares in awe.'
+					'"Does that mean...?"'
+					'"Come and find out," you say, moving inside.'
+				else
+					'"Fuck yeah," he says as he drags you inside.'
+				end
+				act'Undress':gt 'sex_ev_foreplay', 'undress'
+			end
+		end
+		if morning_after_pill > 0 and npc_bareback[$boy] = 0:
+			act'Brought a morning after pill':
+				cla
+				sex_ev['skip_condom'] = 1
+				sex_ev['no_condom'] = 1
+				sex_ev['ma_pill'] = 1
+				act'No condoms':
+					cla & *clr
+					$sex_ev['bed_room']
+					'"I brought a morning after pill," you say, stepping inside and drawing close to <<$npc_firstname[$boy]>>. You lean in and whisper in his ear, "<i>We don''t need to use a condom today.</i>"'
+					act'Undress':gt 'sex_ev_foreplay', 'undress'
+				end
+				
+				act'Come inside me':
+					sex_ev['creampie_allowance'] = 1
+					cla & *clr
+					$sex_ev['bed_room']
+					'"I brought a morning after pill," you say, stepping inside and drawing close to <<$npc_firstname[$boy]>>. You lean in and whisper in his ear, "<i>That means can come inside me today.</i>"'
+					act'Undress':gt 'sex_ev_foreplay', 'undress'
+				end
+			end
+		end
+		
+		if birth_control['think_safe'] = 1 and npc_know_bc[$boy] = 0:
+			act'Tell him you''re on birth control':
+				cla & *clr
+				$sex_ev['bed_room']
+				'You step inside and draw close to <<$npc_firstname[$boy]>>. You lean in and whisper in his ear...'
+				*nl
+				act'No condoms':
+					cla & *clr
+					$sex_ev['bed_room']
+					if npc_know_bc_not_effective[$boy] = 1:
+						'"<i>My birth control is ready. Let''s go bareback today.</i>"'
+					else
+						'"<i>I''m on birth control now. Let''s go bareback today.</i>"'
+					end
+					gs 'sex_ev_stats', 'birth_control_know'
+					act'Undress':gt 'sex_ev_foreplay', 'undress'
+				end
+				
+				act'Come inside me':
+					sex_ev['creampie_allowance'] = 1
+					cla & *clr
+					$sex_ev['bed_room']
+					if npc_know_bc_not_effective[$boy] = 1:
+						'"<i>My birth control is ready. You can come inside me as much as you want.</i>"'
+					else
+						'"<i>I''m on birth control now. You can come inside me as much as you want.</i>"'
+					end
+					gs 'sex_ev_stats', 'birth_control_know'
+					act'Undress':gt 'sex_ev_foreplay', 'undress'
+				end
+			end
+		end
+		
+		if npc_shave_promise[$boy] > 0 and pcs_pubes < 4:
+			act'Tell him you shaved':
+				cla & *clr
+				$sex_ev['bed_room']
+				'"I have a special surprise too," you say, stepping inside and drawing close to <<$npc_firstname[$boy]>>. You lean in and whisper in his ear, "<i>I shaved my pussy for you.</i>"'
+				act'Undress':gt 'sex_ev_foreplay', 'undress'
+			end
+		end
+!!	act'Stumble over to the couch':gt 'sex_ev_start', 'couch_start'
+	end
+end
+
+if $ARGS[0] = 'couldnt_wait':
+	act'Couldn''t wait':
+		cla & *nl
+		'"I couldn''t wait," you grin. "<i>Can''t</i> wait. Bedroom?"'
+		'"Bedroom," he nods and drags you inside.'
+		act'Clothes. Off. Now.':gt 'sex_ev_foreplay', 'undress'
+	end
+end
+
+if $ARGS[0] = 'fuck_or_what':
+	act'Are we going to fuck or what?':
+		cla & *nl
+		'"So are you going to stand here complaining or are we going to fuck?" you grin.'
+		'<<$npc_firstname[$boy]>> doesn''t say anything, instead grabbing you by the arms and dragging you inside.'
+		act'Clothes. Off. Now.':gt 'sex_ev_foreplay', 'undress'
+	end
+end
+
+
+if $ARGS[0] = 'fb_uninvited_start':
+	gs 'sex_ev_start', 'begin'
+	gs 'sex_ev_start', 'lover_home_start'
+	$sex_ev['hall_way']
+	'You knock on the door and you hear the latch unlock and the door swings open.'
+	act'I was in the neighborhood':
+		cla & *nl
+		'"Hey," you smile at <<$npc_firstname[$boy]>> who blinks in surprise. "I was in the neighborhood and I started thinking about you, wondering if you wanted to fool around some...?"'
+		if npc_booty_call[$boy] = daystart:
+			'"I was just about to text you," he grins.'
+			'So am I coming in or what?" you grin back.'
+		else
+			'"You couldn''t have called first?"'
+			'You shrug.'
+			'"Wanted to surprise you. So am I coming in or what?"'
+		end
+		
+		if rand(1,10) < npc_sexdrive[$boy]:
+			if npc_humor[$boy] = 2 and npc_cum_pref[$boy] = 'creampie':
+				'"I''m the only one who''s gonna be coming inside," he says, leering at your ass as he steps aside to let you in.'
+			elseif npc_humor[$boy] = 2 and npc_cum_pref[$boy] = 'mouth':
+				'"I''m the only one who''s gonna be coming inside," he says, leering at your ass as he steps aside to let you in. "In your mouth that is."'
+			elseif npc_booty_call[$boy] = daystart:
+				'"As long as those clothes are coming off in the next 10 seconds," he says, leering at your ass as he steps aside to let you in.'
+			else
+				'"Well I won''t say no to a free fuck," he smirks, stepping aside to let you in and leering at your ass as you walk past.'
+			end
+			act'Go to the bedroom':gt 'sex_ev_foreplay', 'undress'
+		else
+			gs 'sex_ev_start', 'uninvited_deny'
+		end
+	end
+	
+	act'Surprise!':
+		cla & *nl
+		if rand(1,10) < npc_sexdrive[$boy]:
+			'"Surprise!" you shout gleefully at a startled <<$npc_firstname[$boy]>>. "Just happened to be walking by and I thought I might drop in, see if you wanted to fool around?" You grin at him, bouncing your eyebrows suggestively.'
+			'"Well I won''t say no if that''s what you want," he smirks, stepping aside to let you in and leering at your ass as you walk past.'
+			act'Go to the bedroom':gt 'sex_ev_foreplay', 'undress'
+		else
+			gs 'sex_ev_start', 'uninvited_deny'
+		end
+	end
+	
+	act'I need a good fuck':
+		cla & *nl
+		if rand(1,10) < npc_sexdrive[$boy]:
+			'<<$npc_firstname[$boy]>> stands there startled as you step forward, putting your hand on his chest.'
+			'"I need a good fuck and I need it right now," you say.'
+			'A moment passes with you staring into his eyes with a smouldering gaze before he drags you inside, slamming the door behind you.'
+			act'Go to the bedroom':gt 'sex_ev_foreplay', 'undress'
+		else
+			gs 'sex_ev_start', 'uninvited_deny'
+		end
+	end
+end
+
+if $ARGS[0] = 'uninvited_deny':
+	npc_no_booty_call[$boy] = daystart
+	'"You should''ve texted," <<$npc_firstname[$boy]>> says shaking his head. "I''m not in the mood, maybe some other time."'
+	'He closes the door on you abruptly and you''re left standing outside horny and alone.'
+	act'Leave':gt $loc
+end
+
+if $ARGS[0] = 'girlfriend_surprise1':
+	'You knock on the door and you hear the latch unlock and the door swings open.'
+	act'I was in the neighborhood':
+		cla & *nl
+		'"Hey, I was in the neighborhood-" you start to smile and freeze when you realize it''s not <<$npc_firstname[$boy]>>, but another woman standing in front of you.'
+		
+	end
+	
+	act'Surprise!':
+		cla & *nl
+		'"Surprise!" you shout gleefully at a startled <<$npc_firstname[$boy]>>. "Just happened to be walking by and I thought I might drop in, see if you wanted to fool around?" You grin at him, bouncing your eyebrows suggestively.'
+		'"Well I won''t say no if that''s what you want," he smirks, stepping aside to let you in and leering at your ass as you walk past.'
+		act'Go to the bedroom':gt 'sex_ev_foreplay', 'undress'
+	end
+	
+	act'I need a good fuck':
+		cla & *nl
+		'<<$npc_firstname[$boy]>> stands there startled as you step forward, putting your hand on his chest.'
+		'"I need a good fuck and I need it right now," you say.'
+		'A moment passes with you staring into his eyes with a smouldering gaze before he drags you inside, slamming the door behind you.'
+		act'Go to the bedroom':gt 'sex_ev_foreplay', 'undress'
+	end
+	
+	if drunk = 1:
+		cla & *nl
+		act'Guess who''s drunk!':
+		
+		end
+	end
+end
+
+if $ARGS[0] = 'girlfriend_surprise2':
+
+end
+
+if $ARGS[0] = 'girlfriend_cheater1':
+	'You walk into <<$npc_firstname[$boy]>>''s apartment, you freeze as you enter seeing a woman standing there, clearly not expecting someone else to arrive here today.'
+	'woman: "who are you?"'
+	'Sveta: "Uhm, I''m <<$pcs_nickname>>, I''m here to see <<$npc_firstname[$boy]>>.'
+	'The woman looks at you questiongly, wondering why you''re here and how you got a key to the apartment. looking at her face you see she it''s dawning on here why you''re here.'
+	'"oh fuck" you think inwardly realizing this is either another one of <<$npc_firstname[$boy]>> fuckbuddies who didn''t know he was fucking other girls or this is a girlfriend.'
+	'"why?" she says with a hint of poison to her words'
+	'Sveta: "ehhh, I''m just here to..."'
+end
+
+if $ARGS[0] = 'undress':
+	cla & *clr
+	if CloDress = 1:sex_ev['CloDress'] = 1
+	if $clothingworntype ! 'nude':gs 'clothing', 'strip'
+	if $braworntype ! 'none':gs 'bras', 'remove'
+	if $pantyworntype ! 'none':gs 'panties', 'remove'
+	gs 'arousal', 'foreplay', 2
+	gs 'arousal', 'foreplay_give', -2
+	gs'stat'
+	'<center><video autoplay loop src="images/shared/sex/misc/undress1.mp4"></video></center>'
+	'The moment you''re through the door, the both of you begin discarding clothes in a hurry. By the time you''re at the bed, there''s a trail of clothing across the floor.'
+	gs 'sex_ev_start', 'bed_start'
+end
+
+if $ARGS[0] = 'bed_start':
+	!! $sex_ev['bed_room']
+	if rand(0,1) = 1:
+		!! he wins initiative
+		if npc_caretaker[$boy] = 1 or npc_pussyeater[$boy] = 1:
+			gs 'sex_ev_foreplay', 'generous_initiative'
+		elseif npc_selfish[$boy] = 1:
+			gs 'sex_ev_foreplay', 'selfish_initiative'
+		else
+			if rand(0,1) = 1:
+				gs 'sex_ev_foreplay', 'generous_initiative'
+			else
+				gs 'sex_ev_foreplay', 'selfish_initiative'
+			end
+		end
+	else
+		!! player wins initiative
+!!		'You both tear your clothes off, getting naked as fast as possible, you finishing just before he does. You take the extra moment to decide what you want to do...'
+		gs 'sex_ev_foreplay', 'foreplay_choose'
+	end
+end
+
+--- sex_ev ---------------------------------

@@ -61,6 +61,14 @@ if Enable_showstatimg = 1:
 		if $img_temp ! null:  $stat_imgextra_msg += '<a href="exec:view ''<<$img_temp>>''"><img <<$set_statimgh>> src="<<$img_temp>>"></a> '
 	end
 
+	if Enable_statimg_bodysuit = 0:
+		$stat_imgtool_msg += ' <a href="exec:Enable_statimg_bodysuit = 1 & gs ''$menu_obnovit''">◇Bodysuit</a>'
+	else
+		$stat_imgtool_msg += ' <a href="exec:Enable_statimg_bodysuit = 0 & gs ''$menu_obnovit''">◆Bodysuit</a>'
+		$img_temp = FUNC('$body_image','bodysuit')
+		if $img_temp ! null:  $stat_imgextra_msg += '<a href="exec:view ''<<$img_temp>>''"><img <<$set_statimgh>> src="<<$img_temp>>"></a> '
+	end
+	
 	if Enable_statimg_shoes = 0:
 		$stat_imgtool_msg += ' <a href="exec:Enable_statimg_shoes = 1 & gs ''$menu_obnovit''">◇Shoes</a>'
 	else
@@ -84,12 +92,14 @@ $stat_disable_msg = 'Menu is disabled for this event.'
 
 !$stat_msg += '<<$weather>><BR>'
 !pl '<<$weatherImage>>'
-if timeHidden = 0: $stat_msg += '<BR><<$stat_android>> <<$week[week]>> <<day>> <<$month>> <<year>>'
+gs 'emp_functions', 'evt_day_suffix'
+if timeHidden = 0: $stat_msg += '<BR><<$stat_android>> <<$week[week]>> <<day>><<$evt_suffix>> <<$month>> <<year>>'
 $stat_android += '<<$week[week]>> <<day>>/<<month>>, <<money>> ₽, <a href="exec:clr & pl $stat_android">Status</a>'
 ! $stat_android for short desc in android mode, $stat_msg for status bar.
 if mid($start_type,1,2) = 'sg' and SchoolAtestat ! 1 and $holyday ! '': $stat_msg += '<BR><<$holyday>>' & $stat_msg += '<BR>'
 if birthday = day and birthmonth = month: $stat_msg += '<BR><b>Today is your birthday.</b>' & $stat_msg += '<BR>'
 if telefon['UnreadSMS'] > 0: $stat_msg += '<BR><b>You have <<telefon[''UnreadSMS'']>> unread message(s).</b><BR>'
+killvar '$evt_suffix'
 
 !New icon based menu.
 if $start_type[1] ! 'nomagic':
@@ -128,15 +138,15 @@ end
 !!----------------- Money -------------------------------
 
 if bankAccount = 0 and stolmoney = 0:
-	$stat_msg += '<br>You have <b><<money>> ₽</b> in your '+iif(bag > 0, 'purse.', 'pockets.')
+	$stat_msg += '<br>You have <b><<func(''agentned'', ''format_price_string'', money)>> ₽</b> in your '+iif(bag > 0, 'purse.', 'pockets.')
 else
-	$stat_msg += '<br>'+iif(bag > 0, 'Purse', 'Pockets')+': <b><<money>> ₽</b>'
-	if stolmoney > 0: $stat_msg += ', Drawer <b><<stolmoney>> ₽</b>'
+	$stat_msg += '<br>'+iif(bag > 0, 'Purse', 'Pockets')+': <b><<func(''agentned'', ''format_price_string'', money)>> ₽</b>'
+	if stolmoney > 0: $stat_msg += ', Drawer <b><<func(''agentned'', ''format_price_string'', stolmoney)>>₽</b>'
 	if bankAccount = 1:
 		if karta >= 0:
-			$stat_msg += ', Bank: <b><<karta>> ₽</b>'
+			$stat_msg += ', Bank: <b><<func(''agentned'', ''format_price_string'', karta)>> ₽</b>'
 		else
-			$stat_msg += '<font color="red"> Your bank account is overdrawn by <b><<karta>> ₽</b>!!</font>'
+			$stat_msg += '<font color="red"> Your bank account is overdrawn by <b><<func(''agentned'', ''format_price_string'', karta)>> ₽</b>!!</font>'
 		end
 	end
 end
@@ -247,6 +257,10 @@ elseif pcs_condition['lack_of_sleep'] >= 2:
 	$stat_lack_of_sleep_tooltip = 'You are not sleeping as much as you should.'
 else
 	$stat_lack_of_sleep_msg = ''
+end
+
+if tabletki = 0 and pillsleft[ptype] = 0:
+	$stat_out_of_birth_control_msg = 'You need to buy more birth control pills'
 end
 
 if courthearing_date - 1 = daystart:
@@ -1035,7 +1049,11 @@ if cheatStatusIcons = 0:
 	end
 	
 	if menu_off = 0 and birth_control['remind_icon'] = 1:
-		$statusIconBarTab += '<td><a href="exec:gs ''din_bad'', ''quick_takepill''"><img title="It''s time to take your birth control pill!" height = <<set_siconht>> src="images/system/icons/status/bc_pill.png"></a></td>'
+		if tabletki = 0 and pillsleft[ptype] = 0:
+			$statusIconBarTab += '<td><a href="exec:msg $stat_out_of_birth_control_msg''"><img title="It''s time to take your birth control pill, but you are out of pills" height = <<set_siconht>> src="images/system/icons/status/bc_pill.png"></a></td>'
+		else
+			$statusIconBarTab += '<td><a href="exec:gs ''din_bad'', ''quick_takepill''"><img title="It''s time to take your birth control pill!" height = <<set_siconht>> src="images/system/icons/status/bc_pill.png"></a></td>'
+		end
 	elseif menu_off = 1 and birth_control['remind_icon'] = 1:
 		$statusIconBarTab += '<td><a href="exec:msg $stat_disable_msg"><img title="<<$stat_disable_msg>>" height = <<set_siconht>> src="images/system/icons/status/bc_pill.png"></a></td>'
 	end
@@ -1845,7 +1863,7 @@ if enable_extra_msg = 1:
 	if Kandidoz > 30:$stat_msg += '<BR><b><font color="red">There''s a white discharge and strong smell from your vagina. You have yeast infection.</font></b>'
 
 	!!drug withdrawal
-	if SLomka > 0:$stat_msg += '<BR><b><font color="red">You are very weak and hurt to the bone. You''re suffering withdrawal.</font></b>'
+	if SLomka > 0:$stat_msg += '<BR><b><font color="red">You are very weak and hurt to the bone. You are suffering from heroin withdrawal.</font></b>'
 	if narkday ! daystart and narkoman = 1:$stat_msg += '<BR><b><font color="red">You are very weak and hurt to the bone. You urgently need some cocaine.</font></b>'
 
 	! WD: Bimbo look

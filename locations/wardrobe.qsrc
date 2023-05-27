@@ -229,6 +229,7 @@ $default_clothing_line = {
 	!! ARGS 2 - clothing index
 
 	gs 'themes', 'clothing', 1
+	gs 'clothing_attributes', $defclothingtype[default_entry], defclothingnumber[default_entry]
 
 	$RESULT = '<TR bgcolor='+$bgcolor+'>'
 
@@ -283,6 +284,12 @@ $default_clothing_line = {
 			$RESULT += '<TD><a href="exec:gs ''wardrobe'', ''default_sport_set'', <<default_entry>>"><img src="images/system/icons/clothing/sport_off.png"></a></TD><TR>'
 		else
 			$RESULT += '<TD><img src="images/system/icons/clothing/sport.png"></TD><TR>'
+		end
+	elseif SchoolAtestat = 0 and CloStyle2 = 4:
+		if default_school_number ! default_entry:
+			$RESULT += '<TD><a href="exec:gs ''wardrobe'', ''default_school_set'', <<default_entry>>"><img src="images/system/icons/clothing/school_off.png"></a></TD><TR>'
+		else
+			$RESULT += '<TD><img src="images/system/icons/clothing/school.png"></TD><TR>'
 		end
 	else
 		$RESULT += '<TD></TD><TR>'
@@ -510,16 +517,7 @@ if $ARGS[0] = 'default_entry_wear':
 		if $defbodysuittype[default_entry] = 'none':
 			if $bodysuitworntype ! 'none': gs 'underwear_bodysuits', 'remove'
 		else
-			gs 'underwear_bodysuits', 'wear', $defbratype[default_entry], defbranumber[default_entry]
-		end
-	else
-		if dyneval('RESULT = <<$defbratype[default_entry]>>_bras[<<defbranumber[default_entry]>>]') = 0:
-			$defbratype[default_entry] = 'none' & defbranumber[default_entry] = 0
-		end
-		if $defbratype[default_entry] = 'none':
-			if $braworntype ! 'none': gs 'bras', 'remove'
-		else
-			gs 'bras', 'wear', $defbratype[default_entry], defbranumber[default_entry]
+			gs 'underwear_bodysuits', 'wear2', $defbodysuittype[default_entry], defbodysuitnumber[default_entry]
 		end
 	end
 
@@ -531,6 +529,14 @@ if $ARGS[0] = 'default_entry_wear':
 			if $pantyworntype ! 'none': gs 'panties', 'remove'
 		else
 			gs 'panties', 'wear', $defpantytype[default_entry], defpantynumber[default_entry]
+		end
+		if dyneval('RESULT = <<$defbratype[default_entry]>>_bras[<<defbranumber[default_entry]>>]') = 0:
+			$defbratype[default_entry] = 'none' & defbranumber[default_entry] = 0
+		end
+		if $defbratype[default_entry] = 'none':
+			if $braworntype ! 'none': gs 'bras', 'remove'
+		else
+			gs 'bras', 'wear', $defbratype[default_entry], defbranumber[default_entry]
 		end
 	end
 
@@ -577,6 +583,7 @@ if $ARGS[0] = 'default_entry_wear':
 		'<center><video autoplay loop src="images/characters/pavlovsk/school/girl/vicky/event/vika_game_strip16.mp4"></video></center>'
 		'Your <<$def_clothing_name[default_entry]>> outfit has worn out and can''t be used anymore. Guess you will have to find something else to wear.'
 		act 'Strip out of worn out clothing':
+			cla
 			gs 'clothing', 'strip'
 			gs 'wardrobe', 'default_entry_delete'
 			gs 'stat'
@@ -588,6 +595,7 @@ if $ARGS[0] = 'default_entry_wear':
 		'<center><video autoplay loop src="images/locations/pavlovsk/trainstation/bimbo.strip6.mp4"></video></center>'
 		'You don''t feel daring enough to wear your <<$def_clothing_name[default_entry]>> outfit. Maybe you will be confident enough in the future? Guess you will have to find something else to wear.'
 		act 'Strip out of revealing clothing':
+			cla
 			gs 'clothing', 'strip'
 			gs 'stat'
 			act 'Return': gt 'wardrobe', $wloc
@@ -601,6 +609,7 @@ if $ARGS[0] = 'default_entry_wear':
 			iif(RESULT < pcs_hips - 8,'<center><video autoplay loop src="images/locations/pavlovsk/clinic/therapist/dressup.mp4"></video></center>','<center><video autoplay loop src="images/locations/pavlovsk/clinic/therapist/stripping<<rand(1,4)>>.mp4"></video></center>')
 			'As you put on your <<$def_clothing_name[default_entry]>> outfit you notice it doesn''t fit correctly anymore. It''s ' + iif(RESULT < pcs_hips - 8,'unbearably tight and uncomfortable to wear.','extremely loose and won''t stay in place no matter how hard you try.') + ' You must have ' + iif(RESULT < pcs_hips - 8,'gained','lost') + ' some weight since this was purchased or last tailored. You will have to get this clothing resized before you can wear it again.'
 			act 'Strip out of ill-fitting clothing':
+				cla
 				gs 'clothing', 'strip'
 				gs 'stat'
 				act 'Return': gt 'wardrobe', $wloc
@@ -828,37 +837,21 @@ if $ARGS[0] = 'default_sport_set':
 	gt 'wardrobe', $wloc
 end
 
+if $ARGS[0] = 'default_school_set':
+	gs 'stat'
+	default_school_number = ARGS[1]
+	gt 'wardrobe', $wloc
+end
+
 if $ARGS[0] = 'school_outfit':
 	! if they have worn a uniform recently we will use that rather than the one in the outfit
-	if schtype ! 0:	
+	if default_school_number = 0:	
 		clothingwornnumber = schtype
 		$clothingworntype = $schbrand
 		gs  'wardrobe', 'school_outfit_end'
 	else
-		gs  'wardrobe', 'school_outfit_loop'
+		gs  'wardrobe', 'default_entry_wear', default_school_number
 	end
-end
-
-if $ARGS[0] = 'school_outfit_loop':
-	! check to see if player has created a school uniform outfit
-	if ARRSIZE('defclothingnumber') > 0:
-		SchoolOutfitLoop = 0
-		:FindSchoolOutfit
-		gs 'clothing_attributes', $defclothingtype[SchoolOutfitLoop], defclothingnumber[SchoolOutfitLoop]
-		! found an outfit that includes a school uniform
-		if CloStyle2 = 4:
-			! put the outfit on
-			gs 'wardrobe', 'default_entry_wear', SchoolOutfitLoop
-			jump 'FoundSchoolOutfit'
-		end 
-		SchoolOutfitLoop += 1
-		if SchoolOutfitLoop < ARRSIZE('defclothingnumber'):jump 'FindSchoolOutfit'
-		:FoundSchoolOutfit
-		schtype = clothingwornnumber
-		$schbrand = $clothingworntype
-		killvar 'SchoolOutfitLoop'
-	end
-	gs  'wardrobe', 'school_outfit_end'
 end
 
 if $ARGS[0] = 'school_outfit_end':
@@ -868,6 +861,11 @@ if $ARGS[0] = 'school_outfit_end':
 		$schbrand = 'gm_school'
 	end
 	gs 'clothing', 'wear', $schbrand, schtype
+	gs 'panties', 'wear', $lastwornpantytype['bed'], lastwornpantynumber['bed']
+	gs 'bras', 'wear', $lastwornbratype['bed'], lastwornbranumber['bed']
+	if $bed['shoetype'] ! 'none':
+		gs 'shoes', 'wear', $bed['shoetype'], bed['shoenumber']
+	end
 end
 
 if $ARGS[0] = 'default_sport_options':
@@ -895,7 +893,7 @@ if $ARGS[0] = 'default_sport_options':
 				lastworndefpursenumber['sport'] = currentpursenumber
 				$lastworncoattype['sport'] = $coatworntype
 				lastworndefcoatnumber['sport'] = coatwornnumber
-				gs 'wardrobe', 'default_entry_wear', default_sport_number
+				gt $loc, $loc_arg
 			end
 		else
 			act'Put your regular clothes back on':
@@ -910,7 +908,8 @@ if $ARGS[0] = 'default_sport_options':
 				end
 				gs 'shoes', 'wear', $shoelastworntype['sport'], shoelastwornnumber['sport']
 				gs 'purses', 'wear', $shoelastworntype['sport'], shoelastwornnumber['sport']
-				gs 'coats', 'wear', $shoelastworntype['sport'], shoelastwornnumber['sport']
+				gs 'coats', 'wear', $lastworncoattype['sport'], lastworndefcoatnumber['sport']
+				gt $loc, $loc_arg
 			end
 		end
 	end
