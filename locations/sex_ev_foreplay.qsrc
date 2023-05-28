@@ -545,7 +545,6 @@ if $ARGS[0] = 'nipple_play':
 	$sex_ev['position'] = 'nipple_play'
 	'<<$npc_firstname[$boy]>> leans forward, grabbing ahold of your breasts with his hands and uses his mouth on your nipples. He sucks them up, flicks at the tips with his tongue, sending electricity flying through them. Heat spreads through your hips and you can feel wetness pooling between your thighs.'
 	act'Continue':
-		
 		if rand(0,1) = 1 and kuni_no[$boy] ! 1 and (mesec = 0 or npc_pussyeater_know[$boy] = 1) and sex_ev['sensitive_cuni'] ! 1:
 			cla & *nl
 			'After a few minutes, <<$npc_firstname[$boy]>> pulls back from your chest and pushes you down, beginning to move between your legs to eat you out.'
@@ -606,6 +605,7 @@ if $ARGS[0] = 'bj_ask2':
 		act'Blow him':gt'sex_ev_foreplay', 'bj_sub1'
 	end
 	
+	
 	if stat['think_virgin'] ! 1 or sex_ev['fuck_count'] > 0:
 		act'Fuck instead?':
 			cla & *nl
@@ -661,10 +661,24 @@ end
 
 if $ARGS[0] = 'bj_sub1_continue':
 	act'Keep blowing <<$npc_firstname[$boy]>>':
+		sex_ev['cycle_limit'] += 1
 		cla & *clr
 		'<center><video autoplay loop src="images/shared/sex/blowjob/bj<<rand(46,50)>>.mp4"></video></center>'
 		'You keep blowing <<$npc_firstname[$boy]>>, working his cock with your lips and his shaft with your hand, making sure to add in lots of tongue and drool even more spit.'
 		gs 'sex_ev_foreplay', 'bj_sub_cum_sort'
+	end
+	
+	act'Pull back (sex)':
+		cla & *clr
+		'<center><video autoplay loop src="images/shared/sex/handjob/hj3.mp4"></video></center>'
+		sex_ev['must_fuck'] = 1
+		'You pull your mouth off his cock with a pop.'
+		if sex_ev['fuck_count'] = 0:
+			'"Did you want to keep doing this or do you want to fuck now?" you ask while jerking him gently.'
+		else
+			'"Did you want to keep doing this or do you want to fuck again?" you ask while jerking him gently.'
+		end
+		gs 'sex_ev_sex', 'sex_start'
 	end
 end
 
@@ -1589,7 +1603,9 @@ if $ARGS[0] = 'bj_sub_cum_sort':
 	sex_ev['bj_cum_choice'] = rand(1,20)
 	if sex_ev['bj_cum_choice'] > 12 and sex_ev['not_today'] = 0:
 		gs 'sex_ev_foreplay', 'bj_sub_lets_fuck'
-	elseif rand(1,10) >= npc_sex_stamina[$boy]:
+	elseif rand(1,10) = npc_sex_stamina[$boy] - 1 or (rand(1,10) > npc_sex_stamina[$boy] - 2 and $npc_fav_pos[$boy] = 'blowjob'):
+		gs 'sex_ev_foreplay', 'bj_sub_cum_surprise'
+	elseif sex_ev['cycle_limit'] >= npc_sex_stamina[$boy]:
 		if sex_ev['bj_cum_choice'] > 10 or sex_ev['bj_warning'] = 1:
 			gs 'sex_ev_foreplay', 'bj_sub_cum_warn'
 		elseif sex_ev['bj_cum_choice'] > 8:
@@ -1605,19 +1621,6 @@ if $ARGS[0] = 'bj_sub_cum_sort':
 		end
 	else
 		gs 'sex_ev_foreplay', 'bj_sub1_continue'
-	
-		act'Pull back (sex)':
-			cla & *clr
-			'<center><video autoplay loop src="images/shared/sex/handjob/hj3.mp4"></video></center>'
-			sex_ev['must_fuck'] = 1
-			'You pull your mouth off his cock with a pop.'
-			if sex_ev['fuck_count'] = 0:
-				'"I want you inside me..." you say, jerking him gently.'
-			else
-				'"I want you inside me again..." you whisper, jerking him gently.'
-			end
-			gs 'sex_ev_sex', 'sex_start'
-		end
 	end
 end
 
@@ -1883,6 +1886,8 @@ end
 
 if $ARGS[0] = 'bj_dom2':
 	sex_ev['bj_count'] += 1
+	sex_ev['cycle_limit'] += 1
+	sex_ev['cock_inserted'] = 0
 	gs'arousal', 'bj',rand(2,7),'no_orgasm_msg'
 	gs'stat'
 	'<center><video autoplay loop src="images/shared/sex/blowjob/bj<<rand(46,50)>>.mp4"></video></center>'
@@ -1891,18 +1896,16 @@ if $ARGS[0] = 'bj_dom2':
 		*nl
 	end
 	$sex_ev['position'] = 'blowjob'
-	'You give him your best head, taking pride in your work, bobbing up and down his shaft and doing your best to make <<$npc_firstname[$boy]>> feel good.'
+	'You give him your best head, taking pride in your work, bobbing up and down his shaft and putting in the effort to make <<$npc_firstname[$boy]>> feel good.'
 	gs 'sex_ev_foreplay', 'bj_dom_cum_sort'
 end
 
 if $ARGS[0] = 'bj_dom_cum_sort':
 	if rand(1,10) = npc_sex_stamina[$boy] - 1 or (rand(1,10) > npc_sex_stamina[$boy] - 2 and $npc_fav_pos[$boy] = 'blowjob'):
-		if rand(1,2) = 1:
-			gs 'sex_ev_foreplay', 'bj_sub_cum_surprise'
-		else
-			gs 'sex_ev_foreplay', 'bj_sub_cum_warn'
-		end
-	elseif rand(1,10) > 5 and $npc_fav_pos[$boy] ! 'blowjob':
+		gs 'sex_ev_foreplay', 'bj_sub_cum_surprise'
+	elseif sex_ev['cycle_limit'] >= npc_sex_stamina[$boy]:
+		gs 'sex_ev_foreplay', 'bj_sub_cum_warn'
+	elseif rand(1,10) > 7 and $npc_fav_pos[$boy] ! 'blowjob':
 		*nl
 		'After a few minutes, you feel his hand on your head, trying to slow you down.'
 		if sex_ev['fuck_count'] = 0:
@@ -1918,6 +1921,7 @@ end
 
 if $ARGS[0] = 'bj_dom2_continue':
 	act'Keep blowing <<$npc_firstname[$boy]>>':
+		sex_ev['cycle_limit'] += 1
 		cla & *clr
 		'<center><video autoplay loop src="images/shared/sex/blowjob/bj<<rand(46,50)>>.mp4"></video></center>'
 		'You keep blowing <<$npc_firstname[$boy]>>, working his cock with your lips and his shaft with your hand, making sure to add in lots of tongue and drool even more spit.'
