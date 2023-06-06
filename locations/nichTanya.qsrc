@@ -18,6 +18,7 @@
 !! nichTanya['BF']: 0= she doesn''t have a bf (includes her and Nicholas doing it, see nichNTRelation), 1= her bf is vladik, 2= her bf is grigory
 
 !! nichTanya['Date']: the type of date Tanya and Sveta are currently having
+!! nichTanya['Date_stay']: if Tanya has offered to let you stay overnight: 1 for yes
 !! nichTanya['DateCounter']
 !! nichTanya['DateLast']
 !! nichTanya['DateShopping']: how many times Tanya and Sveta were shopping together (without special shopping events)
@@ -32,7 +33,7 @@
 !! nichTanya['Dominance']: how dominant Tanya is <= -70: very submissive, <= -20: submissive, >= 20: dominant, >= 70 very dominant
 !! nichTanya['Uni'] = 1: Nicholas has asked Tanya to go to university, 11: PC has agreed to help convince Tanya, 50: Tanya has decided to quit university and Nicholas hasnt reacted yet, 51: Nicholas has reacted to 50, 100: Tanya goes to university and Sveta has not been rewarded by Nicholas, 101: Sveta got her reward
 !! nichTanya['UniStart']: the day Tanya decided to attend university again. Her schedule will not be affected on this day (meaning she will not just vanish to university)
-!! npc_rel['A218'] relationship value, only used for journal
+!! npc_rel['A218'] relationship value, starting to be used
 
 !! nichTanya['Room']: 0= Tanya doesnt clean her room herself, 1= Tanya cleans her room herself
 
@@ -114,7 +115,7 @@ if $ARGS[0] = 'bedroomTanya':
 						'You continue comforting her for a few minutes until she appears to be fine again. You kiss her passionately before leaving her.'
 						minut += 15
 						nichGalaKnowsPT = 12
-						npc_rel['A218'] -= rand(2,3)
+						gs 'npc_relationship', 'modify', 'A218', 'dislike'
 						cla
 						act 'Leave':
 							gt $loc,'return'
@@ -211,7 +212,7 @@ if $ARGS[0] = 'bedroomTanya':
 				nichTanya['RelationshipState'] = 20
 				!! Tanya will break off with Nicholas
 				nichNTRelation = 10
-				npc_rel['A218'] += rand(8,12)
+				gs 'npc_relationship', 'modify', 'A218', 'adore'
 				act 'Fuck her':
 					gt 'nichTanya', 'sexL'
 				end
@@ -241,7 +242,7 @@ if $ARGS[0] = 'bedroomTanya':
 		act 'Propose having sex':
 			cla
 			if nichTanya['FuckToday'] >= 3:
-				npc_rel['A218'] += rand(1,2)
+				gs 'npc_relationship', 'modify', 'A218', 'like'
 				'As you propose going for yet another round Tanya slowly shakes her head.'
 				'"I''m sorry, <<$pcs_nickname>>. I''m really exhausted. Doing it four times a day is too much for me. But we can cuddle if you''d like."'
 				act 'Cuddle':
@@ -251,7 +252,7 @@ if $ARGS[0] = 'bedroomTanya':
 					gt $loc
 				end
 			else
-				npc_rel['A218'] += rand(2,4)
+				gs 'npc_relationship', 'modify', 'A218', 'like'
 				'"Hey Tanya. I was wondering if you are in the mood to have some fun."'
 				'"Of course! Just give me a minute."'
 				act 'Wait for her':
@@ -264,51 +265,21 @@ if $ARGS[0] = 'bedroomTanya':
 
 	if nichTanya['PropDate'] = 1 and (nichTanya['DateLast'] ! daystart or nichDebug = 1):
 		act 'Propose going on a date':
-			npc_rel['A218'] += rand(1,2)
+			gs 'npc_relationship', 'modify', 'A218', 'like'
 			cla
 			*nl
 			nichTanya['DateCounter'] += 1
 			nichTanya['DateLast'] = daystart
 			'"Hey Tanya. I was wondering if you would like to go out on a date."'
 			'"Sure. That''s a great idea. What would you like to do?"'
-			act 'Let her pick':
-				cla
-				*nl
-				'"I don''t know. How about you?"'
-				if nichTanya['Dominance'] >= 20 and nichTanya['Strapon'] = 0 and (rand(1,100) <= 50 or nichDebug = 1):
-					'"There is one thing I wanted to do with you for a while. Don''t ask what it is, it''s a surprise."'
-					nichTanya['Date'] = 100
-				else
-					nichRand = rand(1,2)
-					if nichRand = 1:
-						'"There is a movie I''d like to see. I think they show it at the nearby movie theatre."'
-						nichTanya['Date'] = 1
-					else
-						'"Okay. Lets go shopping then."'
-						nichTanya['Date'] = 2
-					end
-				end
-				act 'Leave with her':
-					gt 'nichTanya','date'
-				end
+			if temper >= 20 and sunWeather = 1 and money >= 100:
+				act 'Let''s go to the beach (3hrs 30mins)': gt 'nichTanya', 'date_lake'
 			end
-			act 'Movie theatre':
-				cla
-				'"How about watching a movie?"'
-				'"Okay, sounds good. Lets go to the movie theatre then."'
-				nichTanya['Date'] = 1
-				act 'Leave with her':
-					gt 'nichTanya','date'
-				end
-			end
-			act 'Shopping':
-				cla
-				'"I''d like to go shopping."'
-				'"Great idea. Lets go to the mall then."'
-				nichTanya['Date'] = 2
-				act 'Leave with her':
-					gt 'nichTanya','date'
-				end
+			act 'Let''s go to the cinema (2hrs)': gt 'nichTanya', 'date_cinema'
+			act 'Let''s go somewhere more private (2hrs)': gt 'nichTanya', 'date_pool'
+			act 'Let her pick (2hrs)': gt 'nichTanya', 'date_shopping'
+			if age >= 18 or fakepassport = 1:
+				act 'Let''s go to bar Rabotnik & play pool (2hrs)': gt 'nichTanya', 'date_bar'
 			end
 		end
 	end
@@ -326,12 +297,682 @@ if $ARGS[0] = 'bedroomTanya':
 	end
 end
 
+!Elsa Jean
+!From the opening screen where there are currently 2 options - 1. Have sex with Tanya & 2. Chat
+!Add 3rd option to 'Go on a date' then pick from the below:
+!+1 per date 
+!When relationship reaches 30 she''ll let you have a sneaky stay over in her room.
+!Suggest stop there and leave it open if someone wants to take up her story and expand it in the future. I find it difficult to find stuff for anything outside with this model.
+
+if $ARGS[0] = 'date_lake':
+	*clr & cla
+	menu_off = 1
+	gs 'npc_relationship', 'modify', 'A218', 'like'
+	minut += 60
+	gs 'stat'
+	'<center><img <<$set_imgh>> src="images/characters/city/tanya/door_01.jpg"></center>'
+	'You greet her. "Hi Tanya, I''ve been thinking and would like to go out with you for a few hours so how do you fancy going to the lake?"'
+	'Tanya looks at you a bit unsure. "What do you mean <<$pcs_nickname>>? Like on a date?"'
+	'"Well, yeah on a date. What do you think? Shall we do that today?"'
+	'Tanya''s face lights up into a broad grin. "Yes I''d love to <<$pcs_nickname>>. Let me pop my shoes on and grab my coat and we''ll go."'
+	act 'Horseback ride':
+		*clr & cla
+		minut += 30
+		money -= 100
+		gs 'stat'
+		'<center><img <<$set_imgh>> src="images/locations/city/residential/horse.jpg"></center>'
+		'Tanya is back within a minute and you go to the beach. The journey is uneventful and you arrive there an hour later after chatting about various topics while on your way.'
+		'When you get there Tanya points out the horse riding and excitedly suggests you both take a leisurely ride on horseback.'
+		'"Sounds good Tanya, let''s go you respond." You both pay the 100 rubles and spend the next 30 minutes having a wonderful leisurely ride along the lakeside.'
+		'When the ride is finished you have a look around and decide what to do next.'
+		act 'Let''s go nude sunbathing':
+			*clr & cla
+			minut += 5
+			gs 'stat'
+			'<center><img <<$set_imgh>> src="images/characters/city/tanya/dates/tanya_beach1.jpg"></center>'
+			'Without allowing you to say anything Tanya heads off up some rocks. "Come on <<$pcs_nickname>>, follow me. I know a nice place where we can sunbath nude."'
+			'As she''s already heading off up the rocks you have little option but to follow.'
+			'You''re not complaining, however, as she''s only wearing a skimpy blue dress and climbing the rocks makes it ride up giving you a good view of her panties.'
+			act 'Nude sunbathing':
+				*clr & cla
+				minut += 20
+				gs 'stat'
+				'<center><img <<$set_imgh>> src="images/characters/city/tanya/dates/tanya_beach2.jpg"></center>'
+				'After you''ve  both climbed the rocks you arrive at a nudist beach.'
+				'Tanya doesn''t wait for you and immediately strips naked leaving you with little choice but to follow her example, especially as when you get down to your panties you feel a tug from a giggling Tanya as they disappear down your leg.'
+				'Tanya get''s her sun cream from her bag and smiling at you asks you to apply it over her body. As you do you notice her breathing changes and she let''s out the odd gasp as you apply the lotion to the tops of her legs. You simply can''t resist a little bit of teasing and run your fingers down her increasingly wet slit.'
+				'When it''s applied she tells you that it''s her turn and as she applies the lotion to you she whispers in your ear. "You know <<$pcs_nickname>>, when we get back don''t even think of leaving as you have an appointment in my room!"'
+				'After applying sun cream to each other you both enjoy the sun and each other''s company chatting about whatever comes to mind.'
+				gs 'arousal', 'massage_give', 10, 'lesbian'
+				gs 'arousal', 'end'
+				act 'Return':
+					*clr & cla
+					minut += 10
+					gs 'stat'
+					'<center><img <<$set_imgh>> src="images/characters/city/tanya/dates/tanya_beach3.jpg"></center>'
+					'After thirty minutes have passed bye you both take a quick dip in the lake before returning to your clothes and putting on a bikini then head back towards the main beach.'
+					'Tanya seems to deliberately walk slowly so you are in front of her and can''t see what she''s up to.'
+					'All of a sudden you feel a squirt of water hit you on the ass. You look round and Tanya is laughing and holding a water pump.'
+					act 'Water fight':
+						*clr & cla
+						minut += 15
+						gs 'stat'
+						'<center><img <<$set_imgh>> src="images/characters/city/tanya/dates/tanya_beach4.jpg"></center>'
+						'"Water fight!" She exclaims taking a second water pump out of her bag and throwing it over to you after she pulls her bikini top to one side, exposing her small delicate breasts.'
+						'As you turn around she fires again and catches you full in the face.'
+						'"Right, you asked for this!" You shout in between laughter. She turns and tries to get away but isn''t quick enough and you fire some water back at her catching her.'
+						'You are soon both in fits of giggles and soaked once again.'
+						act 'Return to Tanya''s':
+							*clr & cla
+							minut += 60
+							gs 'stat'
+							'<center><img <<$set_imgh>> src="images/characters/city/tanya/tanroom.jpg"></center>'
+							'You both dry off again and get dressed before heading back to Tanya''s.'
+							'As you approach Tanya''s she leans in close to you and whispers huskily. "Remember what I said earlier. Don''t even think you can leave before your appointment in my bedroom!"'
+							'As soon as you arrive back at her''s she virtually drags you into her room. Clothes off <<$pcs_nickname>> <i>NOW</i>!"'
+							act 'Have sex with Tanya': gt 'nichTanya', 'sexL'
+						end
+					end
+				end
+			end
+		end
+	end
+end
+
+if $ARGS[0] = 'date_cinema':
+	*clr & cla
+	menu_off = 1
+	gs 'npc_relationship', 'modify', 'A218', 'like'
+	minut += 10
+	gs 'stat'
+	'<center><img <<$set_imgh>> src="images/characters/city/tanya/door_01.jpg"></center>'
+	'You greet her. "Hi Tanya, I thought I''d pop by and see if you would like to go out with you for a few hours so how do you fancy going to the cinema?"'
+	'Tanya looks at you a bit unsure. "Oh <<$pcs_nickname>> you mean you want to go on a date with me?"'
+	'"Yep a date. Come on Tanya I''m sure that we''ll be able to find something we''d like. Shall we go?"'
+	'Tanya''s face lights up into a broad grin. "Yes I''d love to <<$pcs_nickname>>. Let me pop my shoes on and grab my coat and we''ll go."'
+	act 'Arrive at the cinema and start watching the film':
+		*clr & cla
+		minut += 50
+		gs 'stat'
+		'<center><img <<$set_imgh>> src="images/characters/city/tanya/dates/tanya_cinema1.jpg"></center>'
+		'You both soon arrive at the cinema located in the Galeria mall and select a film, grab some popcorn and a drink and head in to the theatre to start watching the film.'
+		'You take a look around and the theatre is pretty empty and no-one sits near the pair of you.'
+		'The film soon starts and you both begin watching it occasionally dipping into the popcorn.'
+		act 'Kissing':
+			*clr & cla
+			minut += 3
+			gs 'stat'
+			'<center><img <<$set_imgh>> src="images/characters/city/tanya/dates/tanya_cinema2.jpg"></center>'
+			'About half way through the film Tanya''s you both go to dip into the popcorn at the same time and touch hands.'
+			'This causes you to look over at Tanya with a broad grin on your face.'
+			'As you look at her you notice her looking at you mischievous grin plastered on her face and holding a piece of popcorn between her teeth.'
+			'Immediately she sees you turning towards her she places her hand behind your head drawing your face closer to hers and kisses you with a long passionate kiss as you slip her dress down exposing her small delicate breasts.'
+			gs 'arousal', 'kiss', 2, 'lesbian'
+			act 'Undress':
+				*clr & cla
+				minut += 5
+				gs 'stat'
+				'<center><img <<$set_imgh>> src="images/characters/city/tanya/dates/tanya_cinema3.jpg"></center>'
+				'You take a quick look around and notice that there are only a couple at the other side of the cinema and they''re wrapped up in each other and an old guy who looks sound asleep so you are happy to go along with Tanya''s seduction.'
+				'It doesn''t take long before you''re both down to your panties and it''n not long before you start tugging at Tanya''s to remove them.'
+				'She slides down in the chair and raises her legs making it easier for you to complete undressing her.'
+				act 'Lick and tongue fuck Tanya':
+					*clr & cla
+					gs 'stat'
+					'<center><img <<$set_imgh>> src="images/characters/city/tanya/dates/tanya_cinema4.jpg"></center>'
+					'Having undressed her you start softly kissing her breasts and slowly work your way down her body teasing her as her breathing gets deeper and more erratic as her excitement builds.'
+					'After a few soft kisses at the tops of her legs teasing her further her hand appears in front of your face and she slowly opens the folds to her clit.'
+					'Feeling her orgasm starting to build you feel that you''ve teased her enough and start licking her slowly and occasionally sticking her tongue into her which makes her gasp.'
+					'After taking her to the sdge a couple of times you decide you''ve teased enough and slowly stick your tongue into her before withdrawing it slowly fucking her with it until she utters a final gasp and wraps her legs around your head as she cums.'
+					gs 'arousal', 'cuni_give', 5, 'lesbian'
+					act 'Your turn':
+						*clr & cla
+						gs 'stat'
+						'<center><img <<$set_imgh>> src="images/characters/city/tanya/dates/tanya_cinema5.jpg"></center>'
+						'After finishing your face is covered in her cum as you slowly kiss your way up to her face.'
+						'As your face reaches hers she let''s out a small giggle. "Guess I''m a bit of a squirter! Come here, best I clean you up a bit..."'
+						'She proceeds to clean your face with numerous kisses before she flips over in the seat so her legs are actually draped over the back of the seat.'
+						'You have your own needs and no longer care if the others see as you straddle her face.'
+						'She immediately starts kissing and licking you while wrapping her arms around the tops of your legs and gently pulling your cheeks apart to give her full access to your pussy.'
+						'Given your state of excitement and her constant licking as well as entering your pussy with her tongue and swirling it around inside you it doesn''t take you long to cum.'
+						'You barely manage to stay on your feet and not collapse on top of her.'
+						$orgasm_or = 'yes'
+						gs 'arousal', 'cuni', 5, 'lesbian', 'no_orgasm_msg'
+						gs 'arousal', 'end'
+						act 'Return to Tanya''s after the film finishes':
+							*clr & cla
+							minut += 40
+							gs 'stat'
+							'<center><img <<$set_imgh>> src="images/characters/city/tanya/door_01.jpg"></center>'
+							'Once you''ve both recovered you get dressed and sit to watch the end of the film as if nothing happened.'
+							'You have a quick look around and the others aren''t paying any attention to the pair of you.'
+							'"It''s all good Tanya, the others haven''t noticed" You tell her.'
+							'Tanya giggles. "Probably a good thing that the sound on the film is quite loud." You giggle along with her.'
+							'Once the film has finished you both make sure that your clothing looks as it did when you arrived before leaving and heading back to Tanya''s.'
+							'On the way back you look at Tanya and say "well Tanya that was a very enjoyable date for me, hopefully for you too?"'
+							'She gives you a warm smile as she responds with a sexy grin. "Yes of course <<$pcs_nickname>>. The film wasn''t great, what I can saw of it but..."'
+							'You nod your agreement just as you arrive back at her''s.'
+							gt 'nichTanya', 'date_end'
+						end
+					end
+				end
+			end
+		end
+	end
+end
+
+if $ARGS[0] = 'date_pool':
+	*clr & cla
+	menu_off = 1
+	minut += 20
+	gs 'npc_relationship', 'modify', 'A218', 'like'
+	gs 'stat'
+	'<center><img <<$set_imgh>> src="images/characters/city/tanya/door_01.jpg"></center>'
+	'You greet her. "Hi Tanya, I''ve been thinking and would like to go out with you for a few hours so how do you fancy going somewhere with me; you can choose if you want?"'
+	'Tanya looks at you a bit unsure. "Oh <<$pcs_nickname>> you mean you want to go on a date with me?"'
+	'"Yep a date. Come on Tanya, why have you gone off me?"'
+	'Oh no <<$pcs_nickname>> it''s absolutely not that! I..."'
+	'You can''t keep a strait face any longer and start to giggle.'
+	'"What? What did I do? Why are you laughing, I thought you were upset"'
+	'"Oh Tanya, you''re priceless as was your reaction; I was just pulling your leg!" You say smiling at her.'
+	'Tanya''s face lights up into a broad grin. "Oh!... Oh!" She laughs along with you. "Okay well yes I''d love to. Actually I have a key to a family friend''s place and they''ve got a massive place with a heated outdoor pool and a small pitch and put, shall we take advantage of it?. Don''t worry about a bikini they own a sports shop and have loads of them at home which we can use." You nod in agreement. Right well let me pop my shoes on and grab my coat and we''ll go."'
+	act 'Arrive at the friend''s place and try pitch and putt':
+		*clr & cla
+		minut += 20
+		gs 'stat'
+		'<center><img <<$set_imgh>> src="images/characters/city/tanya/dates/tanya_friend1.jpg"></center>'
+		'Tanya opens the door and you both head out to the massive garden. "Follow me <<$pcs_nickname>>, let''s go out the back and have a go at the pitch and putt."'
+		'You nod in agreement and follow her. She wasn''t kidding when she said the place was massive!'
+		'She grabs a couple of clubs and some balls on the way and you start playing.'
+		'It soon become clear that you are both absolutely rubbish at it and spend 20 minutes laughing at each other''s terrible shots.'
+		'At one point she even drops her golf club when trying to take a shot. As you are slightly better than her you go over and help her to hold the club.'
+		'You move in behing her and guide her hands into a more comfortable position before you continue.'
+		act 'Get changed and take a dip in the pool':
+			*clr & cla
+			minut += 10
+			gs 'drugs', 'alcohol', 'vodka', 1
+			gs 'stat'
+			'<center><img <<$set_imgh>> src="images/characters/city/tanya/dates/tanya_friend2.jpg"></center>'
+			'After 20 minutes you give up with the pitch and putt as you spend more time laughing at each other''s poor shots and start to get concerned that you may even damage the green of one of the clubs.'
+			'Tanya turns to you. "Okay, what do you say we give up with this; let''s get changed and take a dip in their pool. I''l make us a drink first as this was thirsty work.'
+			'When you don''t object she makes her way inside with you following chatting about anything that comes to mind along the way. The clubs are put away and she heads to the kitchen.'
+			'She pours a couple of glasses of orange juice and with a wicked grin heads to their liquor cabinet and adds a splash of Vodka to each glass.'
+			'You take your drink and follow her back to the garden. Along the way she goes to a large cupboard and rummages through it. "Here you go <<$pcs_nickname>>, this one should fit you." She grabs another for herself and a large towel before heading out to the pool.'
+			'She sets the towel by the pool and you both get changed in the large private garden while sipping away at your drinks.'
+			act 'Pose':
+				*clr & cla
+				minut += 10
+				gs 'stat'
+				'<center><img <<$set_imgh>> src="images/characters/city/tanya/dates/tanya_friend3.jpg"></center>'
+				'"Okay <<$pcs_nickname>> I want a picture to remember this date."'
+				'She grabs her phone as you strike a pose.'
+				'She clicks away for a few minutes as you strike different poses.'
+				'"Okay Tanya your turn."'
+				'"Yep, I need a top up first though. Give me your glass. You empty the remaining content and hand her the empty glass.'
+				act 'Tanya''s pose':
+					*clr & cla
+					minut += 10
+					gs 'drugs', 'alcohol', 'vodka', 1
+					gs 'stat'
+					'<center><img <<$set_imgh>> src="images/characters/city/tanya/dates/tanya_friend4.jpg"></center>'
+					'When Tanya returns she hands you your glass, suitably refreshed. "Cheers."'
+					'"Yep cheers Tanya." You clink glasses together and take a sip. "Fuck Tanya, how much Vodka did you put in this?"'
+					'"I dunno I just did a splash. Don''t worry about it." You shrug and take another sip.'
+					'You go and grab your phone as she starts posing for you.'
+					'After another 10 minutes you have some images of her.'
+					'You both sit down and look through each other''s images and delete the ones you don''t like much while chatting away and continuing to sip away at your drinks.'
+					'Once you''ve selected the best ones you send the ones you took to her and and she sends you the ones she has.'
+					act 'Stop with the photos':
+						*clr & cla
+						minut += 5
+						gs 'stat'
+						'<center><img <<$set_imgh>> src="images/characters/city/tanya/dates/tanya_friend5.jpg"></center>'
+						'Tanya smiles at you. "That was fun. Right, let''s get into the pool."'
+						'You get up and Tanya tries to do so but grabs onto your leg to stop herself falling. "Bloody shoes!"'
+						'You laugh. "Yeah nothing to do with the extra large measure of Vodka you just poured and finished."'
+						'"Nope" she says trying to hide a hic-up.'
+						act 'Naked in the pool':
+							*clr & cla
+							minut += 5
+							gs 'stat'
+							'<center><img <<$set_imgh>> src="images/characters/city/tanya/dates/tanya_friend6.jpg"></center>'
+							'You both get in the pool and splash about and just have fun for a few minutes.'
+							'"Let''s get naked!" Tanya shouts whipping off her bikini top and throwing it at you. It doesn''t reach but falls in the pool.'
+							'You take your eyes off her and start to go to retrieve her top when her bottoms hit you in the face. "Come on, what are you scared of. We''re not overlooked and I won''t bite... Much!"'
+							'You decide to join her and a minute later you are both tipsy and completely naked in the pool.'
+							'Tanya comes over to you with a wicked grin and pushes you against the side of the pool. "You''re my prisoner now <<$pcs_nickname>>! You can''t escape!"'
+							'With that she comes close to you and slowly brings her face up to yours and pulls you in for a long passionate kiss as your hands slip down and cradles her bum.'
+							gs 'arousal', 'kiss', 5, 'lesbian'
+							act 'Tanya licks you':
+								*clr & cla
+								gs 'stat'
+								'<center><img <<$set_imgh>> src="images/characters/city/tanya/dates/tanya_friend7.jpg"></center>'
+								'You break the kiss and go to get out of the pool as the towel would be more comfortable.'
+								'However, Tanya pulls you back and grabs hold of your leg pulling you back towards her.'
+								'She immediately starts licking you.'
+								'She slowly moves to your most private entrance and starts licking around your ass; rimming you and flicking her tongue in an out slowly.'
+								'All the while her left hand is rubbing at your clit. Slowly... Faster... Slower...'
+								$orgasm_or = 'no'
+								gs 'arousal', 'rimming', 5, 'lesbian'
+								gs 'arousal', 'clit_finger', -5, 'lesbian'
+								act 'Trying to get out of the pool':
+									*clr & cla
+									gs 'stat'
+									'<center><img <<$set_imgh>> src="images/characters/city/tanya/dates/tanya_friend8.jpg"></center>'
+									'"Fuck Tanya, I''m getting close. Can we go to the blanket and carry on?" You start to climb the stairs out of the pool.'
+									'However, Tanya is having none of it. "Nope I told you that you''re my prisoner!"'
+									'With that she crawls up the steps, grabs you by the thigh and immediately starts licking you out.'
+									'You are already close so you give in and and let her get to work.'
+									'Your right hand moves to your right tit and you start massaging it furiously as the pressure builds.'
+									'Tanya is very skilled and she brings you to the edge then backs off slightly.'
+									'After a few times you can''t take it any more and your left hand holds her head in place. A few seconds later a massive orgasm overtakes you and you shake violently.'
+									'Your juices cover her face.'
+									$orgasm_or = 'yes'
+									gs 'arousal', 'cuni', 5, 'lesbian', 'no_orgasm_msg'
+									act 'Tanya''s turn':
+										*clr & cla
+										gs 'stat'
+										'<center><img <<$set_imgh>> src="images/characters/city/tanya/dates/tanya_friend9.jpg"></center>'
+										'Tanya crawls onto the towel as you kneel on the steps to the pool and slowly spread her legs.'
+										'Almost immediately she raises her right leg and holds it up with her hand to allow you easy access.'
+										'You slowly kiss your way up her thigh and start kissing and licking her pussy.'
+										'You run your tongue slowly back and forth building her excitement.'
+										'She soon starts to moan and her left hand starts massaging her breast as her excitement builds.'
+										gs 'arousal', 'cuni_give', 5, 'lesbian'
+										act 'Tanya cums':
+											*clr & cla
+											gs 'stat'
+											'<center><img <<$set_imgh>> src="images/characters/city/tanya/dates/tanya_friend10.jpg"></center>'
+											'She''s soon dribbling onto your tongue so you cover her pussy with your mouth.'
+											'You start tongue fucking her enjoying her taste.'
+											'It flicks in and out of her pussy with varying speeds as she starts moaning.'
+											'Sometimes only a little way in and others as far as you can reach.'
+											'Her moans get louder as her orgasm nears.'
+											'"Fuck <<$pcs_nickname>>! Don''t stop! Shit! Cumming! Aaaarrrgh!"'
+											gs 'arousal', 'cuni_give', 5, 'lesbian'
+											gs 'arousal', 'end'
+											act 'Return to Tanya''s':
+												*clr & cla
+												minut += 20
+												gs 'stat'
+												'<center><img <<$set_imgh>> src="images/characters/city/tanya/door_01.jpg"></center>'
+												'"Bloody hell <<$pcs_nickname>> you''d be wasted on guys" she says grinning at you.'
+												'"Glad I pleased you. So I take it as your prisoner I get time off for good behaviour?"'
+												'"Nope, I might have to extend your sentence to cover a few more dates!"'
+												'She continues, "Anyway I guess we should tidy up and head back."'
+												'You both get dressed and put the stuff away. Tanya fetches the bikinis out of the pool and pops them in her bag to get them washed.'
+												'You walk back to her''s holding hands.'
+												gt 'nichTanya', 'date_end'
+											end
+										end
+									end
+								end
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+end
+
+	
+	
+if $ARGS[0] = 'date_shopping':
+	*clr & cla
+	menu_off = 1
+	minut += 20
+	gs 'npc_relationship', 'modify', 'A218', 'like'
+	gs 'stat'
+	'<center><img <<$set_imgh>> src="images/characters/city/tanya/door_01.jpg"></center>'
+	'You greet her. "Hi Tanya, I''ve been thinking and would like to go out with you for a couple of hours so how do you fancy going somewhere with me; how about you pick?"'
+	'Tanya looks and smiles. "Oh <<$pcs_nickname>> that''d be great. Actually I have to go and get some clothes so maybe you can help me choose?"'
+	'"Sounds like a plan, come on then grab your coat and purse and we''ll head down to the mall."'
+	'Okay <<$pcs_nickname>> I''ll only be a second"'
+	'True to her word she returned ready to go and you link arms and head down to the mall and start browsing.'
+	act 'Picking out a dress':
+		*clr & cla
+		minut += 20
+		gs 'stat'
+		'<center><img <<$set_imgh>> src="images/characters/city/tanya/dates/tanya_shop1.jpg"></center>'
+		'She tells you she needs a nice party dress so after a quick loon in a couple of stores you both end in in a boutique store.'
+		'After looking through various options and trying some on she seems to settle on a pretty white dress and shows it to you.'
+		'"So <<$pcs_nickname>>, shall I try it on and show you?"'
+		'You have a look over the dress and reply. "Yep that''s a nice dress Tanya, let''s see what it looks like on."'
+		'With that you both head off to the changing rooms.'
+		act 'Trying the dress on':
+			*clr & cla
+			minut += 5
+			gs 'stat'
+			'<center><img <<$set_imgh>> src="images/characters/city/tanya/dates/tanya_shop2.jpg"></center>'
+			'You slowly make your way to the changing booths and consider another couple of other options on the way but she settles on the white dress.'
+			'On arriving at the booth she tells you to come in with her.'
+			'She slowly removes her clothes and puts the dress on.'
+			'"So, what do you think?"'
+			'"You look absolutely stunning in it Tanya, yes good choice."'
+			act 'Teasing':
+				*clr & cla
+				gs 'stat'
+				'<center><img <<$set_imgh>> src="images/characters/city/tanya/dates/tanya_shop3.jpg"></center>'
+				'"Okay, thanks <<$pcs_nickname>>, I think I''ll get this one then."'
+				'Tanya starts slowly peeling off the dress and tweaks her nipples as she does so and smiles seductively at you, teasing you.'
+				'However, before you can react the dress is removed and she starts getting dressed in her normal clothes.'
+				gs 'arousal', 'erotic_nudity', 5
+				gs 'arousal', 'end'
+				act 'Paying and on to the next shop':
+					*clr & cla
+					minut += 10
+					'<center><img <<$set_imgh>> src="images/characters/city/tanya/dates/tanya_shop4.jpg"></center>'
+					'Once she''s dressed she takes the dress to the checkout and pays for it.'
+					'"Okay <<$pcs_nickname>> I also need some underwear to go with a black dress as I''ve got to go to a function with my parents."'
+					'You both head to the high end underwear shop, Lusso Itimo and start browsing.'
+					act 'Choosing':
+						*clr & cla
+						minut += 10
+						gs 'stat'
+						'<center><img <<$set_imgh>> src="images\characters\city\tanya\date\shopping3a.jpg"></center>'
+						'After a few minutes you''ve both got some options and she heads off to try them on along with you.'
+						'A few don''t fit quite right and some others are also rejected for various reasons before she finally settles on the set she''d like.'
+						'You both agree and she goes to pay.'
+						'"Well thanks for your help <<$pcs_nickname>>, I think that''s just about the quickest productive shopping trip I''ve had since school days when my Mum took me. She doesn''t like shopping much and is always in a rush."'
+						'"Well Tanya, so long as you''re happy with what you''ve bought then mission accomplished." You respond with a smile.'
+						'"So <<$pcs_nickname>> as we''ve still got a bit of time what about we head off to the diner and grab a bite to eat before heading back?"'
+						'"That''d be a nice way to finish off and we can chat for a while too."'
+						act 'Go to the diner':
+							*clr & cla
+							minut += 30
+							gs 'stat'
+							'<center><img <<$set_imgh>> src="images\locations\city\citycenter\diner.jpg"></center>'
+							'With that you both head off to the diner.'
+							'"So <<$pcs_nickname>>, what do you fancy... Other than me of course!?"'
+							'You grin at her. "Well if I start eating you out here I think we might get arrested. I think I''ll have a burger and a Kvass please."'
+							'"Sure, grab a seat and I''ll go and order, my treat for having helped me out with the shopping."'
+							'You spend about half an hour enjoying your meals and chatting about whatever comes to mind and just enjoying each other''s company.'
+							act 'Return to Tanya''s':
+								*clr & cla
+								minut += 20
+								gs 'stat'
+								'<center><img <<$set_imgh>> src="images/characters/city/tanya/door_01.jpg"></center>'
+								'"Thank you for helping me out today as I know if I''d gone by myself it would have taken me absolutely ages to choose something and that''s if I managed to do so at all. A second opinion is a great help".'
+								'"No problem Tanya and thanks for the meal. It''s been fun, maybe let me know if you need my expertise again." You tell her grinning.'
+								'"Ha ha... Teah, it''s been fun."'
+								gt 'nichTanya', 'date_end'
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+end
+	
+	
+if $ARGS[0] = 'date_bar':
+	*clr & cla
+	menu_off = 1
+	minut += 20
+	gs 'npc_relationship', 'modify', 'A218', 'like'
+	gs 'stat'
+	'<center><img <<$set_imgh>> src="images/characters/city/tanya/door_01.jpg"></center>'
+	'You greet her. "Hi Tanya, How are you, all good I hope?" Tanya smiles and nods as you continue. "So how about we go out for a couple of drinks and maybe a game of pool or two?'
+	'Tanya looks and grins. "Oh <<$pcs_nickname>> that''d be great. I''d like that but I warn you I''m a bit of a lightweight so try not to let me have too much or you might need to carry me home." She says followed by a small giggle.'
+	'"Sounds like a plan, come on then grab your coat and purse and we''ll go."'
+	'Okay <<$pcs_nickname>> I''ll only be a second"'
+	'True to her word she returned ready to go and you link arms and head down to the metro and on to Bar Rabotnik.'
+	act 'Enter the bar':
+		clr & cla
+		minut += 10
+		gs 'drugs', 'alcohol', 'beer', 1
+		gs 'stat'
+		'<center><img <<$set_imgh>> src="images/locations/city/industrial/bar/bar.jpg"></center>'
+		'Arriving at the bar you both head in and order a beer each.'
+		'After spending a few minutes at the bar sipping your drinks and chatting you spot a free pool table.'
+		'"Hey Tanya, how about we have a couple of games of pool? Loser buys the next round?"'
+		'Tanya agrees and you both grab your drinks and head over to the vacant table by a large window overlooking the street.'
+		act 'Start playing':
+			clr & cla
+			minut += 20
+			gs 'stat'
+			'<center><img <<$set_imgh>> src="images/characters/city/tanya/dates/tanya_bar1.jpg"></center>'
+			'You set up and start playing.'
+			'After 20 minutes you manage to win the first game.'
+			'"Okay <<$pcs_nickname>> you set up and I''ll go and get the next round in. Back in a mo."'
+			act 'Wait for Tanya':
+				clr & cla
+				minut += 20
+				gs 'drugs', 'alcohol', 'beer', 1
+				gs 'stat'
+				'<center><img <<$set_imgh>> src="images/characters/city/tanya/dates/tanya_bar2.jpg"></center>'
+				'Tanya soon returns with another beer.'
+				'In the meantime you''ve set up and the second game starts.'
+				'At some point during the game when Tanya bends down to take her shot you distract her by tapping her ass with your cue stick.'
+				'"Hey! That''s cheating!"'
+				'"Nope, I can''t remember anything about that in the rules. Okay, I''ll stop for now and retake your shot."'
+				'You both have a laugh with innuendos flying back and forth for a while.'
+				'Tanya manages to win this game.'
+				'"Okay my turn to get the refills Tanya. If you set-up we''ll call this the deciding game as I don''t want you to get too tipsy."'
+				act 'Get the drinks':
+					clr & cla
+					minut += 10
+					gs 'drugs', 'alcohol', 'beer', 1
+					gs 'stat'
+					'<center><img <<$set_imgh>> src="images/characters/city/tanya/dates/tanya_bar3.jpg"></center>'
+					'You return with a couple of beers and the third game gets under way.'
+					'In the meantime you''ve set up and the second game starts.'
+					'Once again you can''t resist teasing Tanya.'
+					'This time she doesn''t protest and for a couple of seconds rides the cue stick giggling at your antics.'
+					'The game soon degenerates into silliness and after a while you give up with the game and you realise that you need to go to the toilet, probably due to the three beers you''ve had.'
+					gs 'arousal', 'foreplay_give', 5
+					act 'Go to the toilet':
+						clr & cla
+						minut += 10
+						gs 'stat'
+						'<center><img <<$set_imgh>> src="images/characters/city/tanya/dates/tanya_bar4.jpg"></center>'
+						'"Okay Tanya I need the loo. See you in a few."'
+						'Unfortunately there''s a queue so you have to wait your turn and it takes you 10 minutes before you finish and return to the bar.'
+						'On returning to the bar the barman grabs you immediately and asks, "Are you with her?" He points to a by now quite drunk Tanya who''s half undressed and as you watch collapses onto a bar stool.'
+						'"Yeah, I''m sorry about that. Don''t worry I''ll get her dressed and leave. I don''t want any trouble and thanks for the warning."'
+						act 'With that you head over to Tanya':
+							clr & cla
+							gs 'stat'
+							'<center><img <<$set_imgh>> src="images/characters/city/tanya/dates/tanya_bar5.jpg"></center>'
+							'When you get to Tanya you waste no time in redressing her.'
+							'"What the hell Tanya? You were okay when I went to the loo?"'
+							'At this point the barman appears and speaks to you. "Thanks and I hope you both get home safely. Don''t be too hard on her those guys bought her a drink." He says pointing to a couple of guys leaving the bar. "I think they may have spiked it; anyway I''ve asked them to leave. I''ll just make sure they''re gone as I don''t want them causing any trouble for you two." You reply thanking him and concentrate on Tanya as he checks the exit for you.'
+							'"Do you think you''ll be okay?"'
+							'Tanya responds by taking hold of your face and bringing it to hers for a long passionate kiss, which you briefly return.'
+							'You sigh. "Yep, very nice but not now girl, we were close to being kicked out as it is. Come on Tanya, let''s get you home."'
+							gs 'arousal', 'kiss', 5
+							gs 'arousal', 'end'
+							act 'Return to Tanya''s':
+								*clr & cla
+								minut += 20
+								gs 'stat'
+								'<center><img <<$set_imgh>> src="images/characters/city/tanya/door_01.jpg"></center>'
+								'There''s no sign of the two guys the bartender mentioned as you leave.'
+								'Once in the fresh air Tanya seems to sober up a bit and you take the metro back to hers.'
+								'As you approach her apartment she turns to you. "Thank you for helping me out today, I know I''m a bit of a lightweight but not on three beers and a short. Anyway sorry for embarrassing you."'
+								'"It''s okay Tanya don''t worry about it and if what the barman says is true it''s not really your fault anyway."'
+								'"Well maybe it sort of is as I shouldn''t have accepted the drink from them. Lesson learnt I guess."'
+								gt 'nichTanya', 'date_end'
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+end
+
+
+!To be added on arriving back from any date
+if $ARGS[0] = 'date_end':
+	*clr & cla
+	menu_off = 1
+	gs 'stat'
+	if rand(0,1) = 0:
+		'<center><img <<$set_imgh>> src="images/characters/city/tanya/dates/tanya_kiss1.jpg"></center>'
+	else
+		'<center><img <<$set_imgh>> src="images/characters/city/tanya/dates/tanya_kiss2.jpg"></center>'
+	end
+	'On arriving back home Tanya opens the door and smiles warmly at you. "Well <<$pcs_nickname>> I''m very happy you showed up today. That was a lovely date. Maybe we can do more in the future?"'
+		act 'Have sex with Tanya':
+			*clr & cla
+			gs 'npc_relationship', 'modify', 'A218', 'like'
+			'"Hey Tanya. I was wondering if you are in the mood to have some fun."'
+			'"Of course! Just give me a minute."'
+			act 'Wait for her': gt 'nichTanya', 'sexL'
+		end
+
+		act 'Chat with Tanya': gt 'nichTanya', 'chat'
+
+		if npc_rel['A218'] < 40 or nichTanya['Date_stay'] = 1:
+			act 'Say goodbye to Tanya':
+				*clr & cla
+				'You, in turn smile at her and reply. "Yes it was Tanya, I had a really great time. However, regrettably I need to get going so see you soon."'
+				'With that you lean towards each other and share a long hug and passionate kiss before you leave. "See you soon Tanya"'
+				gt 'city_center'
+			end
+		else
+			act 'Say goodbye to Tanya':
+			*clr & cla
+			minut += 5
+			gs 'stat'
+			'You, in turn smile at her and reply. "Yes it was Tanya, I had a really great time. However, regrettably I need to get going so see you soon."'
+			'With that you lean towards each other and share a long hug and passionate kiss before you leave. "See you soon Tanya"'
+			'As you say that Tanya grabs your arm to stop you leaving. "You know <<$pcs_nickname>> I don''t know if I''m falling for you but I''ve so enjoyed our dates together."'
+			'Her revelation has come as a bit of a surprise and you are unsure how to respond you simply smile at her for a moment.'
+			'Tanya looks at you and continues. "Well say something... Cat got your tongue? Don''t worry about it, we can chat next time."'
+			'Finally finding your voice you reply. "No, it''s not that, you just caught me a bit by surprise is all. Yes Tanya I''ve really enjoyed spending time with you too, but I can''t say where our relationship will lead, it''s still very early for me."'
+			'"I get that <<$pcs_nickname>>, it''s pretty much the same for me. I just thought that you might want to stay over sometimes going forward. It''d have to be a sneeky stay over though as it''s probably best my parents don''t know, at least for now especially my Mum."'
+			act 'Accept':
+				nichTanya['Date_stay'] = 1
+				*clr & cla
+				'<center><img <<$set_imgh>> src="images/characters/city/tanya/sex/cuddle1.jpg"></center>'
+				'"Wow Tanya, I didn''t expect that either. That''s very kind of you and yes I''d love to." You lean in and give her another kiss.'
+				'As you break the kiss Tanya continues. "I can''t today but maybe next time if you want."'
+				'With a final wave you head off.'
+				gt 'city_center'
+			end
+		end
+	!I haven''t added a decline option as the option will need to be added to the above once this occurs. So if a player doesn't select it it's irrelevant.
+		if nichTanya['Date_stay'] = 1 and hour > 20:
+			act 'Stay the night with Tanya':
+				*clr & cla
+	!No times entered as Sveta will wake up in the morning as per the time set on her alarm
+				'<center><img <<$set_imgh>> src="images/characters/city/tanya/tanroom.jpg"></center>'
+				'"So Tanya, you remember when you mentioned about my staying over?"'
+				'"Yes of course, I''m so happy you decided to do so." Tanya says breaking into a big grin, grabs you by the hand and leads you to her bedroom. "Here we are <<$pcs_nickname>>."'
+				act 'Tanya gives you a massage':
+					*clr & cla
+					'<center><img <<$set_imgh>> src="images/characters/city/tanya/dates/tanya_stayover1.jpg"></center>'
+					'After spending a while chatting on her bed and looking at a couple of books she has she stops talking, takes the book from you and tells you to lie on the bed on your front.'
+					'"I want to give you a massage." She says with a glint in her eye.'
+					'You smile back and get onto your front on her bed.'
+					'She immediately starts a soft and sensual massage rubbing your back and kneading your mussels in all the right placed.'
+					'"Umm, that''s nice you mumble enjoying her touch.'
+					gs 'arousal', 'massage', 5
+					act 'Get undressed':
+						*clr & cla
+						'<center><img <<$set_imgh>> src="images/characters/city/tanya/dates/tanya_stayover2.jpg"></center>'
+						'After a while enjoying her touch she leans over you and whispers. "Let''s get rid of these clothes."'
+						'"You just want to get your hands on my body."'
+						'She smirks as she replies. "Yes and what''s wrong with that?"'
+						'You both have a little giggle as you sit up and remove your top and bra.'
+						gs 'arousal', 'massage', 5
+						act 'Tanya joins you':
+							*clr & cla
+							'<center><img <<$set_imgh>> src="images/characters/city/tanya/dates/tanya_stayover3.jpg"></center>'
+							'Once you are naked you lie back on the bed and look at her over your shoulder as she starts to undress.'
+							'It''s not long before her clothes are off and she starts removing her bra.'
+							act 'Tanya kisses your neck':
+								*clr & cla
+								'<center><img <<$set_imgh>> src="images/characters/city/tanya/dates/tanya_stayover4.jpg"></center>'
+								'Once you are both undressed she lies on your back and nuzzles into your neck.'
+								'She moves your hair away and starts kissing your neck with small butterfly kisses.'
+								gs 'arousal', 'foreplay', 5
+								act 'Kissing':
+									*clr & cla
+									'<center><img <<$set_imgh>> src="images/characters/city/tanya/dates/tanya_stayover5.jpg"></center>'
+									'After enjoying her touch for a while you indicate you want to move and she levers herself up.'
+									'This allows you to lie on your back facing her.'
+									'You see her furtively lick her lips.'
+									'Once lying on your back you raise your head up and give her a long passionate kiss on her wet lips.'
+									gs 'arousal', 'kiss', 5
+									act 'Tanya licks you':
+										*clr & cla
+										'<center><img <<$set_imgh>> src="images/characters/city/tanya/dates/tanya_stayover6.jpg"></center>'
+										'Breaking the kiss Tanya spreads your legs and slowly rubs your pussy.'
+										'"Someone''s already wet" she says with a grin.'
+										'"Umm yeah!"'
+										'"Well best I lick it up before you drip onto the sheets!"'
+										'You can''t take her teasing any more so you bring your hand to her head and gently push her towards your pussy.'
+										'She immediately starts licking you with her tonuge passing slowlt back and forth over your folds and occasionally teasing further by flicking it in and out or your soaking pussy.'
+										$orgasm_or = 'no'
+										gs 'arousal', 'cuni', 5, 'lesbian'
+										act 'Return the favour':
+											*clr & cla
+											'<center><img <<$set_imgh>> src="images/characters/city/tanya/dates/tanya_stayover7.jpg"></center>'
+											'After bring you to the edge she backs off and crawls forward presenting her dripping pussy to you.'
+											'She drips onto your face as you bring your mouth to her pussy licking her and drinking in her juices.'
+											gs 'arousal', 'cuni_give', 5, 'lesbian'
+											act 'Tribbing':
+												*clr & cla
+												'<center><img <<$set_imgh>> src="images/characters/city/tanya/dates/tanya_stayover8.jpg"></center>'
+												'It doesn''t take long before you are both on edge so you both lie back and bring your pussys together.'
+												'Rubbing together slowly.'
+												'Speeding up.'
+												'Slowing down.'
+												'Edging each other until Tanya lets out a long groan and starts bucking against you.'
+												'This also takes you over the edge and you cum... Hard. You have to bite your lip not to scream out.'
+												'You both lie there if your afterglow and snuggle together slowly drifting off to sleep in each others arms.'
+												$orgasm_or = 'yes'
+												gs 'arousal', 'trib', 15, 'lesbian', 'no_orgasm_msg'
+												act 'sleep':
+													$loc = 'nichTanya'
+													$loc_arg = 'date_next_morning'
+													$sleep_txt = 'Go to bed'
+													gs 'sleep', 'full'
+												end
+											end
+										end
+									end
+								end
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+end
+
+if $ARGS[0] = 'date_next_morning':
+	*clr & cla
+	'<center><img <<$set_imgh>> src="images/characters/city/tanya/dates/tanya_stayover9.jpg"></center>'
+	'You slowly wake up and look over at Tanya.'
+	if $clothingworntype = 'nude':
+		'She''s still sound asleep next you you so you get up quietly and get dressed.'
+		gs 'clothing', 'wear', $lastwornclothingtype['bed'], lastwornclothingnumber['bed']
+		gs 'panties', 'wear', $lastwornpantytype['bed'], lastwornpantynumber['bed']
+		gs 'bras', 'wear', $lastwornbratype['bed'], lastwornbranumber['bed']
+		if $bed['shoetype'] ! 'none':
+			gs 'shoes', 'wear', $bed['shoetype'], bed['shoenumber']
+		end
+	else
+		'Tanya is still asleep.'
+	end
+	'You decide not to wake her and leave a note thanking her for the sleep over and telling her you''ll visit again soon.'
+	'Giving her a final gentle kiss you leave her apartment and head back into the city to get on with your day.'
+	act 'Return to the city': gt 'city_center'
+end
+
 if $ARGS[0] = 'bathroom':
 	'<center><img <<$set_imgh>> src="images/characters/city/tanya/idle/shower.jpg"></center>'
 	'Tanya is currently taking a shower. She hasn''t noticed you so far.'
 	if nichTanya['Relationship'] = 1:
 		act 'Join her':
-			npc_rel['A218'] += rand(2,4)
+			gs 'npc_relationship', 'modify', 'A218', 'like'
 			cla
 			*clr
 			'<center><img <<$set_imgh>> src="images/characters/city/tanya/gym/shower_mol0.jpg"></center>'
@@ -367,7 +1008,7 @@ if $ARGS[0] = 'bathroom':
 				'"What the hell are you doing, <<$pcs_nickname>>?! I told you it''s over! Get lost!"'
 				act 'Leave': gs 'underwear', 'wear' & gs 'clothing', 'wear_last_worn' & gt 'nichBathMaster','return'
 			elseif pcs_apprnc < 80:
-				npc_rel['A218'] -= rand(1,2)
+				gs 'npc_relationship', 'modify', 'A218', 'dislike'
 				'Tanya pushes you off.'
 				'"What the hell are you doing, <<$pcs_nickname>>?! Get lost!"'
 				act 'Leave': gs 'underwear', 'wear' & gs 'clothing', 'wear_last_worn' & gt 'nichBathMaster','return'
@@ -375,7 +1016,7 @@ if $ARGS[0] = 'bathroom':
 				'Tanya quickly turns around. She looks a little bit puzzled as she realizes that it was you who grabbed her. Did she expect somebody else?.'
 
 				act 'Take advantage of the confusion':
-					npc_rel['A218'] += rand(1,2)
+					gs 'npc_relationship', 'modify', 'A218', 'like'
 					cla
 					*clr
 
@@ -393,12 +1034,12 @@ if $ARGS[0] = 'bathroom':
 					gs 'stat'
 
 					if pcs_apprnc < 120:
-						npc_rel['A218'] += rand(1,2)
+						gs 'npc_relationship', 'modify', 'A218', 'like'
 						'Tanya smiles at you, but removes your hand and leaves, blowing you a kiss.'
 
 						act 'Leave': gs 'underwear', 'wear' & gs 'clothing', 'wear_last_worn' & gt 'nichBathMaster','return'
 					elseif pcs_apprnc >= 120:
-						npc_rel['A218'] += rand(2,4)
+						gs 'npc_relationship', 'modify', 'A218', 'love'
 						cla
 						*clr
 						'<center><img <<$set_imgh>> src="images/characters/city/tanya/gym/shower_mol2.jpg"></center>'
@@ -425,7 +1066,7 @@ if $ARGS[0] = 'bathroomMolestSuccess':
 	'With that she pushes you outside the bathroom once you are dressed.'
 	nichTanya['Relationship'] = 1
 	nichTanya['RelationshipState'] = 10
-	npc_rel['A218'] += 5
+	gs 'npc_relationship', 'modify', 'A218', 'like'
 	nichTanya['FuckLast'] = daystart
 	gs 'underwear', 'wear'
 	gs 'clothing', 'wear_last_worn'
@@ -446,7 +1087,7 @@ if $ARGS[0] = 'date':
 			end
 
 			act 'Kiss Tanya':
-				npc_rel['A218'] += rand(1,2)
+				gs 'npc_relationship', 'modify', 'A218', 'like'
 				nichDateState = 20
 				gt 'nichTanya','date'
 			end
@@ -1319,7 +1960,7 @@ end
 if $ARGS[0] = 'hire':
 	*clr & cla
 	'<center><img <<$set_imgh>> src="images/characters/city/tanya/idle/idle'+rand(0,5)+'.jpg"></center>'
-	npc_rel['A218'] += 5
+	gs 'npc_relationship', 'modify', 'A218', 'love'
 	nichWork = 1
 	'Her offer sounds too good to be true: Living with her, here, in this huge luxury apartment, right in the city center? And big paycheck every month for basically doing nothing? You know your answer immediately: "Okay."'
 	'"Okay?", she asks, making sure she didn''t misunderstand.'
