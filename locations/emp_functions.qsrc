@@ -191,11 +191,11 @@ if $ARGS[0] = 'disp_evt':
 		'I have this job for you do you want to acccept it?'
 		*nl
 		'Event Scheduled for: ' + transient_evt_day + $evt_suffix + ', '+ $monthName[transient_evt_month] +' '+ '20' + transient_evt_year
-		'Job: ' + $evt_job[transient_evt_type]  			
+		'Job: ' + $evt_job[transient_evt_type] 			
 		'Pay: ' + func('agentned', 'format_price_string', transient_evt_wages)
 		'Time: ' + transient_evt_hour + ':' +  iif(transient_evt_minutes  >= 0 and transient_evt_minutes <= 4, '00',  '30')
 		'Duration: ' + transient_evt_duration  + iif(transient_evt_duration  = 1, ' hour',  ' hours')
-		'Location reminder: ' + $transient_mc_locat
+		'Location: ' + $transient_journal
 		'Job Details: ' + $transient_desc
 		
 		act 'Accept the job' : gs 'emp_functions', 'cat_evt'
@@ -207,29 +207,30 @@ if $ARGS[0] = 'disp_evt':
 
 	!! create table for all jobs:
 	if ARGS[1] = 2:	
-		if evt_event[0] ! '':			
+		if arrsize('evt_event') > 0:			
 			killvar '$evtbody'
-			job_idx = 0		
+			job_idx = 0				
 			*nl
 			:jmp_list_create
-				!!if evt_silent[job_idx] = 1:
+				if evt_silent[job_idx] = 1:
+					gs 'emp_functions','evt_day_suffix',evt_day[job_idx]
 					$evtbody += '<tr><td>' +$week[evt_dow[job_idx]]+' '+ evt_day[job_idx] + $evt_suffix + ', '+ $monthName[evt_month[job_idx]] +' 20'+ evt_year[job_idx] + '</td><td>' + $evt_job[evt_event[job_idx]] + '</td>' 
 					$evtbody += '<td>' + func('agentned', 'format_price_string', evt_wages[job_idx]) + '₽</td><td>' + evt_hour[job_idx] + ':' +  iif(evt_minutes[job_idx] >= 0 and evt_minutes[job_idx] <= 4, '00', '30') + '</td>'
-					$evtbody += '<td>' + evt_duration[job_idx] + iif(evt_duration[job_idx]  = 1, ' hour',  ' hours') + '</td><td>' + $evt_mc_locat[job_idx] + '</td>'
+					$evtbody += '<td>' + evt_duration[job_idx] + iif(evt_duration[job_idx]  = 1, ' hour',  ' hours') + '</td><td>' + $evt_journal[job_idx] + '</td>'
 					$evtbody += '<td><a  href="exec: gs ''emp_functions'',''del_evt'', 2, <<job_idx>>"><img src="images\system\icons\evt_del.png"></a></a></td></tr>'
-				!!end
+				end
 				job_idx += 1
-				if job_idx < arrsize('evt_event') : jump 'jmp_list_create'
-				!!if evt_silent[job_idx] = 1: 
-					'<center><h2>Current Task List</h2></center>'		
-					$evtheader = '<tr><th>Date</th><th>Task</th><th>Pay</th><th>Time</th><th>Duration</th><th>Location</th><th>Cancel Job</th></tr>'
-					'<center><table width="90%" align="center" width="90%" cellspacing="5" cellpadding="5" valign="top"><tr><<$evtheader>><<$evtbody>></tr></table></center>'
-				!!end
+				if job_idx < arrsize('evt_event') : jump 'jmp_list_create' 
+			if $evtbody ! '': 
+				'<center><h2>Current Task List</h2></center>'		
+				$evtheader = '<tr><th>Date</th><th>Task</th><th>Pay</th><th>Time</th><th>Duration</th><th>Location</th><th>Cancel Job</th></tr>'
+				'<center><table width="90%" align="center" width="90%" cellspacing="5" cellpadding="5" valign="top"><tr><<$evtheader>><<$evtbody>></tr></table></center>'
 				killvar '$evtbody'
 				killvar '$evtheader'
 			else
 				'You haven''t taken on any jobs yet.'
 			end
+		end
 	end
 	
 	!! Display the location acts
@@ -249,7 +250,9 @@ if $ARGS[0] = 'disp_evt':
 		if ((evt_hour[act_idx] = hour and evt_minutes[act_idx] <= minut) or evt_hour[act_idx] = (hour - 1)) and $loc = $evt_loc[act_idx]:
 			act 'Attend your ' + $evt_job[evt_event[act_idx]] + ' event':
 				gs 'emp_functions', 'array_init'
-				if $evt_trigger_exec ! '':
+				if evt_event = 1:
+					gt 'photography_work', 'evt_stage'
+				elseif $evt_trigger_exec ! '':
 					gt $evt_trigger_exec[act_idx], $evt_trigger[act_idx]
 				else
 					gt $evt_loc[act_idx], $evt_loc_arg[act_idx]
@@ -294,8 +297,9 @@ if $ARGS[0] = 'gen_evt':
 	transient_evt_minutes = rand(0, 9)
 	
 	!! Set as multiples of 60 	
-	transient_evt_duration = rand(1,8)
-	
+	if transient_evt_duration = '':
+		transient_evt_duration = rand(1,8)
+	end
 	!! logic check for when randomising event duration
 	
 	if transient_evt_duration + transient_evt_hour >= 22:
@@ -362,10 +366,10 @@ if $ARGS[0] = 'cat_evt':
 	!! Create global variables for the current live event.
 	!! Use 0 to create hidden events, 1 to show in journal
 	evt_silent[] = transient_evt_silent
-	!! Event type used in Journal
-	evt_event[] = transient_evt_type
-	!! Additional ID if required 
-	evt_event_sub[] = transient_evt_sub_type 
+	!! Event job descriptor used in Journal
+	evt_event[] = transient_evt
+	!! Additional job ID if required 
+	evt_event_sub[] = transient_evt_sub
 	!! Day of Week used in Journal and content areas
 	evt_dow[] = transient_evt_dow
 	!! Event Date to check against current date & used in Journal and content areas
@@ -383,7 +387,7 @@ if $ARGS[0] = 'cat_evt':
 	!! How much wages, generated or manual using function
 	evt_wages[] = transient_evt_wages
 	!! Journal location as reminder
-	$evt_mc_locat[] = $transient_mc_locat
+	$evt_journal[] = $transient_journal
 	!! The following are event location triggers to allow the content to appear in areas such as community centre but host their content elsewhere such as Photography shop
 	!! 	Event area triggers such as city_residential
 	$evt_loc[] = $transient_loc
@@ -473,23 +477,36 @@ if $ARGS[0] = 'evt_day_suffix':
 	else
 		query_day = transient_evt_day
 	end
-	if query_day => 20 and query_day <= 29:
+	if query_day => 20 and query_day < 30:
 		test_day = query_day - 20
 	else
 		test_day = query_day
 	end
-
-	if (test_day => 4 and test_day <= 10) or (day => 4 and day <=10):
-		$evt_suffix = 'th'
-	elseif (test_day = 1 or test_day = 31) or (day = 1 or day = 21 or day = 31):
-		$evt_suffix = 'st'
-	elseif (test_day = 2) or (day = 2 or day = 22):
-		$evt_suffix = 'nd'    
-	elseif test_day= 3: 
-		$evt_suffix = 'rd'
-	else
-		$evt_suffix = 'th'
+	if transient_evt_day ! '':
+		if test_day => 4 and test_day <= 10:
+			$evt_suffix = 'th'
+		elseif test_day = 1 or test_day = 31:
+			$evt_suffix = 'st'
+		elseif test_day = 2:
+			$evt_suffix = 'nd'    
+		elseif test_day= 3: 
+			$evt_suffix = 'rd'
+		else
+			$evt_suffix = 'th'
+		end
 	end
+	if day => 4 and day <=10:
+		$date_suffix = 'th'
+	elseif day = 1 or day = 21 or day = 31:
+		$date_suffix = 'st'
+	elseif day = 2 or day = 22:
+		$date_suffix = 'nd'    
+	elseif test_day= 3: 
+		$date_suffix = 'rd'
+	else
+		$date_suffix = 'th'
+	end
+
 
 	killvar 'test_day'
 	killvar 'query_day'
