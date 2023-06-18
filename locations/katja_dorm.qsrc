@@ -33,6 +33,9 @@ if $ARGS[0] = 'start':
 		else
 			'Katja is heading out the door to class and has no time to talk.'
 		end
+	elseif locat['katja'] = 35:
+		'Katja is moving around getting dressed up, seemingly preparing for a night out.'
+		act 'Talk to Katja': gt 'katja_party', 'going_out'
 	elseif locat['katja'] = 51:
 		'Katja is moving around the room while setting up her laptop.'
 		act 'Talk to Katja': gt 'katja_dorm', 'movie_talk1'		
@@ -68,6 +71,11 @@ if $ARGS[0] = 'talk':
 		'Katja looks at you with a smile.'
 	end
 
+	if katjaQW['dress_borrowed'] = 1:
+		katjaQW['dress_borrowed'] = 0
+		'You hand Katja the dress you borrowed and say "Thanks for borrowing this." "It was nothing. That''s what friends are for." she reply.'
+	end
+
 	if locat['katja'] ! 31:
 		if locat['katja'] = 20:
 			!! Katja wants to go to bed and shows you out
@@ -84,11 +92,14 @@ if $ARGS[0] = 'talk':
 				else
 					gs 'willpower', 'misc', 'force'
 				end
-				if will_cost <= pcs_willpwr:				
-					act 'Convince Katja to stay here and watch a movie':
+				if will_cost <= pcs_willpwr:
+					act 'Convince Katja to stay here and watch a movie (<<will_cost>> Willpower)':
 						cla & *clr
 						menu_off = 1
 						gs 'willpower', 'pay', 'force'
+						locat['katja'] = 52
+						locat['katja_rand2'] = daystart
+						locat['katja_save2'] = locat['katja']
 						minut += 10
 						'"Come on, let''s watch a movie instead! You can always study tomorrow . Why do you even need to study anyway? You''re so smart that you know everything!" you say.' 
 						'"That''s not true. I only do so well in class because I study a lot," Katja answers.' 
@@ -103,10 +114,12 @@ if $ARGS[0] = 'talk':
 			end
 			act 'Go to the library with Katja': minut += 10 & gt 'katja_uni', 'library2' 
 			act 'Say no and leave Katja''s dorm room': minut += 2 & gt 'uni_dorm', 'second_floor'
+		elseif locat['katja'] = 37:
+			gt 'katja_party', 'going_out_talk'
 		elseif locat['katja'] = 51:
-			gt 'katja_dorm', 'movie_talk1'	
+			gt 'katja_dorm', 'movie_talk1'
 		elseif locat['katja'] = 52:
-			gt 'katja_dorm', 'movie_talk2'	
+			gt 'katja_dorm', 'movie_talk2'
 		else
 			!!If Katja is not doiing any of the above activities then she just shows you out.
 			'"Sorry, but I have to run now. See you later," she says.'
@@ -134,38 +147,43 @@ if $ARGS[0] = 'talk':
 						gt 'KatjaHomeTalk', 'tender_kiss'
 					end
 				else
-					if npc_pregtalk['A14'] = 0 and (KatjaConflict = 0 or katjaconflict = 2) and func('body_din','pregnancyVisibility') = 1:
-						!! If Katja can see you are pregant and you haven''t already told her this will create a conflict with to different responses depending on if Katja is pregnant or not.
-						if kid > 0:
-							cla
-							gs 'stat'
-							minut += 5
-							KatjaConflict = 1
-							KatConCheck = daystart
-							'"You''re pregnant again?" Her face turns red, and she glares at you with an intensity you''ve never seen before. "After everything, you still didn''t trust me enough to tell me?"'
-							'You try to speak up, but she folds her arms and turns her back to you.'
-							'"I thought there was something special between us..." Something wet glistens on her cheek, which she wipes away dismissively. "Get out. I don''t want to see you right now."'
-
-						elseif knowKatjaPreg = 1:
-							cla
-							gs 'stat'
-							minut += 5
-							KatjaConflict = 1
-							KatConCheck = daystart
-							'"Are you pregnant?" Katja looks at you, betrayal in her eyes. "Why didn''t you tell me? I thought we were closer than that. I told you when I got pregnant. I need to think. We''ll talk later."'
-
-						else
-							cla
-							*nl
-							minut += 5
-							KatjaConflict = 1
-							KatConCheck = daystart
-							'"Are you pregnant? Why didn''t you tell me? I thought we were closer than that. I need to think. We''ll talk later."'
-						end
-						act 'Leave Katja''s dorm room': minut += 2 & gt 'uni_dorm', 'second_floor'
+					if katjaQW['coke_day_ask'] ! daystart and katjaQW['coke_day'] ! daystart and rand(6,12) <=  katjaQW['coke_stage']:
+						!! Katja want to do cocaine
+						gt 'katja_dorm',  'cocain_offer'
 					else
-						!!If no events triggers they you go to the part where the player can choose things to do with Katja.
-						gt 'katja_dorm', 'chat'
+						if npc_pregtalk['A14'] = 0 and (KatjaConflict = 0 or katjaconflict = 2) and func('body_din','pregnancyVisibility') = 1:
+							!! If Katja can see you are pregant and you haven''t already told her this will create a conflict with to different responses depending on if Katja is pregnant or not.
+							if kid > 0:
+								cla
+								gs 'stat'
+								minut += 5
+								KatjaConflict = 1
+								KatConCheck = daystart
+								'"You''re pregnant again?" Her face turns red, and she glares at you with an intensity you''ve never seen before. "After everything, you still didn''t trust me enough to tell me?"'
+								'You try to speak up, but she folds her arms and turns her back to you.'
+								'"I thought there was something special between us..." Something wet glistens on her cheek, which she wipes away dismissively. "Get out. I don''t want to see you right now."'
+
+							elseif knowKatjaPreg = 1:
+								cla
+								gs 'stat'
+								minut += 5
+								KatjaConflict = 1
+								KatConCheck = daystart
+								'"Are you pregnant?" Katja looks at you, betrayal in her eyes. "Why didn''t you tell me? I thought we were closer than that. I told you when I got pregnant. I need to think. We''ll talk later."'
+
+							else
+								cla
+								*nl
+								minut += 5
+								KatjaConflict = 1
+								KatConCheck = daystart
+								'"Are you pregnant? Why didn''t you tell me? I thought we were closer than that. I need to think. We''ll talk later."'
+								end
+						act 'Leave Katja''s dorm room': minut += 2 & gt 'uni_dorm', 'second_floor'
+						else
+							!!If no events triggers they you go to the part where the player can choose things to do with Katja.
+							gt 'katja_dorm', 'chat'
+						end
 					end
 				end
 			end
@@ -387,10 +405,14 @@ if $ARGS[0] = 'sofia_meet':
 end
 
 if $ARGS[0] = 'lazar_pussy_talk':
+	'<center><img <<$set_imgh>> src="images/characters/shared/headshots_main/big14.jpg"></center>'
+	if katjaQW['pussy_sex'] > 0 and katjaQW['QWstage'] < 6:
+		katjaQW['QWstage'] = 6
+		'"So I have had sex with boys before. '+iif(katjaQW['knows_sex'] = 0,' I don''t know if you', 'I know you also')+' have. So maybe we should try a threesome with a guy some time" Katja says looking at you wickedly.' 
+	end
 	if katjaQW['lazer_pussy_talk'] + katjaQW['lazer_anal_talk'] = 0 and katjaQW['lazer_anal'] = 0:
 		katjaQW['lazer_pussy_talk'] = 1
 		if katjaQW['QWstage'] < 6 and katjaQW['anal_quest'] < 3:
-			'<center><img <<$set_imgh>> src="images/characters/shared/headshots_main/big14.jpg"></center>'
 			'"You know, <<$pcs_nickname>>, meeting Lazar at the café got me thinking," Katja says.'
 			if katjaQW['QWstage'] = 4:
 				'"We talked about how I would like to try having... sex... with a guy," Katja says with some pause. "I know you said you didn''t want to arrange it, but I''m sure with Lazar that you wouldn''t have to arrange anything; just call him and I''m sure he''ll agree," she continues before you can say anything.'
@@ -494,7 +516,6 @@ if $ARGS[0] = 'lazar_pussy_talk':
 			end
 		else
 			if katjaQW['QWstage'] < 6:
-				'<center><img <<$set_imgh>> src="images/characters/shared/headshots_main/big14.jpg"></center>'
 				'"You know, <<$pcs_nickname>>, meeting Lazar at the cafe got me thinking," Katja says.'
 				if katjaQW['QWstage'] = 4:
 					'"We''ve talked about that. I would like to try having... vaginal sex... with a guy," Katja says with some pause. "I know you said you didn''t want to arrange it, but I''m sure with Lazar you wouldn''t have to arrange anything; just call him and I''m sure he''ll agree," she quickly continues before you can say anything.'
@@ -594,7 +615,6 @@ if $ARGS[0] = 'lazar_pussy_talk':
 					end
 				end
 			else
-				'<center><img <<$set_imgh>> src="images/characters/shared/headshots_main/big14.jpg"></center>'
 				'"You know <<$pcs_nickname>>, when we talked with Lazar at the café, he seemed really into us," Katja says. "Maybe we should call him and see if he''s up to having some fun with us?"'
 				act 'Agree':
 					if katjaQW['QWstage'] < 5: katjaQW['QWstage'] = 5
@@ -619,7 +639,6 @@ if $ARGS[0] = 'lazar_pussy_talk':
 		end
 	else
 		if katjaQW['lazer_pussy_talk'] = 2:
-			'<center><img <<$set_imgh>> src="images/characters/shared/headshots_main/big14.jpg"></center>'
 			'"I know you said earlier that you didn''t want to have vaginal sex with Lazar'+iif(katjaQW['lazer_anal'] > 0, ', but we''ve had anal sex with him; ', ' ')+'so would you please reconsider? I really want to try with a guy, and I want you to be there. Please?" Katja pleads, looking at you with her big eyes.'
 			act 'Relent':
 				if katjaQW['QWstage'] < 5: katjaQW['QWstage'] = 5
@@ -634,7 +653,6 @@ if $ARGS[0] = 'lazar_pussy_talk':
 		else
 			if katjaQW['lazer_anal_talk'] + katjaQW['lazer_anal'] > 0:
 				katjaQW['lazer_pussy_talk'] = 1
-				'<center><img <<$set_imgh>> src="images/characters/shared/headshots_main/big14.jpg"></center>'
 				'"You know we have '+iif(katjaQW['lazer_anal'] > 0, 'talked about', 'had')+' anal sex with Lazar," Katja says. "Maybe we could also have... vaginal sex... with him?" she continues.'
 				if stat['vaginal'] > 0:
 					if katjaQW['QWstage'] < 6:
@@ -708,7 +726,7 @@ if $ARGS[0] = 'lazar_agree':
 		'"Okay. We should let Lazar be '+iif(stat['vaginal'] >0, 'your', 'our')+' first guy," you agree.'
 		'Katja looks a little embarrassed, but has a naughty gleam in her eyes.'
 	elseif katjaQW['QWstage'] > 5:
-		'"Okay. We can include Lazar in our harem of hot guys," you say, which causes Katja to start laughing.'
+		'"Okay. '+iif(katjaQW['ivan_anal'] + katjaQW['marcus_pussy'] + katjaQW['marcus_anal'] >0, 'We can include Lazar in our harem of hot guys',  'We Having a threesome with Lazar do sounds fun')+'" you say, which causes Katja to start laughing.'
 		'When she stops, she looks very excited. "Great. I want his cock in my pussy!"'
 	end
 	if katjaQW['anal_quest'] = 2:
@@ -772,10 +790,14 @@ if $ARGS[0] = 'lazar_agree':
 end
 
 if $ARGS[0] = 'lazar_anal_talk':
+	'<center><img <<$set_imgh>> src="images/characters/shared/headshots_main/big14.jpg"></center>'
+	if katjaQW['anal_sex'] > 0 and katjaQW['anal_quest'] < 3:
+		katjaQW['anal_quest'] = 3
+		'"So I have had anal sex with boys before. '+iif(katjaQW['knows_anal'] = 0, 'I don''t know if you', 'I know you also')+' have. So maybe we should try it together with a guy some time" Katja says looking at you wickedly.' 
+	end
 	if katjaQW['lazer_pussy_talk'] + katjaQW['lazer_anal_talk'] = 0 and katjaQW['lazer_pussy'] = 0:
 		katjaQW['lazer_anal_talk'] = 1
 		if katjaQW['QWstage'] < 5 and katjaQW['anal_quest'] < 3:
-			'<center><img <<$set_imgh>> src="images/characters/shared/headshots_main/big14.jpg"></center>'
 			'"You know, <<$pcs_nickname>>, meeting Lazar at the café got me thinking," Katja says.'
 			if katjaQW['anal_quest'] = 1:
 				'"We''ve talked about that. I would like to try having... anal sex with a guy," Katja says with some pause. "I know you said you didn''t want to arrange it, but I''m sure with Lazar, you would not have to arrange anything; just call him and I am sure he will agree," she quickly continues before you can say anything.'
@@ -862,7 +884,6 @@ if $ARGS[0] = 'lazar_anal_talk':
 			end
 		else
 			if katjaQW['anal_quest'] < 3:
-				'<center><img <<$set_imgh>> src="images/characters/shared/headshots_main/big14.jpg"></center>'
 				'"You know, <<$pcs_nickname>>, meeting Lazar at the cafe got me thinking," Katja says.'
 				if katjaQW['anal_quest'] = 1:
 					'"We''ve talked about that. I would like to try having... anal sex with a guy," Katja says with some pause. "I know you said you didn''t want to arrange it, but I''m sure with Lazar that you wouldn''t have to arrange anything; just call him and I''m sure he''ll agree," she quickly continues before you can say anything.'
@@ -946,7 +967,6 @@ if $ARGS[0] = 'lazar_anal_talk':
 					end
 				end
 			else
-				'<center><img <<$set_imgh>> src="images/characters/shared/headshots_main/big14.jpg"></center>'
 				'"You know, <<$pcs_nickname>>, when we talked with Lazar at the café, he seemed really into us," Katja says. "Maybe we should call him and see if he''s up for having some fun with us."'
 				act 'Agree':
 					gt 'katja_dorm', 'lazar_agree'
@@ -970,7 +990,6 @@ if $ARGS[0] = 'lazar_anal_talk':
 		end
 	else
 		if katjaQW['lazer_anal_talk'] = 2:
-			'<center><img <<$set_imgh>> src="images/characters/shared/headshots_main/big14.jpg"></center>'
 			'"I know you said earlier that you didn''t want to have anal sex with Lazar but'+iif(katjaQW['lazer_pussy'] > 0, ' we''ve had vaginal sex with him, so ', ' ')+'would you please reconsider? I really want to try anal with a guy, and I want you to be there. Please?" Katja pleads, looking at you with her big eyes,'
 			act 'Agree':
 				katjaQW['lazer_anal_talk'] = 1
@@ -986,7 +1005,6 @@ if $ARGS[0] = 'lazar_anal_talk':
 		else
 			if katjaQW['lazer_pussy_talk'] + katjaQW['lazer_pussy'] > 0:
 				katjaQW['lazer_anal_talk'] = 1
-				'<center><img <<$set_imgh>> src="images/characters/shared/headshots_main/big14.jpg"></center>'
 				'"You know we have '+iif(katjaQW['lazer_pussy'] = 0, 'talked about', 'had')+' sex with Lazar," Katja says. "Maybe we could also have... anal sex with him?" she continues.'
 				if stat['anal'] > 0:
 					if katjaQW['anal_quest'] < 2:
@@ -1058,7 +1076,7 @@ if $ARGS[0] = 'movie_talk1':
 	cla & *clr
 	menu_off = 1
 	minut += 5
-	
+	'<center><img <<$set_imgh>> src="images/characters/shared/headshots_main/big14.jpg"></center>'
 	'"I''m in the mood for watching a movie tonight. Wanna watch it with me?" Katja asks as she starts setting up her laptop.'
 	act 'Watch a movie with Katja':
 		cla
@@ -1073,13 +1091,60 @@ if $ARGS[0] = 'movie_talk1':
 		'"That''s okay," she says. "See you another day?" She''s clearly intent on watching the film with or without you.'
 		act 'Leave her room': minut += 2 & gt 'uni_dorm', 'second_floor'
 	end
+	if week > 4 or KatjaQW['slut'] > 75:
+		act 'Tell her you would rather go out tonight':
+			cla
+			'"Why don''t we go out partying instead? It''ll be fun" you say. "I don''t know. I''m not sure I''m up for it tonight. I really want to watch this movie." Katja answers'
+			if katjaQW['horny'] >= 100:
+					gs 'willpower', 'misc', 'force', 'easy'
+			elseif katjaQW['horny'] < 50:
+					gs 'willpower', 'misc', 'force', 'hard'
+			else
+				gs 'willpower', 'misc', 'force'
+			end
+			if will_cost <= pcs_willpwr:		
+				act 'Convince her to go out (<<will_cost>> Willpower)':
+					cla
+					katjaQW['dom'] -= rand(1,2)			
+					'"Come on Katja. It is boring just sitting watching a movie when you con be out partying the night away" you say trying to convince Katja to come with you.'
+					'"Okay then. I''l watch the movie another time. Where do you want to go?" she finally relents.'
+					act 'Go to the night club':
+						cla
+						locat['katja'] = 53
+						locat['katja_rand2'] = daystart
+						locat['katja_save2'] = locat['katja']						
+						'"let''s go to the night club" you say. "Okay. I know just the dress I want to wear tonight" Katja answers, and almost before you can react she is out of her clothes and into a nice dress.'
+						act 'Prepare': gt 'katja_party', 'party_preparations.'
+					end
+				end
+			else
+				act 'Convince her to go out (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
+			end
+			act 'Relent and watch a movie with Katja':
+				cla
+				katjaQW['dom'] += rand(1,2)
+				'"Okay, I''ll stay and watch the movie with you" you relent.'
+				'"Yeah! We don''t you go to the kitchen to get a bowl for the popcorn," she ask happy that you want to watch the movie with her.'
+				'You go the to kitchen and prepare the popcorn while Katja finishes setting up the movie. You then both set down on her bed and start watching the film Katja has selected.'
+				act 'Watch the movie': gt 'katja_dorm', 'watch_movie'
+			end
+			act 'Tell her that you wont waste you evening watching a movie':
+				cla
+				katjaQW['dom'] += rand(1,2)
+				gs 'npc_relationship', 'modify', 'A14', 'dislike'
+				'"Well if you wont go out with me, I will just leave you to watch you boring movie yourself. I''m not going to waste my evening on that" you say.' 
+				'"Don''t be such downer, watching movies can be just as much fun as getting drunk at some random party" she says. "See you another day?"'
+				act 'Leave her room': minut += 2 & gt 'uni_dorm', 'second_floor'
+			end
+		end
+	end
 end
 
 if $ARGS[0] = 'movie_talk2':
 	cla & *clr
 	menu_off = 1
 	minut += 2
-	
+	'<center><img <<$set_imgh>> src="images/characters/shared/headshots_main/big14.jpg"></center>'
 	'"Come join me," Katja says, not removing her eyes from the screen as you approach her.'
 	act 'Watch a movie with Katja':
 		'"Okay," you reply and she makes room for you next to her on the bed.'
@@ -1272,6 +1337,7 @@ if $ARGS[0] = 'relationship_talk':
 		act 'Stop having sex <br><font color="red">(Sex with Katja will no longer be a option)</font>':
 			cla & *clr
 			katjaQW['sex_clossedness'] = 2
+			katjaQW['liberated'] = 1
 			minut += 5
 			gs 'stat'
 			'<center><img <<$set_imgh>> src="images/characters/shared/headshots_main/big14.jpg"></center>'	
@@ -1282,6 +1348,7 @@ if $ARGS[0] = 'relationship_talk':
 		act 'Friends with benefits':
 			cla & *clr
 			minut += 5
+			katjaQW['liberated'] = 1
 			gs 'stat'
 			'<center><img <<$set_imgh>> src="images/characters/shared/headshots_main/big14.jpg"></center>'
 			'"Sure, and it''s fun. I want to continue doing that. We are what you call ''friends with benefits''," you tell her.'
@@ -1297,6 +1364,7 @@ if $ARGS[0] = 'relationship_talk':
 	act 'Yes':
 		cla & *clr
 		minut += 2
+		katjaQW['couple'] = 1
 		gs 'stat'
 		'<center><img <<$set_imgh>> src="images/characters/shared/headshots_main/big14.jpg"></center>'
 		'"Yes. Or at least I want us to be. I would love to consider you my girlfriend. If you want to be, that is?" you ask back.'
@@ -1347,6 +1415,57 @@ if $ARGS[0] = 'relationship_talk':
 			act 'Go to the hallway': minut += 2 & gt 'uni_dorm', 'second_floor'
 		end
 	end
+end
+
+if $ARGS[0] = 'cocain_offer':
+	 katjaQW['coke_day_ask'] = daystart
+	 minut += 2
+	 gs 'stat'
+	'<center><img <<$set_imgh>> src="images/characters/shared/headshots_main/big14.jpg"></center>'
+	'"Look what I have here" Katja says as she shows you a small plastic bag with white powder. "Why don''t we take some lines to make this more fun?" she ask.'
+	if katjaQW['coke_stage'] = 6:
+		gs 'willpower', 'drugs', 'resist', 'easy'
+	elseif katjaQW['coke_stage'] = 7:
+		gs 'willpower', 'drugs', 'resist'
+	elseif katjaQW['coke_stage'] = 8:
+		gs 'willpower', 'drugs', 'resist', 'hard'
+	end
+	if will_cost <= pcs_willpwr:
+		act 'Convince Katja that you should not do drugs right now (<<will_cost>> Willpower)':
+			*clr & cla
+			minut += 3
+			gs 'npc_relationship', 'modify', 'A14', 'dislike'
+			gs 'stat'
+			'<center><img <<$set_imgh>> src="images/characters/shared/headshots_main/big14.jpg"></center>'
+			'"Now is not the time Katja. I don''t think it''s a good idea," you say.'
+			'"Why not now? It''s as good a time as any?" Katja says.'
+			'"No, I don''t think it is. Taking drugs when you are just sitting around a normal '+iif(hour > 18, 'evening', 'afternoon')+' isn''t healthy" you respond.'
+			'Katja looks at you angrily. "Are you saying I can''t control myself?"'
+			'"I think you are overdoing it. You shouldn''t do it as often or as much as you do," you tell her.'
+			'"You aren''t my mom!" Katja says.'
+			'"No, I''m not, and I''m sure she would be harsher with you than I am," you answer.'
+			'Katja is silently thinking about it for a moment. "Fine. You get it your way, this time," she says, clearly not happy about it, but packs the drugs away and after a few minutes she seems to have forgotten about it.'
+			act 'Continue talking': gt 'katja_dorm', 'talk'
+		end
+	else
+		act 'Convince Katja not to take the cocaine (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
+	end
+	act 'Do some lines with Katja':
+		*clr & cla
+		minut += 8
+		dur += 1
+		gs 'drugs', 'cocaine'
+		gs 'stat'
+		gs 'katja_procdural', 'take_cocaine'
+		gs 'stat'										
+		'<center><img <<$set_imgh>> src="images/characters/pavlovsk/school/girl/katja/uni/dorm/joint_cocaine.jpg"></center>'
+		'"Okay, Katja. Let''s do it," you say.'
+		'"Yes. That''s the spirit," she replies and prepares some lines for the two of you, and finds some tubes for you to use.'
+		'You both put your tubes to you nostrils and lover your heads to the table and sniff your lines. Katja does it like it''s something she does all the time.' 
+		*nl
+		'After a moment, it hits you both. You feel wonderful while Katja just sits there with wide open eyes. She starts giggling which turns into a laugh that lasts for some time.'
+		act 'Continue talking': gt 'katja_dorm', 'talk'
+	end			
 end
 
 --- katja_dorm ---------------------------------
