@@ -29,10 +29,10 @@ def processLines(lines):
         if not line.strip(" \t").startswith("!"): 
             match = re.search(pattern, line)
             if match != None:
-                temp = match.group().strip('xgst\t\n').replace('"','').replace("'", "").split()
+                temp = match.group().strip('xgst\t\n').replace('"','').replace("'", "").replace(" ","").split(",")
                 loc = temp[0].lower()
                 fun = functionEmptyOrNamed(temp)
-                call = {"location": loc, "function": fun, "code": match.group().strip(" \t\n"), "valid": 0}
+                call = {"location": loc, "function": fun, "valid": 0}
                 if call not in callList:
                     callList.append(call)
                     locationCalls['callIds'].append(len(callList)-1) 
@@ -51,7 +51,7 @@ def validateCalls(lines):
 
     for call in calls:
         if call['function'] == None or call['function'] == 'start' or call['function'] == '':
-            call['valid'] = "valid call"
+            call['valid'] = 1
         else:
             findString = "if$args[0]='%s'" % call['function'].lower()
             findString2 = "if$args[i]='%s'" % call['function'].lower()
@@ -101,7 +101,8 @@ try:
         ofile.write("\n")
 
         for call in callList:
-            ofile.write("\t\t '%s', '%s' : invalid call\n" % (call['code'], call['function']) )
+            if call['valid'] == 0:
+                ofile.write("\t\t '%s', '%s' : invalid call\n" % (call['location'], call['function']) )
         #endfor
 
         ofile.write('\n')
@@ -117,7 +118,7 @@ try:
                     if headWritten == 0:
                         ofile.write("\t---- %s:\n" % locationCall["calllocation"])
                         headWritten = 1
-                    ofile.write("\t\t '%s', '%s' : invalid call\n" % (call['code'], call['function']) )
+                    ofile.write("\t\t '%s', '%s' : invalid call\n" % (call['location'], call['function']) )
             #endfor
             if headWritten != 0:
                 ofile.write("\n")
