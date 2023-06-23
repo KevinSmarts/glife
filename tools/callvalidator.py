@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-# usage: txtmerge.py <input_dir> <output_file_name> 
-# does the exact opposite of txtsplit.py
+# usage:callvalidator.py source=<src_input_dir> [file=<filename> | list=<listfilename>] [folder=<folder>]
+# tries to determine whether calls like gt 'location', 'event' are valid or not.
 
 from os import listdir
 from os.path import isfile, join
@@ -29,6 +29,7 @@ def loadValidationList(validationListFile):
     except:
         pass
     #endtry
+
     try: 
         with io.open(validationListFile, 'r', encoding='utf-8') as ifile:
             lines = ifile.readlines()
@@ -46,8 +47,6 @@ def loadValidationList(validationListFile):
             return result
     except SyntaxError as e:
         raise SystemExit("Invalid list filed: %s" % e.msg)
-#        except Exception as e:
-#            raise SystemExit()
     #endtry
 #enddef
 
@@ -121,7 +120,9 @@ def validateCalls(lines):
         #endif
     #endfor
 #enddef
-
+runtime = [0,1,2,3,4,5,6,7,8,9,10,11,12]
+runtime[0] = time.perf_counter_ns()
+runtime_text = ["Setup","Build callfile","Build call list","Index call list","Validate calls","Validation finished","Build report [invalid calls]","Sort invalid calls","Build report [location list]","Sort location list","Generate report file","Build report file","Report finished, all done"]
 
 assert (len(sys.argv) == 2 or len(sys.argv) == 3 or len(sys.argv) == 4), "usage:\ncallvalidator.py source=<src_input_dir> [file=<filename> | list=<listfilename>] [folder=<folder>]"
 
@@ -133,7 +134,7 @@ else:
     vdir = idir
 
 validationTarget = ''
-
+runtime[1] = time.perf_counter_ns()
 if len(sys.argv) > 2 and "file=" in str(sys.argv[2]):
     validationTarget = sys.argv[2].replace("file=", "")
     callFileList = [join(vdir, sys.argv[2].replace("file=", ""))]
@@ -148,25 +149,19 @@ if validate == 'all':
     validationTarget = idir
     callFileList = [join(idir,f) for f in listdir(idir) if ".qsrc" in f]
 
-print("Start building call list: %s" % time.strftime("%H:%M:%S", time.localtime()))
-
-# grab the location files
-
-
-buildlist_start = time.time()
 # build a list of all the calls happening
+runtime[2] = time.perf_counter_ns()
 for file in callFileList:
     with io.open(file, 'rt', encoding='utf-8') as ifile:
         lines = ifile.readlines()
         processLines(lines, ifile.name)
     #endwith
 #endfor
-
+runtime[3] = time.perf_counter_ns()
 for call in callList:
         call['callId'] = callList.index(call)
 
-print("Finished building call list: %s" % time.strftime("%H:%M:%S", time.localtime()))
-
+runtime[4] = time.perf_counter_ns()
 # validating that all the calls are for valid locations
 for file in calledFileList:
     if file not in ['boyStat.qsrc', 'exp_gain.qsrc']:
@@ -180,8 +175,7 @@ for file in calledFileList:
     #endif
 #endfor
 
-print("Finished validation %s" % time.strftime("%H:%M:%S", time.localtime()))
-
+runtime[5] = time.perf_counter_ns()
 # create the call validity file and a list of files that call invalid locations
 timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 txtname = 'call_validity [%s] - %s.txt' % (validationTarget, time.strftime('%Y%m%d%H%M%S', time.localtime()))
@@ -196,6 +190,7 @@ noInvFun = 0
 noInvCall = 0
 noLocNeverCalled = len(neverCalledLocations)
 
+runtime[6] = time.perf_counter_ns()
 currLoc = ''
 for call in callList:
     if call['valid'] == 0:
@@ -207,9 +202,11 @@ for call in callList:
         invalidCalls.append(call)
     #enfif
 #endfor
+runtime[7] = time.perf_counter_ns()
 invalidCalls = sorted(invalidCalls, key=lambda k: (k['location'].lower(), k['function'].lower()))
 noInvFun = len(invalidCalls)
 
+runtime[8] = time.perf_counter_ns()
 for locationCall in locationCallList:
     calls = locationCall['calls']
     Ids = [call['callId'] for call in calls] 
@@ -218,49 +215,35 @@ for locationCall in locationCallList:
         callheads.append(locationCall)
     #endfor
 #endfor
+
+runtime[9] = time.perf_counter_ns()
 callheads = sorted(callheads, key=lambda k: (k['calllocation'].lower()))
 noInvCall = len(callheads)
 
+runtime[10] = time.perf_counter_ns()
 location = ''
 txtInvalidLines = []
-#htmlInvalidLines = []
 for call in invalidCalls:
     if location != '' and location.lower() != call['location'].lower():
         txtInvalidLines.append('\n')
-#    if location == '' or location.lower() != call['location'].lower():
-#        htmlInvalidLines.append('\t\t\t<tr><td span="3"><h3>%s</td></tr>\n' % call['location'])
 
     txtInvalidLines.append("    '%s', '%s' : %s\n" % (call['location'], call['function'], call['reason']))
-#    htmlInvalidLines.append('\t\t\t<tr><td style="border: 1px solid black; padding: 5px;">\'%s\'</td><td style="border: 1px solid black; padding: 5px;">%s</td></tr>\n' % (call['function'], call['reason']))
     location = call['location']
 #endfor
 
 txtLocationLines = []
-#htmlLocationLines = []
 for head in callheads:            
     txtLocationLines.append("  ---- %s [%s]:\n" % (head["calllocation"], head["fileName"]))
-
-#    htmlLocationLines.append("\t\t<h3>%s</h3>\n" % head["calllocation"])
-#    htmlLocationLines.append('\t<table style="border: 2px solid black;>\n')
-#    htmlLocationLines.append('\t\t<thead>\n')
-##    htmlLocationLines.append('\t\t\t<tr><td style="border: 1px solid black; padding: 5px;">Line</td><td style="border: 1px solid black; padding: 5px;">Call</td><td style="border: 1px solid black; padding: 5px;">Reason</td></tr>')
-#    htmlLocationLines.append('\t\t</thead>\n')
-#    htmlLocationLines.append('\t\t<tbody>\n')
-
     for call in head['calls']:
         if call['callId'] in callIds:
             target = callList[call['callId']]
             txtLocationLines.append("    invalid call on line %04d: %s '%s', '%s'\t: %s\n" % (call['lineNo'], call['calltype'], target['location'], target['function'], target['reason']))
- #           htmlLocationLines.append('\t\t\t<tr><td style="border: 1px solid black; padding: 5px;">%d</td><td style="border: 1px solid black; padding: 5px;">%s \'%s\', \'%s\'</td><td style="border: 1px solid black; padding: 5px;">%s</td></tr>\n' % (call['lineNo'], call['calltype'], target['location'], target['function'], target['reason']) )    
         #endif
     #endfor
     txtLocationLines.append('\n')
-
-#    htmlLocationLines.append('\t\t</tbody>\n')
-#    htmlLocationLines.append('\t</table>\n')
-#    htmlLocationLines.append('<br/>')
 #endfor        
 
+runtime[11] = time.perf_counter_ns()
 try:
     with io.open(txtname, 'w', encoding='utf-8') as ofile: 
         ofile.write("----- Summary -----\n")
@@ -307,44 +290,11 @@ except IOError as e:
     raise SystemExit("ERROR: call validity file was not created! REASON: %s" % e.strerror)
 #endtry_except
 
-print("File saved finish: %s" % time.strftime("%H:%M:%S", time.localtime()))
+runtime[12] = time.perf_counter_ns()
 
-#### Create HTML
-
-"""     with io.open(htmlname, 'w', encoding='utf-8') as hfile:         
-        hfile.write('<!DOCTYPE html>\n')
-        hfile.write('<html lang="en">\n')
-        hfile.write('\t<head>\n')
-        hfile.write('\t\t<title>Invalid Call Report</title>\n')
-        hfile.write('\t</head>\n')
-        
-        hfile.write('\t<body>\n')
-       
-        hfile.write("\t\t<h2>List of Invalid calls</h2>\n")
-        hfile.write('<br/>\n')
-        
-        hfile.write('\t<table style="border: 2px solid black;>\n')
-        hfile.write('\t\t<thead>\n')
-        hfile.write('\t\t\t<tr><td style="border: 1px solid black; padding: 5px;">Function</td><td style="border: 1px solid black; padding: 5px;">Reason</td></tr>')
-        hfile.write('\t\t</thead>\n')
-        hfile.write('\t\t<tbody>\n')
-
-        for line in htmlInvalidLines: 
-            hfile.write(line)
-        
-        hfile.write('\t\t</tbody>\n')
-        hfile.write('\t\t</table>\n')
-        hfile.write('<br/>\n')
-
-        hfile.write("<h2>List of Locations and invalid calls they make</h2>\n")
-        hfile.write('<br/>\n')
-        
-        for line in htmlLocationLines:
-            hfile.write(line)
-
-        hfile.write('\t</body>\n')
-        hfile.write('</html>\n') """
-    
-    #endwith
-    
+max = len(runtime)
+index = 0
+while index < max:
+    print("%s: %s" % (runtime_text[index], runtime[index]))
+    index += 1
 
