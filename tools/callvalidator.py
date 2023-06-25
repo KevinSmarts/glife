@@ -3,126 +3,38 @@
 # tries to determine whether calls like gt 'location', 'event' are valid or not.
 
 from os import listdir
-from os.path import isfile, join
+from os.path import join
 import sys
 import re
-import io
-import time
+from io import open
+from time import perf_counter_ns
 import xml.etree.ElementTree as ET
+from textwrap import wrap
+
+runtime = [0,0,0,0,0,0,0,0,0,0]
+runtime[0] = perf_counter_ns()
 
 idir = ''
-callList = []
+validLocationCalls = []
+locationFileList = []
+missingLocations = []
 locationCallList = []
-neverCalledLocations = []
 callFileList = []
-calledFileList = []
+calledLocationList = []
 validate = 'all'
+locationsToIgnore = ['boystat', 'exp_gain']
+fileToIgnore = ["%s.qsrc" % loc for loc in locationsToIgnore]
 
-def loadValidationList(validationListFile):
-    result = []
-    try:
-        tree = ET.parse(validationListFile)
-        root = tree.getroot()
-        for file in root.iter('File'):
-            result.append(join(file.attrib['folder'], file.attrib['name']))
-            return result
-    except:
-        pass
-    #endtry
+commentLine = "^(\s*!+)"
+blockCommentStart = "(^\s*!+.*{)"
+blockCommentEnd = "(}[^{]*$)"
+blockComment = False
+callLinePattern = "(gt|gs|xgt|xgs)(?:\s*(?:'|\"))(\w+)(?:'|\")(?:(?:,\s*)(?:'|\")(\w+)(?:'|\"))?"
+findCallLine = "(?:^\s*!+.*{)|(?:^[^!]*)(gt|gs|xgt|xgs)\s*(?:'|\")(\w+)(?:'|\")(?:(?:,\s*)(?:'|\")(\w+)(?:'|\"))?|(?:}[^{]*$)"
+calledLinePattern = "(?:^\s*!+.*{)|(?:(?:if|elseif)?\s*\(?\$?(?:ARGS|args)\[(?:0|i)\])(?:\s*(?:=|!|<|>|>=|=>|<=|=<)\s*(?:'|\"))(\w+)(?:'|\")|(?:}[^{]*$)"
+findLocationValues = "(?:(?:if|elseif)?\s*\(?\$?(?:ARGS|args)\[(?:0|i)\])(?:\s*(?:=|!|<|>|>=|=>|<=|=<)\s*(?:'|\"))(\w+)(?:'|\")"
 
-    try: 
-        with io.open(validationListFile, 'r', encoding='utf-8') as ifile:
-            lines = ifile.readlines()
-            index = 1
-            for line in lines:
-                temp = line.strip(" \r\n\t").split(";")
-                file = temp[0].strip(" \t")
-                folder = idir
-                if ".qsrc" not in file:
-                    raise SyntaxError("Incorrect file content: '<filename>[; <folder>] expected, found %s." % (index, line),(validationListFile, index, 1, 'if ".qsrc" not in temp[0].strip(" \t"):', index, len(line)))
-                if len(temp) == 2:
-                    folder = temp[1].strip(" \t")
-                result.append(join(folder,file))
-                index += 1
-            return result
-    except SyntaxError as e:
-        raise SystemExit("Invalid list filed: %s" % e.msg)
-    #endtry
-#enddef
-
-
-def functionEmptyOrNamed(callArray):
-    if len(callArray) < 3:
-        return ''
-    else:
-        return callArray[2].strip(" \t\n")
-    #endif
-#enddef
-
-def processLines(lines, fileName):
-    findPattern = "(gt|gs|xgt|xgs)\s*('|\")\w+('|\")(,\s*('|\")\w+('|\"))?"
-    blockEndPattern = "[^}]*}$"
-    commentBlock = False
-    lineNo = 0
-    locationCalls = {"calllocation": lines[0].strip(' #\n'), "fileName": fileName, "calls": []}
-    for line in lines:
-        line = line.strip(" \t\n")  
-        if (not commentBlock) and line.strip("!").startswith("{"):
-            commentBlock = True
-        if commentBlock and (line == '}' or re.search(blockEndPattern, line) != None):
-            commentBlock = False
-        if not commentBlock and not line.startswith("!"): 
-            match = re.search(findPattern, line)
-            if match != None:
-                temp = match.group().replace('\t', '').replace(' ', '').replace("','","|").replace('","','|').strip(" '\n").replace("'","|").replace('"','|').split('|')
-                temp = [t.strip(" '\"") for t in temp]
-                if temp[1].lower() not in ['boystat', 'exp_gain']:
-                    calltype = temp[0]
-                    loc = temp[1]
-                    fun = functionEmptyOrNamed(temp)
-                    if ("%s.qsrc" % loc) not in calledFileList:
-                        calledFileList.append("%s.qsrc" % loc)
-                    calledLocation = {"location": loc, "function": fun, "valid": 0, "reason": "%s.qsrc doesn't exist." % loc}
-                    callLine = {"callId": 0, "calltype": calltype, "call": "%s '%s', '%s'" % (calltype, loc, fun), "lineNo": lineNo} 
-                    if calledLocation not in callList:
-                        callList.append(calledLocation)
-                    callLine['callId'] = callList.index(calledLocation)    
-                    locationCalls['calls'].append(callLine) 
-                #endif
-            #endif
-        #endif
-        lineNo += 1
-    #endfor
-
-    locationCallList.append(locationCalls)
-#enddedf 
-
-def validateCalls(lines):
-    calls = [c for c in callList if c['location'].lower() == lines[0].strip(' #\n').lower()]
-    
-    if validate == 'all' and (calls == None or len(calls) == 0):
-        neverCalledLocations.append(lines[0].strip(' #\n').lower())
-
-    for call in calls:
-        if call['function'] == 'start' or call['function'] == 'Start' or call['function'] == '':
-            call['valid'] = 1
-            call['reason'] = ""
-        else:
-            call['reason'] = "No $ARGS[0] or ARGS[i] expecting '%s'" % call['function']
-            findPattern = "\$*(args|ARGS)\[(0|i)\]\s*=\s*('|\")%s('|\")" % call['function']
-            for line in lines:
-                match = re.search(findPattern, line)
-                if match != None:
-                    call['valid'] = 1
-                    call['reason'] = ''
-                    break
-            #endfor
-        #endif
-    #endfor
-#enddef
-runtime = [0,1,2,3,4,5,6,7,8,9,10,11,12]
-runtime[0] = time.perf_counter_ns()
-runtime_text = ["Setup","Build callfile","Build call list","Index call list","Validate calls","Validation finished","Build report [invalid calls]","Sort invalid calls","Build report [location list]","Sort location list","Generate report file","Build report file","Report finished, all done"]
+runtime_text = ["Setup started","Started callfile build","","","Sorting and ordering the lists for the files","","All is finished"]
 
 assert (len(sys.argv) == 2 or len(sys.argv) == 3 or len(sys.argv) == 4), "usage:\ncallvalidator.py source=<src_input_dir> [file=<filename> | list=<listfilename>] [folder=<folder>]"
 
@@ -134,7 +46,8 @@ else:
     vdir = idir
 
 validationTarget = ''
-runtime[1] = time.perf_counter_ns()
+runtime[1] = perf_counter_ns()
+print("%s: %d: %d" % (runtime_text[0], runtime[1], runtime[1]-runtime[0] ))
 if len(sys.argv) > 2 and "file=" in str(sys.argv[2]):
     validationTarget = sys.argv[2].replace("file=", "")
     callFileList = [join(vdir, sys.argv[2].replace("file=", ""))]
@@ -142,159 +55,290 @@ if len(sys.argv) > 2 and "file=" in str(sys.argv[2]):
     
 if len(sys.argv) > 2 and "list=" in str(sys.argv[2]):
     validationTarget = sys.argv[2].replace("list=", "")
-    callFileList = loadValidationList(join(sys.argv[3].replace("folder=", ""), sys.argv[2].replace("list=", "")))
+    validationListFile = join(sys.argv[3].replace("folder=", ""), sys.argv[2].replace("list=", ""))
+    try:
+        tree = ET.parse(validationListFile)
+        root = tree.getroot()
+        for file in root.iter('Location'):
+            callFileList.append(join(file.attrib['folder'] if "folder" in file.attrib.keys() else idir, "%s.qsrc" % file.attrib['name'].replace('$', '_')))
+    except:
+        try: 
+            with open(validationListFile, 'r', encoding='utf-8') as ifile:
+                lines = ifile.readlines()
+                for index, line in enumerate(lines):
+                    temp = line.strip(" \r\n\t").split(";")
+                    file = temp[0].strip(" \t")
+                    if ".qsrc" not in file:
+                        raise SyntaxError()
+                        raise SyntaxError("Incorrect file content: '<filename>[; <folder>] expected, found %s." % line,(validationListFile, index, 1, 'if ".qsrc" not in temp[0].strip(" \t"):', index, len(line)))
+                    if len(temp) == 2:
+                        callFileList.append(join(temp[1].strip(" \t"),file))
+                    else:
+                        callFileList.append(join(idir,file))
+                #endfor
+            #endwith
+        except SyntaxError as e:
+            raise SystemExit("Invalid list filed: %s" % e.msg)
+        #endtry   
+    #endtry  
     validate = 'list'
+#endif <- "list="
 
 if validate == 'all':
     validationTarget = idir
     callFileList = [join(idir,f) for f in listdir(idir) if ".qsrc" in f]
+#endif
+
+# Build the list of valid calls
+locationFileList = [f.lower() for f in listdir(idir) if ".qsrc" in f and f.lower() not in fileToIgnore]
+runtime[2] = perf_counter_ns()
+runtime_text[2] = "Building valid calls list [%d files]" % len(locationFileList)
+print("%s: %d: %d" % (runtime_text[1], runtime[2], runtime[2]-runtime[1] ))
+for file in locationFileList:
+    with open(join(idir, file), 'rt', encoding='utf-8', newline="\n") as ifile:
+        lines = ifile.readlines()
+        location = lines[0].strip(' #\r\n').strip(' ').lower()
+        blockComment = False
+        for lineNo, line in enumerate(lines):
+            #getting locations
+            workline = line.strip(' \t\r\n')
+            locationsInLine = []
+            isCommentedLine = blockComment
+            match = re.search(calledLinePattern, workline)
+            if match != None:
+                potLine = re.findall(findLocationValues, workline)
+                if not blockComment and re.search(blockCommentStart, workline) != None: 
+                    blockComment = True
+                    isCommentedLine = True
+                if not blockComment and re.search(commentLine, workline) != None: isCommentedLine = True
+                if potLine != None: locationsInLine = potLine
+                if blockComment and re.search(blockCommentEnd, workline) != None: blockComment = False                    
+            #endif
+
+            for match in locationsInLine: 
+                record = {"location": location, "function": match, "isCommentLine": isCommentedLine}
+                recordInv = {"location": location, "function": match, "isCommentLine": not commentLine}
+                if record not in validLocationCalls and recordInv not in validLocationCalls: 
+                    validLocationCalls.append({"location": location, 
+                                            "function": match, 
+                                            "isCommentLine": isCommentedLine})
+                elif recordInv in validLocationCalls:
+                    # if commentLine of recordInv is TRUE then set it to false.
+                    # if commentLine of recordInv is FALSE then leave it alone
+                    if recordInv["isCommentLine"]:
+                        index = validLocationCalls.index(recordInv)
+                        validLocationCalls[index]['isCommentLine'] = False
+                #endif
+            #endfor <- match in locationsInLine
+        #endfor <- lineNo, line
+    #endwith
+#endfor
 
 # build a list of all the calls happening
-runtime[2] = time.perf_counter_ns()
+runtime[3] = perf_counter_ns()
+runtime_text[3] = "Building call list [%d files]" % len(callFileList)  
+print("%s: %d: %d" % (runtime_text[2], runtime[3], runtime[3]-runtime[2] ))
 for file in callFileList:
-    with io.open(file, 'rt', encoding='utf-8') as ifile:
+    with open(file, 'rt', encoding='utf-8', newline="\n") as ifile:
         lines = ifile.readlines()
-        processLines(lines, ifile.name)
-    #endwith
-#endfor
-runtime[3] = time.perf_counter_ns()
-for call in callList:
-        call['callId'] = callList.index(call)
 
-runtime[4] = time.perf_counter_ns()
-# validating that all the calls are for valid locations
-for file in calledFileList:
-    if file not in ['boyStat.qsrc', 'exp_gain.qsrc']:
-        try:
-            with io.open(join(idir, file), 'rt', encoding='utf-8') as ifile:
-                lines = ifile.readlines()
-                validateCalls(lines)
-        except IOError:
-            pass
-        #endwith
-    #endif
-#endfor
-
-runtime[5] = time.perf_counter_ns()
-# create the call validity file and a list of files that call invalid locations
-timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
-txtname = 'call_validity [%s] - %s.txt' % (validationTarget, time.strftime('%Y%m%d%H%M%S', time.localtime()))
-htmlname = 'call_validity [%s] - %s.html' % (validationTarget, time.strftime('%Y%m%d%H%M%S', time.localtime()))
-
-callheads = []
-callIds = []
-invalidCalls = []
-noInvLoc = 0
-noNonExistingLoc = 0
-noInvFun = 0
-noInvCall = 0
-noLocNeverCalled = len(neverCalledLocations)
-
-runtime[6] = time.perf_counter_ns()
-currLoc = ''
-for call in callList:
-    if call['valid'] == 0:
-        if currLoc != call['location']:
-            noInvLoc += 1
-            if ".qsrc doesn't exist" in call['reason']:
-                noNonExistingLoc += 1
-        callIds.append(call['callId'])
-        invalidCalls.append(call)
-    #enfif
-#endfor
-runtime[7] = time.perf_counter_ns()
-invalidCalls = sorted(invalidCalls, key=lambda k: (k['location'].lower(), k['function'].lower()))
-noInvFun = len(invalidCalls)
-
-runtime[8] = time.perf_counter_ns()
-for locationCall in locationCallList:
-    calls = locationCall['calls']
-    Ids = [call['callId'] for call in calls] 
-
-    if any(x in Ids for x in callIds):
-        callheads.append(locationCall)
-    #endfor
-#endfor
-
-runtime[9] = time.perf_counter_ns()
-callheads = sorted(callheads, key=lambda k: (k['calllocation'].lower()))
-noInvCall = len(callheads)
-
-runtime[10] = time.perf_counter_ns()
-location = ''
-txtInvalidLines = []
-for call in invalidCalls:
-    if location != '' and location.lower() != call['location'].lower():
-        txtInvalidLines.append('\n')
-
-    txtInvalidLines.append("    '%s', '%s' : %s\n" % (call['location'], call['function'], call['reason']))
-    location = call['location']
-#endfor
-
-txtLocationLines = []
-for head in callheads:            
-    txtLocationLines.append("  ---- %s [%s]:\n" % (head["calllocation"], head["fileName"]))
-    for call in head['calls']:
-        if call['callId'] in callIds:
-            target = callList[call['callId']]
-            txtLocationLines.append("    invalid call on line %04d: %s '%s', '%s'\t: %s\n" % (call['lineNo'], call['calltype'], target['location'], target['function'], target['reason']))
-        #endif
-    #endfor
-    txtLocationLines.append('\n')
-#endfor        
-
-runtime[11] = time.perf_counter_ns()
-try:
-    with io.open(txtname, 'w', encoding='utf-8') as ofile: 
-        ofile.write("----- Summary -----\n")
-        ofile.write("  Locations called incorrectly    : %03d\n" % noInvLoc)
-        ofile.write("  Non-existing locations called   : %03d\n" % noNonExistingLoc)
-        ofile.write("  Number of incorrect calls       : %03d\n" % noInvFun)
-        ofile.write("  Locations making incorrect calls: %03d\n" % noInvCall)
-        if validate == 'all':
-            ofile.write("  Locations never called          : %03d\n" % noLocNeverCalled)
-        ofile.write("\n")
-        if validate == 'list':
-            ofile.write("----- Validated files -----\n")
-            if len(callFileList) > 10:
-                ofile.write("  The list contains %d files. Please see the list in %s.\n" % (len(callFileList), validationTarget))
-            else:                
-                for file in callFileList:
-                    ofile.write("  %s\n" % file)
+        location = lines[0].strip(' #\r\n').strip(' ')
+        for lineNo, line in enumerate(lines):
+            workline = line.strip(' \t\n\r')
+            match = None
+            temp_match = re.search(findCallLine, workline)
+            if temp_match != None and not [res for res in locationsToIgnore if res in workline.lower()]:
+                potLine = re.search(callLinePattern, workline)
+                if not blockComment and re.search(blockCommentStart, line) != None: blockComment = True
+                if not blockComment and potLine != None: match = potLine
+                if blockComment and re.search(blockCommentEnd, line) != None: blockComment = False                    
             #endif
-            ofile.write('\n')
-        #endif
+            
+            if match != None:
+                valid = 0
+                reason = ""
+                searchRecordF = {"location": match.group(2).lower(), "function": '' if match.group(3) == None else match.group(3), "isCommentLine": False}
+                searchRecordT = {"location": match.group(2).lower(), "function": '' if match.group(3) == None else match.group(3), "isCommentLine": True}
+                if searchRecordF['function'] == '':
+                    if searchRecordF not in validLocationCalls: validLocationCalls.append(searchRecordF)
+                    valid = 1
+                    reason = ""
+                elif "%s.qsrc" % searchRecordF['location'].lower() not in locationFileList:
+                    valid = -1
+                    reason = "Location `%s` doesn't exist - The file `%s.qsrc` was not found in the specified folder." % (searchRecordF['location'], searchRecordF['location'])
+                    if searchRecordF['location'] not in missingLocations: missingLocations.append(searchRecordF['location'])
+                elif searchRecordT in validLocationCalls:
+                    valid = -2
+                    reason = "`%s, %s` exists but is either commented out or is in a comment block" % (searchRecordT['location'], searchRecordT['function'])
+                elif searchRecordF in validLocationCalls:
+                    valid = 1
+                    reason = ""
+                else:
+                    valid = -3 
+                    reason = "Location `%s` exists but couldn't find any entrypoint expecting `%s` as $ARGS[0]. Please confirm whether this is a bug or not." % (searchRecordF['location'], searchRecordF['function'])
+                #endif    
 
-        ofile.write("----- List of Invalid calls -----\n")
-        ofile.write("\n")
-        
-        for line in txtInvalidLines:
-            ofile.write(line)
-
-        ofile.write('\n')
-
-        ofile.write("----- List of Locations and invalid calls they make -----\n")
-        ofile.write('\n')
-        
-        for line in txtLocationLines:
-            ofile.write(line)
-
-        if validate == 'all':
-            ofile.write("----- List of Locations that are never called -----\n")
-
-            for line in neverCalledLocations:
-                ofile.write("%s\n" % line)                    
-
+                locationCallList.append({"callinglocation": location, 
+                                        "file": ifile.name, 
+                                        "lineNo": lineNo, 
+                                        "calltype": match.group(1), 
+                                        "location": match.group(2).lower(), 
+                                        "function": '' if match.group(3) == None else match.group(3), 
+                                        "valid": valid, 
+                                        "reason": reason})    
+            #endif# <- Match != None
+        #endfor <- line in lines
     #endwith
-except IOError as e:
-    raise SystemExit("ERROR: call validity file was not created! REASON: %s" % e.strerror)
-#endtry_except
+#endfor
 
-runtime[12] = time.perf_counter_ns()
+runtime[4] = perf_counter_ns()
+print("%s: %d: %d" % (runtime_text[3], runtime[4], runtime[4]-runtime[3] ))
 
-max = len(runtime)
-index = 0
-while index < max:
-    print("%s: %s" % (runtime_text[index], runtime[index]))
-    index += 1
+missingLocations = sorted(missingLocations)
+validLocationCalls = sorted(validLocationCalls, key=lambda k: (k['location'].lower(), k['function']))
+invalidCallsMade = [call for call in locationCallList if call['valid'] < 0]
+invalidCallsMade = sorted(invalidCallsMade, key = lambda k: (k['callinglocation'].lower(), k['lineNo']))
+invalidLocations = []
+invalidCallsToMissingLocation = 0
+invalidCallsToCommentedCode = 0
+invalidCallsToMissingFunction = 0
+invalidLocationMissing = 0
+invalidCommentLine = 0
+invalidFunctionMissing = 0
+locationsMakingInvalidCalls = 0
+
+currLoc = ''
+for call in invalidCallsMade:
+    record = {"location": call['location'], "function": call['function'], "valid": call['valid'], "reason": call['reason']}
+    if call['callinglocation'] != '':
+        locationsMakingInvalidCalls += 1
+        currLoc = call['callinglocation']
+    if call['valid'] == -1: invalidCallsToMissingLocation += 1
+    if call['valid'] == -2: invalidCallsToCommentedCode += 1
+    if call['valid'] == -3: invalidCallsToMissingFunction += 1
+    if record not in invalidLocations: 
+        invalidLocations.append(record)
+        if record['valid'] == -1: invalidLocationMissing += 1
+        if record['valid'] == -2: invalidCommentLine += 1
+        if record['valid'] == -3: invalidFunctionMissing += 1
+invalidLocations = sorted(invalidLocations, key=lambda k: (k['location'].lower(), k['function'])) 
+
+runtime[5] = perf_counter_ns()
+print("%s: %d: %d" % (runtime_text[4], runtime[5], runtime[5]-runtime[4] ))
+
+with open('valid-calls-by-location.txt', 'w', encoding='utf-8') as ofile:
+    currLoc = ''
+    ofile.write("---- List of valid calls by location\n")
+    for call in validLocationCalls:
+        if call['location'] != currLoc:
+            ofile.write("\n")
+            ofile.write("  ---- %s -------------\n" % call['location'])
+            currLoc = call['location']
+        ofile.write("    '%s': Commented Line: %s\n" % (call['function'], call['isCommentLine']))
+
+with open('valid-calls-by-location.md', 'w', encoding='utf-8') as ofile:
+    ofile.write("## Valid Calls per Location")
+    currLoc = ''
+    for call in validLocationCalls:
+        if call['location'] != currLoc:
+            currLoc = call['location']
+            ofile.write("\n")
+            ofile.write("### %s" % currLoc)
+            ofile.write("\n")
+            ofile.write('| "Function" | Is Comment |\n')
+            ofile.write("| ---------- | ---------- |\n")
+        ofile.write("| `'%s'` | %s |\n" % (call['function'], call['isCommentLine']))
+    ofile.write("\n")
+
+with open('invalid-calls-missing-locations.txt', 'w', encoding='utf-8') as ofile:
+    
+    ofile.write("----- Summary ------------------------------------------\n")
+    ofile.write("  Locations called incorrectly         : {:>3}\n".format(len(invalidLocations)))
+    ofile.write("    Location/File doesn't exist        : {:>3} [{:>3.2f}%%]\n".format(invalidLocationMissing,(invalidLocationMissing/len(invalidLocations))*100))
+    ofile.write("    Commented out code                 : {:>3} [{:>3.2f}%%]\n".format(invalidCommentLine, (invalidCommentLine/len(invalidLocations))*100))
+    ofile.write("    Value not expected/handled         : {:>3} [{:>3.2f}%%]\n".format(invalidFunctionMissing, (invalidFunctionMissing/len(invalidLocations))*100))
+    ofile.write("--------------------------------------------------------\n")
+    ofile.write("  Locations making incorrect calls     : {:>3}\n".format(locationsMakingInvalidCalls))
+    ofile.write("  Total number of invalid calls        : {:>3}\n".format(len(invalidCallsMade)))
+    ofile.write("    Calls made to non-existing location: {:>3} [{:>3.2f}%%]\n".format(invalidCallsToMissingLocation, (invalidCallsToMissingLocation/len(invalidCallsMade))*100))
+    ofile.write("    Calls made to commented location   : {:>3} [{:>3.2f}%%]\n".format(invalidCallsToCommentedCode, (invalidCallsToCommentedCode/len(invalidCallsMade))*100))
+    ofile.write("    Calls made with unexpected value   : {:>3} [{:>3.2f}%%]\n".format(invalidCallsToMissingFunction, (invalidCallsToMissingFunction/len(invalidCallsMade))*100))
+    ofile.write("--------------------------------------------------------\n")
+    ofile.write("  Missing locations called             : {:>3}\n".format(len(missingLocations)))
+    ofile.write("--------------------------------------------------------\n")
+    ofile.write("\n")
+    ofile.write("\n")
+    ofile.write("{:^80}\n".format("---------- List of Invalid Calls by location ----------"))
+    currLoc = ''
+    for call in invalidLocations:
+        if call['location'] != currLoc:
+            ofile.write("\n")
+            ofile.write("  ---- %s -------------\n" % call['location'])
+            currLoc = call['location']
+        wrapis = wrap("  {:<34}: {}\n".format("'%s'" % call['function'], call['reason']), 125, subsequent_indent="{:<31}".format(' '), break_long_words=True)
+        for line in wrapis:           
+            ofile.write("%s\n" % line)
+    #endfor <- call in invalidLocations
+
+    ofile.write("\n")
+    ofile.write("{:^125}\n".format("---------- Calls made by location ----------"))
+    currLoc = ''
+    for call in invalidCallsMade:
+        if call['callinglocation'] != currLoc:
+            ofile.write("\n")
+            ofile.write("  ---- %s [%s]-------------\n" % (call['callinglocation'], call['file']))
+            currLoc = call['callinglocation']
+        ofile.write("Line {:>4}: {} '{}', '{}'\n".format(call['lineNo'], call['calltype'], call['location'], call['function']))
+        for line in wrap(call['reason'].replace("`", "'"), 90, initial_indent='    ', subsequent_indent='    ', break_long_words=True):
+            ofile.write("%s\n"%line)
+    #endfor <- call in invalidCallsMade
+
+    ofile.write("\n")
+    ofile.write("{:^80}\n".format("---------- List of Missing Locations ----------"))
+    
+    ofile.write("\n")
+    for location in missingLocations:
+        ofile.write("  {:<25} [{}] \n".format(location, join(idir, "%s.qsrc" % location)))
+#endwith
+
+with open('invalid-calls-missing-locations.md', 'w', encoding='utf-8') as ofile:
+    ofile.write("## List of Invalid Calls\n")    
+    currLoc = ''
+    for call in invalidLocations:            
+        if call['location'] != currLoc:
+            currLoc = call['location']
+            ofile.write("\n")
+            ofile.write("### %s" % currLoc)
+            ofile.write("\n")
+            ofile.write('| "Function" | Is Comment |\n')
+            ofile.write("| ---------- | ---------- |\n")
+        ofile.write("| `%s` | %s |\n" % (call['function'], call['reason']))
+    ofile.write("\n")
+    ofile.write("---\n")
+    ofile.write("\n")
+    ofile.write("## Calls made by locations\n")
+    currLoc = ''
+    for call in invalidCallsMade:
+        if call['callinglocation'] != currLoc:
+            currLoc = call['callinglocation']
+            ofile.write("\n")
+            ofile.write("### %s\n" % call['callinglocation'])
+            ofile.write("\n")
+            ofile.write("| File | Line No. | Call | Reason |\n")
+            ofile.write("| ---- | -------- | ---- | ------ |\n")
+        ofile.write("| {} | {:>4} | `{} '{}', '{}'` | {} |\n".format(call['file'], call['lineNo'], call['calltype'], call['location'], call['function'], call['reason']))
+    ofile.write("\n")
+    ofile.write("---\n")
+    ofile.write("\n")
+    ofile.write("## List of Missing Locations\n")
+    ofile.write("\n")
+    ofile.write ("| Location | File |\n")
+    ofile.write ("| -------- | ---- |\n")
+    for location in missingLocations:
+        ofile.write("| %s | %s |\n" % (location, join(idir, "%s.qsrc" % location)))
+#end
+
+runtime[6] = perf_counter_ns()
+print("%s: %d: %d" % (runtime_text[5], runtime[6], runtime[6]-runtime[5] ))
+print(runtime_text[6])
 
