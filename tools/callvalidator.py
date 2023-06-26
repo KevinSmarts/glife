@@ -17,6 +17,7 @@ runtime[0] = perf_counter_ns()
 idir = ''
 validLocationCalls = []
 locationFileList = []
+locationList = []
 missingLocations = []
 locationCallList = []
 callFileList = []
@@ -24,7 +25,7 @@ calledLocationList = []
 validate = 'all'
 locationsToIgnore = ['boystat', 'exp_gain']
 fileToIgnore = ["%s.qsrc" % loc for loc in locationsToIgnore]
-
+fileToIgnore += ['booty_call_after.qsrc','booty_call_condoms.qsrc','booty_call_cowgirl.qsrc','booty_call_cum.qsrc','booty_call_doggy.qsrc','booty_call_favorite_part.qsrc','booty_call_leave.qsrc','booty_call_miss.qsrc','booty_call_morning.qsrc','booty_call_pillow_talk.qsrc','booty_call_pillow_talk2.qsrc','booty_call_reactions.qsrc','booty_call_sex.qsrc','booty_call_shower.qsrc','booty_call_sms.qsrc','booty_call_start.qsrc','booty_call_stats.qsrc','booty_call_talk.qsrc','booty_call_virgin.qsrc','booty_call_work_talk1.qsrc']
 commentLine = "^(\s*!+)"
 blockCommentStart = "(^\s*!+.*{)"
 blockCommentEnd = "(}[^{]*$)"
@@ -90,14 +91,15 @@ if validate == 'all':
 #endif
 
 # Build the list of valid calls
-locationFileList = [f.lower() for f in listdir(idir) if ".qsrc" in f and f.lower() not in fileToIgnore]
+locationFileList = [f for f in listdir(idir) if ".qsrc" in f and f not in fileToIgnore]
 runtime[2] = perf_counter_ns()
 runtime_text[2] = "Building valid calls list [%d files]" % len(locationFileList)
 print("%s: %d: %d" % (runtime_text[1], runtime[2], runtime[2]-runtime[1] ))
 for file in locationFileList:
     with open(join(idir, file), 'rt', encoding='utf-8', newline="\n") as ifile:
         lines = ifile.readlines()
-        location = lines[0].strip(' #\r\n').strip(' ').lower()
+        location = lines[0].strip(' #\r\n').strip(' ')
+        if location not in locationList: locationList.append(location)
         blockComment = False
         for lineNo, line in enumerate(lines):
             #getting locations
@@ -157,15 +159,15 @@ for file in callFileList:
             if match != None:
                 valid = 0
                 reason = ""
-                searchRecordF = {"location": match.group(2).lower(), "function": '' if match.group(3) == None else match.group(3), "isCommentLine": False}
-                searchRecordT = {"location": match.group(2).lower(), "function": '' if match.group(3) == None else match.group(3), "isCommentLine": True}
+                searchRecordF = {"location": match.group(2), "function": '' if match.group(3) == None else match.group(3), "isCommentLine": False}
+                searchRecordT = {"location": match.group(2), "function": '' if match.group(3) == None else match.group(3), "isCommentLine": True}
                 if searchRecordF['function'] == '':
                     if searchRecordF not in validLocationCalls: validLocationCalls.append(searchRecordF)
                     valid = 1
                     reason = ""
-                elif "%s.qsrc" % searchRecordF['location'].lower() not in locationFileList:
+                elif searchRecordF['location'] not in locationList:
                     valid = -1
-                    reason = "Location `%s` doesn't exist - The file `%s.qsrc` was not found in the specified folder." % (searchRecordF['location'], searchRecordF['location'])
+                    reason = "Location `%s` doesn't exist - No file containing this location was found in the specified folder." % (searchRecordF['location'])
                     if searchRecordF['location'] not in missingLocations: missingLocations.append(searchRecordF['location'])
                 elif searchRecordT in validLocationCalls:
                     valid = -2
@@ -180,9 +182,9 @@ for file in callFileList:
 
                 locationCallList.append({"callinglocation": location, 
                                         "file": ifile.name, 
-                                        "lineNo": lineNo, 
+                                        "lineNo": lineNo+1, 
                                         "calltype": match.group(1), 
-                                        "location": match.group(2).lower(), 
+                                        "location": match.group(2), 
                                         "function": '' if match.group(3) == None else match.group(3), 
                                         "valid": valid, 
                                         "reason": reason})    
