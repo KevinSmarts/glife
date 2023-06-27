@@ -46,13 +46,11 @@ python tools\testbuilder.py %LOCATIONSFOLDER% %TESTSUITE% %SAVE_ENABLED%
 SET /p MYVAR=<_temp-filename.txt
 SET TXTFILE="%MYVAR%.txt"
 SET QSPFILE="%MYVAR%.qsp"
-SET QPRFILE="%MYVAR%.qproj" 
 
 @ECHO ON
 tools\txt2gam.exe  %TXTFILE% %QSPFILE% : > nul
 del %TXTFILE%
 del _temp-filename.txt
-del %QPRFILE%
 %QSPGUI% %QSPFILE%
 @ECHO OFF
 
