@@ -3,8 +3,8 @@
 :: The file that will be generated or open
 set TESTFOLDER=test
 set TESTSUITE=test\testsuite-basic.qproj 
-:: set QSPGUI=tools\QSPgui\qspgui.exe
-set QSPGUI=Qqsp.exe
+set QSPGUI=tools\QSPgui\qspgui.exe
+:: set QSPGUI=Qqsp.exe
 set SAVE_ENABLED=FALSE
 set LOCATIONSFOLDER=locations
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
