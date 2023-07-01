@@ -238,6 +238,10 @@ with open('valid-calls-by-location.txt', 'w', encoding='utf-8') as ofile:
             currLoc = call['location']
         ofile.write("    '%s': Commented Line: %s\n" % (call['function'], call['isCommentLine']))
 
+with open('validcallsfortesting.txt', 'w', encoding='utf-8') as ofile:
+    for call in validLocationCalls:
+        if not call['isCommentLine']: ofile.write("%s:%s\n" % (call['location'], call['function'])) 
+
 with open('valid-calls-by-location.md', 'w', encoding='utf-8') as ofile:
     ofile.write("## Valid Calls per Location")
     currLoc = ''

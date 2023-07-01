@@ -25,6 +25,15 @@
 
 !! This will run every time for now until I find out how to call this whenever Sveta changes clothes regardless of where and how. I don't want to put it in gs 'stat'
 
+$solicitation_locations[0] = 'pav_commcenter'
+$solicitation_locations[1] = 'pav_residential'
+$solicitation_locations[2] = 'pav_industrial'
+$solicitation_locations[3] = 'pav_commercial'
+$solicitation_locations[4] = 'pav_market'
+$solicitation_locations[5] = 'pav_complex'
+$solicitation_locations[6] = 'pav_park'
+$solicitation_locations[7] = 'pushkin'
+
 
 if $ARGS[0] = 'check_for_wlife':
     if mod_list > 0:
@@ -60,6 +69,19 @@ if $ARGS[0] = 'set_gadukion_prostitute':
 	end
 end
 
+if $ARGS[0] = 'prostitute_work_hours':
+	if $region = 'pushkin':
+		RESULT = (hour >= 0 and hour < 2) or (hours >= 12 and hour < 14) or (hour >= 17 and hour <= 23)
+	elseif $region = 'pav' or MID($loc,1,4) = 'pav_':
+		RESULT = (hour >= 12 and hour < 14) or (hour >= 17 and hour <= 23)
+	else
+		RESULT = 0
+	end
+end
+
+if $ARGS[0] = 'is_solicitation_location':
+	RESULT =$curloc ! 'shop' and $loc = $curloc and menu_off and ($loc_arg = '' or $loc_arg = 'start') and ARRPOS('solicitation_locations', $loc)
+end
 !!-----------------------------------------------------------------------------------------------------------------------
 !!-----------------------------------------------------------------------------------------------------------------------
 !!
@@ -222,23 +244,20 @@ end
 !!-----------------------------------------------------------------------------------------------------------------------
 !!---------- Checking for events ----------------------------------------------------------------------------------------
 !!-----------------------------------------------------------------------------------------------------------------------
-
+  
 if $ARGS[0] = 'check_solicitation_event':
 	gs 'prostitution_functions', 'work_clothes'
-    if prostitute['blocked'] = 0:
-        if (($loc_arg = '' and ($loc = 'pav_commcenter' or $loc = 'pav_residential' or $loc = 'pav_industrial' or $loc = 'pav_commercial' or $loc = 'pav_market' or $loc = 'pushkin')) or ($loc_arg = 'start' and ($loc = 'pav_complex' or $loc = 'pav_park'))) and hour > 6 and hour < 23 and $curloc ! 'shop' and menu_off = 0 and $loc = $curloc:
+    if prostitute['blocked'] = 0 and func('prostitution_functions', 'prostitute_work_hours') and func('prostitution_functions','is_solicitation_location'):
+		if prostitute['pavlovsk'] = 1 and prostitute['pav_time_hour'] ! hour and rand(-20, 70) < minut and $curloc ! 'prostitution_pavlovsk' and $curloc ! 'shop' and menu_off = 0 and $loc = $curloc: 
+			gs 'prostitution_pavlovsk', 'chance'
+		end
+		
+		if prostitute['pavlovsk'] = 1 and prostitute['work_clothes'] :
+			pl '<center><a href="exec: gt ''prostitution_pavlovsk'', ''search''"><img title="Click to start working in Pavlovsk." height = 80 src="images/system/icons/icon_prostitute.png"></a></center>'
+		end
 
-            if prostitute['pavlovsk'] = 1 and prostitute['pav_time_hour'] ! hour and rand(-20, 70) < minut and $curloc ! 'prostitution_pavlovsk' and $curloc ! 'shop' and menu_off = 0 and $loc = $curloc: 
-                gs 'prostitution_pavlovsk', 'chance'
-            end
-            
-            if prostitute['pavlovsk'] = 1 and prostitute['work_clothes'] :
-                pl '<center><a href="exec: gt ''prostitution_pavlovsk'', ''search''"><img title="Click to start working in Pavlovsk." height = 80 src="images/system/icons/icon_prostitute.png"></a></center>'
-            end
-
-            if prostitute['pav_residential_prost_day'] ! daystart: prostitute['pav_residential_prost_day'] = daystart
-            !!pav_residential_prost_day
-        end 
+		if prostitute['pav_residential_prost_day'] ! daystart: prostitute['pav_residential_prost_day'] = daystart
+		!!pav_residential_prost_day
     end
 end
 
