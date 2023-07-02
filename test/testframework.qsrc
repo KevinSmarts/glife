@@ -59,12 +59,55 @@ end
 if $ARGS[0] = 'assertEqualsNumber':
 	RESULT = ARGS[1] = ARGS[2]
 end
-
-
+ 
 !! Asserts that the two Arrays passed in $ARGS[1] and $ARGS[2] are equal.
 !! The two parameters are the Array variable names
+!! $ARGS[1]: the first array
+!! $ARGS[2]: the second array
+!! ARGS[3]: strict order (true / false: 1/0)
 if $ARGS[0] = 'assertEqualsStringArray':
-	RESULT = ARRSIZE($ARGS[1]) = ARRSIZE($ARGS[2])
+	RESULT = 1
+	if ARRSIZE($ARGS[1]) ! ARRSIZE($ARGS[2]):
+		RESULT = 0
+	else:
+		$array_1 = 0
+		$array_2 = 0
+		elements = ARRSIZE($ARGS[1])
+		COPYARR '$array_1', $ARGS[1]
+		COPYARR '$array_2', $ARGS[2]
+		index = 0
+
+:array_compare_loop
+		pos = ARRPOS('$array_2', $array_1[index])
+		if pos = -1:
+			RESULT = 0
+		elseif ARGS[3] = 1 and pos ! index:
+			RESULT = 0
+		end
+		index += 1
+		if index < elements and RESULT ! 0: jump ':array_compare_loop'
+	end
+end
+
+!! $ARGS[1]: name of the array
+!! ARGS[2]: the value we are looking for
+if $ARGS[0] = 'assertNumberIsInArray':
+	if $MID($ARGS[1], 1, 1) = '$':
+		RESULT = 0
+		$ACTUAL_MESSAGE = "'<<$ARGS[1]>>' is a string type array, use 'assertStringIsInArray' not 'assertNumberIsInArray'."
+	elseif $ARGS[2] ! '' and ISNUM($ARGS[2]) = 0:
+		RESULT = 0
+		$ACTUAL_MESSAGE = "'<<$ARGS[1]>> is a numeric type array but <<$ARGS[2]>> is not a number."
+	else:
+		index = ARRPOS($ARGS[1], ARGS[2])
+		if index ! -1:
+			$ACTUAL_MESSAGE = "<<ARGS[2]>> was found in array '<<$ARGS[1]>> at index <<index>>."
+			RESULT = index ! -1
+		else 
+			$ACTUAL_MESSAGE = "<<ARGS[2]>> was not found in array '<<$ARGS[1]>>."
+			RESULT = 0
+		end
+	end
 end
 
 if $ARGS[0] = 'addTestResult':
