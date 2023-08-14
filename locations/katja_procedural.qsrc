@@ -10,8 +10,8 @@
 !! katjaQW['QWstage'] = 1 You have agreed to hang out with Katja afer school. (meynoldQW = 1)
 !! katjaQW['QWstage'] = 2 You have been to Katja''s house and you can go there to hang out with her. (meynoldQW = 2)
 !! katjaQW['QWstage'] = 3 You have kissed Katja and she might be interested in more. (katjaFirstKiss = 1 and KatjaOTN)
-!! npc_sex['A14'] = 1 You have had at least one sexual experince with Katja.
-!! katjaQW['QWstage'] = 4 Katja have asked you to helpe have sex with a boy.
+!! npc_sex['A14'] = 1 You have had at least one sexual experience with Katja.
+!! katjaQW['QWstage'] = 4 Katja have asked you to help have sex with a boy.
 !! katjaQW['QWstage'] = 5 You have agreed to help Katja have sex with a boy.
 !! katjaQW['QWstage'] = 6 You have talked with Katja about her first experience with a boy.
 !! katjaQW['QWstage'] = 7 You have told Katja about the boys in the park.
@@ -28,6 +28,7 @@
 !! katjaQW['couple'] is set to 1 when you agree to be a couple.
 !! katjaQW['faithful'] is sent to 1 if you are a couple and agree not to have sex with others (unless you both participate)
 !! katjaQW['cheat_warning'] is set the first time Katja confronts the player because the caught them cheating and to 2 after the player have been caught so many times that Katja warns them that she will also starts to sleep around. 
+!! katjaQW['cheat_times'] the number of times since her last waring that Katja is certain that you cheated on her.
 
 !! katjaQW['sex_clossedness'] 0 mean no restriction on sex scenes with Katja, 1 mean only scenes with Katja and the player character are available, 2 mean that the player character wont have sex with Katja
 
@@ -140,7 +141,14 @@ if $ARGS[0] = 'hourly':
 	end
 	if katjaQW['under_influnece_of_cocaine'] > 0: katjaQW['under_influnece_of_cocaine'] -= 1
 
-	if katjaQW['nightclub_private_room_boy'] = 1 and katjaQW['disco_loc'] ! 7: katjaQW['nightclub_private_room_boy'] = 0 & gs 'katja_procedural', 'sex_set', 1
+	!! Resetting her sublocation at the nightclub after she leaves the nightclub
+	if locat['katja'] ! 53: katjaQW['disco_loc'] = 0
+
+	!! Setting the sex stat for Katja if she went to a private room at the nightclub and the player character did not spy on her.
+	if katjaQW['nightclub_private_room_boy'] = 1 and katjaQW['disco_loc'] ! 7:
+		katjaQW['nightclub_private_room_boy'] = 0
+		if rand(0,katjaQw['slut']/25) > 0: gs 'katja_procedural', 'sex_set', 1
+	end
 end
 
 if $ARGS[0] = 'cikl':
@@ -176,17 +184,11 @@ if $ARGS[0] = 'cikl':
 	if npc_sex['A14'] >= 1 and katjaQW['simultanous_girls'] = 0: katjaQW['simultanous_girls'] = 1
 
 	!! Katja learning about you sexual experience from other sources because you are a slut.
-	if fame['pav_slut'] >= 150 and stat['bj'] > 0 and katjaQW['knows_BJ'] ! 1: katjaQW['knows_BJ'] = 1
-	if fame['pav_slut'] >= 250 or preg > 0 and stat['vaginal'] > 0 and katjaQW['knows_sex'] ! 1: katjaQW['knows_sex'] = 1
+	if (fame['pav_slut'] >= 150 or (fame['city_slut'] >= 150 and yearstart > 1)) and stat['bj'] > 0 and katjaQW['knows_BJ'] ! 1: katjaQW['knows_BJ'] = 1
+	if (fame['pav_slut'] >= 250 or (fame['city_slut'] >= 250 and yearstart > 1) or preg > 0) and stat['vaginal'] > 0 and katjaQW['knows_sex'] ! 1: katjaQW['knows_sex'] = 1
 
 	!!Resetting if Katja have shown you that she is not wearing panties at the disco. The reason to not use a daystart variable, is the if you show it very late Friday it might prevent you from seeing it Saturday (daystart can change during the event)
 	if katjaQW['no_panties_at_disco'] > 0: katjaQW['no_panties_at_disco'] = 0
-
-	!! Setting the sex stat for Katja if she went to a private room at the nightclub and the player character did not spy on her.
-	if katjaQW['nightclub_private_room_boy'] = 1: 
-		katjaQW['nightclub_private_room_boy'] = 0
-		if rand(0,katjaQw['slut']/25) > 0: gs 'katja_procedural', 'sex_set', 1
-	end
 	
 	!!Out commented Katja becoming pregnant until more content for a pregnant Katja is done 
 	!!if katjaPreg = 0 and month >= 2 and year > 2016: katjaPreg = 1
@@ -210,9 +212,18 @@ if $ARGS[0] = 'cikl':
 		npc_preference['A<<npctemp>>_clothes_thinnes'] = 1
 	end	
 
+	!! Check if she had sex with other after being at the disco alone
+	if katjaQW['liberated'] = 1 or (katjaQW['relationship_talk'] = 1 and katjaQW['faithful'] = 0):
+		if locat['katja_save2'] = 53 and (katjaQW['disco_arrival'] + 600 < totminut or katjaQW['disco_met'] + 600 < totminut):
+			if (rand(1,15) <= (min(func('katja_procedural', 'willing_to_be_naughty'), 100) - 50)/10 and katjaQW['relationship_talk'] = 1 and katjaQW['faithful'] = 0) or (katjaQW['relationship_talk'] = 0 and katjaQW['liberated'] and rand(0,3) = 0):
+				gs 'katja_procedural', 'sex_set', rand(0,katjaQW['simultanous_boys'] + 1), rand(0,katjaQW['simultanous_girls']+1)
+			end
+		end
+	end
+
 	!! Check if she did drugs with others
 	if katjaQW['coke_stage'] >= 5:
-		if locat['katja_save2'] = 53 and katjaQW['disco_arrival'] + 600 > totminut or katjaQW['disco_met'] + 600 > totminut:
+		if locat['katja_save2'] = 53 and (katjaQW['disco_arrival'] + 600 < totminut or katjaQW['disco_met'] + 600 < totminut):
 			if rand(0,katjaQW['coke_stage']) >= 5: gs 'katja_procedural', 'take_cocaine', 1, 1
 		elseif katjaQw['alone_with_other_day'] = daystart -1
 			if rand(2,katjaQW['coke_stage']) >= 5: gs 'katja_procedural', 'take_cocaine', 1, 1
@@ -264,18 +275,42 @@ if $ARGS[0] = 'face_color':
 	!! To print the colour of her face, for the player to get an idea of her arousal
 	if katjaQW['QWstage'] > 2:
 		if katjaQW['horny'] < 20:
-			'Katja looks calm and stoic.'
+			if $ARGS[1] = 'func':
+				$result = 'Katja looks calm and stoic.'
+			 else
+				'Katja looks calm and stoic.'
+			end
 		elseif katjaQW['horny'] < 40:
-			'Katja looks at you with a naughty twinkle in her eyes.'
+			if $ARGS[1] = 'func':
+				$result = 'Katja looks at you with a naughty twinkle in her eyes.'
+			 else
+				'Katja looks at you with a naughty twinkle in her eyes.'
+			end
 		elseif katjaQW['horny'] < 60:
-			'Katja looks at you, a faint blush on her cheeks as she smiles at you mischievously.'
+			if $ARGS[1] = 'func':
+				$result = 'Katja looks at you, a faint blush on her cheeks as she smiles at you mischievously.'
+			 else
+				'Katja looks at you, a faint blush on her cheeks as she smiles at you mischievously.'
+			end
 		elseif katjaQW['horny'] < 80:
-			'Katja is blushing fairly obviously and looks at you longingly.'
+			if $ARGS[1] = 'func':
+				$result = 'Katja is blushing fairly obviously and looks at you longingly.'
+			 else
+				'Katja is blushing fairly obviously and looks at you longingly.'
+			end
 		else
-			'Katja''s face is flushed bright red and her chest is heaving from her heavy breathing. She''s idly rubbing her thighs against one another.'
+			if $ARGS[1] = 'func':
+				$result = 'Katja''s face is flushed bright red and her chest is heaving from her heavy breathing. She''s idly rubbing her thighs against one another.'
+			 else
+				'Katja''s face is flushed bright red and her chest is heaving from her heavy breathing. She''s idly rubbing her thighs against one another.'
+			end
 		end
 	else
-		'Katja looks at you with a smile.'
+		if $ARGS[1] = 'func':
+			$result = 'Katja looks at you with a smile.'
+		 else
+			'Katja looks at you with a smile.'
+		end
 	end
 end
 
