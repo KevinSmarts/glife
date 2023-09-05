@@ -100,6 +100,12 @@ if $ARGS[0] = 'car':
 	act 'Return': killvar 'carT' & killvar 'bupay' & gt 'autotraidF', 'start'
 	
 	if hour <= 17:
+		if car = 0 or car > 199:
+			!! this is a VERY crude fix for when car[] was created before car
+			!! if we ever add cars with indices past 199 its gonna break
+			killvar 'car'
+			car = 0
+		end
 		act 'Inspect a 2107':gt 'autotraidF', 'inspect', '2107', 1, 200, 1, 3
 
 		act 'Inspect another 2107 (Broken Engine)':
@@ -108,26 +114,31 @@ if $ARGS[0] = 'car':
 			menu_off = 1
 			'<center><b>2107 (Broken engine)</b></center>'
 			'<center><img <<$set_imgh>> src="images/pc/items/accessories/car/car.jpg"></center>'
-			bupay = rand(10000, 50000)
-			'The car is basically a wreck. It doesn''t even start. When you ask the salesman how much it costs, he tells you "<<bupay>> <b>₽</b>" without hesitation.'
+			!! caching offers, resets on monday (via cikl)
+			if used_car['wrek_condition'] = 0 and used_car['wrek_price'] = 0:
+				used_car['wrek_condition'] = rand(10, 200)
+				used_car['wrek_price'] = rand(10000, 50000)
+			end
+			'The car is basically a wreck. It doesn''t even start. When you ask the salesman how much it costs, he tells you "<<used_car[''wrek_price'']>> <b>₽</b>" without hesitation.'
 
 			act 'Look around some more':gt 'autotraidf', 'car'
 
-			if car = 0 and prava = 1 and money >= bupay:
-				act 'Buy it for <<bupay>><b>₽</b>':
+			if car = 0 and prava = 1 and money >= used_car['wrek_price']:
+				act 'Buy it for <<used_car[''wrek_price'']>><b>₽</b>':
 					cla
-					money -= bupay
+					money -= used_car['wrek_price']
 					$car = '2107'
 					car = 1
 					benz = 3
 					cardrive = 9
 					car['new_condition'] = 200
-					car['current_condition'] = rand(10, car['new_condition'])
+					car['current_condition'] = used_car['wrek_condition']
 					wrek = 1
-					'You agree and before you know it, the car salesman and you have signed all the necessary documents. You hand over the <<bupay>> <b>₽</b> in cash, and the car is yours.' 
+					'You agree and before you know it, the car salesman and you have signed all the necessary documents. You hand over the <<used_car[''wrek_price'']>> <b>₽</b> in cash, and the car is yours.' 
 					'Since it''s crammed in between about a million other vehicles, the car salesman moves it outside near the yard''s entrance for you... and that''s it.' 
 					'If you want to get the car to a garage, you''ll have to go there and have it towed.'
-					killvar 'bupay'
+					gs 'shortgs', 'remove_array_element', 'used_car', 'wrek_condition'
+					gs 'shortgs', 'remove_array_element', 'used_car', 'wrek_price'
 					act 'Leave': minut += 5 & gt 'city_industrial'
 				end
 			end
@@ -148,42 +159,51 @@ if $ARGS[0] = 'inspect':
 	menu_off = 1
 	$autotraidF_carname = $ARGS[1]
 	autotraidF_carnum = ARGS[2]
+	!! max potential condition, used in 'avt' to generate actual condition and price
 	car['potential_new_condition'] = ARGS[3]
-	carT = ARGS[4]
 	autotraidF_benz = ARGS[5]
 
 	'<center><b><<$autotraidF_carname>></b></center>'
+	!! currently theres no car1.jpg, only car.jpg, either we need logic (which was removed btw)
+	!! or we need an actual car1.jpg image
 	'<center><img <<$set_imgh>> src="images/pc/items/accessories/car/car<<autotraidF_carnum>>.jpg"></center>'
 
-	gs 'avt'
-	'<<$car[''potential_current_condition'']>> The car salesman wants <<bupay>> <b>₽</b> for it.'
+	!! caching offers, resets on monday (via cikl)
+	if used_car['<<autotraidF_carnum>>_condition'] = 0 and used_car['<<autotraidF_carnum>>_price'] = 0:
+		!! used in 'avt' as branching selector, affects price
+		carT = ARGS[4]
+		!! generates condition and price for the car
+		gs 'avt'
+	end
+	'<<$car[''potential_current_condition'']>> The car salesman wants <<used_car[''<<autotraidF_carnum>>_price'']>> <b>₽</b> for it.'
 
 	act 'Look around some more':
-		killvar 'bupay'
 		killvar '$autotraidF_carname'
 		killvar 'autotraidF_carnum'
 		killvar 'autotraidF_benz'
 		gt 'autotraidF', 'car'
 	end
 
-	if car = 0 and prava = 1 and money >= bupay:
-		act 'Buy (<<bupay>> <b>₽</b>)':
+	if car = 0 and prava = 1 and money >= used_car['<<autotraidF_carnum>>_price']:
+		act 'Buy (<<used_car[''<<autotraidF_carnum>>_price'']>> <b>₽</b>)':
 			cla
-			money -= bupay
+			money -= used_car['<<autotraidF_carnum>>_price']
 			$car = $autotraidF_carname
 			car = autotraidF_carnum
-			!!benz = fuel
+			!!benz means fuel
 			benz = autotraidF_benz
 			cardrive = 9
-			car['current_condition'] = car['potential_current_condition']
+			car['current_condition'] = used_car['<<autotraidF_carnum>>_condition']
+			!! sets condition when new (ie max possible condition)
 			car['new_condition'] = car['potential_new_condition']
 			wrek = 0
-			'You agree and before you know it, the car salesman and you have signed all the necessary documents. You hand over the <<bupay>> <b>₽</b> in cash, and the car is yours.' 
+			'You agree and before you know it, the car salesman and you have signed all the necessary documents. You hand over the <<used_car[''<<autotraidF_carnum>>_price'']>> <b>₽</b> in cash, and the car is yours.' 
 			'Since it''s crammed in between about a million other vehicles, the car salesman moves it outside near the yard''s entrance for you and warns you that there is very little gas in the tank.'
-			killvar 'bupay'
 			killvar '$autotraidF_carname'
 			killvar 'autotraidF_carnum'
 			killvar 'autotraidF_benz'
+			gs 'shortgs', 'remove_array_element', 'used_car', '<<autotraidF_carnum>>_condition'
+			gs 'shortgs', 'remove_array_element', 'used_car', '<<autotraidF_carnum>>_price'
 			act 'Leave': minut += 5 & gt 'city_industrial'
 		end
 	end
