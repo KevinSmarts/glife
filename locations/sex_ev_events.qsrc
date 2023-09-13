@@ -1,0 +1,138 @@
+# sex_ev_events
+!! for special events
+
+if $ARGS[0] = 'sneak_phone':
+	msg'Placeholder - Event is WIP'
+end
+
+if $ARGS[0] = 'rummage_drawers_start':
+	cla
+	act'Go back':gs 'sex_ev_after', 'after_sex2_w_picture'
+	act'Rummage through his dresser':gt 'sex_ev_events', 'rummage_drawers1'
+end
+
+if $ARGS[0] = 'rummage_drawers1':
+	sex_ev['drawer_rummage'] = 1
+	cla & *clr
+	'<center><video autoplay loop src="images/pc/activities/misc/open_drawers1.mp4"></video></center>'
+	!! if $npc_occupation[$boy] = 'drug_dealer': find drugs
+	act'Close the drawer':gs'sex_ev_events', 'rummage_drawers_end_route'
+	
+	if rand(1,3) = 1:
+		'You rummage through <<$npc_firstname[$boy]>>''s drawers. You don''t find anything of interest.'
+	!!{elseif npc_criminal[$boy] > 0:
+		'Your eyes go wide as you pull back on <<$npc_firstname[$boy]>>''s drawers and find a handgun inside.'
+		act'What is this???':gt'sex_ev_events', 'gun_ev_confront1'
+		if sveta_is_cop = 1:
+			act'Take note of the serial number':gt'sex_ev_events', 'gun_ev_serial1'
+		end}
+	else
+		sex_ev['boy_money'] = rand(3,9)
+		if npc_finance[$boy] = 1: sex_ev['boy_money'] += rand(1,5)
+		if npc_finance[$boy] = 2: sex_ev['boy_money'] = sex_ev['boy_money'] * 2
+		'You rummage through <<$npc_firstname[$boy]>>''s drawers. You find <<sex_ev[''boy_money''] * 100>> <b>₽</b> in various notes, along with some of his other things.'
+		act'Steal it':
+			cla & *clr
+			$sex_ev['bed_room']
+			sex_ev['stole_money'] = 1
+			if rand(1,2) = 1:
+				if $sex_ev['loc'] = 'hotel_room' or npc_apt_type[$boy] = 2 or npc_apt_type[$boy] = 3:
+					'You take a wary glance at the bathroom door. Right as you do, you hear the water shut off. Realizing there''s only seconds, you take your chance and grab the cash out of the drawer and running back to your things to stuff it into your bag.'
+				else
+					'You take a wary glance at the door. You don''t hear <<$npc_firstname[$boy]>> coming so you take your chance and grab the cash out of the drawer, running back to your things to stuff it into your bag.'
+				end
+				act'Hide the money!':gs'sex_ev_events', 'rummage_drawers_end_route'
+			else
+				if $sex_ev['loc'] = 'hotel_room' or npc_apt_type[$boy] = 2 or npc_apt_type[$boy] = 3:
+					'You take a wary glance at the bathroom door. The water''s still running. It doesn''t seem like he''s going to come out any time soon. You decide to take your chance and grab the cash, closing the drawer and stuffing it into your purse.'
+				else
+					'You take a wary glance at the door. You don''t hear <<$npc_firstname[$boy]>> coming so you decide to take your chance and grab the cash, closing the drawer and stuffing it into your purse.'
+				end
+				act'Wait for <<$npc_firstname[$boy]>> to finish':
+					cla & *clr
+					$sex_ev['bed_room']
+					if $sex_ev['loc'] = 'hotel_room' or npc_apt_type[$boy] = 2 or npc_apt_type[$boy] = 3:
+						'After hiding the money, you sit back on the bed and act natural. It''s only a couple minutes before you hear the water shut off and <<$npc_firstname[$boy]>> comes out with wet hair and a towel wrapped around his waist.'
+					else
+						'After hiding the money, you sit back on the bed and act natural. It''s only a couple minutes before <<$npc_firstname[$boy]>> comes strolling back into the bedroom with wet hair and a towel wrapped around his waist.'
+					end
+					gs'sex_ev_shower', 'boy_shower_finish_acts'
+				end
+				act'Join him in the shower':gs'sex_ev_shower', 'after_shower_join'
+			end
+		end
+	end
+end
+
+if $ARGS[0] = 'rummage_drawers_end_route':
+	cla & *clr
+	if sex_ev['boy_in_shower'] = 1:
+		gs'sex_ev_events', 'rummage_drawers_shower_end'
+	else
+	
+	end
+end
+
+if $ARGS[0] = 'rummage_drawers_shower_end':
+	$sex_ev['bed_room']
+	
+	!! if rand(1,3) = 1: he catches you
+	if sex_ev['stole_money'] = 1:
+		money += sex_ev['boy_money'] * 100
+		'You finish hiding the money in your bag just as <<$npc_firstname[$boy]>> comes into the room, hair wet from the shower, towel wrapped around his waist.'
+	else
+		'You finish closing the drawer and step away just as <<$npc_firstname[$boy]>> comes into the room, hair wet from the shower, towel wrapped around his waist.'
+	end
+	gs'sex_ev_shower', 'boy_shower_finish_acts'
+end
+
+
+if $ARGS[0] = 'boy_timecheck':
+	if hour >= npc_work_start[$boy] - 1 and hour < npc_work_end[$boy] and rand(1,5) = 1:
+		sex_ev['npc_late'] = 1
+		gs'sex_ev_events', 'boy_gotta_go'
+	end
+end
+
+if $ARGS[0] = 'boy_gotta_go':
+	cla
+	act'Continue':
+		cla & *clr
+		$sex_ev['bed_room']
+		'<<$npc_firstname[$boy]>> checks the time.'
+		if sex_ev['boy_shower'] = 1:
+			'"Shit, I gotta go," he says, dropping his towel and reaching for his clothes. ' + iif(hour >= npc_work_start[$boy], '"I''m late for work."', '"I''m gonna be late for work."')
+		else
+			'"Shit, I gotta go," he says, hauling himself out of bed. ' + iif(hour >= npc_work_start[$boy], '"I''m late for work."', '"I''m gonna be late for work."')
+		end
+		gs'sex_ev_events', 'boy_gotta_go2'
+	end
+end
+
+if $ARGS[0] = 'boy_gotta_go2':
+	cla
+	if $sex_ev['loc'] ! 'pc_home':
+		'"Should I get dressed too then?" you ask.'
+	end
+	if $sex_ev['loc'] = 'hotel_room':
+		sex_ev['hotel_days'] = rand(1,3)
+		if sex_ev['hotel_days'] = 1:
+			'"No need to rush. The room is booked until tomorrow," <<$npc_firstname[$boy]>> grins. "Feel free to order room service. Just make sure to be gone by checkout."'
+		else
+			'"No need to rush. The room is booked for a few more days," <<$npc_firstname[$boy]>> grins. "Feel free to order room service. Just make sure to be gone by checkout."'
+		end
+		*nl
+		'With that, <<$npc_firstname[$boy]>> finishes getting dressed and heads out the door, leaving you in the hotel room all to yourself.'
+		act'Continue':gs'sex_ev_leave', 'exit'
+	elseif $sex_ev['loc'] = 'npc_home':
+		if npc_lover_keys[$boy] = 1:
+			'"No, it''s fine. You have a key right? Just lock up when you leave," he says, quickly getting dressed.'
+		else
+			'"Yeah, I need you to leave so I can lock up."'
+			'You hurry to get dressed beside <<$npc_firstname[$boy]>>.'
+			gs'sex_ev_leave', 'dress_loop_end'
+			gs'sex_ev_leave', 'leaving_dialogue_choices'
+		end
+	end
+end
+--- sex_ev_events ---------------------------------

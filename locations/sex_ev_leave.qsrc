@@ -3,51 +3,90 @@
 if $ARGS[0] = 'exit':
 	minut += 2
 	!! exit should be based on type of apartment and location
-	if $sex_ev['loc'] = 'npc_home':
-			gs 'sex_ev_leave', 'ending'
-		if npc_residence[$boy] = 1:
-			!! Pav residential exit
-			gt 'pav_residential'
-		elseif npc_residence[$boy] = 2:
-			!! Student dorms exit
-			gt 'city_island'
-		elseif npc_residence[$boy] = 3:
-			!! St. Petersburg Residential exit
-			gt 'city_residential'
-		elseif npc_residence[$boy] = 4:
-			!! St. Petersburg City Center exit
-			gt 'city_center'
-	!!{ disabled for bug testing
-		else
-			if $region = 'pav':
-				gt 'pav_residential'
-			elseif $region = 'pav':
-				gt 'pav_commercial'
-			elseif $region = 'pav_park':
-				gt 'pav_park', 'start'
-			elseif $region = 'city':
-				gt 'city_residential'
-			elseif $region = 'city_center':
-				gt 'city_center'
-			elseif $region = 'city_park':
-				gt 'city_park', 'start'
-			elseif $region = 'city_island':
-				gt 'city_island'
-			end}
-		end
-	elseif $sex_ev['loc'] = 'hotel':
-		gs 'sex_ev_leave', 'ending'
-		if $region = 'pav':
-			gt 'pav_hotel'
-		elseif $region = 'city':
-			gt 'city_center'
-		end
+	if sex_ev['unique_npc'] = 1:
 		gt $sex_ev_exit['exit_file'], $sex_ev_exit['exit_arg']
-	elseif $sex_ev['loc'] = 'pc_home':
+	else
+		if $sex_ev['loc'] = 'npc_home':
+				gs 'sex_ev_leave', 'ending'
+			if npc_residence[$boy] = 1:
+				!! Pav residential exit
+				gt 'pav_residential'
+			elseif npc_residence[$boy] = 2:
+				!! Student dorms exit
+				gt 'city_island'
+			elseif npc_residence[$boy] = 3:
+				!! St. Petersburg Residential exit
+				gt 'city_residential'
+			elseif npc_residence[$boy] = 4:
+				!! St. Petersburg City Center exit
+				gt 'city_center'
+		!!{ disabled for bug testing
+			else
+				if $region = 'pav':
+					gt 'pav_residential'
+				elseif $region = 'pav':
+					gt 'pav_commercial'
+				elseif $region = 'pav_park':
+					gt 'pav_park', 'start'
+				elseif $region = 'city':
+					gt 'city_residential'
+				elseif $region = 'city_center':
+					gt 'city_center'
+				elseif $region = 'city_park':
+					gt 'city_park', 'start'
+				elseif $region = 'city_island':
+					gt 'city_island'
+				end}
+			end
+		elseif $sex_ev['loc'] = 'hotel_room':
+			if sex_ev['hotel_days'] > 0:
+				if $region = 'pav':
+					$hotel = 'pav_hotel'
+					gs 'sex_ev_leave', 'ending'
+					gt 'HotelRoom', 'better'
+				elseif $region = 'city':
+					$hotel = 'city_hotel'
+					gs 'sex_ev_leave', 'ending'
+					gt 'HotelRoom', 'best'
+				end
+			else
+				if $region = 'pav':
+					gs 'sex_ev_leave', 'ending'
+					gt 'pav_hotel'
+				elseif $region = 'city':
+					gs 'sex_ev_leave', 'ending'
+					gt 'city_hotel'
+				end
+			end
+	!!		gt $sex_ev_exit['exit_file'], $sex_ev_exit['exit_arg']
+		elseif $sex_ev['loc'] = 'pc_home':
+			gs 'sex_ev_leave', 'ending'
+			if $sex_ev_exit['loc'] = 'bedroom':
+				gt 'bedr'
+			elseif $sex_ev_exit['loc'] = 'hallway':
+				gt 'korr'
+			end
+		end
+	end
+end
+
+if $ARGS[0] = 'exit_into_loc':
+	!! for when you end the event and continue to hang out at a lover''s apartment or hotel
+	if $sex_ev['loc'] = 'npc_home':
 		gs 'sex_ev_leave', 'ending'
+		gs 'lover_home', 'bedroom'
+	elseif $sex_ev['loc'] = 'hotel_room':
+!!		if $region = 'pav':
+		gs 'sex_ev_leave', 'ending'
+		gs 'lover_home', 'hotel_room'
+	elseif $sex_ev['loc'] = 'pc_home':
 		if $sex_ev_exit['loc'] = 'bedroom':
+			gs 'sex_ev_leave', 'ending'
+			pcs_romance['lover_here'] = 1
 			gt 'bedr'
 		elseif $sex_ev_exit['loc'] = 'hallway':
+			pcs_romance['lover_here'] = 1
+			gs 'sex_ev_leave', 'ending'
 			gt 'korr'
 		end
 	end
@@ -70,56 +109,112 @@ if $ARGS[0] = 'fuckbuddy_add':
 	npc_no_booty_call[$boy] = daystart
 end
 
+if $ARGS[0] = 'sugar_daddy_add':
+	if $npc_rel_type[$boy] ! 'fuckbuddy': gs 'sex_ev_leave', 'fuckbuddy_add'
+	npc_sugar_daddy_price[$boy] = sex_ev['sugar_daddy_offer'] * 100
+	$npc_rel_type[$boy] = 'sugar_daddy'
+	sex_ev['sugar_daddy_paid'] = 1
+end
+
 if $ARGS[0] = 'lover_add':
 	gs 'lover', 'add', $boy
 end
 
 if $ARGS[0] = 'ending':
-!!	gs 'sex_ev_stats', 'save'
+	gs 'sex_ev_stats', 'save_stats'
+	if sugar_daddy_call[$boy] = 1:
+		sugar_daddy_call[$boy] = 0
+	end
+	if $booty_call_hotel[$boy] ! '': $booty_call_hotel[$boy] = ''
 	gs 'arousal', 'end'
-	if $clothingworntype = 'nude': gs'sex_ev_leave', 'dress'
+	if $clothingworntype = 'nude' and sex_ev['skip_dress'] = 0: gs'sex_ev_leave', 'dress'
 	if sex_ev['fuck'] > 0: know_virgin[$boy] = 0
 	if sex_ev['creampie_orgasm'] = 1: stat_memory['creampie_orgasm'] = daystart
 	npc_last_sex[$boy] = daystart
+	if $sex_ev['prostitution_flag'] = 'prostitution' or sex_ev['prostitution'] = 1: npc_prostituation_count[$boy] += 1
+	if sex_ev['set_date'] ! 1: npc_booty_call_date[$boy] = 0
+	
+	if sex_ev['hotel_days'] > 0:
+		if $region = 'pav':
+			hotelRoom['pav_hotel'] = 2
+		elseif $region = 'city':
+			hotelRoom['city_hotel'] = 3
+		end
+		hotelRoomDays['<<$region>>_hotel'] = daystart + sex_ev['hotel_days']
+		hotelRoom['<<$region>>_room_service_free'] = 1
+	end
 	killvar 'sex_ev'
 end
 
 if $ARGS[0] = 'leaving_dialogue':
 	'"I gotta get going," you say.'
 	'"Okay, see you later."'
-	act'"Bye"':
-		$sex_ev['leave_dialogue'] = 'Bye'
-		gs'sex_ev_leave', 'leaving_action'
-	end
+	gs'sex_ev_leave', 'leaving_dialogue_choices'
+end
 
-	act'"See ya"':
-		$sex_ev['leave_dialogue'] = 'See ya'
-		gs'sex_ev_leave', 'leaving_action'
-	end
-	
-	act'"Toodles"':
-		$sex_ev['leave_dialogue'] = 'Toodles'
-		gs'sex_ev_leave', 'leaving_action'
-	end
-	if $npc_rel_type[$boy] ! '':
-		act'"Text me"':
-			$sex_ev['leave_dialogue'] = 'Text me'
+if $ARGS[0] = 'leaving_dialogue_choices':
+	if sex_ev['mad'] = 1 or sex_ev['angry_after']:
+		act'Leave angrily':
+			cla & *clr
+			'<center><video autoplay loop src="images/shared/romance/misc/depart1.mp4"></video></center>'
+			'You don''t reply, just grab your things in irritation and stalk out the door.'
+			act'Leave':gt'sex_ev_leave', 'exit'
+		end
+		
+		act'Hide your annoyance':
+			cla & *nl
+			'"Later," you say flatly and grab your things to stalk out the door.'
+			act'Leave':gt'sex_ev_leave', 'exit'
+		end
+	else
+		act'"Bye"':
+			$sex_ev['leave_dialogue'] = 'Bye'
+			gs'sex_ev_leave', 'leaving_action'
+		end
+
+		act'"See ya"':
+			$sex_ev['leave_dialogue'] = 'See ya'
 			gs'sex_ev_leave', 'leaving_action'
 		end
 		
-		if npc_booty_call_date[$boy] = daystart and sex_ev['sleepover'] = 1:
-			act'"See you soon"':
-				$sex_ev['leave_dialogue'] = 'See you soon'
-				gs'sex_ev_leave', 'leaving_action'
+		act'"Toodles"':
+			$sex_ev['leave_dialogue'] = 'Toodles'
+			gs'sex_ev_leave', 'leaving_action'
+		end
+		if $npc_rel_type[$boy] ! '':
+			if $npc_rel_type[$boy] = 'sugar_daddy':
+				act'Text me any time':
+					$sex_ev['leave_dialogue'] = 'Text me any time you want some company'
+					gs'sex_ev_leave', 'leaving_action'
+				end
+			else
+				act'"Text me"':
+					$sex_ev['leave_dialogue'] = 'Text me'
+					gs'sex_ev_leave', 'leaving_action'
+				end
 			end
-		elseif npc_booty_call_date[$boy] = daystart + 1:
-			act'"See you tomorrow"':
-				$sex_ev['leave_dialogue'] = 'See you tomorrow'
-				gs'sex_ev_leave', 'leaving_action'
+			
+			if npc_booty_call_date[$boy] = daystart and sex_ev['sleepover'] = 1:
+				act'"See you soon"':
+					$sex_ev['leave_dialogue'] = 'See you soon'
+					gs'sex_ev_leave', 'leaving_action'
+				end
+			elseif npc_booty_call_date[$boy] = daystart + 1:
+				act'"See you tomorrow"':
+					$sex_ev['leave_dialogue'] = 'See you tomorrow'
+					gs'sex_ev_leave', 'leaving_action'
+				end
+			else
+				act'"Till next time"':
+					$sex_ev['leave_dialogue'] = 'Till next time'
+					gs'sex_ev_leave', 'leaving_action'
+				end
 			end
-		else
-			act'"Till next time"':
-				$sex_ev['leave_dialogue'] = 'Till next time'
+		end
+		
+		if $npc_rel_type[$boy] = 'sugar_daddy':
+			act'Don''t forget the money':
+				$sex_ev['leave_dialogue'] = 'Just make sure you have the money ready for next time'
 				gs'sex_ev_leave', 'leaving_action'
 			end
 		end
@@ -156,8 +251,9 @@ end
 
 if $ARGS[0] = 'leaving_end':
 	cla & *nl
-	if $npc_rel_type[$boy] = 'sugar_daddy':
-		'Just before you go, <<$npc_firstname[$boy]>> hands you an envelope with 2000<b>₽‎</b> in it.'
+	if $npc_rel_type[$boy] = 'sugar_daddy' and sex_ev['sugar_daddy_paid'] = 0:
+		money += npc_sugar_daddy_price[$boy]
+		'Just before you go, <<$npc_firstname[$boy]>> hands you <<npc_sugar_daddy_price[$boy]>><b>₽‎</b>.'
 		*nl
 	end
 	'"<<$sex_ev[''leave_dialogue'']>>," you say<<$sex_ev[''leave_action'']>>.'
@@ -794,12 +890,12 @@ end
 if $ARGS[0] = 'dress':
 	if $clothingworntype = 'nude': gs 'clothing', 'wear_last_worn'
 !!	if $pantyworntype = 'none' and $lastwornpantytype ! 'none' and $lastwornpantytype ! '':
-	if $pantyworntype = 'none' and $lastwornpantytype ! 'none':
-		gs 'panties', 'wear', $lastwornpantytype, lastwornpantynumber
+	if $pantyworntype = 'none' and $lastwornpantytype['sex_ev'] ! 'none':
+		gs 'panties', 'wear', $lastwornpantytype['sex_ev'], lastwornpantynumber['sex_ev']
 	end
 !!	if $braworntype = 'none' and $lastwornbratype ! 'none' and $lastwornbratype ! '':
-	if $braworntype = 'none' and $lastwornbratype ! 'none':
-		gs 'bras', 'wear', $lastwornbratype, lastwornbranumber
+	if $braworntype = 'none' and $lastwornbratype['sex_ev'] ! 'none':
+		gs 'bras', 'wear', $lastwornbratype['sex_ev'], lastwornbranumber['sex_ev']
 	end
 	gs 'stat'
 end
@@ -853,7 +949,6 @@ if $ARGS[0] = 'dressing1':
 	cla & *clr
 !!	gs'sex_ev_leave', 'dress'
 	gs'sex_ev_leave', 'dress_loop'
-	
 	if sex_ev['sleepover'] = 1 and npc_latesleeper[$boy] = 1 and sex_ev['boy_asleep'] ! 0:
 		if sex_ev['towel'] = 1:
 			sex_ev['towel'] = 0
@@ -874,8 +969,18 @@ if $ARGS[0] = 'dressing1':
 			'"Guess I''ll go then," you sigh, <<$sex_ev[''dress_describe'']>>.'
 			gs'sex_ev_leave', 'dressing2'
 			gs 'sex_ev_leave', 'panty_gift'
-		elseif sex_ev['npc_late'] = 0:
-			'"You heading out?" <<$npc_firstname[$boy]>> asks as you are <<$sex_ev[''dress_describe'']>>.'
+		elseif sex_ev['npc_late'] = 1:
+			'<<$npc_firstname[$boy]>> starts getting dressed next to you.'
+				gs'sex_ev_leave', 'dressing2'
+		else
+			if sex_ev['boy_in_shower'] = 1:
+				sex_ev['boy_in_shower'] = 0
+				'<<$npc_firstname[$boy]>> comes back into the room just as you are <<$sex_ev[''dress_describe'']>> with a towel around his waist and wet hair.'
+				'"Hey, what''s up? You heading out?" he asks.'
+			elseif sex_ev['npc_late'] = 0:
+				'"You heading out?" <<$npc_firstname[$boy]>> asks as you are <<$sex_ev[''dress_describe'']>>.'
+			end
+			
 			gs'sex_ev_leave', 'not_leaving'
 			gs'sex_ev_leave', 'leaving_soon'
 			gs'sex_ev_leave', 'something_to_do'
@@ -886,13 +991,10 @@ if $ARGS[0] = 'dressing1':
 				gs'sex_ev_leave', 'mom_late'
 				gs'sex_ev_leave', 'need_homework'
 				gs'sex_ev_leave', 'school_night'
-			else
-				gs'sex_ev_leave', 'going_school'
 			end
-!!			gs'sex_ev_leave', 'dress_talk'
-		else
-			'<<$npc_firstname[$boy]>> starts getting dressed next to you.'
-			gs'sex_ev_leave', 'dressing2'
+			gs'sex_ev_leave', 'going_school'
+	!!		gs'sex_ev_leave', 'dress_talk'
+			
 		end
 
 	!!	act'Talk while you dress':
@@ -931,17 +1033,19 @@ if $ARGS[0] = 'dressing_finish':
 end
 
 if $ARGS[0] = 'not_leaving':
-	act'Not yet':
-		cla & *clr
-		gs'sex_ev_leave', 'dress_loop'
-		gs'sex_ev_leave', 'dress_start_desc'
-		'"You heading out?" <<$npc_firstname[$boy]>> asks.'
-		'"Not yet," you say, <<$sex_ev[''dress_describe'']>>. "Just tired of hanging out naked."'
-		'"I''m never tired of seeing you naked."'
-		act'Roll your eyes':
-			cla & *nl
-			'"Whatever," you sigh, rolling your eyes to the heavens.'
-			gs 'sex_ev_leave', 'dressing2'
+	if $sex_ev['type'] ! 'hookup':
+		act'Not yet':
+			cla & *clr
+			gs'sex_ev_leave', 'dress_loop'
+			gs'sex_ev_leave', 'dress_start_desc'
+			'"You heading out?" <<$npc_firstname[$boy]>> asks.'
+			'"Not yet," you say, <<$sex_ev[''dress_describe'']>>. "Just tired of hanging out naked."'
+			'"I''m never tired of seeing you naked."'
+			act'Roll your eyes':
+				cla & *nl
+				'"Whatever," you sigh, rolling your eyes to the heavens.'
+				gs 'sex_ev_leave', 'dressing2'
+			end
 		end
 	end
 end
@@ -954,7 +1058,6 @@ if $ARGS[0] = 'leaving_soon':
 		gs'sex_ev_leave', 'dress_start_desc'
 		'"You heading out?" <<$npc_firstname[$boy]>> asks.'
 		if sex_ev['sleepover'] < 1:
-			
 			'"Yeah," you say, <<$sex_ev[''dress_describe'']>>.' + iif($sex_ev['loc'] = 'pc_home', ' "Get your clothes on so I can get out of here."', ' ')
 			gs 'sex_ev_leave', 'dressing2'
 			gs 'sex_ev_leave', 'panty_gift'
@@ -966,6 +1069,7 @@ if $ARGS[0] = 'leaving_soon':
 				gs 'sex_ev_leave', 'dressing2'
 				gs 'sex_ev_leave', 'panty_gift'
 			end
+			if sex_ev['hookup_continuation_check'] = 0:gs 'sex_ev_hookup_leave', 'hookup_continuation'
 		end
 	end
 end
@@ -987,6 +1091,7 @@ if $ARGS[0] = 'going_disco':
 				gs 'sex_ev_leave', 'dressing2'
 				
 				gs 'sex_ev_leave', 'panty_gift'
+				if sex_ev['hookup_continuation_check'] = 0:gs 'sex_ev_hookup_leave', 'hookup_continuation'
 			end
 		else
 			act'Going to the club':
@@ -1003,6 +1108,7 @@ if $ARGS[0] = 'going_disco':
 				gs 'sex_ev_leave', 'dressing2'
 				
 				gs 'sex_ev_leave', 'panty_gift'
+				if sex_ev['hookup_continuation_check'] = 0:gs 'sex_ev_hookup_leave', 'hookup_continuation'
 			end
 		end
 	end
@@ -1024,6 +1130,7 @@ if $ARGS[0] = 'mom_late':
 			gs 'sex_ev_leave', 'dressing2'
 			
 			gs 'sex_ev_leave', 'panty_gift'
+			if sex_ev['hookup_continuation_check'] = 0:gs 'sex_ev_hookup_leave', 'hookup_continuation'
 		end
 	end
 end
@@ -1045,6 +1152,7 @@ if $ARGS[0] = 'need_homework':
 					gs'sex_ev_leave', 'dress_start_desc'
 					'"I want to go to uni," you say, <<$sex_ev[''dress_describe'']>>. "Can''t do that if I fail out of school for not doing my homework."'
 					gs 'sex_ev_leave', 'dressing2'
+					if sex_ev['hookup_continuation_check'] = 0:gs 'sex_ev_hookup_leave', 'hookup_continuation'
 				end
 				act'Don''t be an asshole':
 					cla & *clr
@@ -1052,6 +1160,7 @@ if $ARGS[0] = 'need_homework':
 					gs'sex_ev_leave', 'dress_start_desc'
 					'"Don''t be an asshole," you glare, <<$sex_ev[''dress_describe'']>>. "My grades are important to me. More important than spending more time fucking you."'
 					gs 'sex_ev_leave', 'dressing2'
+					if sex_ev['hookup_continuation_check'] = 0:gs 'sex_ev_hookup_leave', 'hookup_continuation'
 				end
 			else
 				'"I guess your future after school is pretty important," <<$npc_firstname[$boy]>> says.'
@@ -1060,6 +1169,7 @@ if $ARGS[0] = 'need_homework':
 					gs'sex_ev_leave', 'dress_start_desc'
 					'"Thanks," you say, <<$sex_ev[''dress_describe'']>>. "It means a lot to me that you get it."'
 					gs 'sex_ev_leave', 'dressing2'
+					if sex_ev['hookup_continuation_check'] = 0:gs 'sex_ev_hookup_leave', 'hookup_continuation'
 				end
 				
 				act'Want to go to uni':
@@ -1067,6 +1177,7 @@ if $ARGS[0] = 'need_homework':
 					gs'sex_ev_leave', 'dress_start_desc'
 					'"I really want to go to uni," you say, <<$sex_ev[''dress_describe'']>>. "So keeping up with my classes is really important."'
 					gs 'sex_ev_leave', 'dressing2'
+					if sex_ev['hookup_continuation_check'] = 0:gs 'sex_ev_hookup_leave', 'hookup_continuation'
 				end
 				
 				act'Damn straight':
@@ -1074,6 +1185,7 @@ if $ARGS[0] = 'need_homework':
 					gs'sex_ev_leave', 'dress_start_desc'
 					'"Damn straight it is," you say, <<$sex_ev[''dress_describe'']>>. "Skipping schoolwork to fuck you could end up fucking me for life!"'
 					gs 'sex_ev_leave', 'dressing2'
+					if sex_ev['hookup_continuation_check'] = 0:gs 'sex_ev_hookup_leave', 'hookup_continuation'
 				end
 				
 				act'No hard feelings':
@@ -1081,9 +1193,11 @@ if $ARGS[0] = 'need_homework':
 					gs'sex_ev_leave', 'dress_start_desc'
 					'"No hard feelings, right?" you ask, <<$sex_ev[''dress_describe'']>>. "I really like you, I just can''t afford to get kicked out of school."'
 					gs 'sex_ev_leave', 'dressing2'
+					if sex_ev['hookup_continuation_check'] = 0:gs 'sex_ev_hookup_leave', 'hookup_continuation'
 				end
 			end
 			gs 'sex_ev_leave', 'panty_gift'
+			if sex_ev['hookup_continuation_check'] = 0:gs 'sex_ev_hookup_leave', 'hookup_continuation'
 		end
 	end
 end
@@ -1109,6 +1223,7 @@ if $ARGS[0] = 'something_to_do':
 				gs'sex_ev_morning', 'end_morning'
 			end
 		end
+		if sex_ev['hookup_continuation_check'] = 0:gs 'sex_ev_hookup_leave', 'hookup_continuation'
 	end
 end
 
@@ -1133,6 +1248,7 @@ if $ARGS[0] = 'see_a_friend':
 				gs'sex_ev_morning', 'end_morning'
 			end
 		end
+		if sex_ev['hookup_continuation_check'] = 0:gs 'sex_ev_hookup_leave', 'hookup_continuation'
 	end
 end
 
@@ -1144,16 +1260,21 @@ if $ARGS[0] = 'another_fuckbuddy':
 			gs'sex_ev_leave', 'dress_loop'
 			gs'sex_ev_leave', 'dress_start_desc'
 			'"You heading out?" <<$npc_firstname[$boy]>> asks.'
-			'"Yeah," you smirk, <<$sex_ev[''dress_describe'']>>. "Got another booty call to show up to."'
+			if $sex_ev['type'] = 'hookup':
+				'"Yeah," you say, <<$sex_ev[''dress_describe'']>>. "Got a booty call to answer."'
+			else
+				'"Yeah," you say, <<$sex_ev[''dress_describe'']>>. "Got another booty call to answer."'
+			end
 			'"You really get around don''t you?" <<$npc_firstname[$boy]>> smirks back.'
 			gs 'sex_ev_leave', 'dressing2'
 			gs 'sex_ev_leave', 'panty_gift'
+			if sex_ev['hookup_continuation_check'] = 0:gs 'sex_ev_hookup_leave', 'hookup_continuation'
 		end
 	end
 end
 
 if $ARGS[0] = 'going_school':
-	if kanikuli = 0 and mid($start_type,1,2) = 'sg' and SchoolAtestat = 0 and SchoolBlock = 0 and week < 6: 
+	if kanikuli = 0 and mid($start_type,1,2) = 'sg' and SchoolAtestat = 0 and SchoolBlock = 0 and week < 6 and hour < 9 and hour > 5: 
 		act'School':
 			cla & *clr
 			gs'sex_ev_leave', 'dress_loop'
@@ -1177,9 +1298,9 @@ if $ARGS[0] = 'going_school':
 				end
 			else
 				if sex_ev['late_for_school'] = 1 and hour >= 8:
-					'"I already told you, I''m late for school," you say, <<$sex_ev[''dress_describe'']>>. "But thanks for letting me spend the night. And the second fuck," you add with a wink.'
+					'"I already told you, I''m late for school," you say, <<$sex_ev[''dress_describe'']>>. ' + iif(sex_ev['sleepover'] = 1, '"But thanks for letting me spend the night."', ' ')
 				elseif sex_ev['late_for_school'] = 1:
-					'"I already told you, I''m gonna be late for school," you say, <<$sex_ev[''dress_describe'']>>. "But thanks for letting me spend the night. And the second fuck," you add with a wink.'
+					'"I already told you, I''m gonna be late for school," you say, <<$sex_ev[''dress_describe'']>>. ' + iif(sex_ev['sleepover'] = 1, '"But thanks for letting me spend the night. And the second fuck," you add with a wink.', ' ')
 				elseif hour = 7:
 					'"Gotta get to school," you say, <<$sex_ev[''dress_describe'']>>. "Thanks for letting me spend the night."'
 				else
@@ -1188,17 +1309,18 @@ if $ARGS[0] = 'going_school':
 				if rand(1,3) = 3 and (npc_day_off[$boy] = week or (npc_day_off[$boy] = week + 1) or (week = 7 and npc_day_off[$boy] = 1)):
 					gs 'sex_ev_leave', 'sex_ev_invite_later'
 				else
-					'"No problem."'
+					if sex_ev['sleepover'] = 1: '"No problem."'
 					gs'sex_ev_morning', 'end_morning'
 				end
 			end
 			gs'sex_ev_leave', 'dress_talk'
+			if sex_ev['hookup_continuation_check'] = 0:gs 'sex_ev_hookup_leave', 'hookup_continuation'
 		end
 	end
 end
 
 if $ARGS[0] = 'school_night':
-	if kanikuli = 0 and mid($start_type,1,2) = 'sg' and SchoolAtestat = 0 and SchoolBlock = 0 and (week < 5 or week = 7): 
+	if kanikuli = 0 and mid($start_type,1,2) = 'sg' and SchoolAtestat = 0 and SchoolBlock = 0 and (week < 5 or week = 7) and (hour > 19 or hour < 5): 
 		act'It''s a school night':
 			cla & *clr
 			gs'sex_ev_leave', 'dress_loop'
@@ -1227,6 +1349,7 @@ if $ARGS[0] = 'school_night':
 				end
 				gs'sex_ev_leave', 'dress_talk'
 			end
+			if sex_ev['hookup_continuation_check'] = 0:gs 'sex_ev_hookup_leave', 'hookup_continuation'
 		end
 	end
 end
@@ -1255,6 +1378,7 @@ if $ARGS[0] = 'panty_gift':
 				!!'"Enjoy," you smirk.'
 				gs 'sex_ev_leave', 'panty_gift2'
 			end
+			if sex_ev['hookup_continuation_check'] = 0:gs 'sex_ev_hookup_leave', 'hookup_continuation'
 		end
 	end
 end
@@ -1280,6 +1404,7 @@ if $ARGS[0] = 'panty_gift2':
 				gs 'sex_ev_leave', 'dressing2'
 			end
 		end
+		if sex_ev['hookup_continuation_check'] = 0:gs 'sex_ev_hookup_leave', 'hookup_continuation'
 	end
 	
 	act'Something to remember the occasion':
@@ -1306,6 +1431,7 @@ if $ARGS[0] = 'panty_gift2':
 				gs 'sex_ev_leave', 'dressing2'
 			end
 		end
+		if sex_ev['hookup_continuation_check'] = 0:gs 'sex_ev_hookup_leave', 'hookup_continuation'
 	end
 	
 	act'Consider it a trophy':
@@ -1328,6 +1454,7 @@ if $ARGS[0] = 'panty_gift2':
 				gs 'sex_ev_leave', 'dressing2'
 			end
 		end
+		if sex_ev['hookup_continuation_check'] = 0:gs 'sex_ev_hookup_leave', 'hookup_continuation'
 	end
 	
 	if sex_ev['virgin'] = 1:
@@ -1352,6 +1479,7 @@ if $ARGS[0] = 'panty_gift2':
 				end
 			end
 		end
+		if sex_ev['hookup_continuation_check'] = 0:gs 'sex_ev_hookup_leave', 'hookup_continuation'
 	end
 	
 	if sex_ev['orgasm_count'] > 0:
@@ -1380,7 +1508,7 @@ if $ARGS[0] = 'panty_gift2':
 		act'For making me orgasm (tradition)':
 			cla & *clr
 			gs'sex_ev_leave', 'dress_loop'
-			if $sex_ev['type'] = 'hookup':
+			if npc_panty_give[$boy] <= 1:
 				'"For making me come," you smile, <<$sex_ev[''dress_describe'']>>. "I always give a boy my panties if he makes me come."'
 			else
 				'"Cause you made me come," you smile, <<$sex_ev[''dress_describe'']>>. "You know I always give a boy my panties if he makes me come."'
@@ -1481,7 +1609,6 @@ if $ARGS[0] = 'dress_loop':
 	gs'stat'
 end
 
-
 if $ARGS[0] = 'dress_loop_end':
 	!! this forces the player to get fully dressed
 	gs'sex_ev_leave', 'dress_loop_code'
@@ -1507,20 +1634,20 @@ if $ARGS[0] = 'dress_loop_code':
 !!		killvar 'lastwornbratype'
 !!		killvar 'lastwornbranumber'
 !!		$sex_ev['dress_describe'] = 'pulling your panties up your legs and fastening your bra around your chest'
-	elseif $lastwornpantytype ! 'none' and $pantyworntype = 'none' and sex_ev['panty_wear'] ! 1:
-		gs 'panties', 'wear', $lastwornpantytype, lastwornpantynumber
+	elseif $lastwornpantytype['sex_ev'] ! 'none' and $pantyworntype = 'none' and sex_ev['panty_wear'] ! 1:
+		gs 'panties', 'wear', $lastwornpantytype['sex_ev'], lastwornpantynumber['sex_ev']
 		killvar 'lastwornpantytype'
 		killvar 'lastwornpantynumber'
 		sex_ev['panty_wear'] = 1
 		$sex_ev['dress_describe'] = 'pulling your panties up'
-	elseif $lastwornbratype ! 'none' and $lastwornbratype ! '' and $braworntype = 'none' and sex_ev['bra_wear'] ! 1:
-		gs 'bras', 'wear', $lastwornbratype, lastwornbranumber
+	elseif $lastwornbratype['sex_ev'] ! 'none' and $lastwornbratype['sex_ev'] ! '' and $braworntype = 'none' and sex_ev['bra_wear'] ! 1:
+		gs 'bras', 'wear', $lastwornbratype['sex_ev'], lastwornbranumber['sex_ev']
 		killvar 'lastwornbratype'
 		killvar 'lastwornbranumber'
 		sex_ev['bra_wear'] = 1
 		$sex_ev['dress_describe'] = 'fastening your bra around your chest'
-	elseif $clothingworntype = 'nude' and $lastwornclothingtype ! 'nude':
-		gs 'clothing', 'wear', $lastwornclothingtype, lastwornclothingnumber
+	elseif $clothingworntype = 'nude' and $lastwornclothingtype['sex_ev'] ! 'nude':
+		gs 'clothing', 'wear', $lastwornclothingtype['sex_ev'], lastwornclothingnumber['sex_ev']
 		jump 'dress_loop_start'
 	elseif $clothingworntype ! 'nude' and sex_ev['dress_end'] ! 1:
 		if CloDress = 1 and (sex_ev['dress_top_wear'] ! 1 or sex_ev['dress_skirt_wear'] ! 1):
@@ -1581,7 +1708,7 @@ if $ARGS[0] = 'dress_talk':
 	
 	gs 'sex_ev_leave', 'panty_gift'
 	
-	if sex_ev['dress_end'] ! 1 and sex_ev['plans_later_talk'] = 0 and rand(0,1) = 1 and $sex_ev['type'] ! 'hookup':
+	if sex_ev['dress_end'] ! 1 and sex_ev['sex_ev_ask'] = 0 and rand(0,1) = 1 and $sex_ev['type'] ! 'hookup':
 		gs 'sex_ev_leave', 'npc_sex_ev_invite'
 !!{
 		!! he initiates
@@ -1591,7 +1718,7 @@ if $ARGS[0] = 'dress_talk':
 		gs 'sex_ev_leave', 'dress_talk_pc'
 	}
 	else
-		gs 'sex_ev_after', 'after_sex_dressed'
+!!		gs 'sex_ev_after', 'after_sex_dressed'
 	end
 end
 
@@ -1647,7 +1774,7 @@ end
 
 
 if $ARGS[0] = 'dress_talk_pc':
-	if sex_ev['plans_later_talk'] = 0 and (hour < 16 or sex_ev['sleepover'] = 1):
+	if sex_ev['plans_later_talk'] = 0 and ((hour < 16 and hour > 4) or sex_ev['sleepover'] = 1):
 		act'Ask him what he''s doing later':
 			sex_ev['plans_later_talk'] = 1
 			gs'sex_ev_leave', 'dress_loop'
@@ -1681,7 +1808,8 @@ if $ARGS[0] = 'dress_talk_pc':
 	gs'sex_ev_leave', 'had_a_good_time'
 	gs'sex_ev_leave', 'stay_over_thanks'
 	gs'sex_ev_leave', 'walk_funny'
-!!	gs'sex_ev_leave', 'leak_all_day'
+	gs'sex_ev_leave', 'leak_all_day'
+	gs'sex_ev_leave', 'pc_sex_ev_invite'
 	
 end
 
@@ -1690,7 +1818,7 @@ end
 !!end
 
 if $ARGS[0] = 'had_a_good_time':
-	if sex_ev['good_time'] = 0 and sex_ev['annoyed'] = 0:
+	if sex_ev['good_time'] = 0 and sex_ev['annoyed'] = 0 and sex_ev['mad'] = 0 and sex_ev['angry_after'] = 0:
 		act'I had a good time':
 			cla & *clr
 			sex_ev['good_time'] = 1
@@ -1838,7 +1966,7 @@ end
 
 
 if $ARGS[0] = 'leak_all_day':
-	if cum_vol['vagina'] > 100 and $sex_ev['cum_leak_talk'] = '' and hour < 10:
+	if cum_loc['vagina'] > 0 and cum_vol['vagina'] > 100 and $sex_ev['cum_leak_talk'] = '' and hour < 10:
 		act'Gonna be leaking cum all day':
 			cla
 			act'Embarrassed':
@@ -1980,6 +2108,7 @@ if $ARGS[0] = 'leak_all_day2':
 	else
 	
 	end
+	gs'sex_ev_leave', 'leak_all_day3'
 end
 
 if $ARGS[0] = 'leak_all_day3':
@@ -2036,65 +2165,87 @@ if $ARGS[0] = 'npc_date_later_response':
 end
 
 if $ARGS[0] = 'pc_sex_ev_invite':
-	if $sex_ev['type'] = 'hookup':
-		gs 'sex_ev_hookup_leave', 'pc_fuckbuddy_request'
-	elseif sex_ev['sleepover'] = 1 or hour < 5:
-		act'Ask to come over later':
-			sex_ev['invite_today'] = 1
-			cla & *clr
-			gs'sex_ev_leave', 'dress_loop'
-			if sex_ev['sleepover'] = 1:
-				'"Want to do this again later?" you grin, <<$sex_ev[''dress_describe'']>>.'
-			else
-				'"Want to do this again later?" you grin, <<$sex_ev[''dress_describe'']>>. "In the daytime?"'
+	if sex_ev['sex_ev_ask'] = 0:
+		if $sex_ev['type'] = 'hookup':
+			gs 'sex_ev_hookup_leave', 'pc_fuckbuddy_request'
+		elseif sex_ev['sleepover'] = 1 or hour < 5:
+			act'Ask to come over later':
+				sex_ev['invite_today'] = 1
+				sex_ev['sex_ev_ask'] = 1
+				cla & *clr
+				gs'sex_ev_leave', 'dress_loop'
+				if sex_ev['sleepover'] = 1:
+					'"Want to do this again later?" you grin, <<$sex_ev[''dress_describe'']>>.'
+				else
+					'"Want to do this again later?" you grin, <<$sex_ev[''dress_describe'']>>. "In the daytime?"'
+				end
+				if $npc_rel_type[$boy] = 'sugar_daddy':
+					if npc_sugar_daddy_timer[$boy] - (npc_rel[$boy] / 10) < daystart:
+						'"You''re gonna bleed me dry at this rate," <<$npc_firstname[$boy]>> chuckles ruefully. "But I''d like that. How about <<npc_start_free_time[$boy]>>?"'
+						gs 'sex_ev_leave', 'busy_time'
+						gs 'sex_ev_leave', 'sex_ev_plan'
+					else
+						'"I don''t think I can afford such frequent visits from you," <<$npc_firstname[$boy]>> chuckles ruefully. "Maybe another time."'
+						gs'sex_ev_leave', 'pc_sex_ev_invite_denied'
+					end
+				elseif npc_day_off[$boy] = week:
+					if rand(1,10)/2 <= npc_sexdrive[$boy]:
+						'"Maybe. What time were you thinking?"'
+						gs'sex_ev_leave', 'pc_sex_ev_timeset'
+					else
+						'"Twice in one day might be a little bit too much for me," <<$npc_firstname[$boy]>> smiles back ruefully.'
+						gs'sex_ev_leave', 'dress_loop_code'
+						'"Damn," you sigh disappointedly, continuing <<$sex_ev[''dress_describe'']>>'
+						gs'sex_ev_leave', 'pc_sex_ev_invite_denied'
+					end
+				else
+					if rand(1,10)/2 <= npc_sexdrive[$boy]:
+						'"What time were you thinking?"'
+						gs'sex_ev_leave', 'pc_sex_ev_timeset'
+					else
+						'"Think I might be a little too tapped out from work," <<$npc_firstname[$boy]>> grunts.'
+						gs'sex_ev_leave', 'dress_loop_code'
+						'"Damn," you sigh disappointedly, continuing <<$sex_ev[''dress_describe'']>>'
+						gs'sex_ev_leave', 'pc_sex_ev_invite_denied'
+					end
+				end
 			end
-			if npc_day_off[$boy] = week:
-				if rand(1,10)/2 <= npc_sexdrive[$boy]:
-					'"Maybe. What time were you thinking?"'
-					gs'sex_ev_leave', 'pc_sex_ev_timeset'
+		elseif hour >= 5:
+			act'Ask to come over tomorrow':
+				sex_ev['invite_tomorrow'] = 1
+				sex_ev['sex_ev_ask'] = 1
+				cla & *clr
+				gs'sex_ev_leave', 'dress_loop'
+				'"Want to do this again tomorrow?" you ask, flashing a smile while you''re <<$sex_ev[''dress_describe'']>>.'
+				if $npc_rel_type[$boy] = 'sugar_daddy':
+					if npc_sugar_daddy_timer[$boy] - (npc_rel[$boy] / 10) < daystart:
+						'"You''re gonna bleed me dry at this rate," <<$npc_firstname[$boy]>> chuckles ruefully. "But I''d like that. How about <<npc_start_free_time[$boy]>>?"'
+						gs 'sex_ev_leave', 'busy_time'
+						gs 'sex_ev_leave', 'sex_ev_plan'
+					else
+						'"I don''t think I can afford such frequent visits from you," <<$npc_firstname[$boy]>> chuckles ruefully. "Maybe another time."'
+						gs'sex_ev_leave', 'pc_sex_ev_invite_denied'
+					end
+				elseif npc_day_off[$boy] = week + 1 or (npc_day_off[$boy] = 1 and week = 7):
+					if rand(1,10)/2 <= npc_sexdrive[$boy]:
+						'"Hmm... It''ll be my day off... What time were you thinking?"'
+						gs'sex_ev_leave', 'pc_sex_ev_timeset'
+					else
+						'"Sorry, I have some things I need to get done tomorrow."'
+						gs'sex_ev_leave', 'dress_loop_code'
+						'"Damn," you sigh disappointedly, continuing <<$sex_ev[''dress_describe'']>>'
+						gs'sex_ev_leave', 'pc_sex_ev_invite_denied'
+					end
 				else
-					'"Twice in one day might be a little bit too much for me," <<$npc_firstname[$boy]>> smiles back ruefully.'
-					gs'sex_ev_leave', 'dress_loop_code'
-					'"Damn," you sigh disappointedly, continuing <<$sex_ev[''dress_describe'']>>'
-					gs'sex_ev_leave', 'pc_sex_ev_invite_denied'
-				end
-			else
-				if rand(1,10)/2 <= npc_sexdrive[$boy]:
-					'"What time were you thinking?"'
-					gs'sex_ev_leave', 'pc_sex_ev_timeset'
-				else
-					'"Think I might be a little too tapped out from work," <<$npc_firstname[$boy]>> grunts.'
-					gs'sex_ev_leave', 'dress_loop_code'
-					'"Damn," you sigh disappointedly, continuing <<$sex_ev[''dress_describe'']>>'
-					gs'sex_ev_leave', 'pc_sex_ev_invite_denied'
-				end
-			end
-		end
-	elseif hour >= 5:
-		act'Ask to come over tomorrow':
-			sex_ev['invite_tomorrow'] = 1
-			cla & *clr
-			gs'sex_ev_leave', 'dress_loop'
-			'"Want to do this again tomorrow?" you ask, flashing a smile while you''re <<$sex_ev[''dress_describe'']>>.'
-			if npc_day_off[$boy] = week + 1 or (npc_day_off[$boy] = 1 and week = 7):
-				if rand(1,10)/2 <= npc_sexdrive[$boy]:
-					'"Hmm... It''ll be my day off... What time were you thinking?"'
-					gs'sex_ev_leave', 'pc_sex_ev_timeset'
-				else
-					'"Sorry, I have some things I need to get done tomorrow."'
-					gs'sex_ev_leave', 'dress_loop_code'
-					'"Damn," you sigh disappointedly, continuing <<$sex_ev[''dress_describe'']>>'
-					gs'sex_ev_leave', 'pc_sex_ev_invite_denied'
-				end
-			else
-				if rand(1,10)/2 <= npc_sexdrive[$boy]:
-					'"What time were you thinking?"'
-					gs'sex_ev_leave', 'pc_sex_ev_timeset'
-				else
-					'"Sorry, I have some things I need to get done tomorrow."'
-					gs'sex_ev_leave', 'dress_loop_code'
-					'"Damn," you sigh disappointedly, continuing <<$sex_ev[''dress_describe'']>>'
-					gs'sex_ev_leave', 'pc_sex_ev_invite_denied'
+					if rand(1,10)/2 <= npc_sexdrive[$boy]:
+						'"What time were you thinking?"'
+						gs'sex_ev_leave', 'pc_sex_ev_timeset'
+					else
+						'"Sorry, I have some things I need to get done tomorrow."'
+						gs'sex_ev_leave', 'dress_loop_code'
+						'"Damn," you sigh disappointedly, continuing <<$sex_ev[''dress_describe'']>>'
+						gs'sex_ev_leave', 'pc_sex_ev_invite_denied'
+					end
 				end
 			end
 		end
@@ -2104,7 +2255,7 @@ end
 if $ARGS[0] = 'pc_sex_ev_timeset':
 	act'How about...': 
 		:invalid_timeset
-		npc_booty_call_time[$boy] = input ("When do you want to come over to <<$npc_firstname[$boy]>>''s? (Pick an hour 1 - 22.)")
+		npc_booty_call_time[$boy] = input ("When do you want to come over again? (Pick an hour 1 - 22.)")
 		if npc_booty_call_time[$boy] > 22:
 			msg 'Invalid input. Pick an hour between 1 and 22.'
 			jump 'invalid_timeset'
@@ -2163,11 +2314,11 @@ if $ARGS[0] = 'pc_sex_ev_invite_denied':
 end
 
 if $ARGS[0] = 'npc_sex_ev_invite':
-	if (rand(1,10) < npc_sexdrive[$boy] or rand(1,200) < npc_rel[$boy]) and sex_ev['plans_later_talk'] = 0:
+	if ((rand(1,10) < npc_sexdrive[$boy] or rand(1,200) < npc_rel[$boy]) and sex_ev['sex_ev_ask'] = 0) and ($npc_rel_type[$boy] ! 'sugar_daddy' or (npc_sugar_daddy_timer[$boy] - (npc_rel[$boy] / 10) < daystart)):
 		cla
 		act'Continue':
 			gs 'sex_ev_leave', 'dress_loop'
-			sex_ev['plans_later_talk'] = 1
+			sex_ev['sex_ev_ask'] = 1
 			if npc_day_off[$boy] = week + 1 or (week = 7 and npc_day_off[$boy] = 1):
 				sex_ev['invite_tomorrow'] = 1
 				if npc_girlfriend[$boy] = 1 and npc_fidelity[$boy] = 6:
@@ -2205,13 +2356,13 @@ if $ARGS[0] = 'npc_sex_ev_invite':
 			end
 		end
 	else
-		sex_ev['plans_later_talk'] = 1
+		sex_ev['sex_ev_ask'] = 1
 	end
 end
 
 if $ARGS[0] = 'sex_ev_invite_later':
 	act'Continue':
-		sex_ev['plans_later_talk'] = 1
+		sex_ev['sex_ev_ask'] = 1
 		gs 'sex_ev_leave', 'dress_loop'
 		if npc_day_off[$boy] = week and sex_ev['sleepover'] = 1:
 			$sex_ev_plan_loc[$boy] = 'lover_home'
@@ -2316,6 +2467,21 @@ if $ARGS[0] = 'sex_ev_plan':
 			end
 		end
 	end
+	
+	if $npc_rel_type[$boy] = 'sugar_daddy':
+		act'As long as you''re paying':
+			gs 'booty_call', 'set_booty_call_date'
+			gs 'sex_ev_leave', 'dress_loop'
+			'"As long as you''re paying for it," you smirk, <<$sex_ev[''dress_describe'']>>.'
+			if rand(0,1) = 1:
+				'"Greedy bitch," <<$npc_firstname[$boy]>> grins back lewdly.'
+			else
+				'"Great," <<$npc_firstname[$boy]>> grins back.'
+			end
+			gs 'sex_ev_leave', 'dress_talk'
+			if sex_ev['morning_after'] = 1: gs 'sex_ev_morning', 'end_morning'
+		end
+	end
 end
 
 if $ARGS[0] = 'sex_ev_plan2':
@@ -2343,7 +2509,7 @@ if $ARGS[0] = 'money_for_ma_pill':
 	cla & *clr
 	gs'sex_ev_leave', 'dress_loop'
 	'"Hey," <<$npc_firstname[$boy]>> says as you''re <<$sex_ev[''dress_describe'']>>. "Don''t forget this."'
-	'He grabs his wallet and pulls out a 1000<b>₽</b note, holding it out to you.'
+	'He grabs his wallet and pulls out a 1000<b>₽</b> note, holding it out to you.'
 	'"For the morning after pill," he says.'
 	'"Oh yeah, thanks," you nod, taking it from him.'
 	gs 'sex_ev_leave', 'dressing2'
