@@ -268,17 +268,30 @@ end
 if $ARGS[0] = 'pc_have_morning_after':
 	if mc_inventory['morning_after_pill'] = 0:
 		act'I''ll buy a morning after pill':
+			sex_ev['plan_b_buy'] = 1
 			cla & *nl
 			if sex_ev['sleepover'] = 0:
-				'"It''s okay," you murmur reassuringly. "I''ll get a morning after pill tomorrow. No big deal."'
+				sex_ev['ma_pill_tomorrow'] = 1
+				if npc_pay_for_ma_pill[$boy] = 1:
+					'"I''ll get a morning after pill ' + iif(sex_ev['sleepover'] = 0, 'tomorrow', 'later') + '," you murmur. "You''re paying for it, right?"'
+					'"Yeah," he replies. "I''ll give you the money when we''re done."'
+				else
+					'"It''s okay," you murmur reassuringly. "I''ll get a morning after pill ' + iif(sex_ev['sleepover'] = 0, 'tomorrow. No big deal."', 'later today. No big deal."')
+				end
 			else
-				'"It''s okay," you murmur reassuringly. "I''ll get a morning after pill later today. No big deal."'
+				if npc_pay_for_ma_pill[$boy] = 1:
+					'"I''ll get a morning after pill ' + iif(sex_ev['sleepover'] = 0, 'tomorrow', 'later') + '," you murmur. "You''re paying for it, right?"'
+					'"Yeah," he replies. "I''ll give you the money when we''re done."'
+				else
+					'"It''s okay," you murmur reassuringly. "I''ll get a morning after pill ' + iif(sex_ev['sleepover'] = 0, 'tomorrow', 'later') + '. No big deal."'
+				end
 			end
 			'He nods, seeming to relax a bit.'
 			gs'sex_ev_pillow_talk', 'topic_route'
 		end
 	else
 		act'I''ve got a morning after pill':
+			sex_ev['ma_pill'] = 1
 			cla & *nl
 			'"It''s okay," you smile reassuringly. "I have a morning after pill. It''s no big deal."'
 			act'Continue':cla & gs'sex_ev_pillow_talk', 'topic_route'
@@ -540,7 +553,7 @@ if $ARGS[0] = 'forgot_bc_talk':
 		act'Wallow':
 			cla & *nl
 			'"I know, I know!" you moan miserably, berating yourself as much as he''s berating you. "I''m a fucking idiot. I''m sorry, I''m so sorry."'
-			gs'sex_ev_morning', 'wakeup1'
+			gs'sex_ev_morning', 'morning_menu1'
 		end
 		
 		act'Tell him to fuck off':
@@ -548,30 +561,32 @@ if $ARGS[0] = 'forgot_bc_talk':
 			sex_ev['angry_after'] = 1
 			cla & *nl
 			'"<i>''Your''</i> kids?" you say, glaring at him. "If I get pregnant, you''re not the one who''s gonna have to push your ugly baby out her pussy! Don''t try to make this about you. You can fuck off!"'
-			gs'sex_ev_morning', 'wakeup1'
+			gs'sex_ev_morning', 'morning_menu1'
 		end
 		
 		if mc_inventory['morning_after_pill'] > 0:
 			act'Morning after pill (sorry)':
 				gs 'medical_din', 'morning_after_pill_function'
+				sex_ev['ma_pill'] = 2
 				cla & *nl
 				'"I know, I know!" you moan miserably, berating yourself as much as he''s berating you. "I''m sorry, I''m so sorry. I know I fucked up. But I have this at least."'
 				*nl
 				'You fish a plan B pill out of your bag and hold it up for him to see.'
 				*nl
 				'"This ought to buy us some protection," you say, putting it in your mouth and crunching it down dry.'
-				gs'sex_ev_morning', 'wakeup1'
+				gs'sex_ev_morning', 'morning_menu1'
 			end
 			
 			act'Morning after pill (fuck off)':
 				gs 'medical_din', 'morning_after_pill_function'
 				npc_rel[$boy] -= 10
 				sex_ev['angry_after'] = 1
+				sex_ev['ma_pill'] = 2
 				cla & *nl
 				'"<i>''Your''</i> kids?" you say, glaring at him. "You know what? You can fuck off! I made a mistake and I admitted it. And you I have the fucking solution," you say, defiantly holding up your morning after pill.'
 				*nl
 				'"So you can fuck off!" you say again, throwing the pill in your mouth and crunching it down dry. "This is what I get for wanting to be accountable and transparent," you grumble, grinding your teeth on the bitter medicine.'
-				gs'sex_ev_morning', 'wakeup1'
+				gs'sex_ev_morning', 'morning_menu1'
 			end
 		end
 	elseif sex_ev['creampie_count'] = 0:
@@ -593,6 +608,7 @@ if $ARGS[0] = 'forgot_bc_talk':
 			
 			if mc_inventory['morning_after_pill'] > 0:
 				act'Take your morning after pill':
+					sex_ev['ma_pill'] = 2
 					gs 'medical_din', 'morning_after_pill_function'
 					cla & *nl
 					'"I have this," you say, fishing around in your bag to pull out your morning after pill.'
@@ -604,6 +620,7 @@ if $ARGS[0] = 'forgot_bc_talk':
 				end
 			else
 				act'Buy some plan B?':
+					sex_ev['plan_b_buy'] = 1
 					cla & *nl
 					'"Buy a morning after pill?" you say, shrugging. "I don''t know. Does it still work when you''re already sort of on birth control?"'
 					*nl
@@ -617,7 +634,7 @@ end
 
 if $ARGS[0] = 'forgot_bc_exit':
 	if $temp_loc = 'sex_ev_morning':
-		gs'sex_ev_morning', 'wakeup1'
+		gs'sex_ev_morning', 'morning_menu1'
 	else
 		gs'sex_ev_pillow_talk2', 'morning_sex_talk'
 	end
@@ -737,10 +754,10 @@ if $ARGS[0] = 'bareback_pill_expense':
 		cla & *clr
 		'<center><img <<$set_imgh>> src="images/shared/sex/after/pillow_talk3.jpg"></center>'
 		'"That pill costs money you know," you say irritatedly. "I''m not willing to pay for that every time you forget to pull out."'
-		if npc_finance[$boy] = 2 and npc_selfish[$boy] < 1:
+		if npc_finance[$boy] >= 1 and ((npc_selfish[$boy] < 1 and rand(1,3) = 3) or (npc_finance[$boy] = 2 and npc_no_condoms[$boy] = 1 and npc_selfish[$boy] = 1)):
 			'"How about I pay for it then?" <<$npc_firstname[$boy]>> asks. "Any time you need a morning after pill because of me, I''ll give you money to pay for it."'
 			'He grabs his wallet and pulls out a wad of notes.'
-			'"1000<b>₽</b> should be enough, right?" he grins. "First one can be on me."'
+			'"1000<b>₽</b> should be enough, right?" he grins. "You can buy one to be ready for next time."'
 			act'Refuse':
 				cla
 				act'Couldn''t impose':
@@ -748,7 +765,11 @@ if $ARGS[0] = 'bareback_pill_expense':
 					'<center><img <<$set_imgh>> src="images/shared/sex/after/pillow_talk2.jpg"></center>'
 					'You blink as he offers the cash to you.'
 					'"No, I couldn''t possibly," you say, pushing it back towards him. "I''d feel bad taking your money."'
-					'"Why? I''m getting something out of it too," he grins extending his hand again. "Just take it and let''s start going bareback."'
+					if npc_rel_type[$boy] = 'boyfriend':
+						'"Why? I''m your boyfriend," he grins extending the money again. "You feel bad that the guy you''re dating wants to pay for something?"'
+					else
+						'"Why? I''m getting something out of it too," he grins extending the money again. "Just take it and let''s start going bareback."'
+					end
 					gs 'willpower', 'misc', 'resist'
 					if will_cost <= pcs_willpwr:
 						act'Refuse (<<will_cost>> Willpower)':
@@ -763,6 +784,8 @@ if $ARGS[0] = 'bareback_pill_expense':
 					else
 						act 'Refuse (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
 					end
+					
+					gs'sex_ev_talk', 'ma_pill_deal_accept'
 				end
 				
 				act'Hormonal influence':
@@ -792,40 +815,44 @@ if $ARGS[0] = 'bareback_pill_expense':
 					end
 				end}
 			end
-			
-			act'Accept':
-				cla
-				act'Surprise':
-					cla & *clr
-					'<center><img <<$set_imgh>> src="images/shared/sex/after/pillow_talk2.jpg"></center>'
-					'"Wait really?" you say in surprise, taking the notes from him. "You''d really do that? I can just have this?"'
-					gs'sex_ev_talk', 'boy_pays_for_ma_pills'
-				end
-				
-				act'Gratitude':
-					cla & *clr
-					'<center><img <<$set_imgh>> src="images/shared/sex/after/pillow_talk2.jpg"></center>'
-					'"Oh! Wow," you say, taking the notes from him. "That''s... This is actually very helpful. That''s so nice of you! Not sure how many guys would be willing to pay for a girl''s emergency birth control like this."'
-					gs'sex_ev_pillow_talk', 'topic_route'
-				end
-				
-				act'Excitement':
-					cla & *clr
-					'<center><img <<$set_imgh>> src="images/shared/sex/after/pillow_talk1.jpg"></center>'
-					'"Seriously?!" you say, excitedly grabbing the money. "If you''re paying for it then sure!"'
-					gs'sex_ev_pillow_talk', 'topic_route'
-				end
-				
-!!{				act'Embarrassment':
-					cla & *clr
-					'<center><img <<$set_imgh>> src="images/shared/sex/after/pillow_talk3.jpg"></center>'
-					
-					gs'sex_ev_pillow_talk', 'topic_route'
-				end}
-			end
+			gs'sex_ev_talk', 'ma_pill_deal_accept'
 		else
-			
+			'"I guess you have a point there," <<$npc_firstname[$boy]>> chuckles. "It could really add up quickly if things went wrong."'
+			gs'sex_ev_pillow_talk', 'topic_route'
 		end
+	end
+end
+
+if $ARGS[0] = 'ma_pill_deal_accept':
+	act'Accept':
+		cla
+		act'Surprise':
+			cla & *clr
+			'<center><img <<$set_imgh>> src="images/shared/sex/after/pillow_talk2.jpg"></center>'
+			'"Wait really?" you say in surprise, taking the notes from him. "You''d really do that? I can just have this?"'
+			gs'sex_ev_talk', 'boy_pays_for_ma_pills'
+		end
+		
+		act'Gratitude':
+			cla & *clr
+			'<center><img <<$set_imgh>> src="images/shared/sex/after/pillow_talk2.jpg"></center>'
+			'"Oh! Wow," you say, taking the notes from him. "That''s... This is actually very helpful. That''s so nice of you! Not sure how many guys would be willing to pay for a girl''s emergency birth control like this."'
+			gs'sex_ev_pillow_talk', 'topic_route'
+		end
+		
+		act'Excitement':
+			cla & *clr
+			'<center><img <<$set_imgh>> src="images/shared/sex/after/pillow_talk1.jpg"></center>'
+			'"Seriously?!" you say, excitedly grabbing the money. "If you''re paying for it then sure!"'
+			gs'sex_ev_pillow_talk', 'topic_route'
+		end
+		
+!!{				act'Embarrassment':
+			cla & *clr
+			'<center><img <<$set_imgh>> src="images/shared/sex/after/pillow_talk3.jpg"></center>'
+			
+			gs'sex_ev_pillow_talk', 'topic_route'
+		end}
 	end
 end
 
@@ -840,11 +867,14 @@ if $ARGS[0] = 'boy_pays_for_ma_pills':
 	npc_bareback[$boy] = 1
 	money += 1000
 	sex_ev['ma_pill_money'] = 1
+	gs'sex_ev_pillow_talk', 'topic_route'
 end
 
 if $ARGS[0] = 'ma_pill_money':
 	if sex_ev['ma_pill_money'] = 0 and npc_pay_for_ma_pill[$boy] = 1 and sex_ev['creampie_count'] > 0:
 		act'Ask for plan B money':
+			sex_ev['ma_pill_money'] = 1
+			money += 1000
 			cla & *clr
 			'<center><img <<$set_imgh>> src="images/shared/sex/after/pillow_talk1.jpg"></center>'
 			if cum_loc['vagina'] > 0:
@@ -854,15 +884,20 @@ if $ARGS[0] = 'ma_pill_money':
 			end
 			'"Sure thing," he says, quickly reaching over to his wallet and pulling out a 1000<b>₽</b note and handing it to you.'
 			'"Thanks," you say as you take it.'
-			sex_ev['ma_pill_money'] = 1
-			money += 1000
+			
 			gs'sex_ev_pillow_talk', 'topic_route'
 		end
 	end
 end
 
 if $ARGS[0] = 'bareback_bc_suggest':
-	if birth_control['using_bc'] > 0:
+	if birth_control['using_bc'] = 0:
+		act'Think about it':
+			cla & *nl
+			'"Hmmm..." you hum to yourself. "I''ll think about it...'
+			gs'sex_ev_pillow_talk', 'topic_route'
+		end
+	else
 		act'Already am':
 			cla & *clr
 			'<center><img <<$set_imgh>> src="images/shared/sex/after/pillow_talk3.jpg"></center>'
@@ -914,12 +949,11 @@ if $ARGS[0] = 'borrow_planb':
 				$sex_ev['bed_room']
 			end
 			'"Hey, can I borrow some money?" you ask <<$npc_firstname[$boy]>>. "I need it for the morning after pill."'
-			if rand(1,4) = 1 and npc_finance[$boy] = 0:
-				if npc_selfish[$boy] = 1:
-					'"Are you kidding? I barely have any money myself," <<$npc_firstname[$boy]>> scowls. "I got nothing to give to you."'
-				else
-					'"Actually, I''m a little strapped for cash myself," he mumbles embarrassedly. "I need every ruble right now. Sorry."'
-				end
+			if npc_finance[$boy] = 0 and npc_selfish[$boy] = 1 and rand(1,4) > 1:
+				'"Are you kidding? I barely have any money myself," <<$npc_firstname[$boy]>> scowls. "I got nothing to give to you."'
+				gs 'sex_ev_talk', 'borrow_money_exit'
+			elseif rand(1,4) = 1 and npc_finance[$boy] = 0:
+				'"Actually, I''m a little strapped for cash myself," he mumbles embarrassedly. "I need every ruble right now. Sorry."'
 				gs 'sex_ev_talk', 'borrow_money_exit'
 			elseif npc_know_bc[$boy] > 0:
 				'"Aren''t you on birth control already?" he asks confusedly.'
@@ -927,7 +961,8 @@ if $ARGS[0] = 'borrow_planb':
 					'"I just like being extra safe," you say.'
 				else
 					gs'sex_ev_stats','no_birth_control_know'
-					'"I actually stopped a while back... Did I forget to tell you?" you say with an embarrassed smile.'
+					'"I actually stopped a while back... Did I forget to tell you?"'
+					'You give <<$npc_firstname[$boy]>> an embarrassed smile.'
 				end
 				
 				if birth_control['think_safe'] = 1 and npc_selfish[$boy] = 1:
@@ -1141,5 +1176,39 @@ end
 if $ARGS[0] = 'rape_explain2':
 	'"I guess I kind of ruined the mood, didn''t I?" you say with a small laugh of self pity.'
 
+end
+
+
+if $ARGS[0] = 'sugar_daddy_pay':
+	if $npc_rel_type[$boy] = 'sugar_daddy' and sex_ev['sugar_daddy_paid'] = 0 and sex_ev['sex_over'] = 1:
+		act'Ask for your sugar money':
+			sex_ev['sugar_daddy_paid'] = 1
+			money += npc_sugar_daddy_price[$boy]
+			cla
+			act'Demurely':
+				cla & *clr
+				'<center><img <<$set_imgh>> src="images/shared/sex/after/pillow_talk4.jpg"></center>'
+				'"Now that we''ve had our fun..." you smile sweetly. "And I did something for you... Don''t you have something for me...?"'
+				'You pout cutely, making doe eyes at <<$npc_firstname[$boy]>> who smiles back and reaches over to his wallet.'
+				'"Sure do," he says, pulling out <<npc_sugar_daddy_price[$boy]>><b>₽‎</b> in cash and handing it over to you. "There you go baby girl."'
+				'"Thank you daddy," you smile back and put the money away into your purse.'
+				gs 'sex_ev_after', 'relax_together'
+			end
+			
+			act'Transactionally':
+				npc_dislike[$boy] += 1
+				cla & *clr
+				'<center><img <<$set_imgh>> src="images/shared/sex/after/pillow_talk3.jpg"></center>'
+				if sex_ev['fuck_count'] > 0:
+					'"Okay, we''ve fucked. Can I get paid now?" you ask bluntly. <<$npc_firstname[$boy]>> gives you a look but reaches over to his wallet and pulls out <<npc_sugar_daddy_price[$boy]>><b>₽‎</b>.'
+				else
+					'"Okay, I got you off. Can I get paid now?" you ask bluntly. <<$npc_firstname[$boy]>> gives you a look but reaches over to his wallet and pulls out <<npc_sugar_daddy_price[$boy]>><b>₽‎</b>.'
+				end
+				'"Here," he says. He offers it towards you and you snatch it out of his hand.'
+				'"Thanks," you reply absent-mindedly as you stuff the money into your purse.'
+				gs 'sex_ev_after', 'relax_together'
+			end
+		end
+	end
 end
 --- sex_ev_talk ---------------------------------

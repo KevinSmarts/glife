@@ -146,9 +146,11 @@ end
 !!	$npc_dick_desc is set here
 !!	this variable is to set a shorthand method of checking dick size without looking for specific numbers
 !!	it is organized by length and then ascending girth
+!!	$npc_dick_class is a fast way of determining size by category
 
 !! short dicks
 if npc_dick[$npclastgenerated] < 9:
+	$npc_dick_class[$npclastgenerated] = 'short'
 	if $npc_thdick[$npclastgenerated] = 'skinny' or $npc_thdick[$npclastgenerated] = 'slim':
 	
 		$npc_dick_desc[$npclastgenerated] = 'tiny'
@@ -164,7 +166,8 @@ if npc_dick[$npclastgenerated] < 9:
 	end
 	
 !! average length dicks
-elseif npc_dick[$npclastgenerated] < 13:
+elseif npc_dick[$npclastgenerated] < 15:	
+	$npc_dick_class[$npclastgenerated] = 'average'
 	if $npc_thdick[$npclastgenerated] = 'skinny' or $npc_thdick[$npclastgenerated] = 'slim':
 	
 		$npc_dick_desc[$npclastgenerated] = 'skinny'
@@ -179,7 +182,8 @@ elseif npc_dick[$npclastgenerated] < 13:
 		
 	end
 !! long dicks
-elseif npc_dick[$npclastgenerated] < 18:
+elseif npc_dick[$npclastgenerated] < 20:
+	$npc_dick_class[$npclastgenerated] = 'big'
 	if $npc_thdick[$npclastgenerated] = 'skinny' or $npc_thdick[$npclastgenerated] = 'slim':
 	
 		$npc_dick_desc[$npclastgenerated] = 'long'
@@ -193,6 +197,7 @@ elseif npc_dick[$npclastgenerated] < 18:
 	end
 !! extremely long dicks
 else
+	$npc_dick_class[$npclastgenerated] = 'extra_big'
 	if $npc_thdick[$npclastgenerated] = 'skinny' or $npc_thdick[$npclastgenerated] = 'slim':
 	
 		$npc_dick_desc[$npclastgenerated] = 'lengthy'
@@ -297,7 +302,7 @@ $npc_dna[$npclastgenerated] = func('DNA','create')
 
 	npc_residence[$npclastgenerated] = temp_location
 	if npc_residence[$npclastgenerated] = 1:
-		npc_finance[$npclastgenerated] = 0
+		npc_finance[$npclastgenerated] = rand(0,1)
 		$npc_residence[$npclastgenerated] = 'pav_res'
 	elseif npc_residence[$npclastgenerated] = 2:
 		npc_finance[$npclastgenerated] = 0
@@ -363,12 +368,29 @@ $npc_dna[$npclastgenerated] = func('DNA','create')
 		
 		if npc_car[$npclastgenerated] = 0: npc_car[$npclastgenerated] = rand(-3,1)
 	elseif npc_finance[$npclastgenerated] = 2:
+		if rand(1,2) = 1:
+			npc_start_free_time[$npclastgenerated] = 8
+			npc_end_free_time[$npclastgenerated] = 12
+			
+			npc_work_start[$npclastgenerated] = 13
+			npc_work_end[$npclastgenerated] = 21
+		else
+			npc_start_free_time[$npclastgenerated] = 18
+			npc_end_free_time[$npclastgenerated] = 22
+			
+			npc_work_start[$npclastgenerated] = 9
+			npc_work_end[$npclastgenerated] = 17
+		end
 		npc_apt_type[$npclastgenerated] = 5
 		!!npc_apt_type[$npclastgenerated] = rand(5,6)
 		!! apt_type 6 is disabled until pictures are added
 		npc_occupation[$npclastgenerated] = rand(14,18)
 		npc_car[$npclastgenerated] = rand(0,1)
 	end
+	
+	!! failsafe until possibility of roommates is sorted out
+	if npc_apt_type[$npclastgenerated] = 4: npc_apt_type[$npclastgenerated] = 5
+	
 	npc_day_off[$npclastgenerated] = rand(1,7)
 	
 	
@@ -493,15 +515,17 @@ $npc_dna[$npclastgenerated] = func('DNA','create')
 	elseif npc_occupation[$npclastgenerated] = 15: 
 		$npc_occupation[$npclastgenerated] = 'programmer'
 	elseif npc_occupation[$npclastgenerated] = 16: 
-		$npc_occupation[$npclastgenerated] = 'criminal'
+		npc_criminal[$npclastgenerated] = 1
 		!! npc_criminal_open determines whether or not they will hide their criminality from the player
 		npc_criminal_open[$npclastgenerated] = rand(0,1)
-		if rand(1,3) = 1:
-			$npc_crime_type[$npclastgenerated] = 'drug_dealer'
+		if rand(1,4) = 1:
+			$npc_occupation[$npclastgenerated] = 'pimp'
+		elseif rand(1,3) = 1:
+			$npc_occupation[$npclastgenerated] = 'drug_dealer'
 		elseif rand(1,2) = 1:
-			$npc_crime_type[$npclastgenerated] = 'enforcer'
+			$npc_occupation[$npclastgenerated] = 'enforcer'
 		else
-			$npc_crime_type[$npclastgenerated] = 'thief'
+			$npc_occupation[$npclastgenerated] = 'thief'
 		end
 	elseif npc_occupation[$npclastgenerated] = 17: 
 		$npc_occupation[$npclastgenerated] = 'businessman'
@@ -550,28 +574,29 @@ $npc_dna[$npclastgenerated] = func('DNA','create')
 	npc_goal[$npclastgenerated] = rand(1,3)
 
 !!	npc_fidelity is how they will behave in a relationship
-!!	1-3 = will cheat on you 
-!!	4-6 = will cheat on others with you
-!!		4 = cheats on them with you for the first time
+!!	1-3 = will cheat on you and others with no guilt
+!!	5-6 = will cheat on others with you
 !!		5 = has been cheating and feels guilty
-!!		6 = is a serial cheater with no guilt
+!!		6 = cheats on them with you for the first time
 !!	7 = is fine with open relationship
 !!	8-10 = will be faithful
 	if npc_fidelity[$npclastgenerated] >= 8:
 		$npc_fidelity[$npclastgenerated] = 'faithful'
 	elseif npc_fidelity[$npclastgenerated] = 7:
 		$npc_fidelity[$npclastgenerated] = 'open'
-	elseif npc_fidelity[$npclastgenerated] >= 4:
+	elseif npc_fidelity[$npclastgenerated] >= 5:
 		$npc_fidelity[$npclastgenerated] = 'seduced'
 	elseif npc_fidelity[$npclastgenerated] >= 1:
 		$npc_fidelity[$npclastgenerated] = 'cheater'
 	end
 
-!!	4 = is a serial cheater with no guilt
-!!	5 = has been cheating and feels guilty
-!!	6 = cheats on them with you for the first time
-
-	if npc_fidelity[$npclastgenerated] >= 4 and npc_fidelity[$npclastgenerated] <= 6: npc_girlfriend[$npclastgenerated] = rand(0,1)
+	if npc_fidelity[$npclastgenerated] <= 5:
+		if npctempgage >= 26 and rand(1,2) = 1 and npc_finance[$npclastgenerated] = 2:
+			npc_wife[$npclastgenerated] = rand(0,1)
+		else
+			npc_girlfriend[$npclastgenerated] = rand(0,1)
+		end
+	end
 
 !! initialise lover length in days
 	npc_lover_days[$npclastgenerated] = 0
@@ -600,15 +625,6 @@ $npc_dna[$npclastgenerated] = func('DNA','create')
 		end
 	end
 	
-	if rand(0,2) > 0:
-		if rand(0,1) = 1:
-			npc_neat[$npclastgenerated] = 1
-			npc_messy[$npclastgenerated] = 0
-		else
-			npc_messy[$npclastgenerated] = 1
-			npc_neat[$npclastgenerated] = 0
-		end
-	end
 	
 	!! npc_gentle = 1: npc is likely to have a soft emotional and physical touch outside of sex
 	!! npc_rough = 1: npc is likely to have a rough/aggressive emotional and physical touch outside of sex
@@ -617,11 +633,11 @@ $npc_dna[$npclastgenerated] = func('DNA','create')
 			npc_gentle[$npclastgenerated] = 1
 			npc_rough[$npclastgenerated] = 0
 		else
-			npc_gentle[$npclastgenerated] = 1
-			npc_rough[$npclastgenerated] = 0
+			npc_gentle[$npclastgenerated] = 0
+			npc_rough[$npclastgenerated] = 1
 		end
 	end
-	!! npc_diligent = 1: npc is more methodical, doesn''t like to skip steps, and usuallly plays it safe
+	!! npc_diligent = 1: npc is more methodical, doesn''t like to skip steps, and usually plays it safe
 	!! npc_risktaker = 1: npc is more likely to take risks, such as never using a condom
 	if rand(0,2) > 0:
 		if rand(0,1) = 1:
@@ -630,6 +646,16 @@ $npc_dna[$npclastgenerated] = func('DNA','create')
 		else
 			npc_diligent[$npclastgenerated] = 1
 			npc_risktaker[$npclastgenerated] = 0
+		end
+	end
+	
+	if rand(0,2) > 0:
+		if rand(1,3) + npc_diligent[$npclastgenerated] > 2:
+			npc_neat[$npclastgenerated] = 1
+			npc_messy[$npclastgenerated] = 0
+		else
+			npc_messy[$npclastgenerated] = 1
+			npc_neat[$npclastgenerated] = 0
 		end
 	end
 	
@@ -669,15 +695,17 @@ $npc_dna[$npclastgenerated] = func('DNA','create')
 	
 !! ------------------------- sex related preferences ----------------------------------
 
-	if rand(0,1) >= 1 and npc_risktaker[$npclastgenerated] ! 1:
+!!	if rand(0,1) >= 1 and npc_risktaker[$npclastgenerated] ! 1:
+	if rand(0,1) >= 1:
 !!		if npc_condom_conscious = 1: they will use condoms but can be talked out of it
-!!		if npc_condom_conscious = 2: they will always insist on using condoms unless you are in a committed relationship 
+!!		if npc_condom_conscious = 2: they will always insist on using condoms unless you are in a committed relationship and/or trying for a baby
 		if npc_diligent[$npclastgenerated] = 1:
 			npc_condom_conscious[$npclastgenerated] = rand(-1,2)
 		else
 			npc_condom_conscious[$npclastgenerated] = rand(-2,2)
 		end
-	elseif npc_diligent[$npclastgenerated] ! 1:
+!!	elseif npc_diligent[$npclastgenerated] ! 1:
+	else
 !!		if npc_no_condoms = 1: they have a preference for skipping condoms but can be talked into using one
 !!		if npc_no_condoms = 2: they will never use a condom no matter what
 		if npc_risktaker[$npclastgenerated] = 1:
