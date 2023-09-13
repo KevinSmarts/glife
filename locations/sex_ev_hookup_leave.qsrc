@@ -8,14 +8,15 @@ if $ARGS[0] = 'gotta_go':
 		$sex_ev['fun'] = 'fun'
 	end
 	
-	
 	if rand(1,20) < sex_ev['cum_count'] + sex_ev['extra_cum']: sex_ev['continuation'] = 1
 	if sex_ev['leaving'] = 0:
 		act'I should go':
 			sex_ev['leaving'] = 1
 			cla & *clr
 			gs 'sex_ev_leave', 'dress_loop'
-			if sex_ev['sleepover'] = 1:
+			if sex_ev['angry_after'] = 1 or sex_ev['annoyed'] > 0:
+				'"I have to go," you say flatly, reaching down for your clothes without looking at <<$npc_firstname[$boy]>>.'
+			elseif sex_ev['sleepover'] = 1:
 				'"This has been nice," you say, <<$sex_ev[''dress_describe'']>>. "But I really should go."'
 			elseif sex_ev['get_up'] = 0:
 				'As nice as this is, you really can''t stay and you heave yourself up and away from <<$npc_firstname[$boy]>>, getting up from the bed and moving over to where your discarded clothes were thrown.'
@@ -25,20 +26,21 @@ if $ARGS[0] = 'gotta_go':
 			end
 			gs 'sex_ev_hookup_leave', 'hookup_continuation'
 		end
-		
-		act'Thanks for the <<$sex_ev[''fun'']>>':
-			sex_ev['leaving'] = 1
-			cla & *clr
-			gs 'sex_ev_leave', 'dress_loop'
-			'You get up from the bed and pad across the floor, bending down to pick up your discarded apparel.'
-			if sex_ev['sleepover'] = 1:
-				'"Thanks for the <<$sex_ev[''fun'']>> last night," you say, <<$sex_ev[''dress_describe'']>> with a smirk over your shoulder. "And for letting me stay over."'
-			elseif sex_ev['get_up'] = 0:
-				'"Thanks for the <<$sex_ev[''fun'']>>," you say, <<$sex_ev[''dress_describe'']>> with a smirk over your shoulder.'
-			else
-				'"Well, thanks for the <<$sex_ev[''fun'']>>," you say, <<$sex_ev[''dress_describe'']>> with a smirk over your shoulder.'
+		if sex_ev['mad'] < 1 and sex_ev['angry_after'] < 1:
+			act'Thanks for the <<$sex_ev[''fun'']>>':
+				sex_ev['leaving'] = 1
+				cla & *clr
+				gs 'sex_ev_leave', 'dress_loop'
+				'You get up from the bed and pad across the floor, bending down to pick up your discarded apparel.'
+				if sex_ev['sleepover'] = 1:
+					'"Thanks for the <<$sex_ev[''fun'']>> last night," you say, <<$sex_ev[''dress_describe'']>> with a smirk over your shoulder. "And for letting me stay over."'
+				elseif sex_ev['get_up'] = 0:
+					'"Thanks for the <<$sex_ev[''fun'']>>," you say, <<$sex_ev[''dress_describe'']>>.'
+				else
+					'"Well, thanks for the <<$sex_ev[''fun'']>>," you say, <<$sex_ev[''dress_describe'']>>.'
+				end
+				gs 'sex_ev_hookup_leave', 'hookup_continuation'
 			end
-			gs 'sex_ev_hookup_leave', 'hookup_continuation'
 		end
 	else
 		act'Prepare to leave':
@@ -54,34 +56,58 @@ if $ARGS[0] = 'gotta_go':
 end
 
 if $ARGS[0] = 'hookup_continuation':
-	if rand(1,10) > 7 and (hour > 20 or hour < 2) and npc_caretaker[$boy] > 0 and npc_girlfriend[$boy] = 0 and sex_ev['cant_stay'] = 0:
-		'"Really?" <<$npc_firstname[$boy]>> sits up in bed. "You don''t have to. Are you sure you don''t want to spend the night?"'
-		gs 'sex_ev_hookup_leave', 'spend_the_night'
-	elseif sex_ev['continuation'] > 0:
-		if npc_goal[$boy] = 1:
-			gs 'sex_ev_hookup_leave', 'npc_fuckbuddy_request'
-		elseif npc_goal[$boy] > 1:
-			gs 'sex_ev_hookup_leave', 'npc_date_request'
-		end
-		gs 'sex_ev_hookup_leave', 'finish_dressing'
-	elseif sex_ev['thank_for_fun'] = 1:
-		if sex_ev['bj_count'] > 0 and sex_ev['fuck_count'] < 1:
-			if sex_ev['virgin'] > 0:
-				'"Thanks for the blowjob," he smirks back. "You give pretty good head. You sure you''re a virgin?" You don''t respond, <<$sex_ev[''dress_describe'']>>, but roll your eyes at his commentary.'
+	sex_ev['hookup_continuation_check'] = 1
+	if $sex_ev['type'] = 'hookup':
+		sex_ev['continuation'] = rand(-1,1)
+		if rand(1,10) > 7 and (hour > 20 or hour < 2) and npc_caretaker[$boy] > 0 and npc_girlfriend[$boy] = 0 and sex_ev['cant_stay'] = 0 and sex_ev['sleepover'] ! 1:
+			'"You know, it''s kinda late." <<$npc_firstname[$boy]>> sits up in bed. "You don''t have to go right now. Did you want to maybe... spend the night?"'
+			gs 'sex_ev_hookup_leave', 'spend_the_night'
+		else
+			if sex_ev['continuation'] > 0 and sex_ev['mad'] < 1 and sex_ev['angry_after'] < 1:
+				cla
+				if npc_finance[$boy] = 2 and npc_goal[$boy] < 3 and (rand(-1,2) - $npc_selfish[$boy] > 0 or sex_ev['prostitution'] = 1):
+					gs 'sex_ev_hookup_leave', 'npc_sugar_daddy_offer'
+				elseif npc_goal[$boy] = 1:
+					gs 'sex_ev_hookup_leave', 'npc_fuckbuddy_request'
+				elseif npc_goal[$boy] > 1:
+					gs 'sex_ev_hookup_leave', 'npc_date_request'
+				end
+				gs 'sex_ev_leave', 'dressing_finish'
+			elseif sex_ev['thank_for_fun'] = 1:
+				if sex_ev['bj_count'] > 0 and sex_ev['fuck_count'] < 1:
+					if sex_ev['virgin'] > 0:
+						'"Thanks for the blowjob," he smirks back. "You give pretty good head. You sure you''re a virgin?" You don''t respond, <<$sex_ev[''dress_describe'']>>, but roll your eyes at his commentary.'
+					else
+						'"Thanks for the blowjob," he smirks back as you''re <<$sex_ev[''dress_describe'']>>. "You give great head."'
+					end
+				elseif sex_ev['fuck_count'] > 0:
+					'"Right back at you," he smirks in return while you''re <<$sex_ev[''dress_describe'']>>.'
+				end
+				gs 'sex_ev_hookup_leave', 'later'
+				gs 'sex_ev_leave', 'dress_talk_pc'
+				gs 'sex_ev_hookup_leave', 'panty_gift'
 			else
-				'"Thanks for the blowjob," he smirks back as you''re <<$sex_ev[''dress_describe'']>>. "You give great head."'
+				cla
+				'"Alright, sure. Feel free to see yourself out."'
+				gs 'sex_ev_hookup_leave', 'later'
+				gs 'sex_ev_leave', 'dress_talk_pc'
+				gs 'sex_ev_leave', 'panty_gift'
 			end
-		elseif sex_ev['fuck_count'] > 0:
-			'"Right back at you," he smirks in return while you''re <<$sex_ev[''dress_describe'']>>.'
 		end
-		gs 'sex_ev_hookup_leave', 'later'
-		gs 'sex_ev_hookup_leave', 'panty_gift'
-		gs'sex_ev_leave', 'dress_talk'
 	else
-		'"Alright, sure. Feel free to see yourself out."'
-		gs 'sex_ev_hookup_leave', 'later'
-		gs 'sex_ev_leave', 'panty_gift'
-		gs'sex_ev_leave', 'dress_talk'
+		sex_ev['continuation'] = rand(-1,1)
+		if sex_ev['continuation'] > 0 and sex_ev['mad'] < 1 and sex_ev['angry_after'] < 1:
+			
+			if npc_finance[$boy] = 2 and npc_goal[$boy] < 3 and (rand(-1,2) - $npc_selfish[$boy] > 0 or sex_ev['prostitution'] = 1) and $npc_rel_type[$boy] ! 'sugar_daddy':
+				cla
+				gs 'sex_ev_hookup_leave', 'npc_sugar_daddy_offer'
+	!!		elseif npc_goal[$boy] = 1 and $npc_rel_type[$boy] ! 'fuckbuddy' and $npc_rel_type[$boy] ! 'sugar_daddy':
+	!!			gs 'sex_ev_hookup_leave', 'npc_fuckbuddy_request'
+	!!		elseif npc_goal[$boy] > 1 and $npc_rel_type[$boy] ! 'fuckbuddy' and $npc_rel_type[$boy] ! 'sugar_daddy'::
+	!!			gs 'sex_ev_hookup_leave', 'npc_date_request'
+			end
+	!!		gs 'sex_ev_leave', 'dressing_finish'
+		end
 	end
 end
 
@@ -100,14 +126,14 @@ if $ARGS[0] = 'spend_the_night':
 		act'No, I shouldn''t':
 			sex_ev['cant_stay'] = 1
 			cla & *clr
-			$npc_apt_bedroom[$boy]
+			$sex_ev['bed_room']
 			'"... no," you sigh. "I really shouldn''t. I want to, but I can''t."'
 			gs 'sex_ev_hookup_leave', 'hookup_continuation'
 		end
 		
 		act'I guess I could...':
 			cla & *clr
-			$npc_apt_bedroom[$boy]
+			$sex_ev['bed_room']
 			'"... I guess I could..." you relent, dropping the clothes you were holding.'
 			act'Undress and get into bed with him':
 				if $clothingworntype ! 'nude':gs 'clothing', 'strip'
@@ -206,7 +232,7 @@ if $ARGS[0] = 'pc_date_request':
 end
 
 if $ARGS[0] = 'npc_fuckbuddy_request':
-	if sex_ev['thank_for_fun'] = 1:		
+	if sex_ev['thank_for_fun'] = 1:
 		'"You want to do it again sometime? Nothing serious, just sex. No strings."'
 	else
 		if sex_ev['npc_can_spend_the_night'] > 0:
@@ -314,6 +340,181 @@ if $ARGS[0] = 'npc_date_request':
 	end
 end
 
+if $ARGS[0] = 'npc_sugar_daddy_offer':
+	sex_ev['sugar_daddy_offer'] = rand(10,20)
+	if sex_ev['thank_for_fun'] = 1:
+		'"Did you really enjoy it? Or are you just saying that?" <<$npc_firstname[$boy]>> asks.'
+		act'Just saying (honest)':
+			gs 'sex_ev_leave', 'dress_loop'
+			'"Just saying it," you shrug, <<$sex_ev[''dress_describe'']>>. "If I''m being honest, this wasn''t anything special. But I thought I''d try to be polite."'
+			gs 'sex_ev_hookup_leave', 'npc_sugar_daddy_offer2'
+		end
+		
+		act'Just saying (teasing)':
+			gs 'sex_ev_leave', 'dress_loop'
+			'"Just saying," you say, <<$sex_ev[''dress_describe'']>> with a teasing smirk. "I was trying to be nice."'
+			gs 'sex_ev_hookup_leave', 'npc_sugar_daddy_offer2'
+		end
+		
+		act'You mean it':
+			gs 'sex_ev_leave', 'dress_loop'
+			'"No really," you smirk, <<$sex_ev[''dress_describe'']>>. "It was a good time."'
+			gs 'sex_ev_hookup_leave', 'npc_sugar_daddy_offer2'
+		end
+	else
+		gs 'sex_ev_hookup_leave', 'npc_sugar_daddy_offer2'
+	end
+end
+
+if $ARGS[0] = 'npc_sugar_daddy_offer2':
+	'"How about we do this again?" <<$npc_firstname[$boy]>> says.'
+	'"Do what?" you ask back, <<$sex_ev[''dress_describe'']>>.'
+	if sex_ev['prostitution'] > 0:
+		'"This," he says again, gesturing vaguely around the room. "I you can keep me company and I can get you some... compensation."'
+	else
+		'"This," he says again, gesturing vaguely around the room. "And maybe for your time and your company I could find you some... compensation."'
+	end
+	act'Not a hooker':
+		gs 'sex_ev_leave', 'dress_loop'
+		'"I''m not a hooker," you say, <<$sex_ev[''dress_describe'']>>.'
+		'"I didn''t say you were," <<$npc_firstname[$boy]>> snickers back. "Don''t think of it that way. Think of it more like... a sugar daddy relationship. Will you let me be your daddy?"'
+		gs'sex_ev_hookup_leave', 'npc_sugar_daddy_refuse'
+		gs'sex_ev_hookup_leave', 'npc_sugar_daddy_how_much'
+	end
+	gs'sex_ev_hookup_leave', 'npc_sugar_daddy_how_much'
+	gs 'sex_ev_hookup_leave', 'have_a_boyfriend'
+	gs 'sex_ev_hookup_leave', 'have_a_girlfriend'
+end
+
+if $ARGS[0] = 'npc_sugar_daddy_refuse':
+	act'Refuse him':
+		cla
+		act'Nice try but no':
+			cla & *clr
+			'<center><video autoplay loop src="images/shared/romance/misc/depart_annoyed1.mp4"></video></center>'
+			'"Nice try but no," you grimace and pick up the rest of your things and head out the door.'
+			act'Leave':gt 'sex_ev_leave', 'exit'
+		end
+		
+		act'Not that kind of girl':
+			cla & *clr
+			'<center><video autoplay loop src="images/shared/romance/misc/depart_annoyed1.mp4"></video></center>'
+			'"I''m not that kind of girl," you sneer.'
+			'"The missing money from my wallet would disagree," he chuckles back.'
+			'Filled with disgust, you pick up the rest of your things and head out the door.'
+			act'Leave':gt 'sex_ev_leave', 'exit'
+		end
+		
+		act'"You''re disgusting"':
+			cla & *clr
+			'<center><video autoplay loop src="images/shared/romance/misc/depart_annoyed1.mp4"></video></center>'
+			'"You''re disgusting," you sneer.'
+			'"Hey, what''s the point of money if you don''t spend it?" he chuckles back.'
+			'Filled with revulsion, you pick up the rest of your things and head out the door.'
+			act'Leave':gt 'sex_ev_leave', 'exit'
+		end
+		
+		act'"You can''t afford me"':
+			gs 'sex_ev_leave', 'dress_loop'
+			'"Please," you scoff, <<$sex_ev[''dress_describe'']>>. "You can''t afford me."'
+			'"So you say, but your loss in the end I suppose," he smirks back.'
+			act'Leave':gt 'sex_ev_leave', 'exit'
+		end
+	end
+end
+
+if $ARGS[0] = 'npc_sugar_daddy_how_much':
+	act'How much?':
+		gs 'sex_ev_leave', 'dress_loop'
+		'"Depends," you muse, <<$sex_ev[''dress_describe'']>>. "How much are we talking?"'
+		'"How about... <<sex_ev[''sugar_daddy_offer''] * 100>> <b>₽</b> a date?"'
+		gs'sex_ev_hookup_leave', 'npc_sugar_daddy_refuse'
+		gs'sex_ev_hookup_leave', 'npc_sugar_daddy_accept'
+		gs'sex_ev_hookup_leave', 'npc_sugar_daddy_haggle'
+	end
+end
+
+if $ARGS[0] = 'npc_sugar_daddy_accept':
+	act'Accept':
+		gs 'sex_ev_leave', 'sugar_daddy_add'
+		gs 'sex_ev_leave', 'dress_loop'
+		'"That sounds... mutually beneficial," you say, slowly <<$sex_ev[''dress_describe'']>>.'
+		'"I''ll look forward to the next time you come over then," <<$npc_firstname[$boy]>> smirks. "Give me your number so I can tell you when to come over.'
+		*nl
+		'You hand him your phone and when you get it back you see he''s the latest saved contact.'
+		gs'sex_ev_leave', 'leaving_dialogue_choices'
+	end
+end
+
+if $ARGS[0] = 'npc_sugar_daddy_haggle':
+	act'Haggle':
+		:invalid_counter_offer
+		sex_ev['sugar_daddy_counteroffer'] = input ("Pick a number between 10 and 50. The number will be multiplied by 100. (10 will be 1000, 25 will be 2500, 50 will be 5000)")
+		if sex_ev['sugar_daddy_counteroffer'] > 50 or sex_ev['sugar_daddy_counteroffer'] < 10 :
+			msg 'Invalid input. Pick a number between 10 and 50.'
+			jump 'invalid_counter_offer'
+		else
+			gs'sex_ev_hookup_leave', 'npc_sugar_daddy_haggle2'
+		end
+	end
+end
+
+if $ARGS[0] = 'npc_sugar_daddy_haggle2':
+	gs 'sex_ev_leave', 'dress_loop'
+	if sex_ev['sugar_daddy_counteroffer'] = sex_ev['sugar_daddy_offer']:
+		gs'sex_ev_hookup_leave', 'npc_sugar_daddy_accept'
+	elseif sex_ev['sugar_daddy_counteroffer'] < sex_ev['sugar_daddy_offer']:
+		sex_ev['sugar_daddy_offer'] = sex_ev['sugar_daddy_counteroffer']
+		gs 'sex_ev_leave', 'sugar_daddy_add'
+		'"Why don''t we say <<sex_ev[''sugar_daddy_counteroffer''] * 100>>? I''d feel bad if I took too much," you smirk, <<$sex_ev[''dress_describe'']>>.'
+		'"Hey if you''re willing to put out for less, I won''t complain," <<$npc_firstname[$boy]>> grins back. "Give me your number so I can tell you when to come over.'
+		*nl
+		'You hand him your phone and when you get it back you see he''s the latest saved contact.'
+		gs'sex_ev_leave', 'leaving_dialogue_choices'
+	elseif sex_ev['sugar_daddy_counteroffer'] > 25:
+		if sex_ev['haggle_fail'] = 1:
+			gs'sex_ev_hookup_leave', 'npc_sugar_daddy_haggle_fail'
+		else
+			'"How about <<sex_ev[''sugar_daddy_counteroffer''] * 100>>?" you smirk, <<$sex_ev[''dress_describe'']>>.'
+			'"You greedy bitch," <<$npc_firstname[$boy]>> snickers back. "You''re not worth that much. Come on, try again."'
+			sex_ev['haggle_fail'] = 1
+			gs'sex_ev_hookup_leave', 'npc_sugar_daddy_haggle'
+		end
+	elseif rand(1,pcs_persuas) > npc_willpower[$boy] or sex_ev['sugar_daddy_counteroffer'] < sex_ev['sugar_daddy_offer'] + 2:
+		sex_ev['sugar_daddy_offer'] = sex_ev['sugar_daddy_counteroffer']
+		gs 'sex_ev_leave', 'sugar_daddy_add'
+		'"Why don''t we say... <<sex_ev[''sugar_daddy_counteroffer''] * 100>>?" you smirk, <<$sex_ev[''dress_describe'']>>. "That seems worth my time."'
+		'"You drive a hard bargain baby girl," <<$npc_firstname[$boy]>> grins back. "But I think I can work with that. Give me your number so I can tell you when to come over.'
+		*nl
+		'You hand him your phone and when you get it back you see he''s the latest saved contact.'
+		gs'sex_ev_leave', 'leaving_dialogue_choices'
+	else
+		if sex_ev['haggle_fail'] = 1:
+			gs'sex_ev_hookup_leave', 'npc_sugar_daddy_haggle_fail'
+		else
+			sex_ev['sugar_daddy_offer'] += rand(1,2)
+			'"How about... <<sex_ev[''sugar_daddy_counteroffer''] * 100>>?" you ask, <<$sex_ev[''dress_describe'']>>.'
+			'"Seems a little steep," <<$npc_firstname[$boy]>> frowns. "Why don''t we try <<sex_ev[''sugar_daddy_offer''] * 100>>?'
+			gs'sex_ev_hookup_leave', 'npc_sugar_daddy_haggle'
+		end
+	end
+end
+
+if $ARGS[0] = 'npc_sugar_daddy_haggle_fail':
+	'"How about <<sex_ev[''sugar_daddy_counteroffer''] * 100>>?" you try again, <<$sex_ev[''dress_describe'']>>.'
+	if sex_ev['sugar_daddy_counteroffer'] > 25:
+		'"Who do you think you are?" <<$npc_firstname[$boy]>> scoffs. "I could fuck a supermodel for that kind of money. You know what? Forget it. I don''t need another gold digger in my life."'
+	else
+		'"Still too rich for my blood," <<$npc_firstname[$boy]>> says with a shake of his head. "You know what? Forget it. I don''t need another gold digger in my life."'
+	end
+	if sex_ev['dress_end'] = 1:
+		'Everything becomes very awkward very quickly and you take that as your cue to grab your things and hurry out the door.'
+	else
+		'Everything becomes very awkward very quickly and you take that as your cue to finish getting dressed in a hurry and head out the door.'
+	end
+	act'Leave':gt 'sex_ev_leave', 'exit'
+end
+
 if $ARGS[0] = 'fuckbuddy_text':
 	gs 'sex_ev_leave', 'fuckbuddy_add'
 	sex_ev['text_message'] = rand(1,2)
@@ -331,7 +532,7 @@ end
 
 
 if $ARGS[0] = 'later':
-	gs 'sex_ev_hookup_leave', 'finish_dressing'
+	gs 'sex_ev_leave', 'dressing_finish'
 	gs 'sex_ev_hookup_leave', 'pc_fuckbuddy_request'
 	gs 'sex_ev_hookup_leave', 'pc_date_request'
 end
@@ -361,11 +562,21 @@ if $ARGS[0] = 'have_a_boyfriend':
 	if pcs_lover - pcs_girlfriends > 0:
 		act'I have a boyfriend':
 			npc_know_girlfriend[$boy] = 0
-			cla & *clr
-			'<center><video autoplay loop src="images/shared/romance/misc/depart_annoyed1.mp4"></video></center>'
-			gs 'sex_ev_leave', 'dress_loop_code'
+			gs 'sex_ev_leave', 'dress_loop'
 			'"I have a boyfriend," you say, giving him a look as you''re <<$sex_ev[''dress_describe'']>>.'
-			if npc_fidelity[$boy] = 6:
+			if sex_ev['sugar_daddy_offer'] > 0:
+				'"So?" <<$npc_firstname[$boy]>> grins shamelessly. "Does that change the value of the money?"'
+				gs'sex_ev_hookup_leave', 'npc_sugar_daddy_refuse'
+				gs'sex_ev_hookup_leave', 'npc_sugar_daddy_how_much'
+				act'So long as you know':
+					cla & *clr
+					$sex_ev['bed_room']
+					gs 'sex_ev_leave', 'fuckbuddy_add'
+					'"Just wanted to make sure you knew," you reply, shrugging as you''re <<$sex_ev[''dress_describe'']>>. "So how much are we talking here?"'
+					'"How about... <<sex_ev[''sugar_daddy_offer''] * 100>> <b>₽</b> a ''date?''"'
+					gs'sex_ev_hookup_leave', 'npc_sugar_daddy_accept'
+				end
+			elseif npc_fidelity[$boy] <= 5:
 				if npc_girlfriend[$boy] = 1 and npc_goal[$boy] = 1:
 					'"So? I have a girlfriend," he grins shamelessly. "Doesn''t mean we can''t keep fucking."'
 					act'No way':
@@ -402,36 +613,50 @@ if $ARGS[0] = 'have_a_girlfriend':
 	if pcs_girlfriends > 0:
 		act'I have a girlfriend':
 			npc_know_girlfriend[$boy] = 1
-			cla & *clr
-			'<center><video autoplay loop src="images/shared/romance/misc/depart_annoyed1.mp4"></video></center>'
+			gs 'sex_ev_leave', 'dress_loop'
 			'"I have a girlfriend," you say, giving him a look as you''re <<$sex_ev[''dress_describe'']>>.'
-			if npc_fidelity[$boy] = 6:
-				if npc_girlfriend[$boy] = 1 and npc_goal[$boy] = 1:
-					'"Hey, me too!" he grins shamelessly.'
-					act'No way':
-						cla & *clr
-						'<center><video autoplay loop src="images/shared/romance/misc/depart_annoyed1.mp4"></video></center>'
-						'"Nice try but no," you grimace, and pick up the rest of your things and head out the door.'
-						act'Leave':gt 'sex_ev_leave', 'exit'
-					end
-					act'So long as you know':
-						cla & *clr
-						$npc_apt_bedroom[$boy]
-						gs 'sex_ev_leave', 'fuckbuddy_add'
-						'"So long as you know," you reply, <<$sex_ev[''dress_describe'']>>. You exchange numbers with him and a moment later a notification pings in your messages.'
-						*nl
-						gs 'sex_ev_hookup_leave', 'fuckbuddy_text'
+			if sex_ev['sugar_daddy_offer'] > 0:
+				'"So?" <<$npc_firstname[$boy]>> grins shamelessly. "Does that change the value of the money?"'
+				gs'sex_ev_hookup_leave', 'npc_sugar_daddy_refuse'
+				gs'sex_ev_hookup_leave', 'npc_sugar_daddy_how_much'
+				act'So long as you know':
+					cla & *clr
+					$sex_ev['bed_room']
+					gs 'sex_ev_leave', 'fuckbuddy_add'
+					'"Just wanted to make sure you knew," you reply, shrugging as you''re <<$sex_ev[''dress_describe'']>>. "So how much are we talking here?"'
+					'"How about... <<sex_ev[''sugar_daddy_offer''] * 100>> <b>₽</b> a ''date?''"'
+					gs'sex_ev_hookup_leave', 'npc_sugar_daddy_accept'
+				end
+			else
+				elseif npc_fidelity[$boy] <= 5:
+					if npc_girlfriend[$boy] = 1 and npc_goal[$boy] = 1:
+						'"Hey, me too!" he grins shamelessly.'
+						act'No way':
+							cla & *clr
+							'<center><video autoplay loop src="images/shared/romance/misc/depart_annoyed1.mp4"></video></center>'
+							'"Nice try but no," you grimace, and pick up the rest of your things and head out the door.'
+							act'Leave':gt 'sex_ev_leave', 'exit'
+						end
+						
+						act'So long as you know':
+							cla & *clr
+							$sex_ev['bed_room']
+							gs 'sex_ev_leave', 'fuckbuddy_add'
+							'"So long as you know," you reply, <<$sex_ev[''dress_describe'']>>. You exchange numbers with him and a moment later a notification pings in your messages.'
+							*nl
+							gs 'sex_ev_hookup_leave', 'fuckbuddy_text'
+							act'Leave':gt 'sex_ev_leave', 'exit'
+						end
+					else
+						'"Whatever, your loss," he shrugs. "Bi girls always come back when they start missing dick."'
+						'"That''s what strapons are for," you roll your eyes, pulling on the rest of your clothes. You give yourself a once over, making sure everything''s in place and wave goodbye as you head towards the door.'
 						act'Leave':gt 'sex_ev_leave', 'exit'
 					end
 				else
-					'"Whatever, your loss," he shrugs. "Bi girls always come back when they start missing dick."'
-					'"That''s what strapons are for," you roll your eyes, pulling on the rest of your clothes. You give yourself a once over, making sure everything''s in place and wave goodbye as you head towards the door.'
+					'"Oh. Uhh, well..." <<$npc_firstname[$boy]>> trails off and you''re left in an extremely uncomfortable silence while you get dressed in front of him.'
+					'<i>Holy fuck this is awkward,</i> you think to yourself as you pull the last of your clothes on. After giving yourself a once over, you give <<$npc_firstname[$boy]>> a strained smile and wave goodbye, quickly striding towards the door to escape.'
 					act'Leave':gt 'sex_ev_leave', 'exit'
 				end
-			else
-				'"Oh. Uhh, well..." <<$npc_firstname[$boy]>> trails off and you''re left in an extremely uncomfortable silence while you get dressed in front of him.'
-				'<i>Holy fuck this is awkward,</i> you think to yourself as you pull the last of your clothes on. After giving yourself a once over, you give <<$npc_firstname[$boy]>> a strained smile and wave goodbye, quickly striding towards the door to escape.'
-				act'Leave':gt 'sex_ev_leave', 'exit'
 			end
 		end
 	end
