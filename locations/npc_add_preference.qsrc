@@ -1,0 +1,196 @@
+# npc_add_preference
+
+!! npc_code = 'A***', 'B***', 'C***', etc.
+
+!!	Full reset of npc preferences:
+!!		gs 'npc_add_preference', 'reset', npc_code
+!!
+!!	Add a preference to an npc:
+!!		gs 'npc_add_preference', npc_code, trait, amount
+!!		trait: = 'strong', 'cum_on_face', 'tits_big', 'ass_bubble', etc.
+!!
+!!		amount = 'hate', 'dislike', 'neutral', 'like', 'love'
+
+
+
+
+
+if $ARGS[0] = 'reset':
+	$npc_preferences[$ARGS[1]] = ''
+end
+
+
+!! $ARGS[0] = 'A***', 'B***', 'C***', etc.
+if isnum(mid($ARGS[0], 2)):
+	
+	!!Dynamically create the $npc_pref_traits and npc_trait_values arrays
+	dynamic $npc_preferences[$ARGS[0]]
+	dynamic $npc_pref_values[$ARGS[0]]
+	
+	!! Example of these created arrays.
+	!!$npc_pref_traits: npc_pref_traits[i] = 'strong'
+	!!npc_trait_values: npc_trait_values['strong'] = -15
+
+
+	!! Translate 'hate, dislike, etc. into a number and store it.'
+	temp_trait_value = func('npc_add_preference', 'get_value', $ARGS[1], $ARGS[2])
+
+
+	temp_skip_loop = 0
+	:skip_start
+
+	!! Escape the preference loops when overwriting a preference.
+	if temp_skip_loop = 0:
+		!!if the npc has no preferences, create the $npc_preferences and $npc_pref_values entries from scratch.
+		if arrsize('$npc_pref_traits') = 0:
+
+			!!replace(..., '	', '') is there to remove the tabs from the string.
+			$npc_preferences[$ARGS[0]] = replace({killvar '$npc_pref_traits'
+				$npc_pref_traits[] = } + "'<<$ARGS[1]>>'" + {
+			}, '	', '')
+
+			$npc_pref_values[$ARGS[0]] = replace({killvar 'npc_trait_values'
+				npc_trait_values} + "['<<$ARGS[1]>>'] = <<temp_trait_value>>" + {
+			}, '	', '')
+
+		else
+			!!loop over every preference to check if the npc already has a preference for that trait.
+			i = 0
+			:preference_loop
+
+				!!The npc already has a preference for the trait.
+				!!We overwrite the trait and then escape the preference_loop
+				if $npc_pref_traits = $ARGS[1]:
+					npc_trait_values[$ARGS[1]] = temp_trait_value
+
+					!!Rebuild the $npc_pref....[$ARGS[0]] strings from the grounds up
+					$temp_npc_pref_traits = {killvar '$npc_pref_traits'
+					}
+					$temp_npc_trait_values = {killvar 'npc_trait_values'
+					}
+
+					!!Loop over every preference and add it to the $npc_pref....[$ARGS[0]] strings.
+					i = 0
+					:pref_loop_2
+						$temp_npc_pref_traits += {$npc_pref_traits[] = } + "'<<$npc_pref_traits[i]>>'" + {
+						}
+						$temp_npc_trait_values += {npc_trait_values} + "['<<$npc_pref_traits[i]>>'] = <<npc_trait_values[i]>>" + {
+						}
+
+						i += 1
+					if i < arrsize('$npc_pref_traits'): jump 'pref_loop_2'
+
+
+					!!Overwrite the $npc_pref....[$ARGS[0]] strings with the rebuild string.
+					$npc_preferences[$ARGS[0]] = replace($temp_npc_pref_traits,        '	', '')
+					$npc_pref_values[$ARGS[0]] = replace($temp_npc_trait_values,  '	', '')
+
+					killvar '$temp_npc_pref_traits'
+					killvar '$temp_npc_trait_values'
+					killvar 'pref_loop_2'
+
+					temp_skip_loop = 1
+					jump 'skip_start'
+				end
+
+				i += 1
+			if i < arrsize('$npc_pref_traits'): jump 'preference_loop'
+
+			!!We have checked that the npc has no preference for the trait.
+			!!We add the preference to the npc.
+
+			$npc_preferences[$ARGS[0]] += replace({$npc_pref_traits[] = } + "'<<$ARGS[1]>>'" + {
+			}, '	', '')
+
+			$npc_pref_values[$ARGS[0]] += replace({npc_trait_values} + "['<<$ARGS[1]>>'] = <<temp_trait_value>>" + {
+			}, '	', '')
+		end
+	end
+
+	killvar '$npc_pref_traits'
+	killvar 'npc_trait_values'
+
+	killvar 'i'
+	killvar 'temp_skip_loop'
+	killvar 'skip_start'
+	killvar 'temp_value'
+end
+
+
+
+
+
+
+
+!!====================================!!
+!!                                    !!
+!!        Calculate pref_value        !!
+!!                                    !!
+!!====================================!!
+
+
+
+if $ARGS[0] = 'get_value':
+	temp_hate    = -30
+	temp_dislike = -15
+	temp_neutral =   0
+	temp_like    =  15
+	temp_love    =  30
+
+	if $ARGS[1] = 'body_fit' or $ARGS[1] = 'body_piercing':
+		temp_hate    = -30
+		temp_dislike = -15
+	end
+
+
+	if $ARGS[2] = 'hate':
+		result = temp_hate
+
+	elseif $ARGS[2] = 'dislike':
+		result = temp_dislike
+
+	elseif $ARGS[2] = 'like':
+		result = temp_like
+
+	elseif $ARGS[2] = 'love':
+		result = temp_love
+
+	else
+		result = temp_neutral
+	end
+	
+	killvar 'temp_hate'
+	killvar 'temp_dislike'
+	killvar 'temp_neutral'
+	killvar 'temp_like'
+	killvar 'temp_love'
+end
+
+
+!!	To be updated
+!!	'body_tits_big'
+!!	'body_ass_bubble'
+
+!!	Body
+!!	'body_fit'
+!!	'body_piercing'
+!!	'body_pregnant'
+!!	'body_strong'
+!!	'body_tan'
+!!	'body_tatoo'
+
+!!	Clothes
+!!	'clothes_bimbo'
+!!	'clothes_goth'
+!!	'clothes_punk'
+!!	'clothes_skirt_short'
+!!	'clothes_thin'
+
+!!	Cosmetics
+!!	'cosmetics_makeup'
+
+!!	Cum
+!!	'cum_face'
+!!	'cum_clothes'
+
+--- npc_add_preference ---------------------------------
