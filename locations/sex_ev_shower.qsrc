@@ -81,7 +81,7 @@ if $ARGS[0] = 'before_alone':
 	minut += 5
 	cla & *clr
 	'<center><video autoplay loop src="images/shared/home/bathroom/dush.mp4"></video></center>'
-	mc_inventory['noshampoo'] = 1
+	noShampoo = 1
 	dynamic $showerdin
 	sex_ev['start_shower'] = 1
 	gs 'stat'
@@ -96,9 +96,9 @@ end
 
 if $ARGS[0] = 'before_together1':
 	sex_ev['start_shower'] = 1
-	mc_inventory['noshampoo'] = 1
+	noShampoo = 1
 	dynamic $showerdin
-	gs'arousal', 'massage',5,'no_orgasm_msg'
+	gs'arousal', 'massage',5, 'no_orgasm_msg', $sex_ev['prostitution_flag']
 	gs'stat'
 	cla & *clr
 	'<center><video autoplay loop src="images/shared/sex/shower/grope1.mp4"></video></center>'
@@ -139,7 +139,7 @@ if $ARGS[0] = 'before_together2':
 			act'Let him fuck you':
 				cla & *clr
 				'<center><video autoplay loop src="images/shared/sex/shower/leg_up_enter1.mp4"></video></center>'
-				gs'arousal', 'massage',5,'no_orgasm_msg'
+				gs'arousal', 'massage',5, 'no_orgasm_msg', $sex_ev['prostitution_flag']
 				gs'stat'
 				'You turn to face <<$npc_firstname[$boy]>>.'
 				if (sex_ev['condom'] > 0 and sex_ev['npc_condom_insist'] ! 1 and sex_ev['creampie_allowance'] = 0 and npc_free_creampies[$boy] ! 2) or sex_ev['danger_day'] = 1:
@@ -231,7 +231,7 @@ if $ARGS[0] = 'before_jerkoff_cum1':
 		'You work him even harder, trying to finish him with one final sprint. <<$npc_firstname[$boy]>> grunts and cum explodes from his tip. The sensation of his cum spattering across your stomach is the last thing you need and you come as well, moaning loudly even as you continue to finish him off.'
 	end
 	act'Continue':
-		mc_inventory['noshampoo'] = 1
+		noShampoo = 1
 		dynamic $showerdin
 		cla & *clr
 		'<center><video autoplay loop src="images/shared/sex/shower/after2.mp4"></video></center>'
@@ -279,7 +279,7 @@ if $ARGS[0] = 'before_shower_fuck1':
 	sex_ev['fuck_count'] += 1
 	sex_ev['shower_sex'] += 1
 	sex_ev['orgasm'] = orgasm
-	gs'arousal', 'vaginal',rand(10,15),'no_orgasm_msg'
+	gs'arousal', 'vaginal',rand(10,15), 'no_orgasm_msg', $sex_ev['prostitution_flag']
 	gs'stat'
 	cla & *clr
 	'<center><video autoplay loop src="images/shared/sex/shower/leg_up1.mp4"></video></center>'
@@ -309,9 +309,10 @@ if $ARGS[0] = 'before_shower_cum_ask':
 	end
 	act'Jerk him off':gt'sex_ev_shower', 'before_jerkoff_cum1'
 		
-	if sex_ev['condom'] > 0:
-		act'Not inside!':sex_ev['not_inside'] = 1 & gt'sex_ev_shower', 'before_jerkoff_cum1'
-	end
+!!	if sex_ev['condom'] > 0 or stat['dangerous_day'] > 0 or sex_ev['promise_no_creampie'] = 1:
+
+		act'Not inside!':sex_ev['not_inside'] = 1 & gt'sex_ev_shower', 'morning_shower_fuck_jerkoff'
+!!	end
 end
 
 if $ARGS[0] = 'before_shower_creampie_surprise':
@@ -383,7 +384,7 @@ if $ARGS[0] = 'before_shower_creampie_surprise':
 	act'Creampie induced orgasm':
 		if sex_ev['orgasm'] = orgasm:
 			$orgasm_or = 'yes'
-			gs'arousal', 'vaginal',1,'no_orgasm_msg'
+			gs'arousal', 'vaginal',1, 'no_orgasm_msg', $sex_ev['prostitution_flag']
 		end
 		sex_ev['creampie_orgasm'] += 1
 		cla & *clr
@@ -513,7 +514,7 @@ end
 
 if $ARGS[0] = 'after_borrow_shower':
 	cla & *clr
-	mc_inventory['noshampoo'] = 1
+	NoShampoo = 1
 	$sex_ev['bed_room']
 	'"I''m gonna borrow your shower," you say, sliding out of the bed.'
 	if rand(1,10) < npc_sexdrive[$boy] and sex_ev['angry_after'] = 0:
@@ -528,7 +529,7 @@ if $ARGS[0] = 'after_borrow_shower':
 			'"That sounds like nice," you smile and you let him lead you into the bathroom.'
 			act'Go shower':gt'sex_ev_shower', 'after_shower_together'
 		end
-	elseif npc_selfish[$boy] = 1:
+	elseif npc_selfish[$boy] = 1 and $sex_ev['loc'] ! 'hotel_room':
 		'"Don''t use up all my soap."'
 		act'Okay':
 			cla & *nl
@@ -554,7 +555,7 @@ if $ARGS[0] = 'after_borrow_shower':
 			act'Shower':gt'sex_ev_shower', 'after_alone'
 		end
 	else
-		if npc_caretaker[$boy] = 1 and sex_ev['angry_after'] = 0:
+		if npc_caretaker[$boy] = 1 and sex_ev['angry_after'] = 0 and $sex_ev['loc'] ! 'hotel_room':
 			if npc_apt_type <= 2:
 				'"Okay. Feel free to use my towel when you''re done."'
 			else
@@ -572,7 +573,7 @@ if $ARGS[0] = 'after_alone':
 	cla & *clr
 	'<center><video autoplay loop src="images/shared/home/bathroom/dush.mp4"></video></center>'
 	sex_ev['shower'] = 1
-	mc_inventory['noshampoo'] = 1
+	noShampoo = 1
 	dynamic $showerdin
 	gs 'stat'
 	'You turn on the faucet, relaxing as the hot water pours down over your skin. After a few minutes, you turn the tap off and step out.'
@@ -628,17 +629,48 @@ if $ARGS[0] = 'after_towel_skip2':
 	end
 end
 
+if $ARGS[0] = 'after_shower_join':
+	sex_ev['join_shower'] = 1
+	sex_ev['boy_shower'] = 1
+	'<center><video autoplay loop src="images/shared/sex/shower/join2.mp4"></video></center>'
+	'A blast of steam hits you in the face as you open the bathroom door. You pad your way inside and open the shower to find <<$npc_firstname[$boy]>> under the faucet.'
+	if sex_ev['join_shower_offer'] = 1:
+		'"Couldn''t resist after all, huh?" he smirks as you slip in beside him.'
+	end
+	
+	act'Didn''t want to wait':
+		cla & *nl
+		'"I didn''t want to wait my turn," you say, pushing your way into the direct path of the water stream.'
+		act'Shower with <<$npc_firstname[$boy]>>':gs'sex_ev_shower', 'after_shower_together'
+	end
+	
+	act'Couldn''t resist':
+		cla & *nl
+		if sex_ev['join_shower_offer'] = 1:
+			'"Yeah," you smile, pushing your way into the direct path of the water stream.'
+		else
+			'"I couldn''t resist joining you after all," you say, pushing your way into the direct path of the water stream.'
+		end
+		act'Shower with <<$npc_firstname[$boy]>>':gs'sex_ev_shower', 'after_shower_together'
+	end
+end
+
 if $ARGS[0] = 'after_shower_together':
 	sex_ev['shower'] = 1
-	mc_inventory['noshampoo'] = 1
+	sex_ev['boy_shower'] = 1
+	noShampoo = 1
 	dynamic $showerdin
 	cla & *clr
 	gs 'stat'
 	'<center><img <<$set_imgh>> src="images/shared/home/bathroom/shower_together.jpg"></center>'
-	'The two of you step into the shower together, hot water raining down on you, letting it wash away the sweat of your recent lovemaking.'
+	if sex_ev['join_shower'] = 1:
+		'The two of you bask in the heat of the shower together and the hot water raining down on you, letting it wash away the sweat of your recent lovemaking.'
+	else
+		'The two of you step into the shower together, hot water raining down on you, letting it wash away the sweat of your recent lovemaking.'
+	end
 	act'Continue':
 		cla & *clr
-		gs'arousal', 'massage',5,'no_orgasm_msg'
+		gs'arousal', 'massage',5, 'no_orgasm_msg', $sex_ev['prostitution_flag']
 		gs'stat'
 		'<center><video autoplay loop src="images/shared/sex/shower/grope1.mp4"></video></center>'
 		'It doesn''t take long before you feel <<$npc_firstname[$boy]>>''s hands on you, running up and down your body, across your breasts and down towards your pussy.'
@@ -665,7 +697,7 @@ if $ARGS[0] = 'after_shower_together':
 
 		act'Enjoy his touch':
 			cla & *clr
-			gs'arousal', 'massage',5,'no_orgasm_msg'
+			gs'arousal', 'massage',5, 'no_orgasm_msg', $sex_ev['prostitution_flag']
 			gs'stat'
 			'<center><video autoplay loop src="images/shared/sex/shower/grope2.mp4"></video></center>'
 			'"Mmmmmmmm..."'
@@ -700,7 +732,7 @@ if $ARGS[0] = 'after_shower_together':
 						end
 					end
 					act'Mutual masturbation':
-						gs'arousal', 'hj',-3,'no_orgasm_msg'
+						gs'arousal', 'hj',-3, 'no_orgasm_msg', $sex_ev['prostitution_flag']
 						gs'stat'
 						cla & *clr
 						'<center><video autoplay loop src="images/shared/sex/shower/jerkoff1.mp4"></video></center>'
@@ -716,7 +748,7 @@ if $ARGS[0] = 'after_shower_together':
 					act'Well...':
 						cla & *clr
 						'<center><video autoplay loop src="images/shared/sex/shower/leg_up_enter1.mp4"></video></center>'
-						gs'arousal', 'massage',5,'no_orgasm_msg'
+						gs'arousal', 'massage',5, 'no_orgasm_msg', $sex_ev['prostitution_flag']
 						gs'stat'
 						'"Well..." Your breath hitches as he gives your nipples a light squeeze. You feel warm and wet and it''s <i>not</i> just the shower.'
 !!						if stat['think_virgin'] = 0 and sex_ev['virgin'] ! 1:
@@ -752,7 +784,7 @@ if $ARGS[0] = 'after_shower_together':
 				act'Shower sex':
 					cla & *clr
 					'<center><video autoplay loop src="images/shared/sex/shower/leg_up_enter1.mp4"></video></center>'
-					gs'arousal', 'massage',5,'no_orgasm_msg'
+					gs'arousal', 'massage',5, 'no_orgasm_msg', $sex_ev['prostitution_flag']
 					gs'stat'
 					'You turn to face <<$npc_firstname[$boy]>>.'
 					if (sex_ev['condom'] > 0 and sex_ev['npc_condom_insist'] ! 1 and sex_ev['creampie_allowance'] = 0 and npc_free_creampies[$boy] ! 2) or sex_ev['danger_day'] = 1:
@@ -775,7 +807,7 @@ if $ARGS[0] = 'after_shower_together':
 end
 
 if $ARGS[0] = 'after_shower_fun1':
-	gs'arousal', 'hj',3,'no_orgasm_msg'
+	gs'arousal', 'hj',3, 'no_orgasm_msg', $sex_ev['prostitution_flag']
 	gs'stat'
 	cla & *clr
 	'<center><video autoplay loop src="images/shared/sex/shower/jerkoff1.mp4"></video></center>'
@@ -784,8 +816,8 @@ if $ARGS[0] = 'after_shower_fun1':
 end
 
 if $ARGS[0] = 'after_shower_fun2':
-	gs'arousal', 'foreplay',3,'no_orgasm_msg'
-	gs'arousal', 'hj',-3,'no_orgasm_msg'
+	gs'arousal', 'foreplay',3, 'no_orgasm_msg', $sex_ev['prostitution_flag']
+	gs'arousal', 'hj',-3, 'no_orgasm_msg', $sex_ev['prostitution_flag']
 	gs'stat'
 	cla & *clr
 	'<center><video autoplay loop src="images/shared/sex/shower/fun2.mp4"></video></center>'
@@ -794,8 +826,8 @@ if $ARGS[0] = 'after_shower_fun2':
 end
 
 if $ARGS[0] = 'after_shower_fun3':
-	gs'arousal', 'foreplay',3,'no_orgasm_msg'
-	gs'arousal', 'hj',-3,'no_orgasm_msg'
+	gs'arousal', 'foreplay',3, 'no_orgasm_msg', $sex_ev['prostitution_flag']
+	gs'arousal', 'hj',-3, 'no_orgasm_msg', $sex_ev['prostitution_flag']
 	gs'stat'
 	cla & *clr
 	'<center><video autoplay loop src="images/shared/sex/shower/fun3.mp4"></video></center>'
@@ -808,8 +840,8 @@ end
 
 if $ARGS[0] = 'after_shower_fun4':
 	$orgasm_or = 'yes'
-	gs'arousal', 'foreplay',1,'no_orgasm_msg'
-	gs'arousal', 'hj',-1,'no_orgasm_msg'
+	gs'arousal', 'foreplay',1, 'no_orgasm_msg', $sex_ev['prostitution_flag']
+	gs'arousal', 'hj',-1, 'no_orgasm_msg', $sex_ev['prostitution_flag']
 	gs 'cum_call', 'stomach', $boy, 1
 	gs'stat'
 	cla & *clr
@@ -829,7 +861,7 @@ end
 if $ARGS[0] = 'after_shower_sex1':
 	sex_ev['shower_sex'] += 1
 	sex_ev['orgasm'] = orgasm
-	gs'arousal', 'vaginal',rand(10,15),'no_orgasm_msg'
+	gs'arousal', 'vaginal',rand(10,15), 'no_orgasm_msg', $sex_ev['prostitution_flag']
 	gs'stat'
 	cla & *clr
 	'<center><video autoplay loop src="images/shared/sex/shower/leg_up2.mp4"></video></center>'
@@ -863,9 +895,10 @@ if $ARGS[0] = 'after_shower_cum_ask':
 	end
 	act'Jerk him off':gt'sex_ev_shower', 'after_shower_fuck_jerkoff'
 		
-	if sex_ev['condom'] > 0 or stat['dangerous_day'] > 0:
-		act'Not inside!':sex_ev['not_inside'] = 1 & gt'sex_ev_shower', 'after_shower_fuck_jerkoff'
-	end
+!!	if sex_ev['condom'] > 0 or stat['dangerous_day'] > 0 or sex_ev['promise_no_creampie'] = 1:
+
+		act'Not inside!':sex_ev['not_inside'] = 1 & gt'sex_ev_shower', 'morning_shower_fuck_jerkoff'
+!!	end
 end
 
 if $ARGS[0] = 'after_shower_creampie_surprise':
@@ -938,7 +971,7 @@ if $ARGS[0] = 'after_shower_creampie_surprise':
 	act'Creampie induced orgasm':
 		if sex_ev['orgasm'] = orgasm:
 			$orgasm_or = 'yes'
-			gs'arousal', 'vaginal',1,'no_orgasm_msg'
+			gs'arousal', 'vaginal',1, 'no_orgasm_msg', $sex_ev['prostitution_flag']
 		end
 		sex_ev['creampie_orgasm'] += 1
 		cla & *clr
@@ -1083,6 +1116,7 @@ if $ARGS[0] = 'after_shower_fuck_jerkoff_end':
 end
 
 if $ARGS[0] = 'after_shower_clean_options':
+	sex_ev['boy_shower'] = 1
 	gs'sex_ev_shower', 'after_shower_cum_rinse'
 	gs'sex_ev_shower', 'after_shower_again'
 	gs'sex_ev_shower', 'after_shower_again_long'
@@ -1095,10 +1129,10 @@ if $ARGS[0] = 'after_shower_cum_rinse':
 		act'Rinse off':
 			cla & *clr
 			'<center><video autoplay loop src="images/shared/home/bathroom/dush.mp4"></video></center>'
-			mc_inventory['noshampoo'] = 1
+			noShampoo = 1
 			dynamic $showerdin
 			$orgasm_or = 'no'
-			gs'arousal', 'vaginal_finger',rand(1,2),'no_orgasm_msg', 'masturbate'
+			gs'arousal', 'vaginal_finger',rand(1,2), 'no_orgasm_msg', $sex_ev['prostitution_flag'], 'masturbate'
 			gs'stat'
 			if sex_ev['shower_creampie'] = 1:
 				'You hog the water, directing the stream between your legs to flush the cum from your pussy. After pumping your fingers in and out a few times to confirm nothing else is coming out, you turn off the faucet.'
@@ -1121,7 +1155,7 @@ if $ARGS[0] = 'after_shower_again':
 			cla & *clr
 			'<center><video autoplay loop src="images/shared/home/bathroom/dush.mp4"></video></center>'
 			minut += 5
-			mc_inventory['noshampoo'] = 1
+			noShampoo = 1
 			dynamic $showerdin
 			gs'stat'
 			if sex_ev['shower_fuck'] = 1:
@@ -1148,7 +1182,7 @@ if $ARGS[0] = 'after_shower_again_long':
 			cla & *clr
 			'<center><video autoplay loop src="images/shared/home/bathroom/dush.mp4"></video></center>'
 			minut += 15
-			mc_inventory['noshampoo'] = 1
+			noShampoo = 1
 			dynamic $showerdin
 			gs'stat'
 			if sex_ev['shower_creampie'] = 1:
@@ -1167,7 +1201,7 @@ if $ARGS[0] = 'after_shower_again_long':
 end
 
 if $ARGS[0] = 'after_shower_together_end':
-	mc_inventory['noshampoo'] = 1
+	noShampoo = 1
 	dynamic $showerdin
 	cla & *clr
 	$sex_ev['bath_room']
@@ -1209,7 +1243,7 @@ if $ARGS[0] = 'morning_look1':
 	cla & *clr
 	'<center><video autoplay loop src="images/shared/romance/misc/nude_walk1.mp4"></video></center>'
 	'Curious to know where he is, you climb out of bed, wandering his apartment looking for him. A few doors down the hall, you realize you hear water running in the bathroom. He must be taking a shower.'
-	act'Head back to the bedroom':gt'sex_ev_morning', 'wakeup2'
+	act'Head back to the bedroom':gt'sex_ev_morning', 'morning_menu2'
 	act'Wait your turn':
 		minut += rand(1,5)
 		gs 'stat'
@@ -1226,7 +1260,7 @@ end
 
 if $ARGS[0] = 'morning_shower_join1':
 	sex_ev['morning_shower'] = 1
-	'<center><video autoplay loop src="images/shared/sex/shower/join1.mp4"></video></center>'
+	'<center><video autoplay loop src="images/shared/sex/shower/join2.mp4"></video></center>'
 	'A blast of steam hits you in the face as you open the bathroom door. You pad your way inside, casually slipping into the shower with <<$npc_firstname[$boy]>>.'
 	if $sex_ev['loc'] = 'pc_home':
 		'"Scoot over," you say, pushing your way in. <<$npc_firstname[$boy]>> obliges, his eyes sparkling with arousal.'
@@ -1294,7 +1328,7 @@ end
 if $ARGS[0] = 'morning_together1':
 	sex_ev['npc_morning_shower'] = 1
 	sex_ev['morning_shower_together'] = 1
-	gs'arousal', 'massage',5,'no_orgasm_msg'
+	gs'arousal', 'massage',5, 'no_orgasm_msg', $sex_ev['prostitution_flag']
 	gs'stat'
 	cla & *clr
 	'<center><video autoplay loop src="images/shared/sex/shower/grope1.mp4"></video></center>'
@@ -1331,7 +1365,7 @@ if $ARGS[0] = 'morning_together1':
 
 		act'Enjoy his touch':
 			cla & *clr
-			gs'arousal', 'massage',5,'no_orgasm_msg'
+			gs'arousal', 'massage',5, 'no_orgasm_msg', $sex_ev['prostitution_flag']
 			gs'stat'
 			'<center><video autoplay loop src="images/shared/sex/shower/grope2.mp4"></video></center>'
 			'"Mmmmmmmm..."'
@@ -1366,7 +1400,7 @@ if $ARGS[0] = 'morning_together1':
 						end
 					end
 					act'Mutual masturbation':
-						gs'arousal', 'hj',-3,'no_orgasm_msg'
+						gs'arousal', 'hj',-3, 'no_orgasm_msg', $sex_ev['prostitution_flag']
 						gs'stat'
 						cla & *clr
 						'<center><video autoplay loop src="images/shared/sex/shower/jerkoff1.mp4"></video></center>'
@@ -1381,7 +1415,7 @@ if $ARGS[0] = 'morning_together1':
 					if stat['think_virgin'] ! 1 or sex_ev['fuck_count'] > 0:
 						act'Well...':
 							cla & *nl
-							gs'arousal', 'massage',5,'no_orgasm_msg'
+							gs'arousal', 'massage',5, 'no_orgasm_msg', $sex_ev['prostitution_flag']
 							gs'stat'
 							'"Well..." Your breath hitches as he gives your nipples a light squeeze. You feel warm and wet and it''s <i>not</i> just the shower. "I suppose..."'
 	!!						if stat['think_virgin'] = 0 and sex_ev['virgin'] ! 1:
@@ -1414,7 +1448,7 @@ if $ARGS[0] = 'morning_together_sex1':
 		cla & *clr
 		'<center><video autoplay loop src="images/shared/sex/shower/grope2.mp4"></video></center>'
 		gs 'arousal', 'foreplay', 10
-		mc_inventory['noshampoo'] = 1
+		noShampoo = 1
 		dynamic $showerdin
 		'You stay in the shower with <<$npc_firstname[$boy]>> a while longer, allowing him to keep playing with your breasts and fondling your body, but don''t let it progress any further until the water shuts off.'
 		*nl
@@ -1463,7 +1497,7 @@ if $ARGS[0] = 'morning_jerkoff_cum1':
 		'You turn to face him, staring into <<$npc_firstname[$boy]>>''s eyes as you work him even harder trying to finish him with one final sprint. <<$npc_firstname[$boy]>> grunts and cum explodes from his tip. The sensation of his cum spattering across your stomach is the last thing you need and you come as well, moaning loudly even as you continue to finish him off.'
 	end
 	act'Continue':
-		mc_inventory['noshampoo'] = 1
+		noShampoo = 1
 		dynamic $showerdin
 		cla & *clr
 		'<center><video autoplay loop src="images/shared/sex/shower/after2.mp4"></video></center>'
@@ -1510,7 +1544,7 @@ end
 if $ARGS[0] = 'morning_shower_fuck2':
 	sex_ev['shower_sex'] += 1
 	sex_ev['orgasm'] = orgasm
-	gs'arousal', 'vaginal',rand(10,15),'no_orgasm_msg'
+	gs'arousal', 'vaginal',rand(10,15), 'no_orgasm_msg', $sex_ev['prostitution_flag']
 	gs'stat'
 	cla & *clr
 	'<center><video autoplay loop src="images/shared/sex/shower/doggy<<rand(1,3)>>.mp4"></video></center>'
@@ -1544,9 +1578,10 @@ if $ARGS[0] = 'morning_shower_cum_ask':
 	end
 	act'Jerk him off':gt'sex_ev_shower', 'morning_shower_fuck_jerkoff'
 		
-	if sex_ev['condom'] > 0 or stat['dangerous_day'] > 0:
+!!	if sex_ev['condom'] > 0 or stat['dangerous_day'] > 0 or sex_ev['promise_no_creampie'] = 1:
+
 		act'Not inside!':sex_ev['not_inside'] = 1 & gt'sex_ev_shower', 'morning_shower_fuck_jerkoff'
-	end
+!!	end
 end
 
 if $ARGS[0] = 'morning_shower_creampie_surprise':
@@ -1624,7 +1659,7 @@ if $ARGS[0] = 'morning_shower_creampie_surprise':
 	act'Creampie induced orgasm':
 		if sex_ev['orgasm'] = orgasm:
 			$orgasm_or = 'yes'
-			gs'arousal', 'vaginal',1,'no_orgasm_msg'
+			gs'arousal', 'vaginal',1, 'no_orgasm_msg', $sex_ev['prostitution_flag']
 		end
 		sex_ev['creampie_orgasm'] += 1
 		cla & *clr
@@ -1770,7 +1805,7 @@ if $ARGS[0] = 'morning_shower_fuck_jerkoff_end':
 end
 
 if $ARGS[0] = 'morning_shower_together_end':
-	mc_inventory['noshampoo'] = 1
+	noShampoo = 1
 	dynamic $showerdin
 	act'Finish up':
 		cla
@@ -1782,6 +1817,7 @@ end
 
 if $ARGS[0] = 'morning_sex_end':
 	sex_ev['npc_morning_shower'] = 2
+	sex_ev['boy_shower'] = 1
 	gs 'sex_ev_shower', 'morning_shower_together_end'
 	if sex_ev['morning_fuck'] = 0:
 		if sex_ev['morning_shower_cum'] = 1:
@@ -1805,9 +1841,10 @@ end
 if $ARGS[0] = 'morning_towel_on':
 	cla & *clr
 	sex_ev['towel'] = 1
+	sex_ev['boy_shower'] = 1
 	'<center><img <<$set_imgh>> src="images/shared/romance/lovers/misc/towel.jpg"></center>'
 	'You pull a towel from the cupboard and dry off with it before wrapping it around your chest before exiting the bathroom and back into the bedroom.'
-	act'Continue':gs'sex_ev_morning', 'wakeup2'
+	act'Continue':gs'sex_ev_morning', 'morning_menu2'
 end
 
 if $ARGS[0] = 'morning_towel_head':
@@ -1818,22 +1855,24 @@ if $ARGS[0] = 'morning_towel_head':
 	'You pull a towel from the cupboard and dry your body with it, only pausing to wrapping it around your hair before opening the door. Upon stepping out of the bathroom, <<$npc_firstname[$boy]>> eyes light up at the sight of your body, completely naked except for the towel turban atop your head.'
 	*nl
 	'"Thanks," you smile at him.'
-	act'Continue':gs'sex_ev_morning', 'wakeup2'
+	act'Continue':gs'sex_ev_morning', 'morning_menu2'
 end
 
 if $ARGS[0] = 'morning_towel_borrow':
 	act'Borrow a towel':
 		cla & *nl
 		sex_ev['towel'] = 1
+		sex_ev['boy_shower'] = 1
 		'You accept gratefully it and towel off before wrapping it around your chest, exiting the bathroom with him.'
-		act'Continue':gs'sex_ev_morning', 'wakeup2'
+		act'Continue':gs'sex_ev_morning', 'morning_menu2'
 	end
 end
 
 if $ARGS[0] = 'morning_towel_skip':
+	sex_ev['boy_shower'] = 1
 	'<center><img <<$set_imgh>> src="images/shared/romance/lovers/misc/no_towel.jpg"></center>'
 	'You grab <<$npc_firstname[$boy]>>''s towel before he can and give yourself a quick wipe before handing it off to him with a mischievous smirk and head back to the bedroom, letting him ogle your naked ass on the way out.'
-	act'Continue':gs'sex_ev_morning', 'wakeup2'
+	act'Continue':gs'sex_ev_morning', 'morning_menu2'
 end
 
 if $ARGS[0] = 'wont_creampie1':
@@ -1847,6 +1886,46 @@ if $ARGS[0] = 'wont_creampie2':
 	'"Don''t worry," <<$npc_firstname[$boy]>> whispers. "I won''t come inside you."'
 	*nl
 	'You gasp as without further warning, <<$npc_firstname[$boy]>> lifts your leg and pushes his cock inside you.'
+end
+
+
+if $ARGS[0] = 'boy_shower_finish':
+	cla & *clr
+	$sex_ev['bed_room']
+	'<<$npc_firstname[$boy]>> returns to the bedroom with wet hair and a towel wrapped around his waist.'
+	gs'sex_ev_shower', 'boy_shower_finish_acts'
+end
+
+
+if $ARGS[0] = 'boy_shower_finish_acts':
+	sex_ev['boy_in_shower'] = 0
+	sex_ev['boy_shower'] = 1
+	act'"Good shower?"':
+		cla & *nl
+		'"Did you have a good shower?" you ask' + iif(sex_ev['drawer_rummage'] = 1, ' innocently putting your hands behind your back as if you hadn''t just been snooping through his things.', '.')
+		if sex_ev['join_shower_offer'] = 1:
+			'"Could have used some company in there," he smiles back wistfully.'
+			act'Sorry':
+				cla & *nl
+				'"Sorry," you reply.'
+				act'Continue':gs'sex_ev_after', 'after_sex2_w_picture'
+			end
+		else
+			'"Yeah, I feel much better now," he says.'
+			act'Glad to hear it':
+				cla & *nl
+				'"Glad to hear it," you reply.'
+				act'Continue':gs'sex_ev_after', 'after_sex2_w_picture'
+			end
+		end
+		if sex_ev['shower'] = 0:
+			act'My turn':
+				cla & *nl
+				'"I think it''s my turn now," you say, hauling yourself out of bed and passing him by into the steamy just-used bathroom.'
+				act'Shower':gt'sex_ev_shower', 'after_alone'
+			end
+		end
+	end
 end
 
 --- sex_ev_shower ---------------------------------
