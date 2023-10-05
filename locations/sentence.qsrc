@@ -34,8 +34,9 @@ if $ARGS[0] = 'letter':
 				'Going through the letter you read that you''ve until Monday, a week from now, to pay your fine in full.'
 			end
 
-			'<i>Failing to appear in court will have dire consequences for the accused.</i> Your heart drops as you read that line...'
-			'<i>The court is located in the city center. You should arrive at 9:00 as there are a lot of cases and we can''t say when your turn might come up.</i>'
+			'<i>Failure to pay the fine in full with in a week from now, will have dire consequences for the accused.</i> Your heart drops as you read that line...'
+			'<i>You should mail your fine payment using the enclosed envelope.</i>'
+			'You put the letter back in the envelope and let out a loud sigh...'
 
 			if policeQW['legal_fine'] <= 0:
 				pcs_mood += 90
@@ -52,7 +53,7 @@ if $ARGS[0] = 'letter':
 				'You''ve already paid your fines, why are they even bothering you.'
 			end
 		end
-		
+
 		if policeQW['legal_fine'] > 0:
 			if money < policeQW['legal_fine']:
 				act 'Mail the payment for your legal fine/s (<font color="red"><<policeQW[''legal_fine'']>> <b>₽</b></font>)': '<br><font color="red">You don''t have enough cash to use this action.</font>'
@@ -62,6 +63,7 @@ if $ARGS[0] = 'letter':
 					money -= policeQW['legal_fine']
 					policeQW['legal_fine'] = 0
 					policeQW['missed_fine_deadlines'] = 0
+					policeQW['fine_deadline'] = 0
 					minut += 5
 					gs 'stat'
 
@@ -95,8 +97,8 @@ if $ARGS[0] = 'letter':
 					'Going through the letter you read that you''ve failed to pay your fine. The court given you another <<temp_rand>> <b>₽</b> fine and has graciously decided to give you until Monday, a week from now, to pay your fine in full.'
 				end
 
-				'<i>Failing to appear in court will have dire consequences for the accused.</i> Your heart drops as you read that line...'
-				'<i>The court is located in the city center. You should arrive at 9:00 as there are a lot of cases and we can''t say when your turn might come up.</i>'
+				'<i>Failure to pay the fine in full with in a week from now, will have dire consequences for the accused.</i> Your heart drops as you read that line...'
+				'<i>You should mail your fine payment using the enclosed envelope.</i>'
 				'You put the letter back in the envelope and let out a loud sigh...'
 			end
 
@@ -110,6 +112,27 @@ if $ARGS[0] = 'letter':
 				gs 'sentence', 'add_fine', temp_fine
 				'As you come home you see the familiar envelope from the court. You already know the gist of it, <i>failed to pay your fine, additional <<temp_rand>> <b>₽</b> fine, failure to pay your fine will have dire consequences,</i> yadda yadda...'
 				'You glance through the letter seeing the same information once again and as you finish you throw it to the side and continue further on inside your apartment...'
+			end
+		end
+
+		if policeQW['legal_fine'] > 0:
+			if money < policeQW['legal_fine']:
+				act 'Mail the payment for your legal fine/s (<font color="red"><<policeQW[''legal_fine'']>> <b>₽</b></font>)': '<br><font color="red">You don''t have enough cash to use this action.</font>'
+			else
+				act 'Mail the payment for your legal fine/s (<<policeQW[''legal_fine'']>> <b>₽</b>)':
+					*clr & cla
+					money -= policeQW['legal_fine']
+					policeQW['legal_fine'] = 0
+					policeQW['missed_fine_deadlines'] = 0
+					policeQW['fine_deadline'] = 0
+					minut += 5
+					gs 'stat'
+
+					!!Need an image of Sveta putting money in the envelope!!
+					!'<center><img <<$set_imgh>> src="images/locations/shared/postoffice/counter.jpg"></center>'
+					'You put the full amount of your outstanding fine/s in the evelope and seal it. No more than 5 minutes later you''ve posted the letter and are back.'
+					act 'Done': gt $loc, $loc_arg
+				end
 			end
 		end
 
@@ -140,8 +163,8 @@ if $ARGS[0] = 'letter':
 				'Going through the letter you read that you''ve missed your court hearing. A new court hearing has been scheduled on Monday, a week from now and you''ve been fined <<temp_rand>> <b>₽</b>.'
 			end
 
-			'<i>Failure to pay the fine in full with in a week from now, will have dire consequences for the accused.</i> Your heart drops as you read that line...'
-			'<i>You should mail your fine payment using the enclosed envelope.</i>'
+			'<i>Failing to appear in court will have dire consequences for the accused.</i> Your heart drops as you read that line...'
+			'<i>The court is located in the city center. You should arrive at 9:00 as there are a lot of cases and we can''t say when your turn might come up.</i>'
 			'You put the letter back in the envelope and let out a loud sigh...'
 
 		else
@@ -175,8 +198,8 @@ if $ARGS[0] = 'letter':
 				'Going through the letter you read that you''ve been summoned to appear in court on Monday, a week from now.'
 			end
 
-			'<i>Failure to pay the fine in full with in a week from now, will have dire consequences for the accused.</i> Your heart drops as you read that line...'
-			'<i>You should mail your fine payment using the enclosed envelope.</i>'
+			'<i>Failing to appear in court will have dire consequences for the accused.</i> Your heart drops as you read that line...'
+			'<i>The court is located in the city center. You should arrive at 9:00 as there are a lot of cases and we can''t say when your turn might come up.</i>'
 			'You put the letter back in the envelope and let out a loud sigh...'
 
 		else
@@ -190,14 +213,28 @@ if $ARGS[0] = 'letter':
 end
 
 
-!! gs 'letter_add_fine', 'missed_xxxx', fine
+!! gs 'add_fine', fine
 if $ARGS[0] = 'add_fine':
-	policeQW['legal_fine'] += ARGS[2]
-	policeQW['fine_deadline'] = max(daystart, policeQW['fine_deadline']) + max(2, 14 - 2 * policeQW['missed_fine_deadlines'] - 2 * policeQW['missed_court_dates'])
+	policeQW['legal_fine'] += ARGS[1]
+
+	temp_tot_missed = policeQW['tot_court_dates_missed'] + policeQW['tot_fines_deadlines_missed']
+	temp_current_missed = policeQW['missed_fine_deadlines'] + policeQW['missed_court_dates']
+
+	if policeQW['fine_deadline'] = 0:
+		policeQW['fine_deadline'] = daystart + 28 - min(14, temp_tot_missed / 4)
+	else
+		policeQW['fine_deadline'] = max(daystart, policeQW['fine_deadline']) + 14 - min(7, 2 * temp_current_missed + temp_tot_missed / 4)
+	end
+
+	killvar 'temp_current_missed'
+	killvar 'temp_tot_missed'
 end
 
 
 if $ARGS[0] = 'sort_policeQW_arrays':
+	killvar 'temp_array1'
+	killvar 'temp_array2'
+
 	:courthearing_loop
 	if arrsize('policeQW_courthearing_dates') > 0:
 		temp_pos = arrpos('policeQW_courthearing_dates', min('policeQW_courthearing_dates'))
@@ -212,6 +249,8 @@ if $ARGS[0] = 'sort_policeQW_arrays':
 	copyarr('policeQW_courthearing_dates', 'temp_array1')
 	copyarr('policeQW_courthearing_subjects', 'temp_array2')
 	killvar 'courthearing_loop'
+	killvar 'temp_array1'
+	killvar 'temp_array2'
 
 	:courtletter_loop
 	if arrsize('policeQW_courtletter_dates') > 0:
