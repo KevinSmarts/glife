@@ -1310,32 +1310,62 @@ if will_counter >= 20: will_counter -= 20 & willpowermax += 1
 
 !!-----------------webcam follower loss due to inactivity ------------------------------------------
 if camwhore = 1:
-    if cam_daystart < daystart:
-        if regviewReset < 3:
-            ! Calculate follower loss More followers = more loss
-            if regview >= 500:
-                FollowersLost = rand(regview / 100, regview / 50)
-            else
-                FollowersLost = rand(1, 3)
-            end
-            cam_daystart = daystart + 4
-        else
-            if regview >= 300:
-                FollowersLost = rand(regview / 80, regview / 40)
-            else
-                FollowersLost = rand(2, 6)
-            end
-            cam_daystart = daystart + 2
-        end
-        ! Increment the reset counter for follower loss
-        regviewReset += 1
-        FollowersLost = func('shortgs', 'clamp', FollowersLost, 0, regview)
-        totFollowersLost += FollowersLost
-        regview -= FollowersLost
-        killvar 'FollowersLost'
-    end
+	if cam_daystart < daystart:
+		if regviewReset < 3:
+			! Calculate follower loss More followers = more loss
+			if regview >= 500:
+				FollowersLost = rand(regview / 100, regview / 50)
+			else
+				FollowersLost = rand(1, 3)
+			end
+			cam_daystart = daystart + 4
+		else
+			if regview >= 300:
+				FollowersLost = rand(regview / 80, regview / 40)
+			else
+				FollowersLost = rand(2, 6)
+			end
+			cam_daystart = daystart + 2
+		end
+		! Increment the reset counter for follower loss
+		regviewReset += 1
+		FollowersLost = func('shortgs', 'clamp', FollowersLost, 0, regview)
+		totFollowersLost += FollowersLost
+		regview -= FollowersLost
+		killvar 'FollowersLost'
+	end
 end
 
+
+!!---------------Keeping track of missing court appearances-----------------------------
+if daystart > policeQW_courthearing_dates[0]:
+	policeQW['missed_court_dates'] += 1
+	policeQW['tot_court_dates_missed'] += 1
+	
+	!! Might need code to throw a message with 'You''ve missed your court hearing or something'
+
+	policeQW_courtletter_dates[] = daystart + rand(3, 6)
+	$policeQW_courtletter_subjects[] = 'missed_court_<<$policeQW_courthearing_subjects[0]>>'
+
+	killvar 'policeQW_courthearing_dates', 0
+	killvar 'policeQW_courthearing_subjects', 0
+end
+
+if daystart > policeQW['fine_deadline'] - 8:
+	policeQW_courtletter_dates[] = daystart
+	$policeQW_courtletter_subjects[] = 'fine'
+
+elseif daystart > policeQW['fine_deadline']:
+	policeQW['missed_fine_deadlines'] += 1
+	policeQW['tot_fines_deadlines_missed'] += 1
+
+	!! Might need code to throw a message with 'you''ve failed to pay your fine on time.'
+
+	policeQW_courtletter_dates[] = daystart + rand(3, 6)
+	$policeQW_courtletter_subjects[] = 'missed_fine'
+end
+
+gs 'sentence', 'sort_policeQW_arrays'
 
 
 --- cikl ---------------------------------
