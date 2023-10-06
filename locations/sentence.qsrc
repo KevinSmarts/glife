@@ -11,12 +11,26 @@ if $ARGS[0] = 'letter':
 
 	killvar 'policeQW_courtletter_dates', 0
 
-	if policeQW['missed_court_dates'] + policeQW['missed_fine_deadlines'] > 20:
-		!!gs 'sentence', 'police_arrest2'
+	if (policeQW['missed_court_dates'] + policeQW['missed_fine_deadlines']) > 1:
+		if (policeQW['tot_court_dates_missed'] + policeQW['tot_fines_deadlines_missed']) > 30 and policeQW['tot_arrested'] > 10:
+			killvar 'policeQW_courtletter_subjects', 0
+			policeQW['tot_arrested'] += 1
+			if policeQW['arrest_gameover_flag'] = 1:
+				gt 'sentence', 'police_arrest', 2
+			else
+				policeQW['arrest_gameover_flag'] = 1
+				gt 'sentence', 'police_arrest', 1
+			end
+		end
+
+		if (policeQW['missed_court_dates'] + policeQW['missed_fine_deadlines']) > 3:
+			killvar 'policeQW_courtletter_subjects', 0
+			policeQW['tot_arrested'] += 1
+			gt 'sentence', 'police_arrest', 0
+		end
 	end
 
 	'<center><img <<$set_imgh>> src="images/locations/city/shared/court/openletter.jpg"></center>'
-
 
 	!! Handling the various different letters.
 	if $policeQW_courtletter_subjects[0] = 'fine':
@@ -64,6 +78,7 @@ if $ARGS[0] = 'letter':
 					policeQW['legal_fine'] = 0
 					policeQW['missed_fine_deadlines'] = 0
 					policeQW['fine_deadline'] = 0
+					policeQW['arrest_gameover_flag'] = 0
 					minut += 5
 					gs 'stat'
 
@@ -125,6 +140,7 @@ if $ARGS[0] = 'letter':
 					policeQW['legal_fine'] = 0
 					policeQW['missed_fine_deadlines'] = 0
 					policeQW['fine_deadline'] = 0
+					policeQW['arrest_gameover_flag'] = 0
 					minut += 5
 					gs 'stat'
 
@@ -210,6 +226,7 @@ if $ARGS[0] = 'letter':
 
 	act 'Continue': gt $loc, $loc_arg
 	killvar 'temp_fine'
+	killvar 'policeQW_courtletter_subjects', 0
 end
 
 
@@ -228,47 +245,6 @@ if $ARGS[0] = 'add_fine':
 
 	killvar 'temp_current_missed'
 	killvar 'temp_tot_missed'
-end
-
-
-if $ARGS[0] = 'sort_policeQW_arrays':
-	killvar 'temp_array1'
-	killvar 'temp_array2'
-
-	:courthearing_loop
-	if arrsize('policeQW_courthearing_dates') > 0:
-		temp_pos = arrpos('policeQW_courthearing_dates', min('policeQW_courthearing_dates'))
-		
-		temp_array1[] = policeQW_courthearing_dates[temp_pos]
-		temp_array2[] = policeQW_courthearing_subjects[temp_pos]
-		
-		killvar 'policeQW_courthearing_dates', temp_pos
-		killvar 'policeQW_courthearing_subjects', temp_pos
-		jump 'courthearing_loop'
-	end
-	copyarr('policeQW_courthearing_dates', 'temp_array1')
-	copyarr('policeQW_courthearing_subjects', 'temp_array2')
-	killvar 'courthearing_loop'
-	killvar 'temp_array1'
-	killvar 'temp_array2'
-
-	:courtletter_loop
-	if arrsize('policeQW_courtletter_dates') > 0:
-		temp_pos = arrpos('policeQW_courtletter_dates', min('policeQW_courtletter_dates'))
-		
-		temp_array1[] = policeQW_courtletter_dates[temp_pos]
-		temp_array2[] = policeQW_courtletter_subjects[temp_pos]
-		
-		killvar 'policeQW_courtletter_dates', temp_pos
-		killvar 'policeQW_courtletter_subjects', temp_pos
-		jump 'courtletter_loop'
-	end
-	copyarr('policeQW_courtletter_dates', 'temp_array1')
-	copyarr('policeQW_courtletter_subjects', 'temp_array2')
-	killvar 'courtletter_loop'
-	killvar 'temp_pos'
-	killvar 'temp_array1'
-	killvar 'temp_array2'
 end
 
 
@@ -796,7 +772,7 @@ end
 
 
 !!this should trigger the next time Sveta is home after having not gone to court
-if $ARGS[0] = 'police_arrest1':
+if $ARGS[0] = 'police_arrest':
 	gs 'stat'
 
 	'<center><img <<$set_imgh>> src="images/locations/shared/police/police_door.jpg"></center>'
@@ -811,56 +787,52 @@ if $ARGS[0] = 'police_arrest1':
 		'One of them holds up a piece of paper for you to read. "This is a warrant for your arrest for failure to show up for court or pay your fines." You get to read part of it before he puts it away. It seems all those letters you got about court was not a joke. The other office handcuffs your hands behind your back. Then they take you down to their police car and drive you to the city police station, where they throw you in a holding cell.'
 
 		act 'Next morning':
-			*clr & cla
-			gs 'stat'
-
-			'<center><img <<$set_imgh>> src="images/locations/city/shared/court/judge.jpg"></center>'
-			'You are taken out of holding and over to the courthouse to await your hearing. The judge reviews your case, "It seems you have missed your hearings, Miss <<$pcs_lastname>>, what do you have to say for yourself?"'
-			'You begin to look around, trying to come up with an excuse. But in the end you decide it''s best to admit, "I have no excuse your honor." you meekly answer.'
-
-			act 'Await punishment': gt 'sentence', 'punishment'
+			if ARGS[1] = 1:
+				gt 'sentence', 'police_arrest2'
+			elseif ARGS[1] = 2:
+				gt 'sentence', 'police_arrest3'
+			else
+				gt 'sentence', 'police_arrest1'
+			end
 		end
 	end
 end
 
 
-!!this should trigger the next time Sveta is home after having not payed the fine
-if $ARGS[0] = 'police_arrest2':
-	policeQW['arrest_fine'] = 1
-!!this code will stay until Sveta pays her fine, not sure how to code it so it is removed when she pays her fine
+!!this should trigger the next time Sveta is home after having not gone to court
+if $ARGS[0] = 'police_arrest1':
 	gs 'stat'
 
-	'<center><img <<$set_imgh>> src="images/locations/shared/police/police_door.jpg"></center>'
-	'There is a loud knock at the door. You walk up to the door and open it. You see a two police officers in uniform standing in the hallway. "<<$pcs_firstname>> <<$pcs_lastname>>! You are under arrest."'
+	'<center><img <<$set_imgh>> src="images/locations/city/shared/court/judge.jpg"></center>'
+	'You are taken out of holding and over to the courthouse to await your hearing. The judge reviews your case, "It seems you have missed your hearings, Miss <<$pcs_lastname>>, what do you have to say for yourself?"'
+	'You begin to look around, trying to come up with an excuse. But in the end you decide it''s best to admit, "I have no excuse your honor." you meekly answer.'
 
-	act 'Get Arrested':
-		*clr & cla
-		gs 'stat'
+	act 'Await punishment': gt 'sentence', 'punishment'
+end
 
-		'<center><img <<$set_imgh>> src="images/locations/shared/police/police_arrested.jpg"></center>'
-		'Wondering what they want from you, you ask. "What is this all about?"'
-		'One of them holds up a piece of paper for you to read. "This is a warrant for your arrest for failure to show up for court or pay your fines." You get to read part of it before he puts it away. It seems all those letters you got about court was not a joke. The other office handcuffs your hands behind your back. Then they take you down to their police car and drive you to the city police station, where they throw you in a holding cell.'
 
-		act 'Next morning':
-			*clr & cla
-			gs 'stat'
+!!this should trigger the next time Sveta is home after having not payed the fine
+if $ARGS[0] = 'police_arrest2':
+	gs 'stat'
 
-			'<center><img <<$set_imgh>> src="images/locations/city/shared/court/judge.jpg"></center>'
-			if policeQW['arrest_court'] = 1:
-				'You are taken out of holding and over to the courthouse to await your hearing. The judge reviews your case, "It seems you believe you are above the law, I assure you, you are not. I sentence you to one year in prison." You break down into tears as you are hauled away to serve your time.'
-				act 'Continue': over = 14 & gt 'gameover'
-				!!can we make this in big red letters and then it is a game over not sure how to code that.
-
-			else
-				'You are taken out of holding and over to the courthouse to await your hearing. The judge reviews your case, "It seems you refused to pay your fines Miss <<$pcs_lastname>>, what do you have to say for yourself?"'
-				'You begin to look around, trying to come up with an excuse. But in the end you decide it''s best to admit, "I have no excuse your honor." you meekly answer.'
-				'With the judges eyes piercing through you, they clear their throat, "I see, you have thirty days to pay your fine. If you fail to do so you will be arrested again and next time I will sentence you to one year in prison."'
-				'You try your best to hold back the tears as you nod that you understand.'
+	'You are taken out of holding and over to the courthouse to await your hearing. The judge reviews your case, "It seems you refused to pay your fines Miss <<$pcs_lastname>>, what do you have to say for yourself?"'
+	'You begin to look around, trying to come up with an excuse. But in the end you decide it''s best to admit, "I have no excuse your honor." you meekly answer.'
+	'With the judges eyes piercing through you, they clear their throat, "I see, you have thirty days to pay your fine. If you fail to do so you will be arrested again and next time I will sentence you to one year in prison."'
+	'You try your best to hold back the tears as you nod that you understand.'
 !!can we add a out of character note that stats. If you fail to pay your fines again and get arrested a second time it will lead to a game over.
 
-				act 'Leave the court': gt 'city_center'
-			end
-		end
+	act 'Leave the court': gt 'city_center'
+end
+
+
+if $ARGS[0] = 'police_arrest3':
+	gs 'stat'
+
+	'<center><img <<$set_imgh>> src="images/locations/city/shared/court/judge.jpg"></center>'
+	if policeQW['arrest_court'] = 1:
+		'You are taken out of holding and over to the courthouse to await your hearing. The judge reviews your case, "It seems you believe you are above the law, I assure you, you are not. I sentence you to one year in prison." You break down into tears as you are hauled away to serve your time.'
+		act 'Continue': over = 14 & gt 'gameover'
+		!!can we make this in big red letters and then it is a game over not sure how to code that.
 	end
 end
 
