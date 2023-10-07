@@ -776,6 +776,27 @@ $cheatmenu['rename'] = {
 	killvar '$temp_nickname'
 }
 
+$cheatmenu['setLooks'] = {
+	dynamic $cheatmenu['setStatValue'], '<<$ARGS[0]>>', ARGS[1]
+	dynamic $cheatmenu['looks']
+}
+
+$cheatmenu['setLooksInput'] = {
+	temp_input = input("Set your <<$ARGS[1]>> level:")
+	dynamic $cheatmenu['setStatValue'], '<<$ARGS[0]>>', temp_input
+	dynamic $cheatmenu['looks']
+}
+
+$cheatmenu['printLooksLinks'] = {
+	*p '<a href="exec:dynamic $cheatmenu[''setLooks''], ''<<$ARGS[0]>>'', 100">Max</a>  '
+	*p '<a href="exec:dynamic $cheatmenu[''setLooks''], ''<<$ARGS[0]>>'', <<$ARGS[0]>>_lvl + 1">+1</a> '
+	*p '<a href="exec:dynamic $cheatmenu[''setLooks''], ''<<$ARGS[0]>>'', <<$ARGS[0]>>_lvl + 10">+10</a> '
+	*p '<a href="exec:dynamic $cheatmenu[''setLooks''], ''<<$ARGS[0]>>'', <<$ARGS[0]>>_lvl - 1">-1</a> '
+	*p '<a href="exec:dynamic $cheatmenu[''setLooks''], ''<<$ARGS[0]>>'', <<$ARGS[0]>>_lvl - 10">-10</a>  '
+	*p '<a href="exec:dynamic $cheatmenu[''setLooks''], ''<<$ARGS[0]>>'', 0">Min</a>  '
+	*pl '<a href="exec:dynamic $cheatmenu[''setLooksInput''], ''<<$ARGS[0]>>'', ''<<$ARGS[1]>>''">Set</a>'
+}
+
 $cheatmenu['looks'] = {
 	*clr & cla
 	if pcs_hgt < 100:
@@ -813,6 +834,9 @@ $cheatmenu['looks'] = {
 	*nl
 	'<a href=>You are <<pcs_hgt>> centimetres tall</a>'
 	'<a href="exec:pcs_hgt = input(''Enter <<$pcs_nickname>>s height in centimetres<br><br>(default 170, min 100, max 200, values below 160 and above 180 will cause problems in the calculation of BMI/weight the more you deviate from the default 170)'') & dynamic $cheatmenu[''looks'']">Change <<$pcs_nickname>>''s height</a>'
+	*nl
+	*p 'Musculature (<<stren_plus_lvl>>): ' & dynamic $cheatmenu['printLooksLinks'], 'stren_plus', 'Musculature'
+	*p 'Toned Butt (<<butt_tr_lvl>>): ' & dynamic $cheatmenu['printLooksLinks'], 'butt_tr', 'Toned Butt'
 	*nl
 	'You have <<$titsize>> breasts'
 	if tits => 0 and tits < 11:'<a href="exec:silicone += 5 & dynamic $cheatmenu[''looks'']">Enlarge breasts(silicone)</a>'
@@ -1124,14 +1148,37 @@ $cheatmenu['setStatValue'] = {
 	if temp_input > 1:
 		temp_xpnxt = (func('_difficulty','getexpadj') * (temp_input - 1) * (temp_input - 1) / 180) + 1
 	end
-	dynamic "
-		<<$ARGS[0]>>_lvl = temp_input
+	!! magik is based on `orgasm` variable thus the need to intoruce `_adj`
+	if $ARGS[0] = 'magik':
+		dynamic "<<$ARGS[0]>>_lvl = temp_input
+		<<$ARGS[0]>>_adj = temp_xpnxt - orgasm
+		<<$ARGS[0]>>_exp = orgasm + <<$ARGS[0]>>_adj
+		<<$ARGS[0]>>_mem = <<$ARGS[0]>>_exp
+		<<$ARGS[0]>>_lvlst = <<$ARGS[0]>>_lvl
+		<<$ARGS[0]>>_flr = <<$ARGS[0]>>_lvl / 5"
+	!! inhib needs its `_flr` set at `_lvl` and not `_lvl / 5`
+	elseif $ARGS[0] = 'inhib':
+		dynamic "<<$ARGS[0]>>_lvl = temp_input
 		<<$ARGS[0]>>_exp = temp_xpnxt
 		<<$ARGS[0]>>_mem = temp_xpnxt
 		<<$ARGS[0]>>_lvlst = <<$ARGS[0]>>_lvl
-		<<$ARGS[0]>>_flr = <<$ARGS[0]>>_lvl / 5
-		if <<$ARGS[0]>> = 'inhib': <<$ARGS[0]>>_flr = <<$ARGS[0]>>_lvl
-	"
+		<<$ARGS[0]>>_flr = <<$ARGS[0]>>_lvl"
+	!! `stren` and `stren_plus` cheats should also update strenbuf
+	elseif $ARGS[0] = 'stren' or $ARGS[0] = 'stren_plus':
+		dynamic "<<$ARGS[0]>>_lvl = temp_input
+		<<$ARGS[0]>>_exp = temp_xpnxt
+		<<$ARGS[0]>>_mem = temp_xpnxt
+		<<$ARGS[0]>>_lvlst = <<$ARGS[0]>>_lvl
+		<<$ARGS[0]>>_flr = <<$ARGS[0]>>_lvl"
+		strenbuf = stren_lvl + stren_plus_lvl
+		gs 'body', 'UpdateBodyImage'
+	else
+		dynamic "<<$ARGS[0]>>_lvl = temp_input
+		<<$ARGS[0]>>_exp = temp_xpnxt
+		<<$ARGS[0]>>_mem = temp_xpnxt
+		<<$ARGS[0]>>_lvlst = <<$ARGS[0]>>_lvl
+		<<$ARGS[0]>>_flr = <<$ARGS[0]>>_lvl / 5"
+	end
 	killvar 'temp_input' & killvar 'temp_xpnxt'
 }
 
@@ -1154,49 +1201,26 @@ $cheatmenu['setStatInputInverted'] = {
 
 $cheatmenu['setAttrs'] = {
 	loop_index = 0
-	!! skip magik, stren_plus and butt_tr
-	loop_index_max = arrsize('$att_name') - 3
-	temp_input = ARGS[0]
-	if temp_input > 1:
-		temp_xpnxt = (func('_difficulty','getexpadj') * (temp_input - 1) * (temp_input - 1) / 180) + 1
-	end
+	!! skip stren_plus and butt_tr
+	loop_index_max = arrsize('$att_name') - 2
 	:set_attrs_loop
-		dynamic "
-			<<$att_name[loop_index]>>_lvl = temp_input
-			<<$att_name[loop_index]>>_exp = temp_xpnxt
-			<<$att_name[loop_index]>>_mem = temp_xpnxt
-			<<$att_name[loop_index]>>_lvlst = <<$att_name[loop_index]>>_lvl
-			<<$att_name[loop_index]>>_flr = <<$att_name[loop_index]>>_lvl / 5
-		"
+		dynamic $cheatmenu['setStatValue'], '<<$att_name[loop_index]>>', ARGS[0]
 		loop_index += 1
 		if loop_index < loop_index_max: jump 'set_attrs_loop'
-	killvar 'loop_index' & killvar 'loop_index_max' & killvar 'temp_input' & killvar 'temp_xpnxt'
+	killvar 'loop_index' & killvar 'loop_index_max'
 	dynamic $cheatmenu['stats']
 }
 
 $cheatmenu['setSkills'] = {
 	loop_index = 0
 	loop_index_max = arrsize('$skl_name')
-	temp_input = ARGS[0]
-	if temp_input > 1:
-		temp_xpnxt = (func('_difficulty','getexpadj') * (temp_input - 1) * (temp_input - 1) / 180) + 1
-	end
 	:set_skills_loop
 		!! Inhibition (number 33) isn''t a skill so we''ll skip it
-		if loop_index = 33:
-			loop_index += 1
-			jump 'set_skills_loop'
-		end
-		dynamic "
-			<<$skl_name[loop_index]>>_lvl = temp_input
-			<<$skl_name[loop_index]>>_exp = temp_xpnxt
-			<<$skl_name[loop_index]>>_mem = temp_xpnxt
-			<<$skl_name[loop_index]>>_lvlst = <<$skl_name[loop_index]>>_lvl
-			<<$skl_name[loop_index]>>_flr = <<$skl_name[loop_index]>>_lvl / 5
-		"
+		if loop_index = 33: loop_index += 1 & jump 'set_skills_loop'
+		dynamic $cheatmenu['setStatValue'], '$skl_name[loop_index]>>', ARGS[0]
 		loop_index += 1
 		if loop_index < loop_index_max: jump 'set_skills_loop'
-	killvar 'loop_index' & killvar 'loop_index_max' & killvar 'temp_input' & killvar 'temp_xpnxt'
+	killvar 'loop_index' & killvar 'loop_index_max'
 	dynamic $cheatmenu['stats']
 }
 
