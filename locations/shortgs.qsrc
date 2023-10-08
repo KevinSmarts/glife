@@ -895,7 +895,7 @@ end
 !! example: func('shortgs' 'roll', 'unlucky' 0, 100, 5)
 if $ARGS[0] = 'roll':
 	temp_roll = rand(ARGS[2], ARGS[3])
-	i = 1
+	shortgs_i = 1
 	:roll
 		temp_rand = rand(ARGS[2], ARGS[3])
 		if $ARGS[1] = 'lucky' and temp_rand > temp_roll:
@@ -903,8 +903,8 @@ if $ARGS[0] = 'roll':
 		elseif $ARGS[1] = 'unlucky' and temp_rand < temp_roll:
 			temp_roll = temp_rand
 		end
-		i += 1
-	if i < ARGS[4]: jump 'roll'
+		shortgs_i += 1
+	if shortgs_i < ARGS[4]: jump 'roll'
 	result = temp_roll
 	killvar 'temp_roll'
 	killvar 'temp_rand'
@@ -917,6 +917,49 @@ end
 !! example: func('shortgs', 'clamp', var, 0, 100)
 if $ARGS[0] = 'clamp':
 	result = min(max(ARGS[1], ARGS[2]), ARGS[3])
+end
+
+!! sets a stat or attribute level to a number
+!! use: gs 'shortgs', 'setStat', 'stat', number
+!! example:  gs 'shortgs', 'setStat', 'stren', 70
+!! example:  gs 'shortgs', 'setStat', 'inhib', 10
+if $ARGS[0] = 'setStat':
+	temp_input = func('shortgs', 'clamp', ARGS[2], 0, 100)
+	if temp_input > 1:
+		temp_xpnxt = (func('_difficulty','getexpadj') * (temp_input - 1) * (temp_input - 1) / 180) + 1
+	end
+	!! magik is based on `orgasm` variable thus the need for `_adj`
+	if $ARGS[1] = 'magik':
+		dynamic "<<$ARGS[1]>>_lvl = temp_input
+		<<$ARGS[1]>>_adj = temp_xpnxt - orgasm
+		<<$ARGS[1]>>_exp = orgasm + <<$ARGS[1]>>_adj
+		<<$ARGS[1]>>_mem = <<$ARGS[1]>>_exp
+		<<$ARGS[1]>>_lvlst = <<$ARGS[1]>>_lvl
+		<<$ARGS[1]>>_flr = <<$ARGS[1]>>_lvl / 5"
+	!! inhib needs its `_flr` set at `_lvl` and not `_lvl / 5`
+	elseif $ARGS[1] = 'inhib':
+		dynamic "<<$ARGS[1]>>_lvl = temp_input
+		<<$ARGS[1]>>_exp = temp_xpnxt
+		<<$ARGS[1]>>_mem = temp_xpnxt
+		<<$ARGS[1]>>_lvlst = <<$ARGS[1]>>_lvl
+		<<$ARGS[1]>>_flr = <<$ARGS[1]>>_lvl"
+	!! `stren` and `stren_plus` changes should also update strenbuf
+	elseif $ARGS[1] = 'stren' or $ARGS[1] = 'stren_plus':
+		dynamic "<<$ARGS[1]>>_lvl = temp_input
+		<<$ARGS[1]>>_exp = temp_xpnxt
+		<<$ARGS[1]>>_mem = temp_xpnxt
+		<<$ARGS[1]>>_lvlst = <<$ARGS[1]>>_lvl
+		<<$ARGS[1]>>_flr = <<$ARGS[1]>>_lvl"
+		strenbuf = stren_lvl + stren_plus_lvl
+		gs 'body', 'UpdateBodyImage'
+	else
+		dynamic "<<$ARGS[1]>>_lvl = temp_input
+		<<$ARGS[1]>>_exp = temp_xpnxt
+		<<$ARGS[1]>>_mem = temp_xpnxt
+		<<$ARGS[1]>>_lvlst = <<$ARGS[1]>>_lvl
+		<<$ARGS[1]>>_flr = <<$ARGS[1]>>_lvl / 5"
+	end
+	killvar 'temp_input' & killvar 'temp_xpnxt'
 end
 
 !! Recursively computes a simple exponent - https://en.wikipedia.org/wiki/Exponentiation_by_squaring
