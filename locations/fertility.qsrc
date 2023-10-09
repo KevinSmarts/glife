@@ -1,6 +1,5 @@
 # fertility
 
-if $ARGS[0] = 'birth_control':
 !!------------------------------------------------------------------------------------------------------------
 !!	Birth control
 !!------------------------------------------------------------------------------------------------------------
@@ -10,7 +9,7 @@ if $ARGS[0] = 'birth_control':
 !!	tabletkiap		: Autopill factor affecting the liklihood you took your pill as you should have
 !!	tabletkipt		: Pill Dicipline Take increase
 !!	tabletkipi		: Pill Dicipline Dont take increase
-!!	tabletkicpd		: Current MC Pill Dicipline
+!!	tabletkipd		: Current MC Pill Dicipline
 !!	tabletkichday	: Current day that the Birth Control is being evaluated for
 !!	tabletkicheck	: If the birth control from shot (2) or pill (1)
 !!	mc_inventory['contraceptive_pill']	: How many packages of Birth Control Pills there are
@@ -23,162 +22,151 @@ if $ARGS[0] = 'birth_control':
 !!	tabletkishot	: The flag for being on the Birth Control shot.
 !!	pillcon			: The number for the current birth control chemical level.
 !!	pilldays		: The number of consecutive days (you believe) you have taken your pill
-!!	ARGS[1] = 1		: The description messages will be skipped
+
+if $ARGS[0] = 'auto_pill' and tabletkichday < daystart:
+	tabletkichday = daystart
+
+	tabletkipd += tabletkipi
+	tabletkipi = 0
+	tabletkipt = 0
+
+	if tabletkicheck = 1:
+		if mc_inventory['contraceptive_pill'] = 0 and pillsleft[ptype] = 0:
+			tabletkicheck = 0
+			'You are out of birth control pills.'
+			tabletkipi = -5
+		elseif mc_inventory['contraceptive_pill'] = 0 and pillsleft[ptype] = 28:
+			'You have just opened your last package of birth control pills. You need to buy more.'
+		elseif mc_inventory['contraceptive_pill'] = 0 and pillsleft[ptype] <= 5:
+			'You are running out of birth control pills, you only have a few left.'
+		end
+
+		birth_control['using_bc'] = 3
+
+		tabletkimm = (100*(pcs_willpwr / willpowermax)) + pcs_mood
+		if pcs_sleep < 10:
+			tabletkimm -= (100- (pcs_sleep * 10))
+		end
+		if pcs_willpwr < willpowermax / 4:
+			tabletkimm = tabletkimm / 4
+		elseif pcs_mood < 10:
+			tabletkimm = tabletkimm / 2
+		end
+		tabletkiap = tabletkimm
+		tabletkiap += (pcs_intel * 4) + (pcs_sprt * 2) + (age * 3)
+		tabletkiap -= ((kid * 30) + (abort * 2) - (tabletkipd * ((60 - age) / 10)))
+		temprand = rand(0,(200 + (tabletkimm - ((100 - pcs_sprt) * 3))))
+		tabletkiap += temprand
+		if tabletkiap < 300:
+			if tabletkipd > -10:
+				if pcs_willpwr < willpowermax / 4:
+					msg 'You stare at your package of birth control pills, you know you should take one but you can''t quite work up enough effort to care.'
+				elseif pcs_mood < 10:
+					msg 'You stare at your package of birth control pills, but you don''t open it.'
+				elseif pcs_sleep < 10:
+					msg 'You fumble with your birth control pills, trying to get a pill out. You finally give up too tired to manage it.'
+				else
+					msg 'You just realized you forgot to take your birth control pill today.'
+				end
+			end
+			tabletkipt = 2
+			tabletkipi = -4
+		else
+			if tabletkiap < 350:
+				temprand = rand(0,5)
+			else
+				temprand = rand(0,1000)
+			end
+			if temprand = 0:
+				temprand = rand(0,1)
+				if temprand = 0:
+					gs 'din_bad','takepill'
+					tabletkipt = -2
+					tabletkipi = 1
+				else
+					tabletkipt = 3
+					tabletkipi = -3
+				end
+
+				if tabletkipd > -10:
+					'You find yourself holding the bottle of birth control pills, you cannot remember if you took one or not.'
+				end
+				if tabletkipd > 0:
+					if rand(0,9) = 0:
+						if tabletkipt < 0:
+							'You don''t think you have taken your pill today.'
+						else
+							pilldaychk = daystart
+							'You think you have taken your pill today.'
+						end
+					else
+						if tabletkipt > 0:
+							'You don''t think you have taken your pill today.'
+						else
+							pilldaychk = daystart
+							'You think you have taken your pill today.'
+						end
+					end
+				end
+			else
+				'You take your birth control pill for the day.'
+				pilldaychk = daystart
+				gs 'din_bad','takepill'
+				if rand(0,7) = 0 and tabletkiday >= (daystart - 1): tabletkipd += 1
+				tabletkiday = daystart
+				tabletkipt = 0
+				tabletkipi = 0
+			end
+		end
+	end
+
+	if birth_control['using_bc'] > 0:
+		if pilldaychk = daystart:
+			pilldays += 1
+			birth_control['using_bc'] = 3
+		else
+			pilldays -= 1
+			if placebopart <= 0: birth_control['using_bc'] -= 1
+		end
+	end
+
+	if pilldays > 18: pilldays = 18
+	if pilldays < 0: pilldays = 0
+	if birth_control['using_bc'] < 0: pilldays = 0
+
+	if tabletkiday < daystart - 5: birth_control['using_bc'] = 0
 	
-	gs 'fertility', 'birth_control_status_update'
-	
+	if birth_control['think_safe'] = 1:
+		stat['forgot_bc_pill'] = 0
+	elseif pilldaychk < daystart - 1 and pilldaychk > daystart - 5 and pillcon2 > 0:
+	!!	stat['forgot_birth_control_pill'] = 1
+		stat['forget_bc_count'] += 1
+	end
+
+	gs 'fertility', 'update'
+end
+
+if $ARGS[0] = 'daily_update':
+	!! daily pillcon decrease
+	if tabletkishot <= 0: pillcon -= 1000 & pillcon2 -= 1000
+	if pillcon < 0:	pillcon = 0
+	if pillcon2 < 0: pillcon2 = 0
+
+	!! update pill discipline for manual pill takers
+	if tabletkicheck = 0:
+		if tabletkiday >= (daystart - 1) and tabletkipt = 0 and rand(0,7) = 0: tabletkipt = 1
+		if pillcon > 0 and tabletkipi = 0 and rand(0,3) = 0 and (tabletkiday + 15) > daystart = 0: tabletkipi = -1
+	end
+
+	!! check if the pill today should be placebo
 	!! when conditions are correct Sveta will take the placebo part of her birth control pills to keep periods
-	if Luth > (LutH_Max-75) and birth_control['placebo_skip'] = 0: 
+	if Luth > (LutH_Max-75) and birth_control['placebo_skip'] = 0:
 		placebopart = 1
 	else
 		placebopart = 0
 	end
-	if InSleep = 0:
-		tabletkipd += tabletkipi
-		tabletkipi = 0
-		tabletkipt = 0
-		if tabletkicheck = 1:
-			if mc_inventory['contraceptive_pill'] = 0 and pillsleft[ptype] = 0:
-				tabletkicheck = 0
-				'You are out of birth control pills.'
-				tabletkipi = -5
-			elseif mc_inventory['contraceptive_pill'] = 0 and pillsleft[ptype] = 28:
-				'You have just opened your last package of birth control pills. You need to buy more.'
-			elseif mc_inventory['contraceptive_pill'] = 0 and pillsleft[ptype] <= 5:
-				'You are running out of birth control pills, you only have a few left.'
-			end
-		end
 
-		if tabletkicheck = 1 and tabletkichday < daystart:
-			birth_control['using_bc'] = 3
-			tabletkichday = daystart
-			tabletkimm = (100*(pcs_willpwr / willpowermax)) + pcs_mood
-			if pcs_sleep < 10:
-				tabletkimm -= (100- (pcs_sleep * 10))
-			end
-			if pcs_willpwr < willpowermax / 4:
-				tabletkimm = tabletkimm / 4
-			elseif pcs_mood < 10:
-				tabletkimm = tabletkimm / 2
-			end
-			tabletkiap = tabletkimm
-			tabletkiap += (pcs_intel * 4) + (pcs_sprt * 2) + (age * 3)
-			tabletkiap -= ((kid * 30) + (abort * 2) - (tabletkipd * ((60 - age) / 10)))
-			temprand = rand(0,(200 + (tabletkimm - ((100 - pcs_sprt) * 3))))
-			tabletkiap += temprand
-			if tabletkiap < 300:
-				if tabletkipd > -10 and ARGS[1] = 0:
-					if pcs_willpwr < willpowermax / 4:
-						msg 'You stare at your package of birth control pills, you know you should take one but you can''t quite work up enough effort to care.'
-					elseif pcs_mood < 10:
-						msg 'You stare at your package of birth control pills, but you don''t open it.'
-					elseif pcs_sleep < 10:
-						msg 'You fumble with your birth control pills, trying to get a pill out. You finally give up too tired to manage it.'
-					else
-						msg 'You just realized you forgot to take your birth control pill today.'
-					end
-				end
-				tabletkipt = 2
-				tabletkipi = -4
-			else
-				if tabletkiap < 350:
-					temprand = rand(0,5)
-				else
-					temprand = rand(0,1000)
-				end
-				if temprand = 0:
-					temprand = rand(0,1)
-					if temprand = 0:
-						tabletkipt = -2
-						tabletkipi = 1
-						gs 'din_bad','takepill'
-					else
-						tabletkipt = 3
-						tabletkipi = -3
-					end
-					if tabletkipt > 0: pilldaychk = daystart
-					if ARGS[1] = 0:
-						if tabletkipd > -10:
-							'You find yourself holding the bottle of birth control pills, you cannot remember if you took one or not.'
-						end
-						if tabletkipd > 0:
-							if rand(0,9) = 0:
-								if tabletkipt < 0:
-									'You don''t think you have taken your pill today.'
-								else
-									!! if tabletkipt > 0: pilldaychk = daystart
-									'You think you have taken your pill today.'
-								end
-							else
-								if tabletkipt > 0:
-									'You don''t think you have taken your pill today.'
-								else
-									!! if tabletkipt > 0: pilldaychk = daystart
-									'You think you have taken your pill today.'
-								end
-							end
-						end
-					end
-				else
-					if ARGS[1] = 0: 'You take your birth control pill for the day.'
-					pilldaychk = daystart
-					gs 'din_bad','takepill'
-					if rand(0,7) = 0 and tabletkiday >= (daystart - 1): tabletkipd += 1
-					tabletkiday = daystart
-					tabletkipt = 0
-					tabletkipi = 0
-				end
-			end
-		elseif tabletkicheck = 0:
-			if tabletkiday >= (daystart - 1) and tabletkipt = 0 and rand(0,7) = 0: tabletkipt = 1
-			if pillcon > 0 and tabletkipi = 0 and rand(0,3) = 0 and (tabletkiday + 15) > daystart = 0: tabletkipi = -1
-		end
-
-
-		if pilldays > 18: pilldays = 18
-		if pilldays < 0: pilldays = 0
-		if birth_control['using_bc'] < 0: pilldays = 0
-
-		if pillcon >= 26000:
-			birth_control['safe'] = 1
-		elseif placebopart <= 0:
-			birth_control['safe'] = 0
-		end
-		
-		if pillcon2 >= 26000:
-			birth_control['think_safe'] = 1
-		elseif placebopart <= 0:
-			birth_control['think_safe'] = 0
-		end
-
-		if birth_control['think_safe'] = 1:
-			stat['forgot_bc_pill'] = 0
-		elseif pilldaychk < daystart - 1 and pilldaychk > daystart - 5 and pillcon2 > 0:
-		!!	stat['forgot_birth_control_pill'] = 1
-			stat['forget_bc_count'] += 1
-		end
-	end
-
-
-	$MenCal[] = $str(cycle)
-	if ArrSize('$MenCal') = 60: killvar '$MenCal',0
-end
-
-
-if $ARGS[0] = 'birth_control_status_update':
-	
-	if birth_control['status_update'] ! daystart:
-		if tabletkishot <= 0: pillcon -= 1000 & pillcon2 -= 1000
-		!! dropped the decrement out of the above if-statement so that players on pill would still run out of BC shot
-		!! as in for example the case of the therapist forcing you on the pill while you already had the shot.
-		if tabletkishot > 0:tabletkishot -= 1
-		if shotdays > 0:shotdays -=1
-		birth_control['status_update'] = daystart
-	end
-	
-	if pillcon < 0:	pillcon = 0
-	if pillcon2 < 0: pillcon2 = 0
-
+	!! ----- processing BC Shot -----
 	if tabletkicheck = 2:
 		if tabletkishot ! 0:
 			!!cycle = 1
@@ -206,7 +194,12 @@ if $ARGS[0] = 'birth_control_status_update':
 			msg 'Your birth control shot is due for renewal tomorrow.'
 		end
 	end
-	
+	!! dropped the decrement out of the above if-statement so that players on pill would still run out of BC shot
+	!! as in for example the case of the therapist forcing you on the pill while you already had the shot.
+	if tabletkishot > 0: tabletkishot -= 1
+	if shotdays > 0: shotdays -=1
+
+	!! ----- processing BC spell -----
 	!! birth_control['implant_status']
 	!! 0: No implant
 	!! 3: Implant (more than 30 days left)
@@ -225,15 +218,16 @@ if $ARGS[0] = 'birth_control_status_update':
 			pillcon2 = 0
 			msg 'Your birth control spell has ended. You''ll need to recast it if you don''t want to get pregnant.'
 		end
+	!! ----- processing BC implant -----
 	elseif birth_control['implant_status'] > 1:
 		pcs_skin += rand(0,1)
-		
+
 		pillcon += ((pillcon + 15000) / 25) + 4000
 		if pillcon > 40000: pillcon = 40000
-		
+
 		pillcon2 += ((pillcon2 + 15000) / 25) + 4000
 		if pillcon2 > 40000: pillcon2 = 40000
-			
+
 		birth_control['implant_timer'] -= 1
 		if (birth_control['implant_timer'] - 1090) > 0:
 			gs 'pain', '<<(birth_control[''implant_timer''] - 1090)*2>>', 'armL', 'ache'
@@ -247,19 +241,30 @@ if $ARGS[0] = 'birth_control_status_update':
 	elseif birth_control['implant_status'] = 1:
 		msg 'You should renew or remove your birth control implant.'
 	end
-	if birth_control['using_bc'] > 0:
-		if pilldaychk = daystart:
-			pilldays += 1
-		else
-			pilldays -= 1
-			if placebopart <= 0: birth_control['using_bc'] -= 1
-		end
-	end
-	
-	if tabletkiday < daystart - 5: birth_control['using_bc'] = 0
+
+	!! ----- cycle tracking, tracks last 60 days -----
+	$MenCal[] = $str(cycle)
+	if ArrSize('$MenCal') = 60: killvar '$MenCal', 0
+
+	gs 'fertility', 'update'
 end
 
+if $ARGS[0] = 'update':
+	birth_control['old_pillcon'] = pillcon
+	birth_control['old_pillcon2'] = pillcon2
 
+	if pillcon > 26000:
+		birth_control['safe'] = 1
+	elseif placebopart <= 0:
+		birth_control['safe'] = 0
+	end
+
+	if pillcon2 > 26000:
+		birth_control['think_safe'] = 1
+	elseif placebopart <= 0:
+		birth_control['think_safe'] = 0
+	end
+end
 
 
 if $ARGS[0] = 'cum_arrcheat':
