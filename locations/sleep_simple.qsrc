@@ -1,0 +1,90 @@
+# sleep_simple
+$sleep_loc = 'sleep_simple'
+menu_off = 1
+
+
+if $ARGS[0] = 'simple':
+!! to avoid sleeping the whole day I decide to calculate the duration of the sleep in advance
+!! the quality of the sleep depends on many factors, so the time of sleep can be modify later, especially the part when the time of sleep is shortened
+
+	sleepVars['time_to_full'] = (100 - pcs_sleep) * 6
+!! fully exhausted Sveta can recover in 420 minutes = 7 hours of sleep
+!! healthy Sveta can hardly sleep more then 10 hours = 600 minutes
+!! so we can add about 3 hours to time to full as a limit
+	sleepVars['time_to_full'] += 150 + rand(0, 60)
+
+	sleepVars['time_now'] = daystart * 1440 + hour * 60 + minut
+
+	if alarmVars['alarmOn'] = 1:
+		if alarm_holiday = 1 and kanikuli ! 0 or ((hour < alarmVars['timerEndH'] and (week = 6 or week = 7)) or (hour => alarmVars['timerEndH'] and (week = 5 or week = 6))):
+		!! use weekend time alarm
+			sleepVars['alarm_time'] = daystart * 1440 + alarmVars['timerEndH'] * 60 + alarmVars['timerEndM']
+			if sleepVars['time_now'] >= sleepVars['alarm_time']: sleepVars['alarm_time'] += 1440
+			sleepVars['minutes_to_wakeup'] = min(sleepVars['time_to_full'], sleepVars['alarm_time_end'] - sleepVars['time_now'])
+		else
+			sleepVars['alarm_time'] = daystart * 1440 + alarmVars['timerH'] * 60 + alarmVars['timerM']
+			if sleepVars['time_now'] >= sleepVars['alarm_time']: sleepVars['alarm_time'] += 1440
+			sleepVars['minutes_to_wakeup'] = min(sleepVars['time_to_full'], sleepVars['alarm_time'] - sleepVars['time_now'])
+		end
+	else
+		sleepVars['minutes to wakeup'] = sleepVars['time_to_full']
+	end
+
+	InSleep = 1
+	:sleep_simple_loop
+		minut += 1
+		sleepVars['stime'] += 1
+		sleepVars['minutes to wakeup'] -= 1
+
+		if recuperation = 0: pcs_health += 5
+
+		if sleepVars['stime'] >= 60:
+			sleepVars['stime'] = 0
+			pcs_sleep += 15
+			gs 'stat'
+		end
+
+		gs 'sleep_simple', 'mod_triggers'
+
+
+	if sleepVars['minutes to wakeup end'] > 0: jump 'sleep_simple_loop'
+	killvar 'sleep_simple_loop'
+
+	sleepVars['time_now'] = daystart * 1440 + hour * 60 + minut
+	InSleep = 0
+	gs 'stat'
+end
+
+if $ARGS[0] = 'mod_triggers':
+	!! This location is here to allow mods to hook into the system.
+	!! Check for: if $sleep_loc = 'pre_sleep' and $ARGS[0] = 'mod_triggers'
+	!!
+	!! This is NOT for events!!
+	gs 'stat'
+end
+
+if $ARGS[0] = 'nap_bed':
+	act 'Take a nap (1:00)':
+		cla
+		if pcs_sleep < 10:
+			gt 'sleep', 'prepare_sleep'
+		elseif pcs_sleep <= 90:
+			InSleep = 1
+			pcs_sleep += 10
+			pcs_health += 5
+			minut += 60
+			gs 'stat'
+			*nl
+			'You sleep about an hour.'
+			act 'Get up': InSleep = 0 & gt 'bed_get_out', 'start'
+		else
+			minut += 5
+			gs 'stat'
+			*nl
+			'You are not tired enough to sleep, even for a short nap.'
+			act 'Get up': gt 'bed_get_out', 'start'
+		end
+	end
+end
+
+--- sleep_simple ---------------------------------

@@ -1,0 +1,286 @@
+# sleep_events
+$sleep_loc = 'sleep_events'
+menu_off = 1
+
+!! Sleep events trigger during the sleep cycle and can either wake you up or you can continue to sleep
+!!
+!! Moved here from sleep
+!! When done: Move to dream_events, sleep or wakeup
+
+	!!=====================================!!
+	!!                                     !!
+	!!          Event handlers             !!
+	!!                                     !!
+	!!=====================================!!
+
+
+if $ARGS[0] = 'start' or $ARGS[0] = '':
+	menu_off = 1
+	killvar '$sleep_events'
+	killvar '$sleep_events_priority'
+
+	if sleepVars['events_active'] = 1:
+		sleepVars['events_done'] = 0
+
+		if vibratorIN = 1:
+			if pcs_horny >= 100:
+				$sleep_events[] = 'gs ''sleep_events'', ''vibr_orgasm'' '
+			end
+		elseif pcs_horny > 80 and pcs_sleep >= 30 and rand (0, 299) = 0 and succubusQW ! 1 and succubusQW ! 2:
+			$sleep_events[] = 'gs ''sleep_events'', ''wake_horny'' '
+		end
+
+		gs 'sleep_events', 'mod_events'
+	end
+end
+
+if $ARGS[0] = 'mod_events':
+	!! This location is here to allow mods to hook into the system.
+	!! Either check for: if $sleep_loc = 'sleep_events' and $ARGS[0] = 'mod_events'
+	!!
+	!! You can add events as: $sleep_events[] = 'gs ''mod_loc'' ''mod_args0'' '
+	!! A random event will be chosen from amongst the added ones.
+	!! If an event MUST trigger (due to quest timing), add it tp $sleep_events_priority[] = 'gs ''mod_loc'' ''mod_args0'' '
+	!!
+	!! If the event does not break the sleep cycle (merely interupts it) it needs to end with gs 'sleep_events', 'event_end'
+	!! If the event removed Sveta from her location (aka her sleep is cut short and/or she leaves her bed), you must call gs 'sleep_events', 'exit'
+	!!
+	!! This is to cleanup all necessary variables.
+	!!
+	!! DO NOT DIRECTLY GOTO/GOSUB OUTOF THIS LOCATION. ALWAYS ADD IT TO THE QUEUEs!!!!
+	!! IT WILL ALMOST CERTIANLY END BADLY WHEN MORE THAN 1 MOD IS INVOLVED.
+
+	gs 'sleep_events', 'event_handler'
+end
+
+
+if $ARGS[0] = 'event_handler':
+	if sleepVars['events_done'] < 1:
+		if arrsize('$sleep_events_priority') > 0:
+			xgt 'sleep_events', 'event_handler2', 'priority'
+		elseif arrsize('$sleep_events') > 0:
+			xgt 'sleep_events', 'event_handler2'
+		end
+	end
+
+	gs 'sleep_events', 'continue', 'dream'
+end
+
+if $ARGS[0] = 'event_handler2':
+	sleepVars['events_done'] += 1
+	
+	if $ARGS[1] = 'priority':
+		temp_slev_id = rand(0, arrsize('$sleep_events_priority')-1)
+		$temp_sleep_event_chosen = $sleep_events_priority[temp_slev_id]
+		killvar '$sleep_events_priority', temp_slev_id
+	else
+		temp_slev_id = rand(0, arrsize('$sleep_events')-1)
+		$temp_sleep_event_chosen = $sleep_events[temp_slev_id]
+		killvar '$sleep_events', temp_slev_id
+	end
+
+	killvar 'temp_slev_id'
+	dynamic $temp_sleep_event_chosen
+end
+
+
+if $ARGS[0] = 'event_end':
+	killvar '$temp_sleep_event_chosen'
+
+!!	if arrsize('$sleep_events_priority') > 0:
+!!		gt 'bed_events', 'event_handler2', 'priority'
+!!	end
+
+	if $ARGS[1] = '' or $ARGS[1] = 'sleep':
+		gs 'sleep_events', 'continue', 'sleep'
+	elseif $ARGS[1] = 'dream':
+		gs 'sleep_events', 'continue', 'dream'
+	else
+		gt 'wakeup', 'start'
+	end
+end
+
+
+if $ARGS[0] = 'exit':
+	sleepVars['events_done'] = 0
+	killvar '$sleep_loc'
+	killvar '$sleep_events'
+	killvar '$sleep_events_priority'
+	killvar 'temp_slev_id'
+	killvar '$temp_sleep_event_chosen'
+end
+
+if $ARGS[0] = 'continue':
+	sleepVars['events_done'] = 0
+	killvar '$sleep_loc'
+	killvar '$sleep_events'
+	killvar '$sleep_events_priority'
+	killvar 'temp_slev_id'
+	killvar '$temp_sleep_event_chosen'
+
+	if $ARGS[1] = '' or $ARGS[1] = 'sleep':
+		xgt 'sleep', 'sleep_handler'
+	elseif $ARGS[1] = 'dream':
+		!! empty on purpose
+	else
+		gt 'dream_events', 'start'
+	end
+end
+
+
+
+
+	!!=====================================!!
+	!!                                     !!
+	!!              Events                 !!
+	!!                                     !!
+	!!=====================================!!
+
+
+if $ARGS[0] = 'vibr_orgasm':
+	*clr & cla
+	pcs_horny = 0
+	orgasm += 1
+	minut += 5
+	gs 'stat'
+	'<center><img <<$set_imgh>> src="images/shared/sex/oface/o_face.jpg"></center>'
+	*nl
+	'You abruptly wake up in the throes of an orgasm. As you recover, you check the time, <<func(''bed2'', ''alarm_display'', hour, minut)>>.'
+
+	act 'Go back to sleep':
+		gs 'dream_events', 'event_end'
+	end
+
+	act 'Give up trying to sleep':
+		*clr & cla
+		'<center><img <<$set_imgh>> src="images/shared/sex/oface/kotovfirst1.jpg"></center>'
+		*nl
+		'Maybe trying to sleep with a vibrator in your pussy wasn''t such a good idea.'
+		gs 'dream_events', 'event_end', 'wake'
+	end
+
+	exit
+end
+
+!! Exclusions for succubus dreams as they set horny to 100 and will always get overridden otherwise
+if $ARGS[0] = 'wake_horny':
+	menu_off = 1
+	InSleep = 1
+	SleepHorny += 1
+	gs 'stat'
+
+	if $pantyworntype = 'none':
+		if SleepHorny = 1:
+			'<center><img <<$set_imgh>> src="images/shared/home/sleep_horny.jpg"></center>'
+		elseif SleepHorny = 2:
+			'<center><img <<$set_imgh>> src="images/shared/sex/mast/klit.jpg"></center>'
+		elseif SleepHorny >= 3:
+			'<center><img <<$set_imgh>> src="images/shared/sex/oface/kotovfirst1.jpg"></center>'
+		end
+	else
+		if SleepHorny = 1:
+			'<center><img <<$set_imgh>> src="images/shared/sex/mast/start.jpg"></center>'
+		elseif SleepHorny = 2:
+			'<center><img <<$set_imgh>> src="images/shared/sex/undress/kiska.jpg"></center>'
+		elseif SleepHorny >= 3:
+			'<center><img <<$set_imgh>> src="images/shared/sex/oface/kotovfirst1.jpg"></center>'
+		end
+	end
+
+	*nl
+	'You glance at your alarm clock. It reads <<func(''bed2'', ''alarm_display'', hour, minut)>>.'
+	*nl
+
+	if SleepHorny = 1:
+		'Your wet dream and overall horniness rouse you from your sleep. From one moment to the next, you are wide awake and very much aware that your pussy is hot and wet.'
+		*nl
+		'You could try and go back to sleep, of course, but it''s doubtful that you would find this kind of sleep very restful; not to mention the frustration that comes with ignoring your needs, but masturbating is an option, too, and not the worst one in this situation. It might take some time, but you''d be able to sleep like a baby after.'
+		*nl
+		'Of course, you could always just give up on trying to sleep and just get up.'
+	elseif SleepHorny = 2:
+		'You''re so horny that you''ve woken a second time. Your pussy is still wet and wanting attention.'
+		*nl
+		'You could try and get back to sleep again, but it''s doubtful that you will get much sleep, and continuously ignoring your needs won''t help; maybe you should masturbate, and make the most of the time that''s left.'
+		*nl
+		'Soon you will have to get up one way or another.'
+	elseif SleepHorny >= 3:
+		'Once again your horniness has roused you from your sleep. This is getting ridiculous! You are finding it very difficult to get any sleep at all.'
+		*nl
+		'Going back to sleep almost feels like a waste of time at this point;  you won''t get much rest at all, at least until you fix the problem.'
+		*nl
+		if $pantyworntype ! 'none':
+			gs 'underwear', 'remove'
+			'You''ve removed  your underwear, as your panties were soaked through.'
+			*nl
+		end
+		'Maybe you should just get up.'
+	end
+
+	if $loc = 'bedrPar' and sisterLesb = 6 and hour < 6:
+		*nl
+		'Or... you could wake up Anya and see if your dearest sister would be willing to help you with that.'
+	elseif $loc = 'FedorEv4':
+		*nl
+		'Or... you could wake up Fedor and see if your boyfriend can''t help you with that.'
+	elseif $loc = 'bedr' and husband > 0:
+		*nl
+		'Or... you could wake up <<$husName>> and see if your husband can''t help you with that.'
+	end
+
+	act 'Try and go back to sleep':
+		pcs_mood -= 10
+		pcs_sleep -= 5
+		gs 'sleep_events', 'exit'
+		gt 'dream_event', 'dream'
+	end
+
+	act 'Masturbate':
+		InSleep = 0
+		gs 'sleep_events', 'exit'
+		gt 'selfplay', 'start'
+	end
+
+	act 'Get out of bed (0:10)':
+		minut += 10
+		gs 'sleep_events', 'event_end', 'wake'
+	end
+	if strip_here = 1:
+		act 'Get out of bed and get dressed (0:15)':
+			minut += 15
+			gs 'clothing', 'wear', $lastwornclothingtype['bed'], lastwornclothingnumber['bed']
+			gs 'panties', 'wear', $lastwornpantytype['bed'], lastwornpantynumber['bed']
+			gs 'bras', 'wear', $lastwornbratype['bed'], lastwornbranumber['bed']
+			if $bed['shoetype'] ! 'none':
+				gs 'shoes', 'wear', $bed['shoetype'], bed['shoenumber']
+			end
+			gs 'sleep_events', 'event_end', 'wake'
+		end
+	end
+
+	if $loc = 'bedrPar' and sisterLesb = 6 and hour < 6:
+		act 'Wake Anya and see if she''s in the mood':
+			strip_here = 0
+			InSleep = 0
+			gs 'sleep_events', 'exit'
+			gt 'sistersleep', 'sister_sleep'
+		end
+	elseif $loc = 'FedorEv4':
+		act 'Wake Fedor and see if he''s in the mood':
+			strip_here = 0
+			InSleep = 0
+			gs 'sleep_events', 'exit'
+			gt 'FedorEv4', 'Bedroom 1'
+		end
+		!!Intro text doesn''t quite fit event (but doesn''t quite fit - try for baby - scenario either) - custom scene from VK?
+	elseif ($loc = 'bedr' or $loc = 'bedr2x') and husband > 0:
+		act 'Wake your husband and see if he''s in the mood':
+			strip_here = 0
+			InSleep = 0
+			gs 'sleep_event', 'exit'
+			gt 'husbSex', 'variant'
+			!!Should be custom scene - maybe boyfriend/husband overhaul can cover this?
+		end
+	end
+end
+
+--- sleep_events ---------------------------------
