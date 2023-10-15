@@ -1,0 +1,99 @@
+# wakeup
+$sleep_loc = 'wakeup'
+menu_off = 1
+
+!! Deals with all the triggers that happen when waking up.
+!!
+!! Moved here from sleep or sleep_events
+!! When done: Move to wakeup_events
+
+if $ARGS[0] = 'start' or $ARGS[0] = 'wake' or $ARGS[0] = '':
+	menu_off = 1
+	InSleep = 1
+	gs 'stat'
+
+	InSleepWake = hour + 1
+	InSleepWake[1] = daystart
+	
+	gs 'wakeup', 'mod_triggers'
+
+	xgt 'wakeup_events', 'start'
+end
+
+if $ARGS[0] = 'mod_triggers':
+	!! This location is here to allow mods to hook into the system.
+	!! Check for: if $sleep_loc = 'pre_sleep' and $ARGS[0] = 'mod_triggers'
+	!!
+	!! This is NOT for events!!
+end
+
+
+if $ARGS[0] = 'get_out':
+	sleepVars['time_now'] = daystart * 1440 + hour * 60 + minut
+	if slept_in = 1:
+		'You wake up at <<func(''alarmclock'', ''alarm_display'', hour, minut)>>, after sleeping-in a little longer than planned, but at least you''ve had plenty of sleep.'
+	elseif pcs_sleep >= 100 and alarmVars['alarmOn'] = 1 and sleepVars['time_now'] >= sleepVars['alarm_time']:
+		'You wake up at <<func(''alarmclock'', ''alarm_display'', hour, minut)>>, just before your alarm goes off. You''ve had plenty of sleep.'
+	elseif pcs_sleep >= 100:
+		'You wake up at <<func(''alarmclock'', ''alarm_display'', hour, minut)>> no longer tired and ready to start the day with plenty of sleep.'
+	elseif alarmVars['alarmOn'] = 1 and sleepVars['time_now'] = sleepVars['alarm_time']:
+		pcs_mood -= 10
+		'Your alarm goes off at <<func(''alarmclock'', ''alarm_display'', hour, minut)>>, '+iif(pcs_sleep < 90, 'but you could do with some extra sleep.', 'and you''ve had plenty of sleep.')+''
+		gs 'sleep', 'extra'
+	else
+		!! I do not think that it could go here
+		''
+	end
+
+	if kanikuli = 0 and mid($start_type,1,2) = 'sg' and SchoolAtestat = 0 and SchoolBlock = 0 and week < 6 and hour >= 4 and hour < 9:
+		act 'Get out of bed and get dressed for school (0:15)':
+			minut += 15
+			gs 'wardrobe', 'school_outfit'
+			xgt 'bed_get_out', 'start'
+		end
+	end
+
+	if strip_here = 1:
+		act 'Get out of bed and get dressed (0:15)':
+			minut += 15
+			gs 'clothing', 'wear', $lastwornclothingtype['bed'], lastwornclothingnumber['bed']
+			gs 'panties', 'wear', $lastwornpantytype['bed'], lastwornpantynumber['bed']
+			gs 'bras', 'wear', $lastwornbratype['bed'], lastwornbranumber['bed']
+			if $bed['shoetype'] ! 'none':
+				gs 'shoes', 'wear', $bed['shoetype'], bed['shoenumber']
+			end
+			xgt 'bed_get_out', 'start'
+		end
+	end
+
+	if enfullmorrout = 1 and hour >= 4 and hour < 12:
+		act 'Full morning routine (01:00)':
+			minut += 15
+			fullmorrout = 1
+			gs 'clothing', 'wear', $lastwornclothingtype['bed'], lastwornclothingnumber['bed']
+			gs 'panties', 'wear', $lastwornpantytype['bed'], lastwornpantynumber['bed']
+			gs 'bras', 'wear', $lastwornbratype['bed'], lastwornbranumber['bed']
+			if $bed['shoetype'] ! 'none':
+				gs 'shoes', 'wear', $bed['shoetype'], bed['shoenumber']
+			end
+			xgt 'bed_get_out', 'start'
+		end
+		if kanikuli = 0 and mid($start_type,1,2) = 'sg' and SchoolAtestat = 0 and SchoolBlock = 0 and week < 6 and hour >= 4 and hour < 9 and suspended['on'] ! 1:
+			act 'Full morning routine for School (01:00)':
+				fullmorrout = 1
+				minut += 15
+				gs 'wardrobe', 'school_outfit'
+			xgt 'bed_get_out', 'start'
+			end
+		end
+	end
+
+	act 'Get out of bed (0:10)':
+		minut += 10
+		slept_in = 0
+		xgt 'bed_get_out', 'start'
+	end
+end
+
+
+--- wakeup ---------------------------------
