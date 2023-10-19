@@ -1,0 +1,88 @@
+# music_performances
+
+!! Constants used
+!! Song type:
+SONG = 1
+INSTRUMENTAL = 2
+VOCAL = 3
+
+!! Genres:
+POP = 0
+BLUES = 1
+ROCK = 2
+CLASSICAL = 3
+GRUNGE = 4
+COUNTRY = 5
+FOLK = 6
+DISCO = 7
+FUNK = 8
+
+
+!! Set lists
+if $ARGS[0] = 'add_new_set':
+    i = ml_setlist["index"]
+    $ml_setlist["<<i>>-code"] = "SL-<<i>>"
+    $ml_setlist["<<i>>-name"] = $ARGS[1]
+    ml_setlist["<<i>>-length"] = ARGS[2]
+    ml_setlist["<<i>>-quality"] = 0
+    ml_setlist["<<i>>-practice_level"] = 0
+    ml_setlist["<<i>>-last_practice_day"] = 0
+
+    ml_setlist["index"] += 1
+end
+
+!! Songwriting and composition
+
+!! ml_song_written["1-writing_skill"] = 0
+!! Lyrics: int; skill used: songwrit (new skill, Russian class improves it, plus practice and study)
+!! Music: int; skill used: instrmusic (covers melody and harmony)
+if $ARGS[0] = 'add_new_song':
+    i = ml_song_written_written["index"]
+    $ml_song_written['<<i>>-code'] = "S-<<i>>"
+    $ml_song_written['<i>>-title'] = $ARGS[1]
+    ml_song_written["<<i>>-type"] = ARGS[2]
+    ml_song_written["<<i>>-genre"] = ROCK
+    ml_song_written["<<i>>-lyrics"] = 0
+    ml_song_written["<<i>>-music"] = 0
+    ml_song_written["<<i>>-lyrics_work_count"] = 0
+    ml_song_written_written["index"] += i
+end
+
+if $ARGS[0] = 'write_lyrics':
+    !! base: pcs_songwrit
+    !! mod: thirst, hunger, sleep, pain, drunk, drugs, exhaustion
+    ml_song_written["1-lyrics"] += ( (pcs_songwrit - modifiers) * ml_genre_knowledge[ml_song_written["1-genre"]] * rand(0,130) )/100/ml_song_written["1-lyrics_work_count"]
+    max_lyrics = (pcs_songwrit * ml_genre_knowledge[ml_song_written["1-genre"]] * 130)/100
+    if ml_song_written["1-lyrics"] > max_lyrics:  ml_song_written["1-lyrics"] = max_lyrics
+    !! should there be a diminishing return? A limit, based on skill? Max: pcs_songwrit * 1.3 * ml_genred_knowledge?
+    ml_song_written["1-lyrics_work_count"] += 1
+end
+
+if $ARGS[0] = 'write_music':
+    !! base: pcs_songwrit
+    !! mod: thirst, hunger, sleep, pain, drunk, drugs, exhaustion
+    if ml_song_written["1-type"] = VOCAL:
+        skill = (pcs_vokal + pcs_songwrit) / 2
+    else:
+        skill = (pcs_instrmusic + pcs_songwrit) / 2
+    end
+
+    ml_song_written["1-music"] += ( (skill - modifiers) * ml_genre_knowledge[ml_song_written["1-genre"]] * rand(0,130) )/100/ml_song_written["1-music_work_count"]
+    max_music = (skill * ml_genre_knowledge[ml_song_written["1-genre"]] * 130)/100
+    if ml_song_written["1-music"] > max_music: ml_song_written["1-lyrics"] = max_music
+    ml_song_written["1-music_work_count"] += 1
+end
+
+if $ARGS[0] = 'rewrite_lyrics':
+    ml_song_written["1-lyrics_work_count"] = 0
+    ml_song_written["1-lyrics"] = 0
+    gs 'music_performances', 'write_lyrics'
+end
+
+if $ARGS[0] = 'rewrite_music':
+    ml_song_written["1-music_work_count"] = 0
+    ml_song_written["1-music"] = 0
+    gs 'music_performances', 'write_music'
+end
+
+--- music_performances  ---------------------------------
