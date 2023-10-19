@@ -3,9 +3,10 @@
 !! ---- Variables -------------------------------------------------------------------------------------------------------
 !!
 !! prostitute['payment_method']: 1 - Sveta works for herself; 0 - Sveta works for someone else who will take a cut
-!! prostitute['blocked']: 1 - WLife is loaded which blocks some of the locations: Pavlovsk will rely on the WLife mod 
+!! prostitute['wl_block']: 1 - WLife is loaded which blocks some of the locations: Pavlovsk will rely on the WLife mod 
 !!							  and the Gas Station will be completely blocked
-!!						  0 - WLife is not loaded, everything works as normal.	
+!!						  0 - WLife is not loaded, or WLife released the lock, everything works as normal.	
+!! prostitute['full_block']: 1 - Some mod or some other event completely blocked the prostitution content.
 !! prostitute[<<$location>>]: 1 - Sveta can work at the location.
 !!                            0 - Sveta can''t work at the location
 !!     current locations: Pavlovsk - ''pavlovsk'', Gadukino - ''gadukino'', 
@@ -32,13 +33,34 @@ $solicitation_locations[5] = 'pav_complex'
 $solicitation_locations[6] = 'pav_park'
 $solicitation_locations[7] = 'pushkin'
 
+!! Set the Pavlovsk 'working' hours
+!! Not used at the moment.
+if $ARGS[0] = 'set_pavlovsk_hours':
+	prostitute['pav_start_hour'] = ARGS[1]
+	prostitute['pav_end_hour'] = ARGS[2]
+end
+
+!! Blocks the content that would clash with the Whore Life mod.
+if $ARGS[0] = 'wl_block':
+	prostitute['wl_block'] = ARGS[1]
+	if prostitute['wl_block']:
+		gs 'prostitution_functions', 'set_pavlovsk_hours', 6, 23	
+	else
+		gs 'prostitution_functions', 'set_pavlovsk_hours', 14, 2	
+	end
+end
+
+!! Completely blocks the content - it is just here in case some mod needs to block off prostitution.
+if $ARGS[1] = 'block':
+	prostitute['full_block'] = ARGS[1]
+end
 
 if $ARGS[0] = 'check_for_wlife':
     if mod_list > 0:
         mod_i=1
         :mod_exec
         if $mod_name[mod_i] = 'wlife':
-            prostitute['blocked'] = 1
+			if prostitute['payment_method'] = 0: prostitute['wl_block'] = 1
         end
         if mod_list > mod_i:
             mod_i+=1
@@ -47,8 +69,15 @@ if $ARGS[0] = 'check_for_wlife':
     end
 end
 
+if $ARGS[0] = 'update_prostitution_locations':
+	gs 'prostitution_functions', 'set_pavlovsk_prostitute'
+	if prostitute['gadukino'] = 0: gs 'prostitution_functions', 'set_gadukion_prostitute'
+	if prostitute['road'] = 0: gs 'prostitution_functions', 'set_highway_prostitute'
+end
+
 if $ARGS[0] = 'set_pavlovsk_prostitute':
-    if (fame['pav_prostitute'] > 250 or fame['pav_slut'] > 250) and prostitute['blocked'] = 0:
+!!  if fame['pav_prostitute'] > 100 or fame['pav_slut'] > 150 and prostitute['wl_block'] = 0 and prostitute['full_block'] = 0:
+    if (fame['pav_prostitute'] > 250 or fame['pav_slut'] > 250) and prostitute['wl_block'] = 0 and prostitute['full_block'] = 0:
         prostitute['pavlovsk'] = 1
 		prostitute['active'] = 1
         prostitute['payment_method'] = 1
@@ -58,13 +87,17 @@ if $ARGS[0] = 'set_pavlovsk_prostitute':
 end
 
 if $ARGS[0] = 'set_gadukion_prostitute':
-	if gadriver_gang = 2 and (mirapimp = 0 or mirapimp = 2): 
+	if gadriver_gang = 2 and (mirapimp = 0 or mirapimp = 2) and prostitute['full_block'] = 0: 
 		prostitute['gadukino'] = 1
 		prostitute['active'] = 1
 		prostitute['payment_method'] = 1
 	else
 		prostitute['gadukino'] = 0
 	end
+end
+
+if $ARGS[0] = 'set_highway_prostitute':
+	if prostitute['highway_idea'] = 2 and prostitute['active'] = 1 and ((prostitute['full_block'] = 0 and prostitute['wl_block'] = 0) or (prostitute['wl_block'] = 1 and prostitute['payment_method'] = 1)): prostitute['road'] = 1
 end
 
 if $ARGS[0] = 'prostitute_work_hours':
@@ -116,6 +149,259 @@ if $ARGS[0] = 'prostitute_outfit_at_home':
 		end
 		killvar 'is_default'
 	end
+end
+
+!!---- Random approach modifiers ---------------------------------------------------------------------
+
+!! Result Range: -45  to +35
+!! Based on worn outfit, how likely is that someone will believe that the player is
+!! a hooker working on the street
+
+if $ARGS[0] = 'clothing_chance_modifier':
+	!! PCloStyle: 1 Girlie, 2 Rebel, 3 Wealthy, 4 Prostitute, 5 is Loose fit
+	!! PCloStyle2: 1 Maid, 2 Server, 3 Stripper, 4 School
+	if PCloStyle = 4: temp_result_attr += 10
+	if PCloStyle2 = 3: temp_result_attr += 5
+
+	temp_mult = 1
+
+	if $ARGS[2] = 'upclose' and $loc ! 'road' and $loc ! 'gas_station_gp_117':
+		if hour > 19 : temp_mult = 2
+
+		if PCloStyle = 3: temp_result_attr -= 15 * temp_mult
+		
+		if PCloQuality = 7: 
+			temp_result_attr -= 15 * temp_mult 		
+		elseif PCloQuality = 6:
+			temp_result_attr -= 10 * temp_mult 		
+		elseif PCloQuality = 5: 
+			temp_result_attr -= 5 * temp_mult 		
+		elseif PCloQuality >= 3: 
+			if temp_mult > 1: temp_result_attr -= 10 
+		else
+			temp_result_attr += 5
+		end
+	end
+
+	!! PCloThinness: 
+	!!	6: intentionally reveals breast/pubic areas, with translucent/transparent areas, 
+	!!	   indecent exposure/arrest event if worn in public without underwear. 
+	!!	5: see through only in bright light, or tight enough to show the body in detail if opaque.  
+	!!	4: is thin or tight enough to be flirty, fine in most places except the most conservative (church, school, etc). 
+	!!	3-2 standard publicly worn outfit.
+	!!	1 baggy, hiding the body, makes it hard to see the body shape.
+	!! PCloTopCut:
+	!!	4: reveals over half the skin on the torso area, 
+	!!	3: has a deep neckline that reaches the cleavage between the breasts, 
+	!!	2: is a cut high enough to be considered appropriate in most places (above the cleavage, or just below where it starts), 
+	!!	1: is a neckline that ends very near the neck or higher.
+	!! PCloBra
+	!!	2: Your chest is not covered at all by the outfit, if you wear a bra that will be your top
+	!!	1: 1 the top is no more than a bra and wearing a bra underneath is pointless
+
+	if PCloThinness = 6: temp_result_attr += 6
+	if PCloThinness = 5: temp_result_attr += 3
+	if PCloThinness = 4: temp_result_attr += 1
+	if PCloThinness = 1: temp_result_attr -= 4
+	
+	!! Top outfit
+	if PCloTopCut = 7: temp_result_attr += 7
+	if PCloTopCut = 6: temp_result_attr += 6
+	if PCloTopCut = 5: temp_result_attr += 5
+	if PCloTopCut = 4: temp_result_attr += 3
+	if PCloTopCut = 3: temp_result_attr += 1
+	if PCloTopCut = 1: temp_result_attr -= 4
+
+	if PCloBra = 2 and $braworntype = 'none': temp_result_attr += 6
+	if PCloBra = 2 and $braworntype ! 'none': temp_result_attr += 3
+	if PCloBra = 1: temp_result_attr += 3
+
+	!! Bottom outfit
+	!!	CloSkirtShortness
+	!! IMPORTANT: CloSkirtShortness is mapped to PCloSkirt
+	!!	6: is short enough to reveal pubic areas at all times 
+	!!	5 is ~20% thigh length or less (micro-skirt), and can reveal underwear frequently 
+	!!	4 is ~40% thigh length (miniskirt) and may show underwear if bending over 
+	!!	3 is up to ~60% thigh length (skirt) and normally never reveals underwear 
+	!!	2 is ending immediately above, at or below the knees (knee-length) 
+	!!	1 is ankle-length.
+	!! CloPantsShortness = 1-6 scale. Higher values are shorter.
+	!! IMPORTANT: CloPantsShortness is mapped to PCloPants
+	!!	6 are high-cut shorts (legs end significantly above the crotch, usually reveals a large amount of the ass cheek)
+	!!	5 is mini shorts (legs do not reach below the crotch)
+	!!	4 are shorts (close to mid thigh)
+	!!	3 is knee-length shorts
+	!!	2 is calf length
+	!!	1 is ankle length
+	!! CloPanties = 1 for yes
+	!!	1: The bottom of this outfit offers no more coverage than panties and it will 
+	!!		replace your panties (if worn)
+
+	if PCloSkirt = 6: temp_result_attr += 6
+	if PCloSkirt = 5: temp_result_attr += 4
+	if PCloSkirt = 4: temp_result_attr += 2
+	if PCloSkirt = 1: temp_result_attr -= 4
+
+	if PCloPants = 6: temp_result_attr += 6
+	if PCloPants = 5: temp_result_attr += 4
+	if PCloPants = 1: temp_result_attr -= 4
+
+	if PCloPanties = 1: temp_result_attr += 8
+	
+
+	temp_result_attr = MAX(temp_result_attr, temp_result_style)
+	
+	!! PShoHeels values: 1 flats (<5cm), 2 low heel (~5cm), 3 Mid heel (~7.5cm), 
+	!!		 4 High heel (~10cm), 5 ultra high heel (~15cm), 6 fetish heel (>15cm)
+	!! PShoStyle values: 1 stripping or whoring, 2: bimbo style, 3: alternative style
+	!! PShoCut values: 1: shoes 2: ankle boots, 3: calf high, 4: knee high, 5: thigh high, 6: groin high
+
+	if PShoHeels = 6: temp_result_attr += 3
+	if PShoHeels = 5: temp_result_attr += 2
+	if PShoHeels = 4: temp_result_attr += 1
+	if PShoHeels = 2: temp_result_attr -= 2
+	if PShoHeels = 1: temp_result_attr -= 3
+
+	if PShoStyle = 1: temp_result_attr += 2
+	if PShoStyle = 2: temp_result_attr += 1
+	if PShoStyle = 3: temp_result_attr -= 1
+
+	if PShoCut = 6: temp_result_attr += 2
+	if PShoCut = 5: temp_result_attr += 1
+	
+	result = temp_result_attr
+	
+	killvar 'temp_result_attr'
+	killvar 'temp_result_style'
+end
+
+if $ARGS[0] = 'upclose_chance':
+	temp_base_app_mod = func('prostitution_functions', 'base_appearance_modifier')
+	temp_makeup_mod = func('prostitution_functions', 'makeup_modifier')
+	temp_groom_mod = func('prostitution_functions', 'grooming_modifier')
+	temp_tat_pierc_mod = func('prostitution_functions', 'tattoo_and_piercing_modifier')
+	temp_clothes_base = func('prostitution_functions', 'clothing_chance_modifier', 'upclose')
+	
+
+	result = (temp_base_app_mod + temp_makeup_mod + temp_groom_mod + temp_tat_pierc_mod + temp_clothes_base)
+
+	killvar 'temp_base_app_mod'
+	killvar 'temp_makeup_mod'
+	killvar 'temp_groom_mod'
+	killvar 'temp_tat_pierc_mod'	
+	killvar 'temp_clothes_base'
+end
+
+!! Range -10 to +10
+if $ARGS[0] = 'makeup_modifier':
+	!! pcs_makeup:
+	!! 0: Smeared makeup
+	!! 1: No makeup
+	!! 2: Light makeup
+	!! 3: Vibrant makeup
+	!! 4: Heavy makeup
+	!! 5: Professional makeup
+	!! 6: Bimbo makeup
+	if pcs_makeup = 6: result += 5
+	if pcs_makeup = 5: result -= 5
+	if pcs_makeup = 4: result += 10
+	if pcs_makeup = 3: result += 5
+	if pcs_makeup = 1: result -= 5
+	if pcs_makeup = 0: result -= 10
+	temp_display = result
+	
+	killvar 'temp_display'
+end
+
+!! Result Range: -100 to +30
+if $ARGS[0] = 'base_appearance_modifier':
+
+	!! The following can lower the penalty from high appearance
+	!! A stunningly pretty girl being a street hooker is hard to believe
+	!! but a stunningly pretty but somewhat ran down girl is easier to 
+	!! accept. 
+	temp_hair -= (1 - pcs_hairbsh) * 10
+
+	if pcs_haircol ! nathcol:
+		if dyefade > 0 and dyefade < 7: temp_dyefade = 5
+		if dyefade = 0: temp_dyefade = 15
+	end
+
+	if pcs_makeup = 0: temp_makeup_corr = 20
+
+	if pcs_apprncbase <= 20: 
+		result -= 100
+	elseif pcs_apprncbase <= 40: 
+		result -= 20
+	elseif pcs_apprncbase <= 60: 
+		result -= 10
+	elseif pcs_apprncbase <= 80: 
+		result += 10
+	elseif pcs_apprncbase <= 100: 
+		result += 30
+	elseif pcs_apprncbase <= 120: 
+		result += 30
+	elseif pcs_apprncbase <= 140: 
+		result += 10
+	!! Over a certain beauty people will be less likely to think that Sveta is a prostitute working 
+	!! the highway unless she is acting like one, or looks really neglected.
+	elseif pcs_apprncbase <= 160: 
+		result -= 30 + temp_dyefade + pcs_leghair + temp_hair 
+	elseif pcs_apprncbase <= 179:
+		result -= 40 + temp_dyefade + pcs_leghair + temp_hair  
+	else
+		result -= 50 + temp_dyefade + pcs_leghair + temp_hair + temp_makeup_corr
+	end
+
+	!! Being high or looking like someone fighting withdrawal, downbeat or exhausted, dirty, etc. 
+	!! will lessen the high appearance penalty. Will add those later when I figure out a sensible way.
+
+	killvar 'temp_display'
+
+	killvar 'temp_dyefade'
+	killvar 'temp_leghair'
+	killvar 'temp_makeup_corr'
+end
+
+!! Result Range: -78 - 0
+if $ARGS[0] = 'grooming_modifier':
+	if pcs_sweat < 22:
+		result -= 0
+	elseif pcs_sweat < 38:
+		result -= (pcs_sweat - 10) / 4 & !! 28/4 = 7
+	elseif pcs_sweat < 54:
+		result -= (pcs_sweat - 10) / 2 & !! 54-10 / 2 = 22
+	else
+		result -= 3 * (pcs_sweat - 10) / 4 & !! 3 * 100-10 / 4 = 67
+	end	
+
+	temp_display = result
+	killvar 'temp_display'
+end
+
+
+!! Result Range: 0
+if $ARGS[0] = 'tattoo_and_piercing_modifier':
+	result = 0
+	if (PCloSkirt >= 4 or PCloPants >= 4 or PCloPanties = 1) and PShoCut = 1 and tatankle > 0: temp_tattoo_mod += 3
+	if (PCloSkirt >= 4 or PCloPants >= 4 or PCloPanties = 1) and PShoCut < 5 and tatleg > 0: temp_tattoo_mod += 5
+	if PCloSKirt = 6 and $pantyworntype = 'none' and tatvag > 0: temp_tattoo_mod += 5
+	if PCloSkirt >= 5 and tatass > 0: temp_tattoo_mod += 3
+	if (PCloThinness >= 5 or PCloTopCut >= 4 or PCloBra = 1) and tatblly > 0: temp_tattoo_mod += 5
+	if (PCloThinness >= 5 or PCloTopCut >= 3 or PCloBra = 1 or PCloStyle = 4 or PCloStyle2 = 3) and tatupb > 0: temp_tattoo_mod += 3
+	if (PCloThinness >= 5 or PCloTopCut >= 4 or PCloBra = 1) and tatback > 0: temp_tattoo_mod += 3
+	if (PCloThinness >= 5 or PCloTopCut >= 3 or PCloBra = 1 or PCloStyle = 4 or PCloStyle2 = 3) and tatunder > 0: temp_tattoo_mod += 3
+	if (PCloThinness >= 5 or PCloTopCut >= 3 or PCloBra = 1 or (PCloBra = 2 and $braworntype = 'none')) and tatbrst > 0: temp_tattoo_mod += 3
+	if (PCloThinness >= 5 or PCloTopCut >= 3 or PCloBra = 1 or (PCloBra = 2 and $braworntype = 'none')) and tatchst > 0: temp_tattoo_mod += 3
+	if (PCloThinness >= 5 or PCloTopCut >= 3 or PCloBra = 1 or PCloStyle = 4 or PCloStyle2 = 3) and tatside > 0: temp_tattoo_mod += 3
+	if (PCloThinness >= 5 or PCloBra = 1) and tatarm > 0: temp_tattoo_mod += 2
+	if (PCloThinness >= 5 or PCloTopCut >= 3 or PCloBra = 1 or PCloStyle = 4 or PCloStyle2 = 3) and tatlech > 0: temp_tattoo_mod += 3
+	if (PCloThinness >= 3 or PCloTopCut >= 2 or PCloBra = 1 or PCloStyle = 4 or PCloStyle2 = 3) and tatneck > 0: temp_tattoo_mod += 5
+	if tatfce > 0: temp_tattoo_mod += 3
+	
+	result = temp_tattoo_mod
+	
+	killvar 'temp_tattoo_mod'
 end
 
 !!---- Outfit checks ---------------------------------------------------------------------------------  
@@ -195,7 +481,7 @@ if $ARGS[0] = 'change_into_regular_clothes':
 end
 
 !!---------- Chaging outfits in public locations ------------------------------------------------------------------------
-!!------ CHanging clothes --------------------------
+!!------ Changing clothes --------------------------
 if $ARGS[0] = 'change_to_work':
 	cla
 	*clr
@@ -242,10 +528,10 @@ end
 !!-----------------------------------------------------------------------------------------------------------------------
 !!---------- Checking for events ----------------------------------------------------------------------------------------
 !!-----------------------------------------------------------------------------------------------------------------------
-  
+
 if $ARGS[0] = 'check_solicitation_event':
 	gs 'prostitution_functions', 'work_clothes'
-	if prostitute['blocked'] = 0 and func('prostitution_functions', 'prostitute_work_hours') and func('prostitution_functions','is_solicitation_location'):
+	if prostitute['wl_block'] = 0 and prostitute['full_block'] = 0 and func('prostitution_functions', 'prostitute_work_hours') and func('prostitution_functions','is_solicitation_location'):
 		if prostitute['pavlovsk'] = 1 and prostitute['pav_time_hour'] ! hour and rand(-20, 70) < minut: 
 			gs 'prostitution_pavlovsk', 'chance'
 		end
@@ -534,6 +820,48 @@ if $ARGS[0] = 'parameters':
 		prostitute['cum_visible_mod'] = 0
 	end
 
+!!---------- Prostitution long term effects ---------------------------------------------------------------------
+if $ARGS[0] = 'solicitation_effort':
+	cost = ARGS[1]
+	prostitute['skin_penalty'] += 5
+	if temper < 15: prostitute['skin_penalty'] += 5
+	if temper > 25: prostitute['skin_penalty'] += 5
+	if cost <= willpowermax/4:
+		prostitute['age_mod'] += 5
+	elseif cost <= willpowermax/3:
+		prostitute['age_mod'] += 10
+	elseif cost <= willpowermax/2:
+		prostitute['age_mod'] += 15
+	else
+		prostitute['age_mod'] += 20
+	end
+end
+
+if $ARGS[0] = 'client_effort':
+	$client_type = iif($ARGS[1] = '', 'normal', $ARGS[1])
+	if $client_type = 'nice':
+		prostitute['age_mod'] += 5
+	elseif $client_type = 'normal':
+		prostitute['age_mod'] += 10
+	elseif $client_type = 'abusive':
+		prostitute['age_mod'] += 20
+	end
+end
+
+if $ARGS[0] = 'daily_effects':
+	if prostitute['age_mod'] >= 100: 
+		temp_age_mod_remain = prostitute['age_mod'] MOD 100
+		vidageday -= ((prostitute['age_mod'] - temp_age_mod_remain) / 100)
+		prostitute['age_mod'] = temp_age_mod_remain
+		killvar 'temp_age_mod_remain'
+	end
+	if prostitute['skin_penalty'] >= 100:
+		temp_skin_remain = prostitute['skin_penalty'] MOD 100
+		skinDailyPenalty += ((prostitute['skin_penalty'] - temp_skin_remain) / 100)
+		prostitute['skin_penalty'] = temp_skin_remain
+		killvar 'temp_skin_remain'
+	end
+end
 !!---------- Age ------------------------------------------------------------------------------------------------
 
 	if vidage < 18 and rand(1,10) < 7:
