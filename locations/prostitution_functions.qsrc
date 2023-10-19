@@ -3,9 +3,10 @@
 !! ---- Variables -------------------------------------------------------------------------------------------------------
 !!
 !! prostitute['payment_method']: 1 - Sveta works for herself; 0 - Sveta works for someone else who will take a cut
-!! prostitute['blocked']: 1 - WLife is loaded which blocks some of the locations: Pavlovsk will rely on the WLife mod 
+!! prostitute['wl_block']: 1 - WLife is loaded which blocks some of the locations: Pavlovsk will rely on the WLife mod 
 !!							  and the Gas Station will be completely blocked
-!!						  0 - WLife is not loaded, everything works as normal.	
+!!						  0 - WLife is not loaded, or WLife released the lock, everything works as normal.	
+!! prostitute['full_block']: 1 - Some mod or some other event completely blocked the prostitution content.
 !! prostitute[<<$location>>]: 1 - Sveta can work at the location.
 !!                            0 - Sveta can''t work at the location
 !!     current locations: Pavlovsk - ''pavlovsk'', Gadukino - ''gadukino'', 
@@ -32,13 +33,27 @@ $solicitation_locations[5] = 'pav_complex'
 $solicitation_locations[6] = 'pav_park'
 $solicitation_locations[7] = 'pushkin'
 
+!! Blocks the content that would clash with the Whore Life mod.
+if $ARGS[0] = 'wl_block':
+	prostitute['wl_block'] = ARGS[1]
+	if prostitute['wl_block']:
+		gs 'prostitution_functions', 'set_pavlovsk_hours', 6, 23	
+	else
+		gs 'prostitution_functions', 'set_pavlovsk_hours', 14, 2	
+	end
+end
+
+!! Completely blocks the content - it is just here in case some mod needs to block off prostitution.
+if $ARGS[1] = 'block':
+	prostitute['full_block'] = ARGS[1]
+end
 
 if $ARGS[0] = 'check_for_wlife':
     if mod_list > 0:
         mod_i=1
         :mod_exec
         if $mod_name[mod_i] = 'wlife':
-            prostitute['blocked'] = 1
+			if prostitute['payment_method'] = 0: prostitute['wl_block'] = 1
         end
         if mod_list > mod_i:
             mod_i+=1
@@ -54,7 +69,8 @@ if $ARGS[0] = 'update_prostitution_locations':
 end
 
 if $ARGS[0] = 'set_pavlovsk_prostitute':
-    if (fame['pav_prostitute'] > 250 or fame['pav_slut'] > 250) and prostitute['blocked'] = 0:
+!!  if fame['pav_prostitute'] > 100 or fame['pav_slut'] > 150 and prostitute['wl_block'] = 0 and prostitute['full_block'] = 0:
+    if (fame['pav_prostitute'] > 250 or fame['pav_slut'] > 250) and prostitute['wl_block'] = 0 and prostitute['full_block'] = 0:
         prostitute['pavlovsk'] = 1
 		prostitute['active'] = 1
         prostitute['payment_method'] = 1
@@ -64,7 +80,7 @@ if $ARGS[0] = 'set_pavlovsk_prostitute':
 end
 
 if $ARGS[0] = 'set_gadukion_prostitute':
-	if gadriver_gang = 2 and (mirapimp = 0 or mirapimp = 2): 
+	if gadriver_gang = 2 and (mirapimp = 0 or mirapimp = 2) and prostitute['full_block'] = 0: 
 		prostitute['gadukino'] = 1
 		prostitute['active'] = 1
 		prostitute['payment_method'] = 1
@@ -248,10 +264,10 @@ end
 !!-----------------------------------------------------------------------------------------------------------------------
 !!---------- Checking for events ----------------------------------------------------------------------------------------
 !!-----------------------------------------------------------------------------------------------------------------------
-  
+
 if $ARGS[0] = 'check_solicitation_event':
 	gs 'prostitution_functions', 'work_clothes'
-	if prostitute['blocked'] = 0 and func('prostitution_functions', 'prostitute_work_hours') and func('prostitution_functions','is_solicitation_location'):
+	if prostitute['wl_block'] = 0 and prostitute['full_block'] = 0 and func('prostitution_functions', 'prostitute_work_hours') and func('prostitution_functions','is_solicitation_location'):
 		if prostitute['pavlovsk'] = 1 and prostitute['pav_time_hour'] ! hour and rand(-20, 70) < minut: 
 			gs 'prostitution_pavlovsk', 'chance'
 		end
