@@ -33,28 +33,32 @@ if isnum(mid($ARGS[0], 2)):
 
 
 	!! Translate 'hate, dislike, etc. into a number and store it.'
-	temp_trait_value = func('npc_set_preference', 'get_value', $ARGS[1], $ARGS[2])
+	temp_set_preference_trait_value = func('npc_set_preference', 'get_value', $ARGS[1], $ARGS[2])
 
 
 	!! This block of code is here to find the index of the preferences.
-	temp_skip_loop = 0
-	:skip_start
+	skip_check_preferences_loop = 0
+	:check_preference_loop_start
+
 	!! Escape the preference loops if we found the index of the preferences
-	if temp_skip_loop = 0:
+	if skip_check_preferences_loop = 0:
 		if arrsize('$npc_pref_traits') > 0:
-			i = 0
-			:preference_loop
-				if $npc_pref_traits[i] = $ARGS[1]:
-					temp_skip_loop = 1
-					jump 'skip_start'
+			preference_loop_index = 0
+
+			:check_preferences_loop
+				if $npc_pref_traits[preference_loop_index] = $ARGS[1]:
+					skip_check_preferences_loop = 1
+					jump 'check_preference_loop_start'
 				end
-				i+=1
-			if i < arrsize('$npc_pref_traits'): jump 'preference_loop'
+				preference_loop_index += 1
+			if preference_loop_index < arrsize('$npc_pref_traits'): jump 'check_preferences_loop'
+
 		end
 	end
 
-	killvar 'temp_skip_loop'
-	killvar 'skip_start'
+	killvar 'check_preferences_loop'
+	killvar 'skip_check_preferences_loop'
+	killvar 'check_preference_loop_start'
 
 
 	if pref_trait_value ! 0:
@@ -65,14 +69,14 @@ if isnum(mid($ARGS[0], 2)):
 			}, '	', '')
 
 			$npc_pref_values[$ARGS[0]] = replace({killvar 'npc_trait_values'
-				npc_trait_values} + "['<<$ARGS[1]>>'] = <<temp_trait_value>>" + {
+				npc_trait_values} + "['<<$ARGS[1]>>'] = <<temp_set_preference_trait_value>>" + {
 			}, '	', '')
 
 		else
-			if i < arrsize('$npc_pref_traits'):
+			if preference_loop_index < arrsize('$npc_pref_traits'):
 				!!The npc already has a preference for the trait.
 				!!We overwrite the trait and then escape the preference_loop
-				npc_trait_values[$ARGS[1]] = temp_trait_value
+				npc_trait_values[$ARGS[1]] = temp_set_preference_trait_value
 
 				!!Rebuild the $npc_pref....[$ARGS[0]] strings from the grounds up
 				gs 'npc_set_preference', 'rebuild_preferences', $ARGS[0]
@@ -83,16 +87,16 @@ if isnum(mid($ARGS[0], 2)):
 				$npc_preferences[$ARGS[0]] += replace({$npc_pref_traits[] = } + "'<<$ARGS[1]>>'" + {
 				}, '	', '')
 
-				$npc_pref_values[$ARGS[0]] += replace({npc_trait_values} + "['<<$ARGS[1]>>'] = <<temp_trait_value>>" + {
+				$npc_pref_values[$ARGS[0]] += replace({npc_trait_values} + "['<<$ARGS[1]>>'] = <<temp_set_preference_trait_value>>" + {
 				}, '	', '')
 			end
 		end
 
 	else
 		!! The trait exists and we are setting it to 0. Best just remove it entirely
-		if i < arrsize('$npc_pref_traits'):
-			killvar '$npc_pref_traits', i
-			killvar 'npc_trait_values', $ARGS[1]
+		if temp_preference_loop_index < arrsize('$npc_pref_traits'):
+			killvar '$npc_pref_traits', temp_preference_loop_index
+			gs 'shortgs', 'remove_array_element', 'npc_trait_values', $ARGS[1]
 
 			!!Rebuild the $npc_pref....[$ARGS[0]] strings from the grounds up
 			gs 'npc_set_preference', 'rebuild_preferences', $ARGS[0]
@@ -103,9 +107,9 @@ if isnum(mid($ARGS[0], 2)):
 	killvar '$npc_pref_traits'
 	killvar 'npc_trait_values'
 
-	killvar 'i'
+	killvar 'preference_loop_index'
 
-	killvar 'temp_trait_value'
+	killvar 'temp_set_preference_trait_value'
 end
 
 
@@ -119,15 +123,15 @@ if $ARGS[0] = 'rebuild_preferences':
 	}
 
 	!!Loop over every preference and add it to the $npc_pref....[$ARGS[0]] strings.
-	i = 0
-	:pref_loop_2
-		$temp_npc_pref_traits += {$npc_pref_traits[] = } + "'<<$npc_pref_traits[i]>>'" + {
+	rebuild_preferences_index = 0
+	:rebuild_preferences_loop
+		$temp_npc_pref_traits += {$npc_pref_traits[] = } + "'<<$npc_pref_traits[rebuild_preferences_index]>>'" + {
 		}
-		$temp_npc_trait_values += {npc_trait_values} + "['<<$npc_pref_traits[i]>>'] = <<npc_trait_values[i]>>" + {
+		$temp_npc_trait_values += {npc_trait_values} + "['<<$npc_pref_traits[rebuild_preferences_index]>>'] = <<npc_trait_values[rebuild_preferences_index]>>" + {
 		}
 
-		i += 1
-	if i < arrsize('$npc_pref_traits'): jump 'pref_loop_2'
+		rebuild_preferences_index += 1
+	if rebuild_preferences_index < arrsize('$npc_pref_traits'): jump 'rebuild_preferences_loop'
 
 
 	!!Overwrite the $npc_pref....[$ARGS[0]] strings with the rebuild string.
@@ -136,7 +140,8 @@ if $ARGS[0] = 'rebuild_preferences':
 
 	killvar '$temp_npc_pref_traits'
 	killvar '$temp_npc_trait_values'
-	killvar 'pref_loop_2'
+	killvar 'rebuild_preferences_loop'
+	killvar 'rebuild_preferences_index'
 end
 
 
@@ -144,17 +149,19 @@ end
 if $ARGS[0] = 'remove_preference':
 	if arrsize('$npc_pref_traits') > 0:
 		!! Check the position of the preference in the preference array.
-		temp_trait_position = arrpos('$npc_pref_traits', $ARGS[2])
+		temp_set_preferences_trait_position = arrpos('$npc_pref_traits', $ARGS[2])
 		
 		!! If the preference exists:
-		if temp_trait_position ! -1:
+		if temp_set_preferences_trait_position ! -1:
 			!! Remove the preference from the array.
-			killvar '$npc_pref_traits', temp_trait_position
-			killvar 'npc_trait_values', $ARGS[2]
+			killvar '$npc_pref_traits', temp_set_preferences_trait_position
+			gs 'shortgs', 'remove_array_element', 'npc_trait_values', $ARGS[2]
 			
 			!! Then rebuild the dynamic string.
 			gs 'npc_set_preference', 'rebuild_preferences', $ARGS[1]
 		end
+
+		killvar 'temp_set_preferences_trait_position'
 	end
 end
 
@@ -166,13 +173,16 @@ end
 !!====================================!!
 
 
+!!	gs 'npc_set_preference', 'get_value', $PREFERENCE, $VALUE
+!!		$PREFERENCE: body_fit, clothes_bimbo, etc.
+!!		$VALUE: 'love', 'like', 'neutral', 'dislike', or 'hate'
 
 if $ARGS[0] = 'get_value':
-	temp_pref_values['love']    = 15
-	temp_pref_values['like']    = 5
+	temp_pref_values['love']    = 10
+	temp_pref_values['like']    = 3
 	temp_pref_values['neutral'] = 0
-	temp_pref_values['dislike'] = -5
-	temp_pref_values['hate']    = -15
+	temp_pref_values['dislike'] = -3
+	temp_pref_values['hate']    = -10
 
 	if $ARGS[1] = 'body_bmi_starving':
 		temp_pref_values['love']    = 60
@@ -205,51 +215,76 @@ if $ARGS[0] = 'get_value':
 		temp_pref_values['hate']    = -10
 	end
 
+	result = temp_pref_values[$ARGS[2]]
 
-	if $ARGS[2] = 'hate':
-		result = temp_pref_values['hate']
-
-	elseif $ARGS[2] = 'dislike':
-		result = temp_pref_values['dislike']
-
-	elseif $ARGS[2] = 'like':
-		result = temp_pref_values['like']
-
-	elseif $ARGS[2] = 'love':
-		result = temp_pref_values['love']
-
-	else
-		result = temp_pref_values['neutral']
-	end
-	
 	killvar 'temp_pref_values'
 end
 
 
-!!	To be updated
-!!	'body_tits_big'
-!!	'body_ass_bubble'
+
 
 !!	Body
-!!	'body_fit'
-!!	'body_pregnant'
-!!	'body_strong'
-!!	'body_tan'
-
+!!		'body_ass_bubble'
+!!		'body_ass_big'
+!!		'body_ass_average'
+!!		'body_ass_flat'
+!!		'body_bmi_starving'
+!!		'body_bmi_underweight'
+!!		'body_bmi_normal'
+!!		'body_bmi_overweight'
+!!		'body_bmi_obese'
+!!		'body_fit'
+!!		'body_lips_thin'
+!!		'body_lips_normal'
+!!		'body_lips_plump'
+!!		'body_lips_big'
+!!		'body_lips_pillowy'
+!!		'body_pregnant'
+!!		'body_tan'
+!!		'body_tan_not'
+!!		'body_tits_big'
+!!		'body_tits_average'
+!!		'body_tits_small'
+!!		'body_strong'
+!!		'body_weak'
+!!		'body_sweaty'
+!!		'body_stinky'
+!!	
 !!	Clothes
-!!	'clothes_bimbo'
-!!	'clothes_goth'
-!!	'clothes_punk'
-!!	'clothes_skirt_short'
-!!	'clothes_thin'
-
+!!		'clothes_bimbo'
+!!		'clothes_goth'
+!!		'clothes_punk'
+!!		'clothes_thin'
+!!		'clothes_skirt_long'
+!!		'clothes_skirt_short'
+!!		'clothes_exposed_ass'
+!!		'clothes_exposed_bra'
+!!		'clothes_exposed_panties'
+!!		'clothes_exposed_pussy'
+!!		'clothes_exposed_tits'
+!!	
 !!	Cosmetics
-!!	'cosmetics_makeup'
-!!	'cosmetics_piercing'
-!!	'cosmetics_tattoo'
-
+!!		'cosmetics_deodorant'
+!!		'cosmetics_makeup'
+!!		'cosmetics_piercing'
+!!		'cosmetics_tattoo'
+!!	
 !!	Cum
-!!	'cum_face'
-!!	'cum_clothes'
+!!		'cum_face'
+!!		'cum_clothes'
+!!	
+!!	Hair
+!!		'hair_pubes_shaven'
+!!		'hair_pubes_grown'
+!!		'hair_pubes_style_...' & !! not yet implemented.
+!!		'hair_leg'
+!!		'hair_leg_not'
+!!		'hair_short'
+!!		'hair_average'
+!!		'hair_long'
+!!		'hair_curly'
+!!		'hair_straight'
+!!		'hair_color_black'
+!!		'hair_color_....' & !! not yet implemented.
 
 --- npc_set_preference ---------------------------------

@@ -1,0 +1,277 @@
+# pre_sleep_events
+$sleep_loc = 'pre_sleep_events'
+menu_off = 1
+
+!! Pre-sleep events trigger after deciding to go to sleep, but before dreaming and falling asleep (and thus before the auto-save).
+!!
+!! Moved here from pre_sleep
+!! When done: move to pre_sleep, pre_sleep2
+
+	!!=====================================!!
+	!!                                     !!
+	!!          Event handlers             !!
+	!!                                     !!
+	!!=====================================!!
+
+
+if $ARGS[0] = 'start' or $ARGS[0] = '':
+	menu_off = 1
+	killvar '$sleep_events'
+	killvar '$sleep_events_priority'
+
+	if sleepVars['events_active'] = 1:
+		sleepVars['events_done'] = 0
+
+		if succubusQW = 2:
+			$sleep_events_priority[] = 'gs ''pre_sleep_events'', ''succhoice'' '
+		end
+		if magf2bdo = 2:
+			$sleep_events_priority[] = 'gs ''pre_sleep_events'', ''magbstchoice'' '
+		end
+
+		if nichGalaOpponent = 30 and hour <= 23 and hour >= 19 and nichDebug = 1:
+			!! Start abduction
+			!! TODO
+			$sleep_events_priority[] = 'gt ''pre_sleep_events'', ''nichServentSleepEvents2'' '
+		elseif nichGalaContractTaras = 1 and daystart >= nichGalaContractTarasLast + rand(3, 10):
+			!! Taras visits
+			$sleep_events_priority[] = 'gt ''pre_sleep_events'', ''nichServentSleepEvents1'' '
+		end
+
+		gt 'pre_sleep_events', 'mod_events'
+	end
+
+	gt 'pre_sleep_events', 'continue'
+end
+
+if $ARGS[0] = 'mod_events':
+	!! This location is here to allow mods to hook into the system.
+	!! Check for: if $sleep_loc = 'pre_sleep_events' and $ARGS[0] = 'mod_events'
+	!!
+	!! You can add events as: $sleep_events[] = 'gs ''mod_loc'' ''mod_args0'' '
+	!! A random event will be chosen from amongst the added ones.
+	!! If an event MUST trigger (due to quest timing), add it to $sleep_events_priority[] = 'gs ''mod_loc'' ''mod_args0'' '
+	!!
+	!! If the event does not break the sleep cycle (merely interupts it) it needs to end with gs 'pre_sleep_events', 'event_end'
+	!! If the event removed Sveta from her location (aka her sleep is cut short and/or she leaves her bed), you must call gs 'pre_sleep_events', 'exit'
+	!!     Example: Act: 'Leave': gs 'pre_sleep_events', 'exit' & gt $new_loc, $new_log_arg
+	!!
+	!! This is to cleanup all necessary variables.
+	!!
+	!! DO NOT DIRECTLY GOTO/GOSUB OUTOF THIS LOCATION. ALWAYS ADD IT TO THE QUEUEs!!!!
+	!! IT WILL ALMOST CERTIANLY END BADLY WHEN MORE THAN 1 MOD IS INVOLVED.
+
+	gt 'pre_sleep_events', 'event_handler'
+end
+
+
+if $ARGS[0] = 'event_handler':
+	if sleepVars['events_done'] < 1:
+		if arrsize('$sleep_events_priority') > 0:
+			gt 'pre_sleep_events', 'event_handler2', 'priority'
+		elseif arrsize('$sleep_events') > 0:
+			gt 'pre_sleep_events', 'event_handler2'
+		end
+	end
+
+	gt 'pre_sleep_events', 'continue'
+end
+
+if $ARGS[0] = 'event_handler2':
+	sleepVars['events_done'] += 1
+
+	if $ARGS[1] = 'priority':
+		temp_slev_id = rand(0, arrsize('$sleep_events_priority')-1)
+		$temp_sleep_event_chosen = $sleep_events_priority[temp_slev_id]
+		killvar '$sleep_events_priority', temp_slev_id
+	else
+		temp_slev_id = rand(0, arrsize('$sleep_events')-1)
+		$temp_sleep_event_chosen = $sleep_events[temp_slev_id]
+		killvar '$sleep_events', temp_slev_id
+	end
+
+	killvar 'temp_slev_id'
+	dynamic $temp_sleep_event_chosen
+end
+
+
+if $ARGS[0] = 'event_end':
+	killvar '$temp_sleep_event_chosen'
+
+!!	if arrsize('$sleep_events_priority') > 0:
+!!		gt 'bed_events', 'event_handler2', 'priority'
+!!	end
+
+	gt 'pre_sleep_events', 'event_handler'
+end
+
+
+if $ARGS[0] = 'exit':
+	sleepVars['events_done'] = 0
+	killvar '$sleep_loc'
+	killvar '$sleep_events'
+	killvar '$sleep_events_priority'
+	killvar 'temp_slev_id'
+	killvar '$temp_sleep_event_chosen'
+end
+
+if $ARGS[0] = 'continue':
+	sleepVars['events_done'] = 0
+	killvar '$sleep_loc'
+	killvar '$sleep_events'
+	killvar '$sleep_events_priority'
+	killvar 'temp_slev_id'
+	killvar '$temp_sleep_event_chosen'
+
+	gt 'pre_sleep', 'pre_sleep2'
+end
+
+
+
+
+	!!=====================================!!
+	!!                                     !!
+	!!              Events                 !!
+	!!                                     !!
+	!!=====================================!!
+
+
+if $ARGS[0] = 'succhoice':
+	menu_off = 1
+	minut += 15
+	gs 'stat'
+	cla
+	if $clothingworntype ! 'nude':
+		'<center><img <<$set_imgh>> src="images/shared/home/bed.jpg"></center>'
+	else
+		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/son.jpg"></center>'
+	end
+	''
+	'You toss and turn for a while, but the energy that has been buzzing under your skin since that dream just won''t let you sleep.'
+	''
+	'Thinking about it you realize that you could push the energy out or pull it in!'
+	''
+	'<font color="red"><b>You also feel that both are <i>permanent</i> choices.</b></font>'
+	act 'Try to ignore it and go to sleep':
+		if disable_autosave = 0:
+			if mid($start_type,1,4) = 'city':
+				savegame 'autosave_city.sav'
+			elseif mid($start_type,1,3) = 'uni':
+				savegame 'autosave_uni.sav'
+			else
+				savegame 'autosave_sg.sav'
+			end
+		end
+		gs 'pre_sleep_events', 'end'
+	end
+	act 'Push the Energy out for all time': gt 'pre_sleep_events', 'succhoiceNO'
+	act 'Pull the Energy in and let it change you permanently': gt 'pre_sleep_events', 'succhoiceYES'
+end
+
+
+if $ARGS[0] = 'succhoiceNO':
+	menu_off = 1
+	if $clothingworntype ! 'nude':
+		'<center><img <<$set_imgh>> src="images/shared/home/bed.jpg"></center>'
+	else
+		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/son.jpg"></center>'
+	end
+	''
+	'You push the energy out of you and it dissipates.'
+	succubusQW = 3
+	pcs_horny = 0
+	minut +=5
+	gs 'stat'
+	act 'Go to sleep':
+		gs 'pre_sleep_events', 'end'
+	end
+end
+
+
+if $ARGS[0] = 'succhoiceYES':
+	menu_off = 1
+	if $clothingworntype ! 'nude':
+		'<center><img <<$set_imgh>> src="images/shared/home/bed.jpg"></center>'
+	else
+		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/son.jpg"></center>'
+	end
+	succubusQW = 4
+	''
+	'You pull the energy deeper into yourself and hold it there.'
+	''
+	'Then you feel pressure building...'
+	wait 450
+	minut += 5
+	gs 'stat'
+	'BUILDING...'
+	wait 450
+	minut += 5
+	gs 'stat'
+	'<b>BUILDING...</b>'
+	wait 450
+	minut += 5
+	gs 'stat'
+	'Power bursts through your body causing you to hop out of bed.'
+	act 'Continue': gt 'pre_sleep_events', 'succubinit'
+end
+
+if $ARGS[0] = 'succubinit':
+	menu_off = 1
+	minut += 10
+	gs 'stat'
+
+	!!Sets the succubus flag, succubus level (succublvl), Initial lesbian sex count (suclezsnapshot), initial Succubus hunger (succhungry),
+	!! & the succubus descriptor ($sucself1). The -2 on succhungry is to give th PC 2 days to get in the Succubus grove.
+	succubusflag = 1
+	succublvl = 1
+	suclezsnapshot = lesbian
+	succhungry = -2
+	sucwalkday = daystart + 2 + rand(0,5)
+	$sucself1 = 'that feeling'
+	pcs_horny = 100
+	InSleep = 0
+	slept_in = 0
+	strip_here = 0
+	'<center><img <<$set_imgh>> src="images/pc/body/succubusself.jpg"></center>'
+	*nl
+	'<font color="red">You feel the power flowing around your body for several minutes, leaking through your skin and making changes all throughout you, before fading to a presence deep in your core leaving you looking the same as before... but feeling so different! </font>'
+
+	if preg = 1:
+		gs 'medical_din', 'remove_preg'
+		RecovH = 0
+	end
+
+	act 'Finish': gs 'pre_sleep_events', 'end'
+end
+
+
+if $ARGS[0] = 'magbstchoice':
+	*clr & cla
+	menu_off = 1
+	tittmp = tits + 1
+	'<center><img <<$set_imgh>> src="images/pc/body/tits/t<<tittmp>>.jpg"></center>'
+	killvar 'tittmp'
+	'You have an odd dream where you are looking at your naked chest in a mirror and your breasts seem larger...'
+	'As the dream starts to drift away, you find yourself gazing at the reflection of your breasts and think:'
+	act 'Nice, I wish my breasts really would grow.':
+		magf2bdo = 1
+		magtarcup += 1
+		killvar 'mgf2bnocnt'
+		gt 'pre_sleep_events', 'end'
+	end
+	act 'Eh, I don''t like them like that.': magf2bdo = 0 & mgf2bnocnt += 1 & gs 'pre_sleep_events', 'end'
+end
+
+
+if $ARGS[0] = 'nichServentSleepEvents':
+	!! the 100 events return back to sleep!
+	gt 'nichBedroomServant', 'sleepEvents', 100
+end
+
+if $ARGS[0] = 'nichServentSleepEvents2':
+	gs 'pre_sleep_events', 'exit'
+	gt 'nichBedroomServant', 'sleepEvents', 1000
+end
+
+
+--- pre_sleep_events ---------------------------------

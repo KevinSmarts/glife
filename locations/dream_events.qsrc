@@ -1,95 +1,306 @@
-# dreams
-
+# dream_events
+$sleep_loc = 'dream_events'
 menu_off = 1
 
-if $ARGS[0] = 'start':
-	if stepdadqw = 3:
-		'<center><img <<$set_imgh>> src="images/characters/pavlovsk/resident/vladimir/sex/bath_voyer_1.jpg"></center>'
-		'You had a very strange dream: You were blindfolded while having sex with a stranger. When you were done, you removed the blindfold to see your stepfather grinning at you.'
-		pcs_horny = 100
-		stepdadqw += 1
-	elseif canBraidHair = 0 and mid($start_type,1,2) ! 'sg' and pcs_hairlng > 80:
-		canBraidHair = 1
-		'<center><img <<$set_imgh>> src="images/characters/pavlovsk/resident/anya/braid.jpg"></center>'
-		'You dream about the time your sister taught you how to braid your hair. It was one of the more memorable sister bonding moments the two of you had not long before you moved out.'
-	elseif succubusQW = 1 or succubusQW = 2:
-		!this is for initial dream and a reoccuring dream if the feeling was ignored
-		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/sex/succubdream.jpg"></center>'
-		if succubusQW = 1:
-			'You dream of sex with multiple partners, absorbing energy from each of them.'
-		else
-			'You have the same dream of absorbing energy from multiple partners.'
+!! Dream events trigger after deciding to go to sleep, but before any time has advanced.
+!! Note that dreams are supposed to stick on the screen during the sleep cycle. So only use xgt and gs!!
+!!
+!! Moved here from pre_sleep
+!! When done: Move to sleep
+
+	!!=====================================!!
+	!!                                     !!
+	!!          Event handlers             !!
+	!!                                     !!
+	!!=====================================!!
+
+
+if $ARGS[0] = 'start' or $ARGS[0] = '':
+	menu_off = 1
+	killvar '$sleep_events'
+	killvar '$sleep_events_priority'
+
+	if sleepVars['dreams_active'] = 1:
+		sleepVars['events_done'] = 0
+
+		if stepdadQW = 3:
+			$sleep_events_priority[] = 'gs ''dream_events'', ''stepdad_dream'' '
 		end
-		succubusQW = 2
-		pcs_horny = 100
-	elseif rand(1,100) > Enable_nodream:
-		!nodream chance cheat
-		if hypnoTime > rand(0,3):
-			haveHypnoDream = 1
-		else
-		haveHypnoDream = 0
+		if canBraidHair = 0 and mid($start_type, 1, 2) ! 'sg' and pcs_hairlng > 80:
+			$sleep_events_priority[] = 'gs ''dream_events'', ''braid_hair_dream'' '
 		end
-		if pcs_horny > 50:
-			!erotic dream
-			if pcs_vag = 0 and stat['think_virgin'] = 1 and pcs_ass = 0 and stat['anal'] = 0 and stat['bj'] = 0 and stat['hj'] = 0 and stat['cuni'] = 0 and girl = 0 and guy = 0:
-				!dreams only for virgin
-				ivrand = rand(1,5)
-			elseif haveHypnoDream = 1:
+		if succubusQW = 1 or succubusQW = 2:
+			!this is for initial dream and a reoccuring dream if the feeling was ignored
+			$sleep_events_priority[] = 'gs ''dream_events'', ''succubus_dream'' '
+		end
+
+		if rand(1, 100) <= sleepVars['cheat_nodream_chance']:
+			!nodream chance cheat
+			$sleep_events[] = 'gs ''dream_events'', ''no_dream'' '
+		else
+			if pcs_horny <= 50:
+				$sleep_events[] = 'gs ''dream_events'', ''d_dream_switch'' '
+			elseif rand(0, 3) < hypnoTime:
 				!dreams for hypnotized girls
-				gs 'dreams', 'hypno_dreams'
-			elseif succubusflag = 1:
-				ivsuctmp = 6 + succublvl
-				ivrand = rand(1,ivsuctmp)
+				$sleep_events[] = 'gs ''dream_events'', ''hypno_dream_switch'' '
 			else
-				ivrand = rand(1,6)
+				!erotic dream
+				$sleep_events[] = 'gs ''dream_events'', ''erotic_dream_switch'' '
 			end
-			if haveHypnoDream = 0:
-				if ivrand = 1:
-					gs 'dreams','d_dreams'
-				elseif ivrand = 2:
-					gs 'dreams','ero_dreams'
-				elseif ivrand = 3:
-					gs 'dreams','sex_dreams'
-				elseif ivrand = 4:
-					gs 'dreams','bj_dreams'
-				elseif ivrand = 5:
-					gs 'dreams','anal_dreams'
-				elseif ivrand = 6:
-					gs 'dreams','gang_dreams'
-				elseif ivrand >= 7 and ivrand <= ivsuctmp:
-					gs 'dreams','succub_dreams'
-				end
-			end
-		else
-			gs 'dreams','d_dreams'
 		end
+
+		gt 'dream_events', 'mod_events'
+	end
+
+	xgt 'dream_events', 'continue'
+end
+
+if $ARGS[0] = 'mod_events':
+	!! This location is here to allow mods to hook into the system.
+	!! Either check for: if $sleep_loc = 'dream_events' and $ARGS[0] = 'mod_events'
+	!!
+	!! You can add events as: $sleep_events[] = 'gs ''mod_loc'' ''mod_args0'' '
+	!! A random event will be chosen from amongst the added ones.
+	!! If an event MUST trigger (due to quest timing), add it tp $sleep_events_priority[] = 'gs ''mod_loc'' ''mod_args0'' '
+	!!
+	!! If the event does not break the sleep cycle (merely interupts it) it needs to end with gs 'dream_events', 'event_end'
+	!! If the event removed Sveta from her location (aka her sleep is cut short and/or she leaves her bed), you must call gs 'dream_events', 'exit'
+	!!
+	!! This is to cleanup all necessary variables.
+	!!
+	!! DO NOT DIRECTLY GOTO/GOSUB OUTOF THIS LOCATION. ALWAYS ADD IT TO THE QUEUEs!!!!
+	!! IT WILL ALMOST CERTIANLY END BADLY WHEN MORE THAN 1 MOD IS INVOLVED.
+
+	gt 'dream_events', 'event_handler'
+end
+
+
+if $ARGS[0] = 'event_handler':
+	if sleepVars['events_done'] < 1:
+		if arrsize('$sleep_events_priority') > 0:
+			xgt 'dream_events', 'event_handler2', 'priority'
+		elseif arrsize('$sleep_events') > 0:
+			xgt 'dream_events', 'event_handler2'
+		end
+	end
+
+	xgt 'dream_events', 'continue'
+end
+
+if $ARGS[0] = 'event_handler2':
+	sleepVars['events_done'] += 1
+
+	if $ARGS[1] = 'priority':
+		temp_slev_id = rand(0, arrsize('$sleep_events_priority')-1)
+		$temp_sleep_event_chosen = $sleep_events_priority[temp_slev_id]
+		killvar '$sleep_events_priority', temp_slev_id
 	else
-		if $start_type[1] = 'tg':
-			temp = rand(1,10)
-			if temp = 1:
-				'You have hazy dreams about your past.'
-			elseif temp = 2:
-				'You dream about the moon looking at the world with his one bloody eye.'
-			elseif temp = 3:
-				'You dream that you are a man again.'
-			else
-				'You sleep without dreaming.'
-			end
+		temp_slev_id = rand(0, arrsize('$sleep_events')-1)
+		$temp_sleep_event_chosen = $sleep_events[temp_slev_id]
+		killvar '$sleep_events', temp_slev_id
+	end
+
+	killvar 'temp_slev_id'
+	dynamic $temp_sleep_event_chosen
+end
+
+
+if $ARGS[0] = 'event_end':
+	killvar '$temp_sleep_event_chosen'
+
+!!	if arrsize('$sleep_events_priority') > 0:
+!!		gt 'bed_events', 'event_handler2', 'priority'
+!!	end
+
+	xgt 'dream_events', 'event_handler'
+end
+
+
+if $ARGS[0] = 'exit':
+	sleepVars['events_done'] = 0
+	killvar '$sleep_loc'
+	killvar '$sleep_events'
+	killvar '$sleep_events_priority'
+	killvar 'temp_slev_id'
+	killvar '$temp_sleep_event_chosen'
+end
+
+if $ARGS[0] = 'continue':
+	sleepVars['events_done'] = 0
+	killvar '$sleep_loc'
+	killvar '$sleep_events'
+	killvar '$sleep_events_priority'
+	killvar 'temp_slev_id'
+	killvar '$temp_sleep_event_chosen'
+
+	xgt 'sleep', 'start'
+end
+
+
+
+
+	!!=====================================!!
+	!!                                     !!
+	!!              Events                 !!
+	!!                                     !!
+	!!=====================================!!
+
+
+if $ARGS[0] = 'stepdad_dream':
+	'<center><img <<$set_imgh>> src="images/characters/pavlovsk/resident/vladimir/sex/bath_voyer_1.jpg"></center>'
+	'You had a very strange dream: You were blindfolded while having sex with a stranger. When you were done, you removed the blindfold to see your stepfather grinning at you.'
+	pcs_horny = 100
+	stepdadQW += 1
+	gs 'dream_events', 'event_end'
+end
+
+if $ARGS[0] = 'braid_hair_dream':
+	canBraidHair = 1
+	'<center><img <<$set_imgh>> src="images/characters/pavlovsk/resident/anya/braid.jpg"></center>'
+	'You dream about the time your sister taught you how to braid your hair. It was one of the more memorable sister bonding moments the two of you had not long before you moved out.'
+	gs 'dream_events', 'event_end'
+end
+
+if $ARGS[0] = 'succubus_dream':
+	'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/sex/succubdream.jpg"></center>'
+	if succubusQW = 1:
+		'You dream of sex with multiple partners, absorbing energy from each of them.'
+	else
+		'You have the same dream of absorbing energy from multiple partners.'
+	end
+	succubusQW = 2
+	pcs_horny = 100
+	gs 'dream_events', 'event_end'
+end
+
+
+if $ARGS[0] = 'no_dream':
+	if $start_type[1] = 'tg':
+		temp = rand(1,10)
+		if temp = 1:
+			'You have hazy dreams about your past.'
+		elseif temp = 2:
+			'You dream about the moon looking at the world with his one bloody eye.'
+		elseif temp = 3:
+			'You dream that you are a man again.'
 		else
 			'You sleep without dreaming.'
-		end   
+		end
+	else
+		'You sleep without dreaming.'
 	end
-	exit
+	gs 'dream_events', 'event_end'
+end
+
+
+
+!!----------------------------Erotic Dreams----------------------------------------------------------------!!
+
+if $ARGS[0] = 'erotic_dream_switch':
+	if pcs_horny <= 50:
+		gs 'dream_events', 'd_dream_switch'
+
+	elseif rand(0, 3) < hypnoTime:
+		!dreams for hypnotized girls
+		gs 'dream_events', 'hypno_dream_switch'
+
+	else
+		!erotic dream
+		if pcs_vag = 0 and stat['think_virgin'] = 1 and pcs_ass = 0 and stat['anal'] = 0 and stat['bj'] = 0 and stat['hj'] = 0 and stat['cuni'] = 0 and girl = 0 and guy = 0:
+			!dreams only for virgin
+			ivrand = rand(1, 5)
+
+		else
+			ivrand = rand(1, 6 + succublvl)
+		end
+
+		if ivrand = 1:
+			gs 'dream_events', 'd_dream_switch'
+		elseif ivrand = 2:
+			gs 'dream_events', 'ero_dreams'
+		elseif ivrand = 3:
+			gs 'dream_events', 'sex_dreams'
+		elseif ivrand = 4:
+			gs 'dream_events', 'bj_dreams'
+		elseif ivrand = 5:
+			gs 'dream_events', 'anal_dreams'
+		elseif ivrand = 6:
+			gs 'dream_events', 'gang_dreams'
+		else
+			gs 'dream_events', 'succub_dreams'
+		end
+
+		killvar 'ivrand'
+	end
+	gs 'dream_events', 'event_end'
+end
+
+
+if $ARGS[0] = 'd_dream_switch':
+	!! Roll between 1 and 12 if ClownQW = 0 and between 1 and 13 if clownQW = 1.
+	if clownQW = 1:
+		gs 'dream_events', 'd_dreams', rand(1, 13)
+	else
+		gs 'dream_events', 'd_dreams', rand(1, 12)
+	end
+	gs 'dream_events', 'event_end'
+end
+
+if $ARGS[0] = 'hypno_dream_switch':
+	if therapistFuckedPussyStage < 1:
+		gs 'dream_events', 'hypno_dreams', rand(1, 2)
+	else
+		gs 'dream_events', 'hypno_dreams', rand(1, 7)
+	end
+	gs 'dream_events', 'event_end'
+end
+
+if $ARGS[0] = 'd_dreams':
+	!random dreams about nothing
+	if ARGS[1] = 1:
+		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/dream1.jpg"></center>'
+		'You dream about an old town, standing on the opposite shores of high falls. Between its steeples fly strange creatures.'
+	elseif ARGS[1] = 2:
+		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/dream2.jpg"></center>'
+		'You dream about a tower, standing on frozen rocks, covered in snow and ice.'
+	elseif ARGS[1] = 3:
+		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/dream3.jpg"></center>'
+		'You dream about an ice mountain, on top of which stands a strange building, almost like a monastery.'
+	elseif ARGS[1] = 4:
+		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/dream4.jpg"></center>'
+		'You dream about an unknown girl, running in the pouring rain on a dark and narrow street.'
+	elseif ARGS[1] = 5:
+		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/dream5.jpg"></center>'
+		'You dream about your smiling mother standing in a room full of old things from the past. Strange. What could it mean?'
+	elseif ARGS[1] = 6:
+		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/dream6.jpg"></center>'
+		'You dream about a rider, standing by the lake, surrounded by high and steep mountains.'
+	elseif ARGS[1] = 7:
+		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/dream7.jpg"></center>'
+		'You dream about a scary man with charred skin, holding a strange creature on a chain, ready to fight a white haired middle-aged guy with a sword in his hand. It''s probably time to stop watching TV before bed...'
+	elseif ARGS[1] = 8:
+		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/dream8.jpg"></center>'
+		'You dream about the white-haired guy again, but he''s noticeably aged and has a thick beard. Next to him stands a beautiful white haired girl. Maybe it''s his daughter?'
+	elseif ARGS[1] = 9:
+		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/dream9.jpg"></center>'
+		'You dream about standing in a street among other people, looking at a nuclear explosion. It''s really scary!'
+	elseif ARGS[1] = 10:
+		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/dream10.jpg"></center>'
+		'You dream about a futuristic looking street littered with garbage.'
+	elseif ARGS[1] = 11:
+		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/dream11.jpg"></center>'
+		'You dream about a beautiful and majestic cathedral on the banks of the river.'
+	elseif ARGS[1] = 12:
+		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/dream12.jpg"></center>'
+		'You dream about being at a lake in the winter watching a dark figure. He''s standing in a pavilion in the middle of the lake, the pale light of the moon giving the scene an eerie aura.'
+	else
+		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/dream13.jpg"></center>'
+		'You had a nightmare about a scary clown that tries to lure you into the sewers.'
+	end
 end
 
 if $ARGS[0] = 'hypno_dreams':
-	if therapistFuckedPussyStage < 1:
-		ivrand = rand(1,2)
-	else
-		ivrand = rand(1,7)
-	end
-	
-	if ivrand = 1:
+	if ARGS[1] = 1:
 		'<center><video autoplay loop src="images/locations/pavlovsk/clinic/therapist/sex/schoolSitBlow2.mp4"></video></center>'
 		'You dream that you''re sucking someone''s cock.'
 		if guy = 0:
@@ -97,7 +308,7 @@ if $ARGS[0] = 'hypno_dreams':
 		else
 			'It almost feel real, like you''re actually sucking cock, and it feels good! However, you can''t will yourself to look up and see whose dick you''re sucking.'
 		end
-	elseif ivrand = 2:
+	elseif ARGS[1] = 2:
 		'<center><video autoplay loop src="images/locations/pavlovsk/clinic/therapist/sex/throatFuck1.mp4"></video></center>'
 		'You dream that your throat is being fucked hard and deep. It hurts and you can''t breathe, but you just sit still and allow yourself to be used. The man''s balls rythmically slap against your face as he buries his cock into your throat.'
 		if guy = 0:
@@ -105,7 +316,7 @@ if $ARGS[0] = 'hypno_dreams':
 		else
 			'It almost feels real, like you actually have a huge cock down your throat! Your throat hurts, but for some reason you feel like you''re on the edge of an orgasm. You can''t tell who''s fucking you though.'
 		end
-	elseif ivrand = 3:
+	elseif ARGS[1] = 3:
 		'<center><video autoplay loop src="images/locations/pavlovsk/clinic/therapist/sex/hypnoAnalPiledriver1.mp4"></video></center>'
 		'You dream that you''re being fucked hard in your ass. Your legs are pulled up over your head and you''re desperately stimulating your clit.'
 		if guy = 0:
@@ -113,7 +324,7 @@ if $ARGS[0] = 'hypno_dreams':
 		else
 			'It almost feels real, like you''re actually getting your ass rammed full of cock. It feels great, but you can''t tell who''s fucking you.'
 		end
-	elseif ivrand = 4:
+	elseif ARGS[1] = 4:
 		'<center><video autoplay loop src="images/locations/pavlovsk/clinic/therapist/sex/hypnoRide4.mp4"></video></center>'
 		
 		if dreamedOfTherapistFucking = 2:
@@ -126,7 +337,7 @@ if $ARGS[0] = 'hypno_dreams':
 				'It almost feels real, like you''re actually riding someone''s huge cock! You can''t will yourself to turn and look at who you''re riding though.'
 			end
 		end
-	elseif ivrand = 5:
+	elseif ARGS[1] = 5:
 		'<center><video autoplay loop src="images/locations/pavlovsk/clinic/therapist/sex/hypnoFuckCouchKneel1.mp4"></video></center>'
 		if dreamedOfTherapistFucking = 2:
 			'You dream that you''re being fucked hard from behind by your therapist.'
@@ -139,7 +350,7 @@ if $ARGS[0] = 'hypno_dreams':
 				'It almost feels real, like you''re actually getting your pussy rammed full of cock and it feels great! You can''t tell who''s fucking you and you can''t will yourself to look behind you.'
 			end
 		end
-	elseif ivrand = 6:
+	elseif ARGS[1] = 6:
 		'<center><video autoplay loop src="images/locations/pavlovsk/clinic/therapist/sex/schoolDoggy3.mp4"></video></center>'
 		if dreamedOfTherapistFucking = 2:
 			'You dream that you are being fucked hard from behind by your therapist as your hands are being held behind your back.'
@@ -152,12 +363,12 @@ if $ARGS[0] = 'hypno_dreams':
 				'It almost feels real, like your actually getting your pussy rammed full of cock and it feels great! You can''t tell who''s fucking you and you can''t will yourself to look behind you.'
 			end
 		end
-	elseif ivrand = 7:
+	else
 		'<center><video autoplay loop src="images/locations/pavlovsk/clinic/therapist/sex/schoolFuckCouchBack1.mp4"></video></center>'
-		if dreamedOfTherapistFucking <= 0:dreamedOfTherapistFucking = 1
 		if dreamedOfTherapistFucking = 2:
 			'You dream that you''re being fucked hard in the pussy by your therapist. You spread your legs as wide as you can so his cock can go as deep as possible. It feels amazing.'
 		else
+			if dreamedOfTherapistFucking <= 0: dreamedOfTherapistFucking = 1
 			'You dream that you''re being fucked hard in the pussy. You''re spreading and holding your legs as wide as possible so their cock goes as deep as possible.'
 			if guy = 0:
 				'You''ve never had sex before, but it feels amazing! You try to focus and realize... your therapist is fucking you?'
@@ -166,7 +377,9 @@ if $ARGS[0] = 'hypno_dreams':
 			end
 		end
 	end
-	''
+
+	*nl
+
 	if guy = 0:
 		'You wake up feeling strange and excited. Even though you''ve never had sex, the dream felt very real.'
 	elseif pcs_vag > 0 and stat['vaginal'] = 0:
@@ -181,55 +394,6 @@ if $ARGS[0] = 'hypno_dreams':
 	end
 end
 
-if $ARGS[0] = 'd_dreams':
-	!random dreams about nothing
-	if ClownQW = 1:
-		ivrand = rand(1,13)
-	else
-		ivrand = rand(1,12)
-	end
-	if ivrand = 1:
-		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/dream1.jpg"></center>'
-		'You dream about an old town, standing on the opposite shores of high falls. Between its steeples fly strange creatures.'
-	elseif ivrand = 2:
-		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/dream2.jpg"></center>'
-		'You dream about a tower, standing on frozen rocks, covered in snow and ice.'
-	elseif ivrand = 3:
-		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/dream3.jpg"></center>'
-		'You dream about an ice mountain, on top of which stands a strange building, almost like a monastery.'
-	elseif ivrand = 4:
-		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/dream4.jpg"></center>'
-		'You dream about an unknown girl, running in the pouring rain on a dark and narrow street.'
-	elseif ivrand = 5:
-		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/dream5.jpg"></center>'
-		'You dream about your smiling mother standing in a room full of old things from the past. Strange. What could it mean?'
-	elseif ivrand = 6:
-		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/dream6.jpg"></center>'
-		'You dream about a rider, standing by the lake, surrounded by high and steep mountains.'
-	elseif ivrand = 7:
-		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/dream7.jpg"></center>'
-		'You dream about a scary man with charred skin, holding a strange creature on a chain, ready to fight a white haired middle-aged guy with a sword in his hand. It''s probably time to stop watching TV before bed...'
-	elseif ivrand = 8:
-		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/dream8.jpg"></center>'
-		'You dream about the white-haired guy again, but he''s noticeably aged and has a thick beard. Next to him stands a beautiful white haired girl. Maybe it''s his daughter?'
-	elseif ivrand = 9:
-		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/dream9.jpg"></center>'
-		'You dream about standing in a street among other people, looking at a nuclear explosion. It''s really scary!'
-	elseif ivrand = 10:
-		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/dream10.jpg"></center>'
-		'You dream about a futuristic looking street littered with garbage.'
-	elseif ivrand = 11:
-		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/dream11.jpg"></center>'
-		'You dream about a beautiful and majestic cathedral on the banks of the river.'
-	elseif ivrand = 12:
-		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/dream12.jpg"></center>'
-		'You dream about being at a lake in the winter watching a dark figure. He''s standing in a pavilion in the middle of the lake, the pale light of the moon giving the scene an eerie aura.'
-	elseif ivrand = 13:
-		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/dream13.jpg"></center>'
-		'You had a nightmare about a scary clown that tries to lure you into the sewers.'
-	end
-	exit
-end
 
 if $ARGS[0] = 'sex_dreams':
 	!only vaginal sex
@@ -251,6 +415,8 @@ if $ARGS[0] = 'sex_dreams':
 		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/sex/sex5.jpg"></center>'
 		'You dream that you''re sitting on top of a guy, bouncing up and down on his cock.'
 	end
+	killvar 'ivrand'
+
 	if stat['think_virgin'] = 1:
 		'You wake up feeling strange and excited. Even though you''ve never had sex, the dream felt very real.'
 	elseif pcs_vag > 0 and stat['vaginal'] = 0:
@@ -258,19 +424,18 @@ if $ARGS[0] = 'sex_dreams':
 	else
 		'It seems your <<$vaginatipe>> pussy urgently needs some attention.'
 	end
-	exit
 end
 
 if $ARGS[0] = 'anal_dreams':
 	!only anal sex
-	ivrand = rand(1,2)
-	if ivrand = 1:
+	if rand(0, 1) = 0:
 		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/sex/anal1.jpg"></center>'
 		'You dream that you''re bent over as a man rhythmically pumps your ass with his cock while you caress your clit.'
-	elseif ivrand = 2:
+	else
 		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/sex/anal2.jpg"></center>'
 		'You dream that you''re laying on your side as a guy fucks your ass. You moan loudly from the sensation.'
 	end
+	
 	if stat['anal'] = 0 and pcs_ass = 0:
 		'You wake up feeling strange and excited. Even though you''ve never had anal sex, the dream felt very real.'
 	elseif stat['anal'] = 0:
@@ -278,30 +443,28 @@ if $ARGS[0] = 'anal_dreams':
 	else
 		'It seems your <<$anustipe>> anus urgently needs some attention.'
 	end
-	exit
 end
 
 if $ARGS[0] = 'bj_dreams':
 	!only Blowjob
-	ivrand = rand(1,2)
-	if ivrand = 1:
+	if rand(0, 1) = 0:
 		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/sex/bj1.jpg"></center>'
 		'You dream about sucking a guy''s dick during sunset near the ocean.'
-	elseif ivrand = 2:
+	else
 		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/sex/bj2.jpg"></center>'
 		'You have a dream where you''re tied to a staircase, squatting down with your legs wide open sucking and savouring the dick of a guy dressed in an expensive looking suit.'
 	end
+
 	if stat['bj'] = 0:
 		'You''ve never given anyone a blowjob before, but the feeling of the dick in your mouth felt very real. The dream has excited you a little.'
 	else
 		'It seems you subconsciously want to suck a dick...'
 	end
-	exit
 end
 
 if $ARGS[0] = 'ero_dreams':
 	!only erotica
-	ivrand = rand(1,5)
+	ivrand = rand(1, 5)
 	if ivrand = 1:
 		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/ero1.jpg"></center>'
 		'You dream that you''re at a school where all the girls are required to attend lessons naked.'
@@ -318,45 +481,50 @@ if $ARGS[0] = 'ero_dreams':
 		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/sex/ero5.jpg"></center>'
 		'You dream that you''re naked while making out with a stranger.'
 	end
-	exit
+	killvar 'ivrand'
 end
 
 if $ARGS[0] = 'gang_dreams':
 	!only Gangbang
-	ivrand = rand(1,2)
-	if ivrand = 1:
+	if rand(0, 1) = 0:
 		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/sex/gang1.jpg"></center>'
 		'You dream about two men fucking you. You''re lying between them sucking one of them while the other is fucking your ass.'
-	elseif ivrand = 2:
+	else
 		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/sex/gang2.jpg"></center>'
 		'You dream that you''re in-between two hot guys as one fucks your pussy and the other fucks your ass. Both of them fuck you with force, causing you to moan loudly with pleasure.'
 	end
-	if stat['think_virgin'] = 1 and pcs_ass = 0 and stat['anal'] = 0 and stat['bj'] = 0 and stat['hj'] = 0 and gang = 0 and guy = 0 and girl = 0:
-		'You haven''t even had normal sex, least of all a threesome. Even though you''re excited, the dream still scared you a little.'
-	elseif stat['vaginal'] > 0 and pcs_ass = 0 and stat['anal'] = 0 and stat['bj'] = 0 and stat['hj'] = 0 and gang = 0:
-		'Even though you''ve had sex, the thought of a gangbang, even in a dream, is a little alarming.'
-	elseif pcs_vag = 0 and stat['vaginal'] = 0 and pcs_ass > 0 and gang = 0 and guy > 0 and girl = 0:
-		'Even though you''re technically still a virgin, the thought of a gangbang, even in a dream, is a little alarming.'
-	elseif pcs_ass = 0 and stat['anal'] = 0 and gang = 0 and guy > 0 and girl = 0:
-		'It seems that, in your dreams, one guy at a time is not enough...'
-	elseif gang > 0 and guy > 0 and girl = 0:
-		'It seems that your experience with swinging with a few guys was not in vain and your subconscious is actively reminding you about it.'
-	elseif gang > 0 and guy = 0 and girl > 0:
-		'It seems that your experience with swinging with several girls was not in vain and your subconscious is actively reminding you about it.'
-	elseif gang > 0 and guy > 0 and girl > 0:
-		'It seems that your experience with swinging was not in vain and your subconscious is actively reminding you about it.'
+
+	if gang = 0:
+		if stat['think_virgin'] = 1 and pcs_ass = 0 and stat['anal'] = 0 and stat['bj'] = 0 and stat['hj'] = 0 and guy = 0 and girl = 0:
+			'You haven''t even had normal sex, least of all a threesome. Even though you''re excited, the dream still scared you a little.'
+		elseif stat['vaginal'] > 0 and pcs_ass = 0 and stat['anal'] = 0 and stat['bj'] = 0 and stat['hj'] = 0:
+			'Even though you''ve had sex, the thought of a gangbang, even in a dream, is a little alarming.'
+		elseif pcs_vag = 0 and stat['vaginal'] = 0 and pcs_ass > 0 and guy > 0 and girl = 0:
+			'Even though you''re technically still a virgin, the thought of a gangbang, even in a dream, is a little alarming.'
+		elseif pcs_ass = 0 and stat['anal'] = 0 and guy > 0 and girl = 0:
+			'It seems that, in your dreams, one guy at a time is not enough...'
+		else
+			'The dream felt very real and left you feeling a little excited.'
+		end
 	else
-		'The dream felt very real and left you feeling a little excited.'
+		if guy > 0 and girl = 0:
+			'It seems that your experience with swinging with a few guys was not in vain and your subconscious is actively reminding you about it.'
+		elseif guy = 0 and girl > 0:
+			'It seems that your experience with swinging with several girls was not in vain and your subconscious is actively reminding you about it.'
+		elseif guy > 0 and girl > 0:
+			'It seems that your experience with swinging was not in vain and your subconscious is actively reminding you about it.'
+		else
+			'The dream felt very real and left you feeling a little excited.'
+		end
 	end
-	exit
 end
 
 if $ARGS[0] = 'succub_dreams':
 !!Succubus dreams
 	if sucpcinfo < 4:
-		ivrand = rand(1,5)
+		ivrand = rand(1, 5)
 	else
-		ivrand = rand (2,5)
+		ivrand = rand (2, 5)
 	end
 
 	if ivrand = 1:
@@ -367,12 +535,10 @@ if $ARGS[0] = 'succub_dreams':
 		else
 			'and that you have become something inhuman!'
 		end
-	end
-	if ivrand = 2:
+	elseif ivrand = 2:
 		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/sucrandream2.jpg"></center>'
 		'You dream that you were victorious over Toby and the entire Order of Dawn.'
-	end
-	if ivrand = 3:
+	elseif ivrand = 3:
 		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/sucrandream3.jpg"></center>'
 		if succublvl < 3:
 			$sucselftmp = 'a personification of <<$sucself1>> in your core'
@@ -381,13 +547,11 @@ if $ARGS[0] = 'succub_dreams':
 		end
 		'You dream that you''re arguing with <<$sucselftmp>>.'
 		'You don''t know what it''s about, but you think you won...'
-	end
-	if ivrand = 4:
+	elseif ivrand = 4:
 		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/sucrandream4.jpg"></center>'
 		'You dream that you''re walking through a crowded convention hall filled with people in costumes.'
 		'You don''t know why you''re here until you see <i>her</i>, then you just <b>know</b>. You''re here for <b>reproduction</b>!'
-	end
-	if ivrand = 5:
+	else
 		'<center><img <<$set_imgh>> src="images/shared/home/bedroom/dream/sucrandream5.jpg"></center>'
 		'You dream about an encounter with another succubus on <i>your</i> territory!'
 		if succhungry < (0 - 1 - succublvl):
@@ -396,8 +560,10 @@ if $ARGS[0] = 'succub_dreams':
 			'You can''t allow that!'
 		end
 	end
-	exit
+	killvar 'ivrand'
 end
 
---- dreams ---------------------------------
 
+
+
+--- dream_events ---------------------------------

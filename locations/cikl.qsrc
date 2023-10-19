@@ -118,6 +118,12 @@ if casting = 1:
 	acting_string2 = rand(10000000,199999999)
 end
 
+!! terminate tour gide job when its off season
+if emp_job_status[1] = 1 and month < 6 and month > 8:
+	if work = 1: work = 0
+	emp_job_status[1]  = 4
+end
+
 dynamic $hypnoDaychange
 
 !!phone reset for bf
@@ -356,31 +362,8 @@ if pcs_tan > 0: pcs_tan -= 1
 if prezikmsg = 2: prezikmsg = 3
 
 
-gs 'fertility', 'birth_control'
+gs 'fertility', 'daily_update'
 
-
-if tabletkiday < daystart - 5:
-	birth_control['using_bc'] = 0
-end
-
-if birth_control['think_safe'] = 1:
-	stat['forgot_bc_pill'] = 0
-elseif pilldaychk < daystart - 1 and pilldaychk > daystart - 5 and pillcon2 > 0:
-!!	stat['forgot_birth_control_pill'] = 1
-	stat['forget_bc_count'] += 1
-end
-
-
-stat['safe_day'] = 0
-stat['probably_safe_day'] = 0
-stat['dangerous_day'] = 0
-if cycle > 3:
-	stat['safe_day'] = 1
-elseif cycle = 0 or cycle = 3:
-	stat['probably_safe_day'] = 1
-else
-	stat['dangerous_day'] = 1
-end
 
 !!------------------------------------------------------------------------------------------------------------
 
@@ -660,6 +643,11 @@ gs 'nerd_game_night', 'cikl'
 
 !!Keeping Christina hating Sveta
 gs 'Zvereva_events', 'cikl'
+
+!!Albina hates gopniks while at school
+if SchoolAtestat = 0 and grupTipe = 4 and AlbinaQW['Friends'] ! 2:
+	gs 'npc_relationship', 'set', 'A23', '20'
+end
 
 !!if Vitek''s ex he never forgives her
 if kotovLoveQW = -1:
@@ -1017,6 +1005,8 @@ gs 'uni_lessons', 'cikl'
 
 !!resetting moisturizer so it can be used in the morning regardless
 moisturiser_time = totminut
+!!same with chaffing cream
+mosal_time = totminut
 
 !!resetting last_pee to counteract time cheat
 !!also, the first thing you do in the morning is visiting your porcelain friend, no?
@@ -1304,6 +1294,71 @@ end
 
 !!------------- Advance will counter  ------------------------------------------
 if will_counter >= 20: will_counter -= 20 & willpowermax += 1
+
+
+!!-----------------webcam follower loss due to inactivity ------------------------------------------
+if camwhore = 1:
+	if cam_daystart < daystart:
+		if regviewReset < 3:
+			! Calculate follower loss More followers = more loss
+			if regview >= 500:
+				FollowersLost = rand(regview / 100, regview / 50)
+			else
+				FollowersLost = rand(1, 3)
+			end
+			cam_daystart = daystart + 4
+		else
+			if regview >= 300:
+				FollowersLost = rand(regview / 80, regview / 40)
+			else
+				FollowersLost = rand(2, 6)
+			end
+			cam_daystart = daystart + 2
+		end
+		! Increment the reset counter for follower loss
+		regviewReset += 1
+		FollowersLost = func('shortgs', 'clamp', FollowersLost, 0, regview)
+		totFollowersLost += FollowersLost
+		regview -= FollowersLost
+		killvar 'FollowersLost'
+	end
+end
+
+
+!!---------------Keeping track of missing court appearances-----------------------------
+if arrsize('policeQW_courthearing_dates') > 0 and daystart > policeQW_courthearing_dates[0]:
+	policeQW['missed_court_dates'] += 1
+	policeQW['tot_court_dates_missed'] += 1
+	
+	!! Might need code to throw a message with 'You''ve missed your court hearing or something'
+
+	policeQW_courtletter_dates[] = daystart + rand(3, 6)
+	$policeQW_courtletter_subjects[] = 'missed_court_<<$policeQW_courthearing_subjects[0]>>'
+
+	killvar 'policeQW_courthearing_dates', 0
+	killvar 'policeQW_courthearing_subjects', 0
+end
+
+if policeQW['fine_deadline'] > 0:
+	if daystart > policeQW['fine_deadline'] - 8:
+		policeQW_courtletter_dates[] = daystart
+		$policeQW_courtletter_subjects[] = 'fine'
+
+	elseif daystart > policeQW['fine_deadline']:
+		policeQW['missed_fine_deadlines'] += 1
+		policeQW['tot_fines_deadlines_missed'] += 1
+
+		!! Might need code to throw a message with 'you''ve failed to pay your fine on time.'
+
+		policeQW_courtletter_dates[] = daystart + rand(3, 6)
+		$policeQW_courtletter_subjects[] = 'missed_fine'
+	end
+end
+
+
+gs 'shortgs', 'coupled_array_sort', 'policeQW_courtletter_dates', '$policeQW_courtletter_subjects'
+gs 'shortgs', 'coupled_array_sort', 'policeQW_courthearing_dates', '$policeQW_courthearing_subjects'
+
 
 --- cikl ---------------------------------
 

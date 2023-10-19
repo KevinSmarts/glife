@@ -1,5 +1,19 @@
 # shortgs
 
+!! make an autosave unless it is disabled
+if $ARGS[0] = 'autosave':
+	if disable_autosave = 0:
+		if mid($start_type, 1, 4) = 'city':
+			savegame 'autosave_city.sav'
+		elseif mid($start_type, 1, 3) = 'uni':
+			savegame 'autosave_uni.sav'
+		else
+			savegame 'autosave_sg.sav'
+		end
+	end
+end
+
+
 !! following function counts the number of guys which PC slept with.
 !! use func('shortgs','guy') or func('shortgs','guy',X) for subset (X can be 'A','B','C','AB','AC','BC')
 if $ARGS[0] = 'guy':
@@ -895,7 +909,7 @@ end
 !! example: func('shortgs' 'roll', 'unlucky' 0, 100, 5)
 if $ARGS[0] = 'roll':
 	temp_roll = rand(ARGS[2], ARGS[3])
-	i = 1
+	shortgs_i = 1
 	:roll
 		temp_rand = rand(ARGS[2], ARGS[3])
 		if $ARGS[1] = 'lucky' and temp_rand > temp_roll:
@@ -903,8 +917,8 @@ if $ARGS[0] = 'roll':
 		elseif $ARGS[1] = 'unlucky' and temp_rand < temp_roll:
 			temp_roll = temp_rand
 		end
-		i += 1
-	if i < ARGS[4]: jump 'roll'
+		shortgs_i += 1
+	if shortgs_i < ARGS[4]: jump 'roll'
 	result = temp_roll
 	killvar 'temp_roll'
 	killvar 'temp_rand'
@@ -918,5 +932,154 @@ end
 if $ARGS[0] = 'clamp':
 	result = min(max(ARGS[1], ARGS[2]), ARGS[3])
 end
+
+!! sets a stat or attribute level to a number
+!! use: gs 'shortgs', 'setStat', 'stat', number
+!! example:  gs 'shortgs', 'setStat', 'stren', 70
+!! example:  gs 'shortgs', 'setStat', 'inhib', 10
+if $ARGS[0] = 'setStat':
+	temp_input = func('shortgs', 'clamp', ARGS[2], 0, 100)
+	if temp_input > 1:
+		temp_xpnxt = (func('_difficulty','getexpadj') * (temp_input - 1) * (temp_input - 1) / 180) + 1
+	end
+	!! magik is based on `orgasm` variable thus the need for `_adj`
+	if $ARGS[1] = 'magik':
+		dynamic "<<$ARGS[1]>>_lvl = temp_input
+		<<$ARGS[1]>>_adj = temp_xpnxt - orgasm
+		<<$ARGS[1]>>_exp = orgasm + <<$ARGS[1]>>_adj
+		<<$ARGS[1]>>_mem = <<$ARGS[1]>>_exp
+		<<$ARGS[1]>>_lvlst = <<$ARGS[1]>>_lvl
+		<<$ARGS[1]>>_flr = <<$ARGS[1]>>_lvl / 5"
+	!! inhib needs its `_flr` set at `_lvl` and not `_lvl / 5`
+	elseif $ARGS[1] = 'inhib':
+		dynamic "<<$ARGS[1]>>_lvl = temp_input
+		<<$ARGS[1]>>_exp = temp_xpnxt
+		<<$ARGS[1]>>_mem = temp_xpnxt
+		<<$ARGS[1]>>_lvlst = <<$ARGS[1]>>_lvl
+		<<$ARGS[1]>>_flr = <<$ARGS[1]>>_lvl"
+	!! `stren` and `stren_plus` changes should also update strenbuf
+	elseif $ARGS[1] = 'stren' or $ARGS[1] = 'stren_plus':
+		dynamic "<<$ARGS[1]>>_lvl = temp_input
+		<<$ARGS[1]>>_exp = temp_xpnxt
+		<<$ARGS[1]>>_mem = temp_xpnxt
+		<<$ARGS[1]>>_lvlst = <<$ARGS[1]>>_lvl
+		<<$ARGS[1]>>_flr = <<$ARGS[1]>>_lvl"
+		strenbuf = stren_lvl + stren_plus_lvl
+		gs 'body', 'UpdateBodyImage'
+	else
+		dynamic "<<$ARGS[1]>>_lvl = temp_input
+		<<$ARGS[1]>>_exp = temp_xpnxt
+		<<$ARGS[1]>>_mem = temp_xpnxt
+		<<$ARGS[1]>>_lvlst = <<$ARGS[1]>>_lvl
+		<<$ARGS[1]>>_flr = <<$ARGS[1]>>_lvl / 5"
+	end
+	killvar 'temp_input' & killvar 'temp_xpnxt'
+end
+
+!! Recursively computes a simple exponent - https://en.wikipedia.org/wiki/Exponentiation_by_squaring
+!! use: func('shortgs', 's_pow', var, exp)
+!! returns var ^ exp
+!! exp must be an integer >= 0
+!! example: func('shortgs', 's_pow', 2, 3)
+if $ARGS[0] = 's_pow':
+	if(ARGS[2] > 10) : msg('Warning: s_pow operations with large exponents may cause integer overflows. <<ARGS[1]>> ^ <<ARGS[2]>>')
+	
+	if(ARGS[2]) < 0:
+		!! n ^(-m) = 0
+		msg('Error: s_pow cannot accept negative exponents! <<ARGS[1]>> ^ <<ARGS[2]>>')
+	elseif ARGS[2] = 0:
+		result = 1
+	elseif ARGS[2] = 1:
+		result = ARGS[1]
+	elseif (ARGS[2] mod 2) = 0:
+		result = func('shortgs', 's_pow', ARGS[1] * ARGS[1], ARGS[2] / 2)
+	elseif (ARGS[2] mod 2) ! 0:
+		result = ARGS[1] * func('shortgs', 's_pow', ARGS[1] * ARGS[1], (ARGS[2] - 1) / 2)
+	end
+end
+
+
+!! Improved exponent calculation based on - https://en.wikipedia.org/wiki/Exponentiation_by_squaring
+!! use: func('shortgs', 's_pow2', var, exp)
+!! returns var ^exp
+!! if exp < 0, returns 0
+!! example: func('shortgs', 's_pow2', 2, 3) -> 8
+if $ARGS[0] = 's_pow2':
+	if ARGS[2] = 0:
+		result = 1
+	elseif ARGS[2] < 0:
+		result = 0
+
+	elseif ARGS[2] = 1:
+		result = ARGS[1]
+	elseif ARGS[2] = 2:
+		result = ARGS[1] * ARGS[1]
+	elseif ARGS[2] = 3:
+		result = ARGS[1] * ARGS[1] * ARGS[1]
+
+	elseif (ARGS[2] mod 2) = 0:
+		result = func('shortgs', 's_pow2', ARGS[1] * ARGS[1], ARGS[2] / 2)
+	else
+		result = ARGS[1] * func('shortgs', 's_pow2', ARGS[1] * ARGS[1], ARGS[2] / 4)
+	end
+end
+
+
+!! Takes multiple arrays and sorts them based on the first one.
+!! Sorts the key_array (which must only have value entries) in ascending order.
+!! gs 'shortgs', 'coupled_array_sort'. 'key_array', 'array1', 'array2', 'array3', ...
+!!
+!! String arrays must start with a $ otherwise the numeric values will be copied instead.
+!!
+!! examples:
+!!		example 1: we want to sort a single array with values called values_array
+!!				gs 'shortgs', 'coupled_array_sort', 'values_array'
+!!		example 2: we have an array filled with days (called trigger_days), and a coupled array filled with npc_codes (called $trigger_npc_codes)
+!!				gs 'shortgs', 'coupled_array_sort', 'trigger_days', '$trigger_npc_codes'
+
+if $ARGS[0] = 'coupled_array_sort':
+	:shortgs_coupled_array_sort_loop_start
+	if arrsize($ARGS[1]) > 0:
+		shortgs_temp_pos = arrpos($ARGS[1], min($ARGS[1]))
+
+		shortgs_args_index = 1
+		:shortgs_casl_inner_start
+		if $ARGS[shortgs_args_index] ! '':
+			if arrsize($ARGS[shortgs_args_index]) > 0:
+				if mid($ARGS[shortgs_args_index], 1, 1) = '$':
+					dynamic '$shortgs_temp_array<<shortgs_args_index>>[] = <<$ARGS[shortgs_args_index]>>[shortgs_temp_pos]'
+				else
+					dynamic 'shortgs_temp_array<<shortgs_args_index>>[] = <<$ARGS[shortgs_args_index]>>[shortgs_temp_pos]'
+				end
+				killvar $ARGS[shortgs_args_index], shortgs_temp_pos
+
+				shortgs_args_index += 1
+				jump 'shortgs_casl_inner_start'
+			end
+		end
+		jump 'shortgs_coupled_array_sort_loop_start'
+	end
+
+	shortgs_max_args_index = shortgs_args_index
+
+	shortgs_args_index = 1
+	:shortgs_casl_outer_start
+	if shortgs_args_index < shortgs_max_args_index:
+		dynamic 'copyarr(''<<$ARGS[shortgs_args_index]>>'', ''shortgs_temp_array<<shortgs_args_index>>'')'
+		dynamic 'killvar ''shortgs_temp_array<<shortgs_args_index>>'' '
+		
+		shortgs_args_index += 1
+		jump 'shortgs_casl_outer_start'
+	end
+	
+	killvar 'shortgs_casl_inner_start'
+	killvar 'shortgs_args_index'
+	killvar 'shortgs_coupled_array_sort_loop_start'
+	killvar 'shortgs_casl_outer_start'
+	killvar 'shortgs_max_args_index'
+	killvar 'shortgs_temp_pos'
+end
+
+
 --- shortgs ---------------------------------
 
