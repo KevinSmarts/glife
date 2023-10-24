@@ -202,6 +202,11 @@ if $ARGS[0] = 'set_access':
 	killvar 'propcode' & killvar 'orig_status_code' & killvar 'new_status_code' & killvar 'nokill'
 end
 
+!! Call: dyneval($is_homeless)
+$is_homeless = { 
+	result = ($home['current'] = 'homeless')
+}
+
 !! Call: `func('homes_properties', 'can_live_here', $ARGS[1])`
 !! Return -1 if the location/property is a place where Sveta can live, whether he owns or rents the place, 
 !! she is just allowed to live there: university dorm, parents home, the Meynold Household, etc.
@@ -674,6 +679,11 @@ if $ARGS[0] = 'clean_up_property_data':
 	killvar 'property_sales_price' & killvar 'property_renovation_value' & killvar 'property__is_current_home'
 end
 
+!! If there are no properties that can be used as home, Sveta is homeless. 
+if $ARGS[0] = 'set_homeless':
+	$home['current'] = 'homeless'
+end
+
 !!---------------------------------------------------------
 !!  Give and block access to properties - use these if the 
 !!  property is not bought or rented.
@@ -704,10 +714,12 @@ end
 if $ARGS[0] = 'block_access':
 	$blockcode = iif($ARGS[1] = '', $home_name[$loc], $ARGS[1])
 	gs 'homes_properties', 'set_access', $blockcode, 0
-	if accessible_property['accessible_home_count'] = 1 and $home['current'] = '': 
+	if accessible_property['accessible_home_count'] = 1 and ($home['current'] = '' or dyneval($is_homeless)): 
 		gs 'homes_properties', 'get_accessible_properties', 'home'
 		if accessible_property['<<$property_code>>-is-home'] = 1: gs 'homes_properties', 'set_home', $property_code
 		gs 'homes_properties', 'clean_up_property_data'
+	elseif accessible_property['accessible_home_count'] < 1:
+		gs 'homes_properies', 'set_homeless'
 	end
 	killvar 'blockcode'
 end
@@ -1027,13 +1039,21 @@ end
 !! Call: `gs 'homes_properties', 'go_home'
 !! Takes Sveta to the location where her home can be found
 if $ARGS[0] = 'go_home':
-	gt $home['location'], $home['location_arg']
+	if dyneval($is_homeless) or $home['region'] ! $region:
+		dynamic($train_station[$region])
+	else
+		gt $home['location'], $home['location_arg']
+	end
 end
 
 !! Call: `gs 'homes_properties', 'go_straight_home'
 !! Takes Sveta to the entrance of her home
 if $ARGS[0] = 'go_straight_home':
-	gt $home['entrance'], $home['entrance_arg']
+	if dyneval($is_homeless) or $home['region'] ! $region:
+		dynamic($train_station[$region])
+	else
+		gt $home['entrance'], $home['entrance_arg']
+	end
 end
 
 !! Call: `gs 'homes_properties', 'go_bathroom_home'
