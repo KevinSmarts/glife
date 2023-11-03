@@ -5,14 +5,14 @@ if $ARGS[0] = 'shoppping_aisle':
     $curr_aisle = $ARGS[1]
 	gs 'item_stock_db', $ARGS[1]
 	gs 'item_cart', 'header'
-	'<center><table border=5 cellspacing = 0 cellpadding = 5><TR><<$Headerstring>></TR><TR>'
+	*p '<center><table border=5 cellspacing=0 cellpadding=5 bgcolor='+$bcolor+'><TR><<$Headerstring>></TR><TR>'
 
-	gs 'themes', 'clothing', 1
 	i = 1
 	:loopshopping_cart
 		!! if item is uninitialized (has blank name) - skip it
 		if $item_curr_aisle['<<i>>'] = '': i += 1 & jump 'loopshopping_cart'
-		$item_line = '<TR bgcolor='+$bgcolor+'>'
+		$temp_bcolor = func('themes', 'alt_color', $temp_bcolor)
+		$item_line = '<TR bgcolor='+$temp_bcolor+'>'
 !!		uncomment if you want items with events to be marked with a * peepoShrug
 !!		if $event_curr_aisle['<<i>>'] ! '':
 !!			$item_line += '<TD align="left"><<$item_curr_aisle[''<<i>>'']>> *</TD>'
@@ -44,16 +44,17 @@ if $ARGS[0] = 'shoppping_aisle':
 		else
 			$item_line += '<TD></TD>'
 		end
+		$item_line += '</TR>'
 		*p $item_line
 		i += 1
 	if i <= item_idx:jump 'loopshopping_cart'
 	'</table></center>'
+	killvar '$temp_bcolor'
 	gs 'item_cart', 'cart_total'
 end
 
 if $ARGS[0] = 'header':
-	gs 'themes', 'clothing', 1
-	$Headerstring = '<TH bgcolor='+$bgcolor+'>Item</TH><TH bgcolor='+$bgcolor+'>You own</TH><TH bgcolor='+$bgcolor+'>Units/pack</TH><TH bgcolor='+$bgcolor+'>Cost in <b>₽</b></TH><TH bgcolor='+$bgcolor+'>Remove 10</TH><TH bgcolor='+$bgcolor+'>Remove 1 pack</TH><TH bgcolor='+$bgcolor+'>In cart</TH><TH bgcolor='+$bgcolor+'>Add one pack</TH><TH bgcolor='+$bgcolor+'>Add 10</TH>'
+	$Headerstring = '<TH>Item</TH><TH>You own</TH><TH>Units/pack</TH><TH>Cost in <b>₽</b></TH><TH>Remove 10</TH><TH>Remove 1 pack</TH><TH>In cart</TH><TH>Add one pack</TH><TH>Add 10</TH>'
 end
 
 if $ARGS[0] = 'remove':
@@ -88,27 +89,29 @@ if $ARGS[0] = 'simple_add':
 end
 
 if $ARGS[0] = 'cart_total':
-	'<center><table><TD bgcolor='+$bgcolor+'><b>Total cost of items in cart: <<cart_tally>>₽</b></TD></table></center>'
-	'<center><table><TR><border=30>'
-	if cart_tally > karta + bankDebtLimit and cart_tally > money:
-		$item_line[2] = '<TD>You cannot afford this</TD><TD></TD>'
-	elseif cart_tally = 0:
-		$item_line[2] = '<TD></TD><TD></TD>'
-	else
-		if cart_tally <= money:
-			$item_line[2] = '<TD bgcolor='+$bgcolor+'><a href="exec:gt ''item_cart'', ''cash'', <<i>>">Buy (cash)</a></TD>'
+	'<center><table border=5 cellspacing=0 cellpadding=5 bgcolor='+$bcolor+'><TD>&nbsp;<b>Total cost of items in cart: <<cart_tally>>₽</b>&nbsp;</TD></table></center>'
+
+	*p '<center><table border=5 cellspacing=0 cellpadding=5 bgcolor='+$bcolor+'><TR>'
+	$item_line[2] = ''
+	if cart_tally > 0:
+		if cart_tally > karta + bankDebtLimit and cart_tally > money:
+			$item_line[2] = '<TD>&nbsp;You cannot afford this&nbsp;</TD>'
 		else
-			$item_line[2] = '<TD bgcolor='+$bgcolor+'>Not enough cash</TD>'
-		end
-		if cart_tally <= karta + bankDebtLimit:
-			$item_line[2] += '<TD bgcolor='+$bgcolor+'><a href="exec:gt ''item_cart'', ''card'', <<i>>">Buy (card)</a></TD>'
-		else
-			$item_line[2] += '<TD bgcolor='+$bgcolor+'>Not enough on card</TD>'
+			if cart_tally <= money:
+				$item_line[2] = '<TD>&nbsp;<a href="exec:gt ''item_cart'', ''cash'', <<i>>">Buy (cash)</a>&nbsp;</TD>'
+			else
+				$item_line[2] = '<TD>&nbsp;Not enough cash&nbsp;</TD>'
+			end
+			if cart_tally <= karta + bankDebtLimit:
+				$item_line[2] += '<TD>&nbsp;<a href="exec:gt ''item_cart'', ''card'', <<i>>">Buy (card)</a>&nbsp;</TD>'
+			else
+				$item_line[2] += '<TD>&nbsp;Not enough on card&nbsp;</TD>'
+			end
 		end
 	end
-	$item_line[2] += '<TD bgcolor='+$bgcolor+'><a href="exec:gt ''item_cart'', ''cancel'', <<i>>">cancel</a></TD>'
-	$item_line[2]
-	'</table></center>'
+	$item_line[2] += '<TD>&nbsp;<a href="exec:gt ''item_cart'', ''cancel''">cancel</a>&nbsp;</TD>'
+	$item_line[2] += '</TR></table></center>'
+	*p $item_line[2]
 end
 !!{
 if $ARGS[0] = 'shoppping_cart':
