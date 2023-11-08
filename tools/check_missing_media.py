@@ -1,5 +1,6 @@
 import os
 import re
+from collections import defaultdict
 
 # made by Awesome
 
@@ -25,7 +26,7 @@ if os.path.basename(image_directory.rstrip('/')).lower() == 'images':
     image_directory = os.path.dirname(image_directory.rstrip('/'))
 
 # Define keywords to exclude from media paths
-keywords_to_exclude = ['$pcs_haircol', '<<FUNC', '<<$phonetheme_name[pcs_phonetheme]>>', '<<$ARGS', '+iif']
+keywords_to_exclude = ['$pcs_haircol', 'pharma_picrand', 'mitkapicrand', '<<sex_ev[', '$epayments', '<<npc_apt_number', 'lover_picture[lover_number]', '<<lover_picrand[$boy]>>', '$_color', '<<masseuse', 'dress_', 'FUNC(', 'pants_', '<<pirs', '<<$phonetheme_name[pcs_phonetheme]>>', '$ARGS', '+iif', '<<BDSMmeet>>', 'kamasutra_page', '<<$']
 
 # Create a list to store missing media (images and videos)
 missing_media = []
@@ -139,6 +140,17 @@ for file in os.listdir(qsrc_dir):
                 if any(keyword in media_reference for keyword in keywords_to_exclude):
                     continue
 
+                # Special rules
+                media_reference = media_reference.replace("lover_picrand", 'rand(1, 30)')
+                media_reference = media_reference.replace("modelfoto[''debut_image'']+1", 'rand(1, 9)')
+                media_reference = media_reference.replace("modelfoto[''debut_image'']+2", 'rand(1, 9)')
+                media_reference = media_reference.replace("modelfoto[''debut_image'']", 'rand(1, 9)')
+                media_reference = media_reference.replace("zz_stage", 'rand(0, 7)')
+                media_reference = media_reference.replace("VKWoods", 'rand(0, 8)')
+                media_reference = media_reference.replace("metrorand['rand']", 'rand(1, 2)')
+                media_reference = media_reference.replace("picpRand", 'rand(1, 20)')
+                media_reference = media_reference.replace("Doublerand", 'rand(14, 15)')
+
                 # Find the variable assignment that is closest to (but above) the media reference
                 relevant_variables = max(((k, v) for k, v in variables.items() if k[0] == qsrc_file and k[1] < line_number), key=lambda item: item[0][1], default=({}, {}))[1]
 
@@ -172,14 +184,26 @@ for file in os.listdir(qsrc_dir):
 # Specify the path to the "missing_media.txt" output file
 missing_media_file = os.path.join(text_path, "missing_media.txt")
 
-# Write the list of missing media with full media paths to the "missing_media.txt" file
+# Convert the list to a set to remove duplicates, then convert it back to a list
+missing_media = [i for n, i in enumerate(missing_media) if i not in missing_media[n + 1:]]
+
+# Create a dictionary to store the file name, media path and line numbers
+missing_media_dict = defaultdict(list)
+
+for qsrc_file, media_path, line_number in missing_media:
+    # Use the file name and media path as the key, and append the line number to the list of values
+    missing_media_dict[(qsrc_file, media_path)].append(line_number)
+
+# Write the dictionary to the "missing_media.txt" file
 with open(missing_media_file, "w", encoding="utf-8") as file:
-    for qsrc_file, media_path, line_number in missing_media:
-        file.write(f"From file: {qsrc_file}, line: {line_number}\n")  # Write the .qsrc filename and line number
+    for (qsrc_file, media_path), line_numbers in missing_media_dict.items():
+        # Join the line numbers with commas
+        line_numbers_str = ", ".join(map(str, line_numbers))
+        file.write(f"From file: {qsrc_file}, lines: {line_numbers_str}\n")  # Write the .qsrc filename and line numbers
         file.write(f"{media_path}\n\n")  # Write the full media path and start a new line
-    file.write(f"\nTotal missing media files: {len(missing_media)}\n")  # Write the count of missing media files at the end of the file
+    file.write(f"\nTotal missing media files: {len(missing_media_dict)}\n")  # Write the count of missing media files at the end of the file
     file.write(f"this amazing script was made by Awesome (with help from chatGPT)\n")  # Bragging
 
-print(f"{len(missing_media)} Missing media files have been saved to 'missing_media.txt'.")
+print(f"{len(missing_media_dict)} Missing media files have been saved to 'missing_media.txt'.")
 pause = input("Press Enter to exit.")
 
