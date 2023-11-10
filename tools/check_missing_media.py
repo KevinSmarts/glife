@@ -7,11 +7,12 @@ from collections import defaultdict
 # Get the main directory path where the tools folder is located
 main_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 qsrc_dir = os.path.join(main_dir, "locations")
-# Set the text_path to the main directory
 text_path = main_dir
 
-# Get the game directory from the user
+
 image_directory = input('Enter the game directory: ')
+
+custom_keywords = input('Enter custom keywords to exclude (separated by comma), or press Enter to skip: ')
 
 # Ensure image_directory ends with a '/'
 if not image_directory.endswith('/'):
@@ -26,7 +27,20 @@ if os.path.basename(image_directory.rstrip('/')).lower() == 'images':
     image_directory = os.path.dirname(image_directory.rstrip('/'))
 
 # Define keywords to exclude from media paths
-keywords_to_exclude = ['$pcs_haircol', 'pharma_picrand', 'mitkapicrand', '<<sex_ev[', '$epayments', '<<npc_apt_number', 'lover_picture[lover_number]', '<<lover_picrand[$boy]>>', '$_color', '<<masseuse', 'dress_', 'FUNC(', 'pants_', '<<pirs', '<<$phonetheme_name[pcs_phonetheme]>>', '$ARGS', '+iif', '<<BDSMmeet>>', 'kamasutra_page', '<<$']
+keywords_to_exclude = ['$pcs_haircol', 'FUNC(', '<<pirs', '$ARGS', '+iif']
+
+if custom_keywords:
+    custom_keywords = custom_keywords.split(',')
+    keywords_to_exclude += [keyword.strip() for keyword in custom_keywords]
+
+ignore_file = os.path.join(main_dir, 'ignoremedialinks.txt')
+ignore_paths = []
+
+# Check if the ignore file exists
+if os.path.exists(ignore_file):
+    with open(ignore_file, 'r') as f:
+        ignore_paths = [line.strip() for line in f]
+
 
 # Create a list to store missing media (images and videos)
 missing_media = []
@@ -71,16 +85,17 @@ def evaluate_and_replace_random(expression):
 
     return media_paths
 
-
-# Function to evaluate and replace variables within a string
+#
 def evaluate_and_replace_variables(expression, variables):
-    variable_matches = re.findall(r'<<(\$?[a-zA-Z_][a-zAZ0-9_]*)>>', expression)
-    for variable_name in variable_matches:
-        if variable_name.startswith("$"):
-            variable_value = variables.get(variable_name[1:], None)
-        else:
-            variable_value = variables.get(variable_name, None)
-            # Check if the variable value is a 'rand' function
+    variable_matches = re.findall(r'\'\s*\+\s*(\$?[a-zA-Z_][a-zA-Z0-9_]*)\s*\+\s*\'|<<(\$?[a-zA-Z_][a-zA-Z0-9_]*)>>', expression)
+    for variable_match in variable_matches:
+        for variable_name in variable_match:
+            variable_value = None  # Initialize variable_value to None
+            if variable_name:  # Check if the group actually matched something
+                if variable_name.startswith("$"):
+                    variable_value = variables.get(variable_name[1:], None)
+                else:
+                    variable_value = variables.get(variable_name, None)
             if isinstance(variable_value, str) and 'rand(' in variable_value:
                 # Evaluate the 'rand' function
                 variable_value = evaluate_and_replace_random(variable_value)[0]
@@ -105,7 +120,7 @@ for file in os.listdir(qsrc_dir):
         rand_variables = {}
 
         # Define a regular expression pattern to find 'rand' variable assignments
-        rand_assignment_pattern = r'<<(\$?[a-zA-Z_][a-zAZ0-9_]*)>>\s*=\s*(rand\(\d+,\s*\d+\))'
+        rand_assignment_pattern = r'(\$?[a-zA-Z_][a-zA-Z0-9_]*)\s*=\s*(rand\(\d+,\s*\d+\))'
 
         # Iterate through the script content to find and store 'rand' variable assignments
         for line_number, line in enumerate(script_content, start=1):
@@ -145,8 +160,7 @@ for file in os.listdir(qsrc_dir):
                 media_reference = media_reference.replace("modelfoto[''debut_image'']+1", 'rand(1, 9)')
                 media_reference = media_reference.replace("modelfoto[''debut_image'']+2", 'rand(1, 9)')
                 media_reference = media_reference.replace("modelfoto[''debut_image'']", 'rand(1, 9)')
-                media_reference = media_reference.replace("zz_stage", 'rand(0, 7)')
-                media_reference = media_reference.replace("VKWoods", 'rand(0, 8)')
+                media_reference = media_reference.replace("VKWoods", 'rand(1, 8)')
                 media_reference = media_reference.replace("metrorand['rand']", 'rand(1, 2)')
                 media_reference = media_reference.replace("picpRand", 'rand(1, 20)')
                 media_reference = media_reference.replace("Doublerand", 'rand(14, 15)')
@@ -170,7 +184,7 @@ for file in os.listdir(qsrc_dir):
                 media_paths = evaluate_and_replace_random(media_reference)
 
                 for path in media_paths:
-                    if any(keyword in path for keyword in keywords_to_exclude):
+                    if any(keyword in path for keyword in keywords_to_exclude) or path in ignore_paths:
                         continue
                     absolute_path = os.path.join(image_directory, path)
 
@@ -180,6 +194,7 @@ for file in os.listdir(qsrc_dir):
 
                     elif not os.path.exists(absolute_path):
                         missing_media.append((os.path.basename(qsrc_file), path, line_number))
+
 
 # Specify the path to the "missing_media.txt" output file
 missing_media_file = os.path.join(text_path, "missing_media.txt")
