@@ -187,7 +187,7 @@ if $ARGS[0] = 'before_together2':
 				cla & *clr
 				'<center><video autoplay loop src="images/shared/sex/shower/fun3.mp4"></video></center>'
 				'"We don''t have a condom," you gasp, turning to face him as he continues fingering your clit anyways. You grab his cock in return.'
-				if npc_selfish[$boy] = 1 or npc_no_condoms[$boy] = 1:
+				if npc_selfish[$boy] = 1 or npc_no_condoms[$boy] > 0:
 					'"We don''t need one," he whispers.'
 					act'We really do':
 						cla & *nl
@@ -296,7 +296,7 @@ if $ARGS[0] = 'before_shower_fuck1':
 	cla & *clr
 	'<center><video autoplay loop src="images/shared/sex/shower/leg_up1.mp4"></video></center>'
 	'You put your foot against the wall to stabilize as <<$npc_firstname[$boy]>> fucks you, hot water still streaming down your bodies. It interferes with the lubrication of your pussy if you''re being honest, but it''s so hot right now that you can''t bring yourself to care.'
-	if rand(1,10) > 1:
+	if rand(1,20) > 1:
 		*nl
 		'After what seems like an eternity of pleasure, <<$npc_firstname[$boy]>> moans into your ear.'
 		gs'sex_ev_shower', 'before_shower_cum_ask'
@@ -398,7 +398,7 @@ if $ARGS[0] = 'before_shower_creampie_surprise':
 			$orgasm_or = 'yes'
 			gs'arousal', 'vaginal',1, 'no_orgasm_msg', $sex_ev['prostitution_flag']
 		end
-		sex_ev['creampie_orgasm'] += 1
+		sex_ev['creampie_orgasm_count'] += 1
 		cla & *clr
 		'<center><video autoplay loop src="images/shared/sex/shower/creampie1.mp4"></video></center>'
 		'You gasp in surprise, feeling <<$npc_firstname[$boy]>> pulse inside you. You were already close yourself and his orgasm sends you over the edge. He holds you tight and you clench on to him with all your might, both of you riding out your orgasms completely intertwined.'
@@ -640,6 +640,7 @@ if $ARGS[0] = 'after_towel_skip2':
 end
 
 if $ARGS[0] = 'after_shower_join':
+	cla & *clr
 	sex_ev['join_shower'] = 1
 	sex_ev['boy_shower'] = 1
 	'<center><video autoplay loop src="images/shared/sex/shower/join2.mp4"></video></center>'
@@ -877,7 +878,7 @@ if $ARGS[0] = 'after_shower_sex1':
 	'<center><video autoplay loop src="images/shared/sex/shower/leg_up2.mp4"></video></center>'
 	'Water streams down your bodies as <<$npc_firstname[$boy]>> presses you up against the wall right underneath the showerhead, fucking you vigorously. Your erotic moans echo off the tile, someone reinforcing the idea that there''s nothing else in the world besides you, this shower, and <<$npc_firstname[$boy]>>''s cock inside you.'
 !	if sex_ev['condom'] > 0:
-		if rand(1,10) > 1:
+		if rand(1,20) > 1:
 			*nl
 			'After what seems like an eternity of pleasure, <<$npc_firstname[$boy]>> grunts into your ear.'
 			gs'sex_ev_shower', 'after_shower_cum_ask'
@@ -898,10 +899,15 @@ if $ARGS[0] = 'after_shower_cum_ask':
 	'"<<$pcs_nickname>>-! I''m almost there!"'
 	if sex_ev['orgasm'] < orgasm:
 		'"Me too-!" you gasp.'
-		act'Come together':gt'sex_ev_shower', 'after_shower_creampie'
+		act'Come together':
+			if sex_ev['creampie_allowance'] < 1 or sex_ev['no_condom'] < 1 or npc_condom_conscious[$boy] > 0:
+				gt'sex_ev_shower', 'after_shower_fun4'
+			else
+				gt'sex_ev_shower', 'after_shower_creampie'
+			end
+		end
 	else
 		'"Mmmm-!" you hum back.'
-		act'Let him come inside you':gt'sex_ev_shower', 'after_shower_creampie'
 	end
 	act'Jerk him off':gt'sex_ev_shower', 'after_shower_fuck_jerkoff'
 		
@@ -909,10 +915,16 @@ if $ARGS[0] = 'after_shower_cum_ask':
 
 		act'Not inside!':sex_ev['not_inside'] = 1 & gt'sex_ev_shower', 'after_shower_fuck_jerkoff'
 !!	end
+	if sex_ev['creampie_allowance'] < 1 or sex_ev['no_condom'] < 1 or npc_condom_conscious[$boy] > 0:
+		cla
+		act'Continue':gt'sex_ev_shower', 'after_shower_fuck_jerkoff'
+	else
+		act'Let him come inside you':gt'sex_ev_shower', 'after_shower_creampie'
+	end
 end
 
 if $ARGS[0] = 'after_shower_creampie_surprise':
-	if sex_ev['condom'] > 0:
+	if sex_ev['condom'] > 0 or sex_ev['creampie_allowance'] = 0 or sex_ev['promise_no_creampie'] = 0:
 		act'Asshole!':
 			cla & *clr
 			'<center><video autoplay loop src="images/shared/sex/shower/creampie1.mp4"></video></center>'
@@ -983,7 +995,7 @@ if $ARGS[0] = 'after_shower_creampie_surprise':
 			$orgasm_or = 'yes'
 			gs'arousal', 'vaginal',1, 'no_orgasm_msg', $sex_ev['prostitution_flag']
 		end
-		sex_ev['creampie_orgasm'] += 1
+		sex_ev['creampie_orgasm_count'] += 1
 		cla & *clr
 		'<center><video autoplay loop src="images/shared/sex/shower/creampie1.mp4"></video></center>'
 		'You gasp in surprise, feeling <<$npc_firstname[$boy]>> pulse inside you. You were already close yourself and his orgasm sends you over the edge. He holds you tight and you clench on to him with all your might, both of you riding out your orgasms completely intertwined.'
@@ -1097,10 +1109,18 @@ if $ARGS[0] = 'after_shower_fuck_jerkoff':
 		*nl
 		'"Not inside!" you yelp.'
 	end
-	if sex_ev['orgasm'] < orgasm:
-		'You barely manage to slip <<$npc_firstname[$boy]>> from your pussy and grab his cock with your hand before he explodes, managing to get you off at the same time. You both come together and euphoria washes over you as his cum -somehow still warm to your skin despite the heat of the shower- spatters across your stomach.'
+	if sex_ev['creampie_allowance'] < 1 or sex_ev['no_condom'] < 1 or npc_condom_conscious[$boy] > 0:
+		if sex_ev['orgasm'] < orgasm:
+			'<<$npc_firstname[$boy]>> slips from your pussy and you barely manage to grab hold of his cock before he explodes. At the same time, he jams his fingers into your pussy and fingerblasts you, sending orgasmic convulsions rocking through your body. Euphoria washes over you as you and he come together and his fat load -somehow still warm to your skin despite the heat of the shower- spatters across your belly.'
+		else
+			'<<$npc_firstname[$boy]>> slips from your pussy and you barely manage to grab hold of his cock before he explodes, spraying a fat load of cum all over your belly.'
+		end
 	else
-		'You barely manage to slip <<$npc_firstname[$boy]>> from your pussy and grab his cock with your hand before he explodes. A sense of euphoria washes over you as his cum -somehow still warm to your skin despite the heat of the shower- spatters across your stomach.'
+		if sex_ev['orgasm'] < orgasm:
+			'You barely manage to slip <<$npc_firstname[$boy]>> from your pussy and grab his cock with your hand before he explodes, managing to get you off at the same time. You both come together and euphoria washes over you as his cum -somehow still warm to your skin despite the heat of the shower- spatters across your stomach.'
+		else
+			'You barely manage to slip <<$npc_firstname[$boy]>> from your pussy and grab his cock with your hand before he explodes. A sense of euphoria washes over you as his cum -somehow still warm to your skin despite the heat of the shower- spatters across your stomach.'
+		end
 	end
 	act'Recover':gt'sex_ev_shower', 'after_shower_fuck_jerkoff_end'
 end
@@ -1337,6 +1357,7 @@ end
 
 if $ARGS[0] = 'morning_together1':
 	sex_ev['npc_morning_shower'] = 0
+	sex_ev['morning_shower'] = 1
 	sex_ev['boy_in_shower'] = 0
 	sex_ev['morning_shower_together'] = 1
 	gs'arousal', 'massage',5, 'no_orgasm_msg', $sex_ev['prostitution_flag']
@@ -1561,7 +1582,7 @@ if $ARGS[0] = 'morning_shower_fuck2':
 	'<center><video autoplay loop src="images/shared/sex/shower/doggy<<rand(1,3)>>.mp4"></video></center>'
 	'<<$npc_firstname[$boy]>> slams his cock into you from behind, sending shock waves of pleasure rippling through your body. Your erotic moans echo off the tile in time with the wet slap of skin on skin.'
 !	if sex_ev['condom'] > 0:
-		if rand(1,10) > 1:
+		if rand(1,20) > 1:
 			*nl
 			'After what seems like an eternity of pleasure, <<$npc_firstname[$boy]>> grunts.'
 			gs'sex_ev_shower', 'morning_shower_cum_ask'
@@ -1672,7 +1693,7 @@ if $ARGS[0] = 'morning_shower_creampie_surprise':
 			$orgasm_or = 'yes'
 			gs'arousal', 'vaginal',1, 'no_orgasm_msg', $sex_ev['prostitution_flag']
 		end
-		sex_ev['creampie_orgasm'] += 1
+		sex_ev['creampie_orgasm_count'] += 1
 		cla & *clr
 		'<center><video autoplay loop src="images/shared/sex/shower/creampie1.mp4"></video></center>'
 		'You gasp in surprise, feeling <<$npc_firstname[$boy]>> pulse inside you. You were already close yourself and his orgasm sends you over the edge. He holds you tight and you clench on to him with all your might, both of you riding out your orgasms completely intertwined.'
@@ -1816,6 +1837,7 @@ if $ARGS[0] = 'morning_shower_fuck_jerkoff_end':
 end
 
 if $ARGS[0] = 'morning_shower_together_end':
+	sex_ev['boy_in_shower'] = 0
 	noshampoo = 1
 	dynamic $showerdin
 	act'Finish up':
@@ -1829,6 +1851,7 @@ end
 if $ARGS[0] = 'morning_sex_end':
 	sex_ev['npc_morning_shower'] = 2
 	sex_ev['boy_shower'] = 1
+	sex_ev['boy_in_shower'] = 0
 	gs 'sex_ev_shower', 'morning_shower_together_end'
 	if sex_ev['morning_fuck'] = 0:
 		if sex_ev['morning_shower_cum'] = 1:
