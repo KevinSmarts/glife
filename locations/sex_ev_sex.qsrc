@@ -181,11 +181,7 @@ end
 if $ARGS[0] = 'he_choose_position':
 	if $sex_ev['position'] = 'kuni' or $sex_ev['position'] = 'blowjob':sex_ev['must_fuck'] = 1
 	*nl
-	if $npc_lovername[$boy] = '':
-		'"Do whatever you want to me babe," you smile.'
-	else
-		'"Do whatever you want to me <<$npc_lovername[$boy]>>," you smile.'
-	end
+	'"Do whatever you want to me <<$npc_lovername[$boy]>>," you smile.'
 	
 !!	
 	if stat['think_virgin'] = 1 and sex_ev['fuck_count'] = 0:
@@ -504,9 +500,13 @@ end
 
 if $ARGS[0] = 'position_change':
 	sex_ev['bored'] = 0
-	if $sex_ev['position'] ! 'miss': gs 'sex_ev_miss', 'missionary_start'
-	if $sex_ev['position'] ! 'doggy': gs 'sex_ev_doggy', 'doggy_start'
-	if $sex_ev['position'] ! 'cowgirl': gs 'sex_ev_cowgirl', 'cowgirl_start'
+	sex_ev['change_pos'] = 1
+	!!if $sex_ev['position'] ! 'miss': gs 'sex_ev_miss', 'missionary_start'
+	!!if $sex_ev['position'] ! 'doggy': gs 'sex_ev_doggy', 'doggy_start'
+	!!if $sex_ev['position'] ! 'cowgirl': gs 'sex_ev_cowgirl', 'cowgirl_start'
+	gs 'sex_ev_miss', 'missionary_start'
+	gs 'sex_ev_doggy', 'doggy_start'
+	gs 'sex_ev_cowgirl', 'cowgirl_start'
 	act'Switch to blowjob':
 		cla
 		sex_ev['blowjob_switch'] = 1
@@ -708,14 +708,28 @@ if $ARGS[0] = 'dirty_talk1':
 		gs 'sex_ev_sex', 'dirty_talk2'
 	end
 	
-	act'... about his fucking':
+	act'... about his technique':
 		$sex_ev['dirty_talk'] = 'technique'
 		gs 'sex_ev_sex', 'dirty_talk2'
 	end
-	
-	act'... because you''re a dirty girl':
-		$sex_ev['dirty_talk'] = 'dirty_girl'
-		gs 'sex_ev_sex', 'dirty_talk2'
+
+	if stat['no_sex_swearing'] = 0:
+		act'... because you''re a dirty girl':
+			$sex_ev['dirty_talk'] = 'dirty_girl'
+			gs 'sex_ev_sex', 'dirty_talk2'
+		end
+		
+		act'Turn off swearing (currently on)':
+			cla
+			stat['no_sex_swearing'] = 1
+			gs 'sex_ev_sex', 'dirty_talk1'
+		end
+	else
+		act'Turn on swearing (currently off)':
+			cla
+			stat['no_sex_swearing'] = 0
+			gs 'sex_ev_sex', 'dirty_talk1'
+		end
 	end
 end
 
@@ -893,7 +907,7 @@ end
 if $ARGS[0] = 'break_time':
 	if sex_ev['first_break'] = 0 or rand(1,3) < 3 or sex_ev['cum_count'] >= npc_sexdrive[$boy]:
 		sex_ev['first_break'] = 1
-		
+		sex_ev['on_break'] = 1
 		gs 'sex_ev_after', 'stop_here'
 		gs 'sex_ev_sex', 'keep_going'
 		act'Relax and talk':cla & gs'sex_ev_pillow_talk', 'topics'
@@ -1109,6 +1123,7 @@ if $ARGS[0] = 'keep_going':
 			if sex_ev['boy_cocaine'] > 0:
 				if sex_ev['cock_inserted'] = 1 and $sex_ev['last_cum'] = 'creampie':
 					cla & *nl
+					!!iif(sex_ev['on_break'] = 1'"Wanna keep going?" you ask, flexing your pussy around his cock. Having lost none of its hardness, it twitches inside you in response, causing you to grin. "That feels like a yes."'
 					'"Wanna keep going?" you ask, flexing your pussy around his cock. Having lost none of its hardness, it twitches inside you in response, causing you to grin. "That feels like a yes."'
 				else
 					cla & *clr
@@ -1409,7 +1424,9 @@ end
 
 if $ARGS[0] = 'session_reset':
 	!! call this when sex happens after completely stopping - not because a break was taken
-	sex_ev['start_time'] = totminut
+	!!sex_ev['start_time'] = totminut
+	sex_ev['force_harden'] = 0
+	sex_ev['not_done'] = 0
 	gs 'sex_ev_sex', 'reset'
 end
 
@@ -1439,7 +1456,7 @@ if $ARGS[0] = 'reset':
 	sex_ev['cleanup'] = 0
 	if sex_ev['came_together'] > 0:
 		sex_ev['came_together'] = 0
-!!		sex_ev['creampie_orgasm'] += 1
+!!		sex_ev['creampie_orgasm_count'] += 1
 		sex_ev['simultaneous_orgasm_count'] += 1
 		sex_ev['did_we_cum_together'] = 0
 	end
@@ -1485,6 +1502,7 @@ if $ARGS[0] = 'reset':
 	sex_ev['cock_sex_clean'] = 0
 	if sex_ev['creampie_force'] = 1: sex_ev['creampie_force'] = 2
 	sex_ev['creampie_ask'] = 0
+	sex_ev['creampie_orgasm'] = 0
 	sex_ev['cant_hold_cum'] = 0
 	sex_ev['condom_check'] = 0
 	sex_ev['fuck_pos'] = 0
@@ -1493,10 +1511,17 @@ if $ARGS[0] = 'reset':
 	$sex_ev['cum_together_dialogue1'] = ''
 	sex_ev['hypno_came_together'] = 0
 	sex_ev['pee_after'] = 0
+	sex_ev['bum_cigarette'] = 0
+	sex_ev['cigarette'] = 0
+	sex_ev['boy_smoked'] = 0
+	sex_ev['shower'] = 0
+	sex_ev['pee_after'] = 0
+	sex_ev['pull-out_fail_react'] = 0
+	sex_ev['catch_breath'] = 0
 end
 
 if $ARGS[0] = 'pain':
-	if pcs_traits['elastigirl'] ! 1:
+	if pcs_traits['elastigirl'] ! 1 and succubusflag ! 1:
 		if sex_ev['lube_active'] ! 1:
 			if sex_ev['speed'] ! 3:
 				sex_ev['pain_value'] = dick - pcs_vag
