@@ -76,7 +76,7 @@ if $ARGS[0] = 'calc_minutes_to_wakeup':
 	sleepVars['time_now'] = daystart * 1440 + hour * 60 + minut
 
 	if alarmVars['alarmOn'] = 1 and sleepVars['slept_in'] = 0:
-		if alarmVars['alarm_holiday'] = 1 and kanikuli ! 0 or ((hour < alarmVars['timerEndH'] and (week = 6 or week = 7)) or (hour => alarmVars['timerEndH'] and (week = 5 or week = 6))):
+		if (hour < alarmVars['timerEndH'] and ((alarmVars['alarm_holiday'] = 1 and kanikuli ! 0) or (week = 6 or week = 7))) or (hour => alarmVars['timerEndH'] and ((alarmVars['alarm_holiday'] = 1 and func('sleep', 'is_tomorrow_school_vacation') ! 0) or (week = 5 or week = 6))):
 		!! use weekend time alarm
 			sleepVars['alarm_time'] = daystart * 1440 + alarmVars['timerEndH'] * 60 + alarmVars['timerEndM']
 		else
@@ -87,6 +87,25 @@ if $ARGS[0] = 'calc_minutes_to_wakeup':
 		sleepVars['minutes_to_wakeup'] = min(sleepVars['time_to_full'], sleepVars['alarm_time'] - sleepVars['time_now'])
 	else
 		sleepVars['minutes_to_wakeup'] = sleepVars['time_to_full']
+	end
+end
+
+if $ARGS[0] = 'is_tomorrow_school_vacation':
+	result = 0
+	if mid($start_type, 1, 2) = 'sg':
+		if (month = 12 and day = 31) or (month = 1 and day <= 14):
+			!! Winter Break
+			result = 2
+		elseif month = 3 and (day >= 19 and day <= 25):
+			!! Spring Break
+			result = 3
+		elseif (month = 5 and day = 31) or month = 6 or month = 7 or (month = 8 and day <= 30):
+			!! Summer Break
+			result = 4
+		elseif month = 11 and (day >= 3 and day <= 10):
+			!! Autumn Break
+			result = 1
+		end
 	end
 end
 
@@ -133,7 +152,6 @@ if $ARGS[0] = 'sleep_loop':
 
 	if sleepVars['minutes_to_wakeup'] > 0: jump 'sleep_loop_loop'
 
-	killvar 'sleep_loop_loop'
 	xgt 'sleep', 'post_sleep'
 end
 
