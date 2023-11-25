@@ -76,33 +76,42 @@ if $ARGS[0] = 'stop_here':
 end
 
 if $ARGS[0] = 'stop_here_menu':
-	act'You good to stop here?':
-		if sex_ev['keep_going_continue'] > 0:
+	if sex_ev['force_harden'] > 0 or sex_ev['not_done'] = 1:
+		act'Now I''m done':
 			cla & *clr
 			gs 'sex_ev_sex', 'inserted_img'
-			'"Is that good enough for you now?" you ask.'
-		elseif sex_ev['first_break'] = 1:
-			cla & *nl
-			'"Actually," you say. "I''m happy if we just to finish here. How about you?"'
-		else
+			'"<i>Now</i> I''m done," you grin, having squeezed every orgasm you could out of <<$npc_firstname[$boy]>>.'
+			gs'sex_ev_after', 'finish_sex'
+		end
+	else
+		act'You good to stop here?':
+			if sex_ev['keep_going_continue'] > 0:
+				cla & *clr
+				gs 'sex_ev_sex', 'inserted_img'
+				'"Is that good enough for you now?" you ask.'
+			elseif sex_ev['first_break'] = 1:
+				cla & *nl
+				'"Actually," you say. "I''m happy if we just to finish here. How about you?"'
+			else
+				cla & *clr
+				gs 'sex_ev_sex', 'inserted_img'
+				'"I think I''m good here," you say. "How about you?"'
+			end
+			gs'sex_ev_after', 'stop_here2'
+		end
+		
+		act'I''m shattered':
 			cla & *clr
 			gs 'sex_ev_sex', 'inserted_img'
-			'"I think I''m good here," you say. "How about you?"'
+			if sex_ev['consecutive_orgasm'] = 1:
+				'"Can we... stop here...?" you pant tiredly. "That last orgasm really took it out of me. I''m shattered..."'
+			elseif sex_ev['consecutive_orgasm'] > 1:
+				'"Can we... stop here...?" you pant tiredly. "You made me come so many times in a row... I''m shattered..."'
+			else
+				'"Can we... stop here...?" you pant tiredly. "I''m absolutely shattered..."'
+			end
+			gs'sex_ev_after', 'stop_here2'
 		end
-		gs'sex_ev_after', 'stop_here2'
-	end
-	
-	act'I''m shattered':
-		cla & *clr
-		gs 'sex_ev_sex', 'inserted_img'
-		if sex_ev['consecutive_orgasm'] = 1:
-			'"Can we... stop here...?" you pant tiredly. "That last orgasm really took it out of me. I''m shattered..."'
-		elseif sex_ev['consecutive_orgasm'] > 1:
-			'"Can we... stop here...?" you pant tiredly. "You made me come so many times in a row... I''m shattered..."'
-		else
-			'"Can we... stop here...?" you pant tiredly. "I''m absolutely shattered..."'
-		end
-		gs'sex_ev_after', 'stop_here2'
 	end
 	if $sex_ev['loc'] = 'house_party':
 		act'Should get back to the party':
@@ -803,6 +812,7 @@ end
 if $ARGS[0] = 'finish_sex':
 	$loc = 'sex_ev_after'
 	$loc_arg = 'after_sex2'
+	sex_ev['finish_time'] = totminut
 	if sex_ev['orgasm_count'] = 0 and sex_ev['fake_orgasm_count'] = 0 and sex_ev['fuck'] = 0 and npc_selfish[$boy] = 0 and (npc_caretaker[$boy] = 1 or rand(0,1) = 1):
 		gs'sex_ev_after', 'no_cum_end'
 !!	elseif sex_ev['force_harden'] = 2:
@@ -1255,15 +1265,7 @@ if $ARGS[0] = 'after_sex1':
 			if (npc_humor[$boy] = 1 or npc_humor[$boy] = 2) and (sex_ev['fuck_count'] >= npc_sexdrive[$boy] - 1) and rand(0,1) = 1:
 				gs'sex_ev_pillow_talk', 'high_five1'
 			else
-				if npc_smoker[$boy] > 0:
-					*nl
-					if $sex_ev['loc'] = 'npc_home':
-						'Afterwards, he reaches over to his nightstand and pulls out a pack of cigarettes.'
-					else
-						'Afterwards, he reaches down into his clothes and pulls out a pack of cigarettes.'
-					end
-				end
-				gs'sex_ev_after', 'after_sex2'
+				gs'sex_ev_after', 'post_cigarette_boy'
 			end
 		end
 	else
@@ -1278,33 +1280,42 @@ if $ARGS[0] = 'after_sex1':
 			if (npc_humor[$boy] = 1 or npc_humor[$boy] = 2) and (sex_ev['fuck_count'] >= npc_sexdrive[$boy] - 1) and rand(0,1) = 1:
 				gs'sex_ev_pillow_talk', 'high_five1'
 			else
-				if npc_smoker[$boy] > 0:
-					'The two of you pull apart and <<$npc_firstname[$boy]>> reaches over to his nightstand and pulls out a pack of cigarettes.'
-				else
-					*nl
-					'The two of you quietly bask in the afterglow of your fuck together.'
-				end
-				gs'sex_ev_after', 'after_sex2'
+				gs'sex_ev_after', 'post_cigarette_boy'
 			end
 		end
 	end
 end
 
+if $ARGS[0] = 'post_cigarette_boy':
+	if npc_smoker[$boy] > 0 and sex_ev['cock_inserted'] = 1:
+		sex_ev['cock_inserted'] = 0
+		'The two of you pull apart and <<$npc_firstname[$boy]>> reaches over to his nightstand and pulls out a pack of cigarettes.'
+	else
+		*nl
+		'You both lay back, basking in the afterglow of your fuck together. ' + iif(npc_smoker[$boy] > 0, 'After about a minute, <<$npc_firstname[$boy]>> reaches over and grabs a pack of cigarettes.', ' ')
+	end
+	if npc_smoker[$boy] > 0 and npc_caretaker[$boy] > 0:
+		gs'sex_ev_events', 'offer_ciga1'
+	else
+		gs'sex_ev_after', 'after_sex2'
+	end
+end
+
 if $ARGS[0] = 'pull_apart':
 	sex_ev['cock_inserted'] = 0
-	if $sex_ev['cum_choice'] = 'creampie':
+	if $sex_ev['last_cum'] = 'creampie' or $sex_ev['last_cum'] = 'creampie_surprise':
 		if $sex_ev['position'] = 'miss':
 			'<center><video autoplay loop src="images/shared/sex/after/miss_after1.mp4"></video></center>'
 			if $sex_ev['end_comment'] ! '': $sex_ev['end_comment']
-			'<<$npc_firstname[$boy]>> climbs off of you, removing his cock from your pussy in the process, and flops down on the other side of the bed. His cum seeps from your pussy, trickling down the crack of your ass into the bedsheets.'
+			'<<$npc_firstname[$boy]>> climbs off of you, removing his cock from your pussy, allowing a gush of cum from his last orgasm to be released, and flops down on the other side of the bed as it trickles down the crack of your ass into the bedsheets.'
 		elseif $sex_ev['position'] = 'doggy':
 			'<center><video autoplay loop src="images/shared/sex/after/doggy_after1.mp4"></video></center>'
 			if $sex_ev['end_comment'] ! '': $sex_ev['end_comment']
-			'<<$npc_firstname[$boy]>> pulls out from behind you and you roll over together onto your backs. His cum seeps from your pussy, slowly oozing down your thighs.'
+			'<<$npc_firstname[$boy]>> pulls out from behind you, releasing a gush of cum from your pussy that oozes down your thighs as you roll over together onto your backs.'
 		elseif $sex_ev['position'] = 'cowgirl':
 			'<center><video autoplay loop src="images/shared/sex/after/cowgirl_after1.mp4"></video></center>'
 			if $sex_ev['end_comment'] ! '': $sex_ev['end_comment']
-			'You climb off of <<$npc_firstname[$boy]>> and flop down next to him. As soon as his cock vacates your pussy, cum begins to drip from it, trickling down the crack of your ass into the bedsheets.'
+			'You climb off of <<$npc_firstname[$boy]>>, releasing a gush of cum from your pussy, and flop down next to him. As soon as his cock vacates your pussy, cum begins to drip from it, trickling down the crack of your ass into the bedsheets.'
 		end
 	else
 		if $sex_ev['position'] = 'miss':
@@ -1513,7 +1524,7 @@ if $ARGS[0] = 'boy_bathroom':
 			act'Take a shower':gs'sex_ev_morning', 'shower'
 		end
 	end
-	if mc_inventory['sanitary_pads'] > 0 and (mesec > 0 or (placebopart > 0 and pillcon < 40000)) and isprok = 0 and isprokp = 0 and knowpreg = 0 and $pantyworntype ! 'none':
+	if mc_inventory['sanitary_pads'] > 0 and (mesec > 0 or (placebopart > 2 and pillcon < 40000)) and isprokp = 0 and isprok = 0 and $pantyworntype ! 'none' and knowpreg = 0:
 		act 'Use a sanitary pad (0:02)':
 			menu_off = 1
 			*clr & cla
@@ -1527,7 +1538,7 @@ if $ARGS[0] = 'boy_bathroom':
 			act'Continue':gs'sex_ev_after', 'boy_bathroom'
 		end
 	end
-	if mc_inventory['tampons'] > 0 and (mesec > 0 or (placebopart > 0 and pillcon < 40000)) and isprok = 0 and isprokp = 0 and knowpreg = 0:
+	if mc_inventory['tampons'] > 0 and (mesec > 0 or (placebopart > 2 and pillcon < 40000)) and isprok = 0 and isprokp = 0 and knowpreg = 0:
 		act 'Use a tampon (0:02)':
 			menu_off = 1
 			*clr & cla
@@ -1812,21 +1823,72 @@ if $ARGS[0] = 'plan_b':
 end
 
 if $ARGS[0] = 'plan_b2':
-	act'Don''t say anything':
+	if sex_ev['ma_pill'] = 1:
+		gs'sex_ev_after', 'plan_b3'
+	else
+		act'Don''t say anything':
+			cla & *nl
+			'<<$npc_firstname[$boy]>> watches you pop the pill out of its packaging and you gulp it down without a word of acknowledgment.'
+			'It''s not for him, why does he need to know?'
+			gs 'medical_din', 'morning_after_pill_function'
+			gs'sex_ev_after', 'after_sex2'
+		end
+		
+		act'Take it casually':
+			cla & *nl
+			'<<$npc_firstname[$boy]>> watches you pop the pill out of its packaging.'
+			if LudaQW['free_condoms'] = 1 and LudaQW['luda_ma_pill'] = 0:
+				'"My aunt gave me this morning after pill for emergencies," you explain and pop it in your mouth before forcing it down with a dry swallow.'
+			else
+				'"Morning after pill," you explain and pop it in your mouth before forcing it down with a dry swallow.'
+			end
+			gs 'medical_din', 'morning_after_pill_function'
+			gs'sex_ev_after', 'after_sex2'
+		end
+		
+		act'Take it shyly':
+			cla & *nl
+			'<<$npc_firstname[$boy]>> watches you pop the pill out of its packaging and you can''t help but blush beneath his gaze.'
+			if LudaQW['free_condoms'] = 1 and LudaQW['luda_ma_pill'] = 0:
+				'"My aunt gave me this for emergencies," you say shyly, blush intensifying as you put it in your mouth and force it down with a dry swallow.'
+			else
+				'"The instructions say to take it as soon as possible for best effect," you smile shyly, blush intensifying as you put it in your mouth and force it down with a dry swallow.'
+			end
+			gs 'medical_din', 'morning_after_pill_function'
+			gs'sex_ev_after', 'after_sex2'
+		end
+		
+		act'Take it sexily':
+			cla & *nl
+			'As <<$npc_firstname[$boy]>> watches you pull the pill from its packaging, you stick out your tongue at him, popping the pill onto it and swallowing with a wide grin.'
+			if sex_ev['accidental_creampie_convo'] = 1:
+				'"There," you smirk. "Problem solved."'
+			elseif $sex_ev['last_cum'] = 'swallow':
+				'"Chaser," you wink.'
+			elseif age < 20:
+				'"Not really looking to become a teen mom," you smirk.'
+			else
+				'"I''m not ready to be a mom," you smirk.'
+			end
+			gs 'medical_din', 'morning_after_pill_function'
+			gs'sex_ev_after', 'after_sex2'
+		end
+	end
+end
+
+if $ARGS[0] = 'plan_b3':
+	act'Take it casually':
 		cla & *nl
-		'<<$npc_firstname[$boy]>> watches you pop the pill out of it''s packaging and you gulp it down without a word of acknowledgement.'
-		'It''s not for him, why does he need to know?'
+		'<<$npc_firstname[$boy]>> watches you pop the pill out of its packaging and into your mouth.'
+		'"There," you say, forcing it down with a dry swallow. "Problem solved."'
 		gs 'medical_din', 'morning_after_pill_function'
 		gs'sex_ev_after', 'after_sex2'
 	end
+	
 	act'Take it shyly':
 		cla & *nl
-		'<<$npc_firstname[$boy]>> watches you pop the pill out of it''s packaging and you can''t help but blush beneath his gaze.'
-		if LudaQW['free_condoms'] = 1 and LudaQW['luda_ma_pill'] = 0:
-			'"My aunt gave me this for emergencies," you say shyly, blush intensifying as you put it in your mouth and force it down with a dry swallow.'
-		else
-			'"The instructions say to take it as soon as possible for best effect," you smile shyly, blush intensifying as you put it in your mouth and force it down with a dry swallow.'
-		end
+		'<<$npc_firstname[$boy]>> watches you pop the pill out of its packaging and you can''t help but blush beneath his gaze.'
+		'"Problem solved," you say, feeling your cheeks redden even further as you force it down with a dry swallow.'
 		gs 'medical_din', 'morning_after_pill_function'
 		gs'sex_ev_after', 'after_sex2'
 	end
@@ -1974,6 +2036,7 @@ if $ARGS[0] = 'birth_control_pill_take2':
 		gs'sex_ev_after', 'after_sex2'
 	end
 end
+
 
 if $ARGS[0] = 'smoke_ciga1':
 	act'Never mind': cla & gs'sex_ev_after', 'after_sex2'
@@ -2335,7 +2398,7 @@ if $ARGS[0] = 'sleep':
 end
 
 if $ARGS[0] = 'sleep_function':
-	gs 'sex_ev_sex', 'reset'
+	gs 'sex_ev_sex', 'session_reset'
 	gs 'arousal', 'end'
 !!{	if $sex_ev['loc'] = 'npc_home':
 		if hour < 20:
@@ -2350,16 +2413,14 @@ if $ARGS[0] = 'sleep_function':
 	if rand(1,10) < npc_sexdrive[$boy] - (sex_ev['cum_count']/2) + npc_sleep_sex_okay[$boy] and (stat['think_virgin'] ! 1 or sex_ev['fuck_count'] > 0) and sex_ev['sleep_fuck'] = 0 and sex_ev['lover_left'] ! 1:
 		sex_ev['sleepover'] = 1
 		if rand(0,1) = 1:
-			sex_ev['sleep_fuck'] = 1
 			sex_ev['extra_cum'] += npc_sexdrive[$boy]/2
 			sex_ev['sleep_time'] = rand(1,3)
 			minut += 60*sex_ev['sleep_time']
 			pcs_sleep += 15*sex_ev['sleep_time']
 			pcs_health += 5*sex_ev['sleep_time']
 			gs'stat'
-			
+			sex_ev['sleep_fuck'] = 1
 		else
-			sex_ev['sleepover'] = 1
 			if alko > 6:
 				gs'sleep_simple', 'simple'
 				gs'pain', 3, 'head', 'ache'
