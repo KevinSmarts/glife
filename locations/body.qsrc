@@ -16,7 +16,7 @@
 !!magtarcup = set in the dream code as the target cup size 
 !!btwarn = used to flag if to display the gaining/losing weight message when bathing
 !!salolast = used when doing a soft rest to control the cycling of the main code
-!!sftrstflag = used to prevent a code chunk from firing on a soft reset
+!!bodyresetflag = used to prevent a code chunk from firing on a soft or hard reset
 !!Image set variables
 !! bodset = body image and descriptor control variable, used to indicate which image and descriptor set is in use
 !! $bodimgsets[x] = body shape descriptors, tens place is the set (using bodset), 0 - 7 the descriptors (using salocatnow), 8 filler, 9 is the folder name
@@ -26,47 +26,103 @@
 !! imgset6ovr[x] and imgset7ovr[x] = a flag to indicate that an image set (x) has its own image 6 and/or 7
 !! extended lash functionality; pcs_lashes = n are: {2, largest natural size}, {3, with temporary false lashes on or basic 2D lash extensions}, {4, with ornate false lashes on or lavish 4D extensions}, {5, with extremely ornate, 6D-style extensions} - xerya
 
-$this = 'body'
-
 if $ARGS[0] = 'RegularUpdate':
 	if dounspell = 0:
-		gs $this, 'UpdateBodyMeasurement'
-		pcs_weight = func($this, 'CalcWeight')
-		pcs_bmi = func($this, 'CalcBMI')
+		gs 'body', 'UpdateBodyMeasurement'
+		temp_weight = func('body', 'CalcWeight2')
+		pcs_weight[0] = temp_weight / 10
+		pcs_weight[1] = temp_weight mod 10
+
+		temp_bmi = func('body', 'CalcBMI2')
+		pcs_bmi[0] = temp_bmi / 10
+		pcs_bmi[1] = temp_bmi mod 10
+
+		killvar 'temp_weight'
+		killvar 'temp_bmi'
 	end
 
-	if pcs_skin > 1000: pcs_skin = 1000
-	if pcs_skin < 0: pcs_skin = 0
+	if pcs_skin > 1000:
+		pcs_skin = 1000
+	elseif pcs_skin < 0:
+		pcs_skin = 0
+	end
 end
 
+if $ARGS[0] = 'UpdateBodyMeasurement':
+	pcs_hips  = (pcs_hgt   * hratio) / 100 + vhips
+	pcs_waist = (pcs_hips  * wratio) / 100 + vofat
+	pcs_band  = (pcs_waist * bratio) / 100 + vofat
+	pcs_bust  = (pcs_waist * bratio) / 100 + nbsize + magicf2b + silicone
+	pcs_butt  = pcs_hips / 10 + silicone_butt + butt_cheat + pcs_butt_tr
+
+	!!pcs_cupsize = nbsize + magicf2b + silicone - vofat
+	pcs_cupsize = pcs_bust - pcs_band
+end
+
+if $ARGS[0] = 'CalcWeight':
+	!{pcs_weight: Svetas weight in kg 
+	Optimal Weight (170cm): 60kg, 60 salo
+	This is an approximation, so that a sveta with a different height has the same BMI for the same salo values.
+	The default height of 170 cm is used as a starting point. The bmi deviates by 0.06 for a deviation of 10cm and 0.4 for a deviation of 20cm.}
+
+	result = 30 + salo / 2 + (pcs_hgt - 170) * 7 / 10
+
+	!{Do not remove (julzor)
+	This is the old more complex function, but it doesn''t work correctly.
+	This variable is actually only used ONCE (except for the BMI calculation), when stripping, to see if you fall off the pole from being too heavy. I am reluctant to touch it, since the math is not explained. Maybe later.
+	Weight = (height in cm x bottom of average weight in kilos for a 170cm female / 170cm + (hip modifier + 2 x overrun fat)/4 + cup size}
+
+	!result = (pcs_hgt * 62 / 170) + (vhips + (vofat * 2)) / 4 + tits
+end
+
+if $ARGS[0] = 'CalcWeight2':
+	!! weight2 = 10 * weight
+	result = 300 + (10 * salo) / 2 + (pcs_hgt - 170) * 7
+	!result = (pcs_hgt * 62 / 17) + (10 * (vhips + (vofat * 2))) / 4 + 10 * tits
+end
+
+if $ARGS[0] = 'CalcBMI':
+	!! BMI = weight [kg] / (height [m])^2 = 100^2 * weight [kg] / (height [cm])^2
+	result = (10000 * pcs_weight) / (pcs_hgt * pcs_hgt)
+end
+
+if $ARGS[0] = 'CalcBMI2':
+	!! BMI2 = 10 * BMI
+	result = (100000 * pcs_weight) / (pcs_hgt * pcs_hgt)
+end
+
+
+
+
+	!!===================================================!!
+	!!                                                   !!
+	!!                  Daily Update                     !!
+	!!                                                   !!
+	!!===================================================!!
+
+
 if $ARGS[0] = 'DailyUpdate':
-	!{
-		Update once a day and called from cikl
-	}
-	if dounspell = 1:
+	!!Update once a day and called from cikl
+
+	if dounspell ! 1:
+		gs 'body'
+	else
 		if strenbuf > 90:
 			strenbuf -= 2
 		elseif strenbuf > 80:
 			strenbuf -= 1
 		end
-	
+
 		if vitalbuf > 90:
 			vitalbuf -= 2
 		elseif vitalbuf > 80:
 			vitalbuf -= 1
 		end
-	
-		if strenbuf > pcs_stren: strenbuf -= 1
-		if strenbuf < pcs_stren: strenbuf += 1
-		if vitalbuf > pcs_vital: vitalbuf -= 1
-		if vitalbuf < pcs_vital: vitalbuf += 1
-		if agilbuf > pcs_agil: agilbuf -= 1
-		if agilbuf < pcs_agil: agilbuf += 1
-	else
-		gs $this
+
+		gs 'body', 'Update_StatBuffs'
 	end
 
-	gs $this, 'UpdateBodyImage'
+	gs 'body', 'UpdateBodyImage'
 
 	!!---- Calculation of lash extension degradation and false lash removal
 	if pcs_lashes > 2:
@@ -96,31 +152,27 @@ if $ARGS[0] = 'DailyUpdate':
 
 	!! Max. Hair length 600mm, or 60cm, which should be somewhere in the lower back area.
 	!! Hair grows 1mm each day, it takes 20 months (1 month = 30 days) to regrow the hair from 0.
-	if pcs_hairlng < 1001 and hairgrowcht = 0:pcs_hairlng += 1
+	if pcs_hairlng <= 1000 and hairgrowcht = 0: pcs_hairlng += 1
 
 	! Hair colour change
-	if pcs_haircol ! nathcol:
-		dyefade -=1
-		if dyefade < 0: dyefade = 0
+	if pcs_haircol ! nathcol and dyefade > 0:
+		dyefade -= 1
 	end
 
 	!!pubic hair colouring
-	!! pcs_pubecol = natural colour
+	!! pcs_pubecol[0] = natural colour
 	!! pcs_pubecol[1] = flag for saveupdate
 	!! pcs_pubecol[2] = actual colour
 	!! pcs_pubecol[3] = countdown timer for dye
-	if pcs_pubecol[2] ! pcs_pubecol:
-		pcs_pubecol[3] -=1
-		if pcs_pubecol[3] < 0: pcs_pubecol[3] = 0
-		if pcs_pubecol[3] = 0: pcs_pubecol[2] = pcs_pubecol
+	if pcs_pubecol[2] ! pcs_pubecol[0] and pcs_pubecol[3] > 0:
+		pcs_pubecol[3] -= 1
+		if pcs_pubecol[3] = 0: pcs_pubecol[2] = pcs_pubecol[0]
 	end
 
-	if pcs_pubes < 2: pcs_pubecol[2] = pcs_pubecol
+	if pcs_pubes < 2: pcs_pubecol[2] = pcs_pubecol[0]
 
-	if mc_inventory['scrunchies'] > 0:
-		hscrunchrand = rand(1, 100)
-
-		if hscrunchrand <= 8:mc_inventory['scrunchies'] -=  1
+	if mc_inventory['scrunchies'] > 0 and rand(1, 100) <= 8:
+		mc_inventory['scrunchies'] -=  1
 	end
 
 	! Leg and pubes hair growth
@@ -135,35 +187,39 @@ if $ARGS[0] = 'DailyUpdate':
 		pcs_pubes['growth'] += 1
 		gs 'body_desc', 'pube_desc_update'
 	end}
-	
-	if age < 18 and rand (0,2) = 0 and pcs_leghair > 0: pcs_leghair -= 1
+
+	!! 33% change to shrink leghair if underage? Simulate slower growth?
+	if age < 18 and rand(0, 2) = 0 and pcs_leghair > 0:
+		pcs_leghair -= 1
+	end
 
 	if pcs_skin <= 300:
 		pcs_skin += min(skinDailyGain * 2, 20) - skinDailyPenalty - 1
 	elseif pcs_skin <= 600:
 		pcs_skin += min(skinDailyGain, 10) - skinDailyPenalty - 1
 	elseif pcs_skin <= 800:
-		pcs_skin += min(skinDailyGain/2, 5) - skinDailyPenalty - 1
+		pcs_skin += min(skinDailyGain / 2, 5) - skinDailyPenalty - 1
 	elseif pcs_skin <= 900:
-		pcs_skin += min(skinDailyGain/3, 3) - skinDailyPenalty - 1
+		pcs_skin += min(skinDailyGain / 3, 3) - skinDailyPenalty - 1
 	elseif pcs_skin <= 1000:
-		pcs_skin += min(skinDailyGain/5, 2) - skinDailyPenalty - 1
+		pcs_skin += min(skinDailyGain / 5, 2) - skinDailyPenalty - 1
 	end
-	
+
 	if pcs_teeth < 0:
 		!! Daly degradation of perfect white teeth
 		tempteeth = 1
 		if teeth['caffe_or_tea'] > 8: tempteeth += 1
 		if teeth['smoked'] > 1: tempteeth += 1
-		tempteeth -= min(3,	teeth['brushed'])
-		teeth['degradation'] += max(tempteeth, 0)
+		tempteeth -= min(teeth['brushed'], 3)
+		teeth['degradation'] += max(0, tempteeth)
 		killvar 'tempteeth'
-		teeth['brushed'] = 0
-		teeth['smoked'] = 0
+
 		teeth['caffe_or_tea'] = 0
-	
+		teeth['smoked'] = 0
+		teeth['brushed'] = 0
+
 		if teeth['degradation'] > 60:
-			!! After a certain time of not taking care of your teeth you will loose you perfect whit smile.
+			!! After a certain time of not taking care of your teeth you will loose you perfect white smile.
 			teeth['degradation'] = 0
 			pcs_teeth = 0
 		elseif teeth['degradation'] < 0:
@@ -177,142 +233,75 @@ if $ARGS[0] = 'DailyUpdate':
 	killvar 'skinDailyPenalty'
 end
 
+if $ARGS[0] = 'UpdateBodyImage':
+	!Update body image set
+	if dounspell = 1:
+		salocatnow = (pcs_hips / 10) - 5
+	end
+
+	if bdsetlock = 1:
+		bodset = fixbodset
+	else
+		if knowpreg = 1 or (preg = 1 and (thinkpreg = 1 or PregChem > 3600)):
+			bodset = 3
+		elseif strenbuf >= 100 and stren_plus_lvl > 0:
+			bodset = 2
+		elseif strenbuf <= 50:
+			bodset = 0
+		else
+			bodset = 1
+		end
+	end
+
+	! Update body description
+	if bodset = 3 and (knowpreg = 1 or (preg = 1 and (thinkpreg = 1 or PregChem > 3600))):
+		if PregChem > 6216:
+			$body = $bodimgsets[bodset * 10 + 8]
+		elseif PregChem < 2688:
+			$body = $bodimgsets[bodset * 10]
+		else
+			$body = $bodimgsets[bodset * 10 + (PregChem - 2688) / 504 + 1]
+		end
+
+	elseif salocatnow <= 7:
+		$body = $bodimgsets[bodset * 10 + salocatnow]
+	else
+		$body = $bodimgsets[bodset * 10 + 7]
+	end
+end
+
+
+
 if $ARGS[0] = '':
-	!!This controls the gradual change in stat to -buf
-	if strenbuf > pcs_stren: strenbuf -= 1
-	if strenbuf < pcs_stren: strenbuf += 1
-	if vitalbuf > pcs_vital: vitalbuf -= 1
-	if vitalbuf < pcs_vital: vitalbuf += 1
-	if agilbuf > pcs_agil: agilbuf -= 1
-	if agilbuf < pcs_agil: agilbuf += 1
-
-	!!All the ratios were rounded to 2 digits and there are divide 100s at the final calc points
-	!!Waist to hip ratio
-
-	wrtemp = ((2 * vitalbuf + strenbuf + agilbuf) /4)
-
-	!!	Primary wratio handling
-	if wrtemp < 11:
-		wratio = 85 + (11 - (vitalbuf + strenbuf + agilbuf)/3)
-	elseif wrtemp < 20:
-		wratio = 85
-	elseif wrtemp < 35:
-		wratio = 85 - (wrtemp - 20) / 3
-	elseif wrtemp < 55:
-		wratio = 80 - (wrtemp - 35) / 4
-	elseif wrtemp < 80:
-		wratio = 75 - (wrtemp - 55) / 5
-	elseif wrtemp >= 80:
-		wratio = 70
-	end
-
-	!!	High stat value edge case handling
-	if (vitalbuf + strenbuf + agilbuf) /3 > 100: wratio -= ((vitalbuf + strenbuf)/2 - agilbuf)/5
-
-	!!	This is the oops and high stat gone overboard handling
-	if wratio < 65: wratio = 65
-
-	killvar 'wrtemp'
-
-	!!For band to waist ratio
-	brtemp = (2 * strenbuf + vitalbuf + agilbuf) /4
-
-	if brtemp < 10:
-		bratio = 105
-	elseif brtemp =< 23:
-		bratio = 106
-	elseif brtemp =< 80:
-		bratio = 106 + (brtemp - 23) / 3
-	else
-		bratio = 125
-	end
-
-	killvar 'brtemp'
-
-	!!For hip to height ratio which is used to set the center point
-	hrtemp = (2 * agilbuf + vitalbuf + strenbuf) /4
-
-	if hrtemp < 35:
-		hratio = 60
-	elseif hrtemp < 45:
-		hratio = 59
-	elseif hrtemp < 60:
-		hratio = 58
-	elseif hrtemp < 80:
-		hratio = 57
-	else
-		hratio = 56
-	end
-
-	killvar 'hrtemp'
+	gs 'body', 'Update_StatBuffs'
 
 	!!Salo Handling; the first part is because during a reset fat is not used and should be cleared
-	if sftrstflag = 1 or cheatNoFat = 1:
+	if bodyresetflag = 1 or cheatNoFat = 1:
 		fat = 0
 	else
-		if fat > (17 + vitalbuf / 25): salo += 1 & fat = 0
-		if fat < (-2 - (vitalbuf / 10)): salo -= 1 & fat = 0
-		fat = fat/4
+		if fat > (17 + vitalbuf / 25):
+			salo += 1
+			fat = 0
+		elseif fat < (-2 - vitalbuf / 10):
+			salo -= 1
+			fat = 0
+		else
+			fat = fat / 4
+		end
 	end
 
 	!!This is the salo cap for the weight approximation
 	if salo > 250: salo = 250
-		
-	!!This calculates the current salo category; ranges are 20 points, seemed to balance best if the range is x10 the hip devisor
-	:salocatloop
-	if salo < 10:
-		salocatnow = 0
-	else
-		salocatnow = 1 + (salo - 10) / 20
-	end
 
-	!!This resets the genetic bust size (genbsize) when the cheat is used to reduce breast size (maybe other things later)
-	if titreduc = 1:
-		killvar 'titreduc'
-		if genbsize > nbsize:
-			genbsize = 2 + nbsize - nbsize mod 5
-		end
-	end
 
-	!!This controls the movement of salo to/from bust in order of precedence
-	if salobustdo = 0 and nbsize < genbsize and salocatnow > 2:
-		if sftrstflag = 0:'<b>Your breasts seem fuller.</b>'
-		nbsize += 1
-		salo -= 3
-		salobustdo = 1
-		jump 'salocatloop'
-	end
 
-	if salobustdo = 0 and magf2bdo = 1 and salocatnow > salocatlast and pcs_mana >= manamax / 2 and magikDostup = 0:
-		if sftrstflag = 0:'<b>Your breasts seem fuller.</b>'
-		magicf2b += 1
-		salo -= 3
-		salobustdo = 1
-		if magicf2b >= 2 + magtarcup * 5: magf2bdo = 0
-		if pcs_magik < 20:
-			pcs_mana -= 2000 / pcs_magik
-		else
-			mana -= 100
-		end
-		jump 'salocatloop'
-	end
+	!! All the ratios were rounded to 2 digits and there are divide 100s at the final calc points
+	gs 'body', 'Find_waist_to_hip_ratio'
+	gs 'body', 'Find_band_to_waist_ratio'
+	gs 'body', 'Find_hip_to_height_ratio'
 
-	if salobustdo = 0 and salocatnow < 2 and salocatlast >= 2 and magicf2b > 0 and magikDostup = 0:
-		if sftrstflag = 0:'<b>Your breasts seem to be getting smaller.</b>'
-		magicf2b -= 1
-		salo += 3
-		salobustdo = 1
-		magf2bdo = 1
-		jump 'salocatloop'
-	end
-
-	if salobustdo = 0 and salocatnow < 1 and salocatlast >= 1 and nbsize > 0:
-		if sftrstflag = 0:'<b>Your breasts seem to be getting smaller.</b>'
-		nbsize -= 1
-		salo += 3
-		salobustdo = 1
-		jump 'salocatloop'
-	end
+	gs 'body', 'Calc_salocatnow'
+	gs 'body', 'Update_nbsize'
 
 	!!This is if a Succubus has salo < 1
 	if succubusflag = 1 and salo < 1:
@@ -341,29 +330,21 @@ if $ARGS[0] = '':
 		end
 	end
 
-	killvar 'tempvct' & killvar 'salobustdo'
+	gs 'body', 'Update_vhips'
 
-	!!This is the hip calcs, 80 is the center of the current max-min range (10 - 130)
-	vhtmp = (salo - 80) / 2
-	
-	if vhips > vhtmp: vhips -= 1
-	if vhips < vhtmp: vhips += 1
-	!!	Because a reset should be updating hip size instantly (this set is a bit redundant anyway)
-	if sftrstflag = 1: vhips = vhtmp
-
-	if (pcs_hgt * hratio) / 100 + vhips > (pcs_hgt * 72) / 100:
-		vofat = ((pcs_hgt * hratio) / 100 + vhips - (pcs_hgt * 72) / 100) / 2
-		vhips -= vofat * 2
-	end
+	gs 'body', 'Calc_salocatnow'
 
 	!!This will trigger the warning notices in the bathing code (the +/- 12 should always be +/- 11 + the max change to salo w/ fat)
-	if salolast > salo and salo <= 12 + (20 * (salocatnow - 1)): btwarn = 1
-	if salolast < salo and salo >= (20 * (salocatnow + 1)) - 12: btwarn = 2
+	if salolast > salo and salo <= (20 * (salocatnow - 1)) + 12:
+		btwarn = 1
+	elseif salolast < salo and salo >= (20 * (salocatnow + 1)) - 12:
+		btwarn = 2
+	end
 
 	!!This will trigger the dream for the option to use magic to increase bust
 	!!Three nos at the dream will lock it out (1 yes resets the count)
 	if pcs_magik >= 5 and MagikDostup = 0 and magf2bdo = 0:
-		if salolast < salo and salo >= (20 * (salocatnow + 1)) - 11 and tits < 10:
+		if tits < 10 and salolast < salo and salo >= (20 * (salocatnow + 1)) - 11:
 			if mgf2bnocnt < 3:
 				magf2bdo = 2
 			else
@@ -381,97 +362,207 @@ if $ARGS[0] = '':
 	if salolast < salo: salolast += 1
 
 	!!Setting the pcs_apprnc bonus based on fat and strength
-	pcs_bmi = FUNC($this, 'CalcBMI')
+	temp_bmi = func('body', 'CalcBMI2')
+	pcs_bmi[0] = temp_bmi / 10
+	pcs_bmi[1] = temp_bmi mod 10
+	killvar 'temp_bmi'
 
 	!!This is to clean up unused variables
-	killvar 'normbuffpick' & killvar 'nrmbfpckct'
-	killvar 'vmeat' & killvar 'vfat' & killvar 'Kves' & killvar 'krost'
-	killvar 'koefvesbt' & killvar 'koefbt'
+	killvar 'normbuffpick'
+	killvar 'nrmbfpckct'
+	killvar 'vmeat'
+	killvar 'vfat'
+	killvar 'Kves'
+	killvar 'krost'
+	killvar 'koefvesbt'
+	killvar 'koefbt'
 end
 
-if $ARGS[0] = 'UpdateBodyMeasurement':
-	pcs_hips = (pcs_hgt * hratio) / 100 + vhips
-	pcs_waist = (pcs_hips * wratio) / 100 + vofat
-	pcs_band = (pcs_waist * bratio) / 100 + vofat
-	pcs_bust = (pcs_waist * bratio) / 100 + nbsize + magicf2b + silicone
-	pcs_butt = (pcs_hips / 10) + silicone_butt + butt_cheat + pcs_butt_tr
-	pcs_cupsize = pcs_bust - pcs_band
 
-end
+	!!-------------------------    BUFFS    -------------------------!!
 
-if $ARGS[0] = 'CalcWeight':
-	!{pcs_weight: Svetas weight in kg 
-	Optimal Weight (170cm): 60kg, 60 salo
-	This is an approximation, so that a sveta with a different height has the same BMI for the same salo values.
-	The default height of 170 cm is used as a starting point. The bmi deviates by 0.06 for a deviation of 10cm and 0.4 for a deviation of 20cm.}
-	result = 30 + salo / 2 + (pcs_hgt - 170) * 7 / 10
-
-	!{Do not remove (julzor)
-	This is the old more complex function, but it doesn''t work correctly.
-	This variable is actually only used ONCE (except for the BMI calculation), when stripping, to see if you fall off the pole from being too heavy. I am reluctant to touch it, since the math is not explained. Maybe later.
-	Weight = (height in cm x bottom of average weight in kilos for a 170cm female / 170cm + (hip modifier + 2 x overrun fat)/4 + cup size}
-	
-	!result = (pcs_hgt * 62 / 170) + (vhips + (vofat * 2)) / 4 + tits
-end
-
-if $ARGS[0] = 'UpdateBodyImage':
-	!Update body image set
-	if dounspell = 1:
-		salocatnow = (pcs_hips / 10) - 5
-		if bdsetlock = 0:
-			if (knowpreg = 1 or (preg = 1 and thinkpreg = 1) or (preg = 1 and PregChem > 3600)):
-				bodset = 3
-			elseif strenbuf >= 100 and stren_plus_lvl > 0:
-				bodset = 2
-			elseif strenbuf <= 50:
-				bodset = 0
-			else
-				bodset = 1
-			end
-		else
-			bodset = fixbodset
-		end
-	elseif (knowpreg = 1 or (preg = 1 and thinkpreg = 1) or (preg = 1 and PregChem > 3600)) and bodet ! 3 and bdsetlock = 0:
-		bodset = 3
-	elseif preg = 0 and bdsetlock = 0:
-		if strenbuf >= 100 and stren_plus_lvl > 0:
-			bodset = 2
-		elseif strenbuf <= 50:
-			bodset = 0
-		else
-			bodset = 1
-		end
+if $ARGS[0] = 'Update_StatBuffs':
+	!! This controls the gradual change in stat to -buf
+	if strenbuf > pcs_stren:
+		strenbuf -= 1
+	elseif strenbuf < pcs_stren:
+		strenbuf += 1
 	end
 
-	! Update body description
-	if (knowpreg = 1 or (preg = 1 and thinkpreg = 1) or (preg = 1 and PregChem > 3600)) and bodset = 3:
-		if PregChem > 6216:
-			$body = $bodimgsets[((bodset * 10) + 8)]
-		elseif PregChem < 2688:
-			$body = $bodimgsets[(bodset * 10)]
-		else 
-			$body = $bodimgsets[((bodset * 10)+((PregChem - 2184)/504))]
-		end
-	elseif salocatnow <= 7:
-		$body = $bodimgsets[((bodset * 10) + salocatnow)]
+	if vitalbuf > pcs_vital:
+		vitalbuf -= 1
+	elseif vitalbuf < pcs_vital:
+		vitalbuf += 1
+	end
+
+	if agilbuf > pcs_agil:
+		agilbuf -= 1
+	elseif agilbuf < pcs_agil:
+		agilbuf += 1
+	end
+end
+
+
+	!!-------------------------    RATIOS    -------------------------!!
+
+!! All the ratios were rounded to 2 digits and there are divide 100s at the final calc points
+
+if $ARGS[0] = 'Find_waist_to_hip_ratio':
+	temp_wratio = (2 * vitalbuf + strenbuf + agilbuf) / 4
+
+	!! Primary wratio handling
+	if temp_wratio < 11:
+		wratio = 85 + (11 - (vitalbuf + strenbuf + agilbuf) / 3)
+	elseif temp_wratio < 20:
+		wratio = 85
+	elseif temp_wratio < 35:
+		wratio = 85 - (temp_wratio - 20) / 3
+	elseif temp_wratio < 55:
+		wratio = 80 - (temp_wratio - 35) / 4
+	elseif temp_wratio < 80:
+		wratio = 75 - (temp_wratio - 55) / 5
+	elseif temp_wratio >= 80:
+		wratio = 70
+	end
+
+	!!	High stat value edge case handling
+	if (vitalbuf + strenbuf + agilbuf) / 3 > 100:
+		wratio += (2 * agilbuf - vitalbuf - strenbuf) / 10
+	end
+
+	!!	This is the oops and high stat gone overboard handling
+	if wratio < 65: wratio = 65
+
+	killvar 'temp_wratio'
+
+
+elseif $ARGS[0] = 'Find_band_to_waist_ratio':
+	temp_bratio = (2 * strenbuf + vitalbuf + agilbuf) / 4
+
+	if temp_bratio < 10:
+		bratio = 105
+	elseif temp_bratio <= 23:
+		bratio = 106
+	elseif temp_bratio <= 80:
+		bratio = 106 + (temp_bratio - 23) / 3
 	else
-		$body = $bodimgsets[((bodset * 10) + 7)]
+		bratio = 125
+	end
+
+	killvar 'temp_bratio'
+
+
+elseif $ARGS[0] = 'Find_hip_to_height_ratio':
+	temp_hratio = (2 * agilbuf + vitalbuf + strenbuf) / 4
+
+	if temp_hratio < 35:
+		hratio = 60
+	elseif temp_hratio < 45:
+		hratio = 59
+	elseif temp_hratio < 60:
+		hratio = 58
+	elseif temp_hratio < 80:
+		hratio = 57
+	else
+		hratio = 56
+	end
+
+	killvar 'temp_hratio'
+end
+
+if $ARGS[0] = 'Calc_salocatnow':
+	!!This calculates the current salo category; ranges are 20 points, seemed to balance best if the range is x10 the hip devisor
+	if salo < 10:
+		salocatnow = 0
+	else
+		salocatnow = 1 + (salo - 10) / 20
 	end
 end
 
-if $ARGS[0] = 'CalcBMI':
-	result = 10000 * (30 + salo / 2 + (pcs_hgt - 170) * 7 / 10) / (pcs_hgt * pcs_hgt)
+
+	!!-------------------------    UPDATE nbsize and vhips    -------------------------!!
+
+
+if $ARGS[0] = 'Update_nbsize':
+	!!This resets the genetic bust size (genbsize) when the cheat is used to reduce breast size (maybe other things later)
+	if titreduc = 1:
+		killvar 'titreduc'
+		if genbsize > nbsize:
+			genbsize = 2 + nbsize - nbsize mod 5
+		end
+	end
+
+	if salobustdo = 0:
+		!!This controls the movement of salo to/from bust in order of precedence
+		if salocatnow > 2 and nbsize < genbsize:
+			if bodyresetflag = 0: '<b>Your breasts seem fuller.</b>'
+			nbsize += 1
+			salo -= 3
+
+		elseif magf2bdo = 1 and magikDostup = 0 and pcs_mana >= manamax / 2 and salocatnow > salocatlast:
+			if bodyresetflag = 0: '<b>Your breasts seem fuller.</b>'
+			magicf2b += 1
+			salo -= 3
+
+			if magicf2b >= 2 + magtarcup * 5: magf2bdo = 0
+			pcs_mana -= max(100, 2000 / pcs_magik)
+
+		elseif magicf2b > 0 and magikDostup = 0 and salocatnow < 2 and salocatlast >= 2:
+			if bodyresetflag = 0: '<b>Your breasts seem to be getting smaller.</b>'
+			magicf2b -= 1
+			salo += 3
+			magf2bdo = 1
+
+		elseif salocatnow = 0 and salocatlast > 0 and nbsize > 0:
+			if bodyresetflag = 0: '<b>Your breasts seem to be getting smaller.</b>'
+			nbsize -= 1
+			salo += 3
+		end
+	end
+
+	killvar 'salobustdo'
 end
+
+
+if $ARGS[0] = 'Update_vhips':
+	!!This is the hip calcs, 80 is the center of the current max-min range (10 - 130)
+	vhtmp = (salo - 80) / 2
+
+	!!	Because a reset should be updating hip size instantly (this set is a bit redundant anyway)
+	if bodyresetflag = 1:
+		vhips = vhtmp
+	else
+		if vhips > vhtmp:
+			vhips -= 1
+		elseif vhips < vhtmp:
+			vhips += 1
+		end
+	end
+
+	!! If temp_vhips2 > 0, vhips = pcs_hgt * (72 - hratio) / 100 ????
+	temp_vhips2 = vhips - (pcs_hgt * (72 - hratio)) / 100
+	vofat = max(0, temp_vhips2 / 2)
+	vhips -= 2 * vofat
+	killvar 'temp_vhips2'
+end
+
+
+
+	!!==================================!!
+	!!                                  !!
+	!!         Skin Gain & Loss         !!
+	!!                                  !!
+	!!==================================!!
+
 
 if $ARGS[0] = 'SkinGain':
 	if $ARGS[1] = 'CleanSelf' and lastShowerSkinGain ! daystart:
 		lastShowerSkinGain = daystart
-		skinDailyGain += 5 
+		skinDailyGain += 5
 		!!needs to be changet to +3 when the bathLuffa in added.
 		!!if bathLuffa = 1: skinDailyGain += 2
-	end
 
-	if $ARGS[1] = 'Moisturizer':
+	elseif $ARGS[1] = 'Moisturizer':
 		moisturizerDailyCount += 1
 		if moisturizerDailyCount <= 2: skinDailyGain += 2
 	end
@@ -481,89 +572,136 @@ if $ARGS[0] = 'SkinLoss':
 	if $ARGS[1] = 'Smoke' and lastSmokeSkinPenalty ! daystart:
 		lastSmokeSkinPenalty = daystart
 		skinDailyPenalty += 1
-	end
 
-	if $ARGs[1] = 'MakeUpSleep':
+	elseif $ARGS[1] = 'MakeUpSleep':
 		skinDailyPenalty += 10
 	end
 end
 
+
+
+	!!==================================!!
+	!!                                  !!
+	!!               RESETS             !!
+	!!                                  !!
+	!!==================================!!
+
 if $ARGS[0] = 'softreset':
 	!!This is for use in immediately updating shape if something has caused a large change in salo, primarily fat burners and plastic surgery
-	sftrstflag = 1
+	bodyresetflag = 1
 	:resetloop
 	if salo ! salolast:
-		if gmstrtflag = 1: salobustdo = 1
+		if gamestartflag = 1: salobustdo = 1
 		gs 'body'
 		jump 'resetloop'
 	end
+
 	!!Updates pcs_apprncbase after a reset
 	gs 'AppearanceSystem', 'UpdateBaseAppearnce'
+
 	!!Clears the warning and reset status flags if they were set
-	sftrstflag = 0
+	bodyresetflag = 0
 	btwarn = 0
 end
 
 if $ARGS[0] = 'hardreset':
 	!!This is primarily for canceling out "dounspell" and setting salo to whatever value will result in the current hip size then balancing everything out.
 	!!Also could be built in as a means to in-game undo "dounspell", other than the cheat.
-	if dounspell = 1 and dounsplkil > 0:
+	if dounspell ! 1 or dounsplkil = 0:
+		'If you''re seeing this, something odd happened. Please make a bug report that the body shape hard reset improperly triggered and what you were doing.'
+	else
 		salo = 12
 		fat = 0
-		agilbuf = pcs_agil & strenbuf = pcs_stren & vitalbuf = pcs_vital
-		salobustdo = 1 & sftrstflag = 1 & normbuffpick = -1
+
+		agilbuf = pcs_agil
+		strenbuf = pcs_stren
+		vitalbuf = pcs_vital
+
+		salobustdo = 1
+		bodyresetflag = 1
+		normbuffpick = -1
+
 		gs 'body'
-		salo = (pcs_hips * 2) - ((pcs_hgt * hratio) / 50) + 80
+
+		salo = 80 + (2 * pcs_hips) - (pcs_hgt * hratio) / 50
 		if salo < 10:
 			salocatnow = 0
 		else
 			salocatnow = 1 + (salo - 10) / 20
 		end
+
 		salocatlast = salocatnow
 		salolast = salo
+
 		vhtmp = (salo - 80) / 2
 		vhips = vhtmp
-		if genbsize = 0 and nbsize > 0:
-			If nbsize >= 27:
+
+		if genbsize = 0:
+			if nbsize >= 27:
 				genbsize = 27
-			else
+
+			elseif nbsize > 0:
 				genbsize = 2 + nbsize - nbsize mod 5
+
+			elseif silicone >= 20:
+				genbsize = 12
+				nbsize = 12
+				silicone -= 10
 			end
-		elseif genbsize = 0 and nbsize = 0 and silicone >= 20:
-			genbsize = 12 & nbsize = 12 & silicone -= 10
 		end
-		sftrstflag = 0 & normbuffpick = 0 & btwarn = 0 & magf2bdo = 0
+
+		bodyresetflag = 0
+		normbuffpick = 0
+		btwarn = 0
+		magf2bdo = 0
+
 		killvar 'dounsplkil'
 		newbdsp = 1
 		dounspell = 0
 		gs 'AppearanceSystem', 'UpdateBaseAppearnce'
 		gs 'body'
 		gs 'stat'
-	else
-		'If you''re seeing this, something odd happened. Please make a bug report that the body shape hard reset improperly triggered and what you were doing.'
 	end
 end
 
+
+
+
+	!!==================================!!
+	!!                                  !!
+	!!              INITIAL             !!
+	!!                                  !!
+	!!==================================!!
+
+
 if $ARGS[0] = 'initial':
 	!!	Sets the genetic bust size if it was not set in the start routines
-	if genbsize = 0:
-		genbsize = 12 & nbsize = 12
-	else
-		nbsize = genbsize
-	end
-	agilbuf = pcs_agil & strenbuf = pcs_stren & vitalbuf = pcs_vital
-	normbuffpick = -1 & gmstrtflag = 1
+	if genbsize = 0: genbsize = 12
+	nbsize = genbsize
+
+	agilbuf = pcs_agil
+	strenbuf = pcs_stren
+	vitalbuf = pcs_vital
+
+	normbuffpick = -1
+	gamestartflag = 1
+
 	!!	Calling soft reset will cause the main code to cycle up to the starting value of salo
 	gs 'body', 'softreset'
+
 	!!	This sets/resets the controler variables
 	salocatlast = salocatnow
-	normbuffpick = 0 & magf2bdo = 0
-	killvar 'gmstrtflag'
+	normbuffpick = 0
+	magf2bdo = 0
+	killvar 'gamestartflag'
+
 	newbdsp = 1
 	!!	This does all the body shape setting before the first stat call
-	gs 'body', 'UpdateBodyMeasurement'
-	pcs_weight = func($this, 'CalcWeight')
-	pcs_bmi = func($this, 'CalcBMI')
+	temp_bmi = func('body', 'CalcBMI2')
+	pcs_bmi[0] = temp_bmi / 10
+	pcs_bmi[1] = temp_bmi mod 10
+	killvar 'temp_bmi'
+
 	gs 'body', 'UpdateBodyImage'
 	gs 'body_desc', 'BMI'
 end
