@@ -21,21 +21,99 @@
 !! Corps De Ballet, coryphée, demi-soloist, soloist, principle dancer.
 !! balletqw[performances] - How many shows perfomed
 !! mayaqw[grave] - Did you attend Anitchka's grave with Maya, 3 means you talked to Maya, 4 means you was empathic. Has impact later on Maya''s actions towards the player.
-!! mayaqw[trust] - How much Maya trusts you and works in conjuction with npc_rel
+!! mayaqw[trust] - How much Maya trusts you and works in conjunction with npc_rel
 !! Rudolph quest is broken into two variables the main tracker being rudolphqw[stage] and rudolphqw[corruption], the latter reflects his slow insidious undermining of Sveta''s confidence and the former is how
 !! much she has submitted to his authority and demands. Corruption opens dialogue options.
 !!
 !! AlbinaQW[StarletsJoined] - Set -1 to prevent rejoining.
 !!
 
-!! mod_ballet[waymarkers] = Waymarkers for plot beats in mod. Defaults to off.
-
 
 
 if $ARGS[0] = 'init':
-    ! Initiate the ballet events.
-    If mod_ballet['blocker'] = 1:
-        mod_ballet['waymarkers'] = 0       
+
+    
+    if (alterstrtimg = 13 and daystart = 1) or mod_ballet('beta') = 1: 
+        mod_ballet['blocker'] = 1
+    end
+    
+    if $loc = 'kuhrPar':
+    
+        if daystart < 6 and  mod_ballet['blocker'] = 1:
+            gs 'pushkin_ballet_init', 'init'
+        end
+    
+        if  daystart > 6 and mod_ballet['letter'] = 0:	
+            gs 'pushkin_ballet_init', 'start'
+        end 
+    
+        if  daystart > 45:	
+            gs 'pushkin_ballet_init', 'start'
+        end 
+    
+    end
+    
+    ! Start the School
+    if alterstrtimg = 13 or mod_ballet('beta') = 1:
+        if $loc = 'pav_commcenter':
+            if month = 7 and day = 3 and (hour >= 16 and hour < 17) and mod_ballet['letter'] = 1:
+                ! Pre-flight - travel to school dorms
+                act '<font color="#80E656">Get on the bus</font>': gs 'shortgs', 'remove_array_element', 'mod_ballet', 'letter' & gt 'pushkin_ballet_res', 'start'	
+            end
+        end
+        
+        if $loc = 'gdksport':
+            if mod_ballet['letter'] = 1 and month = 7 or (month = 6 and day > 6):
+                if AlbinaQW['StarletsJoined'] > 0 and AlbinaQW['StarletsShutDown'] = 0 and npc_pregtalk['A23'] = 0 and AlbinaQW['startletsday'] ! daystart:
+                    if hour = 15 and starlets_on = 1:
+                        act 'Tell Albina about the letter' : gt 'pushkin_ballet_evt', 'starlets'
+                    end
+                end
+            end
+        end
+        
+        !! School week
+        
+        !! Pushkin residential block
+        
+        if $loc = 'pushkin_sq':
+            *nl
+            'Just off Okhlopkov Square you see the road that leads to the ballet schools <a href="exec:gt ''pushkin_ballet_center'',''start''">residential block</a>.'
+            act 'Walk to the residential block': gt 'pushkin_ballet_center', 'start'
+        end
+        
+        if $loc = 'pushkin_ballet_res' and (hour = 7 and minut >= 30):
+            *clr & cla
+            if mayaqw['grave'] = 4:
+                mood += 10
+                '<center><img <<$set_imgh>> src="mod/img_ballet/pushkin/npc/3501_1.jpg"></center>'
+                '<<$npc_firstname[''A3501'']>> is bubbling with enthuasism when she finds you running behind schedule, "Come on <<$pcs_nickname>> you''re going to be late!"'
+                'Her mood is infectious and soon you quickly grab your dance bag and head to school with <<$npc_firstname[''A3501'']>>.'
+        
+                act 'Go to School': gt 'pushkin_ballet_class', 'start'
+            else
+                '<center><img <<$set_imgh>> src="mod/img_ballet/pushkin/npc/warden.jpg"></center>'
+                'Bronya finds you running late in your morning preperations, "Come on <<$pcs_nickname>>, you''re going to be late!"'
+        
+                act 'Go to School': gt 'pushkin_ballet_class', 'start'
+            end
+        elseif $loc = 'pushkin_ballet_res' and $loc_arg = 'hallway' and (hour >= 6 and hour < 8) and (day >=  1 or day <= 6):
+                act 'Go to School (07:30 start)': gt 'pushkin_ballet_class', 'start'	
+        end
+        
+        if daystart > 33 and $loc = 'bedrPar' and mod_ballet['letter'] = 1:
+            gs 'shortgs', 'remove_array_element', 'mod_ballet', 'blocker'
+            gs 'shortgs', 'remove_array_element', 'mod_ballet', 'letter'
+        
+            msg 'You''ve missed your ballet school start date, maybe there will be other opportunities in future.'
+        end
+        
+        if $loc = 'bedrPar':
+            
+        end
+    end
+    !! Initiate the ballet events.
+    If mod_ballet['blocker'] = 1:   
         mod_ballet['blocker'] = 2
         gs 'fame', 'pushkin', 'ballet', 30, 'local'
         gs 'ballet_npc'
@@ -50,22 +128,24 @@ if $ARGS[0] = 'init':
             npc_trust[$npc_idx] = 0 
 			i_npc += 1
         if i_npc <=  17: jump 'mod_ballet_rel_set'
-        ! Set local fame to fit narrative of up and coming ballet dancer        
+        !! Set local fame to fit narrative of up and coming ballet dancer    
     end
 end
 
 if $ARGS[0] = 'start':
     ! Initial acceptance
 
-    if $loc = 'kuhrPar' and locat['Mother'] = 4 and mod_ballet['letter'] < 1 and daystart <= 14 :
-        ! Trigger first act
-        gs 'ballet_npc'
-        act '<font color="#80E656">Read the letter</font>': gt 'pushkin_ballet_evt', 'letter'
-    end
-        if $loc = 'kuhrPar' and locat['Mother'] = 4 and mod_ballet['letter'] < 1 and daystart >=45:
-        ! Trigger second act
-
-        act '<font color="#80E656">Read the letter</font>': gt 'pushkin_ballet_evt', 'letter'
+    if $loc = 'kuhrPar':
+    
+        if locat['Mother'] = 4 and mod_ballet['letter'] < 1 and daystart <= 14 :
+            ! Trigger first act
+            gs 'ballet_npc'
+            act '<font color="#80E656">Read the letter</font>': gt 'pushkin_ballet_evt', 'letter'            
+        end
+        if locat['Mother'] = 4 and mod_ballet['letter'] < 1 and daystart >=45:
+            ! Trigger second act
+            act '<font color="#80E656">Read the letter</font>': gt 'pushkin_ballet_evt', 'letter'
+        end
     end
 end
 
@@ -181,7 +261,7 @@ if $ARGS[0] = 'score_debug':
         'Day: <<debug_day>>' 
         'Make-up Score: <<mod_grade_mua[debug_day]>>'
         'Appearance: <<mod_grade_appearance[debug_day]>>'
-        'Rules and Disciple: <<mod_grade_disciple[debug_day]>>'
+        'Rules and Discipline: <<mod_grade_disciple[debug_day]>>'
         'Homework: <<mod_homework[debug_day]>>'
         'Attendance: <<mod_grade_attendance[debug_day]>>'
         'Total Day Score:  <<mod_daily_score[debug_day]>>'
