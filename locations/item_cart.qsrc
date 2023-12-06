@@ -2,90 +2,78 @@
 
 if $ARGS[0] = 'shoppping_aisle':
 	gs 'item_stock_db', 'cleanup'
+	
     $curr_aisle = $ARGS[1]
 	gs 'item_stock_db', $ARGS[1]
+
+	!! Page Header
 	'<center><table border=5 cellspacing=0 cellpadding=5 bgcolor='+$bcolor+'><TD>&nbsp;<font size="+2"><b><<$shop_title>></b></font>&nbsp;</TD></table></center>'
-	gs 'item_cart', 'header'
-	*p '<center><table border=5 cellspacing=0 cellpadding=5 bgcolor='+$bcolor+'><TR><<$Headerstring>></TR><TR>'
+
+	!! Table Headers
+	*p '<center><table border=5 cellspacing=0 cellpadding=5 bgcolor='+$bcolor+' width="80%"><TR><TH>Item</TH><TH>You own</TH><TH>Units/pack</TH><TH>Cost in <b>₽</b></TH><TH colspan="2" width="12%">Remove 10/1</TH><TH width="8%">In cart</TH><TH colspan="2" width="12%">Add 1/10</TH></TR>'
+
+	!! Table Rows
+	$temp_image_color = iif(theme['dark'] = 1, '_w', '_b')
 	i = 1
 	:loopshopping_cart
 		!! if item is uninitialized (has blank name) - skip it
 		if $item_curr_aisle['<<i>>'] = '': i += 1 & jump 'loopshopping_cart'
+
 		$temp_bcolor = func('themes', 'alt_color', $temp_bcolor)
 		$item_line = '<TR bgcolor='+$temp_bcolor+'>'
-!!		uncomment if you want items with events to be marked with a * peepoShrug
-!!		if $event_curr_aisle['<<i>>'] ! '':
-!!			$item_line += '<TD align="left"><<$item_curr_aisle[''<<i>>'']>> *</TD>'
-!!		else
-			$item_line += '<TD align="left"><<$item_curr_aisle[''<<i>>'']>></TD>'
-!!		end
-		dynamic '$cart_tmp = $var_curr_aisle[''<<i>>'']'
+		$item_line += '<TD align="left"><<$item_curr_aisle[''<<i>>'']>></TD>'
+		$cart_tmp = $var_curr_aisle['<<i>>']
 		$item_line += '<TD><<mc_inventory[''<<$cart_tmp>>'']>></TD>'
 		$item_line += '<TD><<quantity_curr_aisle[''<<i>>'']>></TD>'
 		$item_line += '<TD><<cost_curr_aisle[''<<i>>'']>></TD>'
-		if cart_curr_quantity['<<i>>'] < 10:
-			$item_line += '<TD></TD>'
+		if cart_curr_quantity['<<i>>'] > 0:
+			$item_line += '<TD align="center" width="6%"><a href="exec:gt ''item_cart'', ''remove'', <<i>>, 10"><img src="images/rem<<$temp_image_color>>.png" height="<<fsize+2>>"></a></TD>'
+			$item_line += '<TD align="center" width="6%"><a href="exec:gt ''item_cart'', ''remove'', <<i>>, 1"><img src="images/rem<<$temp_image_color>>.png" height="<<fsize+2>>"></a></TD>'
 		else
-			$item_line += '<TD><a href="exec:gt ''item_cart'', ''remove10'', <<i>>">remove</a></TD>'
+			$item_line += '<TD></TD><TD></TD>'
 		end
-		if cart_curr_quantity['<<i>>'] < 1:
-			$item_line += '<TD></TD>'
+		$item_line += '<TD align="center"><<cart_curr_quantity[''<<i>>'']>></TD>'
+		if max_curr_aisle['<<i>>'] > cart_curr_quantity['<<i>>'] + mc_inventory['<<$cart_tmp>>'] or max_curr_aisle['<<i>>'] = 0:
+			$item_line += '<TD align="center" width="6%"><a href="exec:gt ''item_cart'', ''add'', <<i>>, 1"><img src="images/add<<$temp_image_color>>.png" height="<<fsize+2>>"></a></TD>'
+			$item_line += '<TD align="center" width="6%"><a href="exec:gt ''item_cart'', ''add'', <<i>>, 10"><img src="images/add<<$temp_image_color>>.png" height="<<fsize+2>>"></a></TD>'
 		else
-			$item_line += '<TD><a href="exec:gt ''item_cart'', ''remove'', <<i>>">remove</a></TD>'
-		end
-		$item_line += '<TD><<cart_curr_quantity[''<<i>>'']>></TD>'
-		if max_curr_aisle['<<i>>'] > cart_curr_quantity['<<i>>']+mc_inventory['<<$cart_tmp>>'] or max_curr_aisle['<<i>>'] = 0:
-			$item_line += '<TD><a href="exec:gt ''item_cart'', ''add'', <<i>>">add</a></TD>'
-		else
-			$item_line += '<TD>Max</TD>'
-		end
-		if max_curr_aisle['<<i>>'] > cart_curr_quantity['<<i>>'] + 10 + mc_inventory['<<$cart_tmp>>'] or max_curr_aisle['<<i>>'] = 0:
-			$item_line += '<TD><a href="exec:gt ''item_cart'', ''add10'', <<i>>">add</a></TD>'
-		else
-			$item_line += '<TD></TD>'
+			$item_line += '<TD align="center" colspan="2" width="6%">Max</TD>'
 		end
 		$item_line += '</TR>'
 		*p $item_line
 		i += 1
 	if i <= item_idx:jump 'loopshopping_cart'
 	'</table></center>'
+	
 	killvar '$temp_bcolor'
+	killvar '$temp_image_color'
+
+	!! Checkout
 	gs 'item_cart', 'cart_total'
 end
 
-if $ARGS[0] = 'header':
-	$Headerstring = '<TH>Item</TH><TH>You own</TH><TH>Units/pack</TH><TH>Cost in <b>₽</b></TH><TH>Remove 10</TH><TH>Remove 1 pack</TH><TH>In cart</TH><TH>Add one pack</TH><TH>Add 10</TH>'
-end
-
 if $ARGS[0] = 'remove':
-	cart_tally -= cost_curr_aisle['<<ARGS[1]>>']
-	cart_curr_quantity['<<ARGS[1]>>'] -= 1
-	gt $loc_s, $args_s
-end
+	ARGS[2] = min(cart_curr_quantity['<<ARGS[1]>>'], ARGS[2])
 
-if $ARGS[0] = 'remove10':
-	cart_tally -= cost_curr_aisle['<<ARGS[1]>>']*10
-	cart_curr_quantity['<<ARGS[1]>>'] -= 10
+	cart_tally -= cost_curr_aisle['<<ARGS[1]>>'] * ARGS[2]
+	cart_curr_quantity['<<ARGS[1]>>'] -= ARGS[2]
+
 	gt $loc_s, $args_s
 end
 
 if $ARGS[0] = 'add':
-	cart_tally += cost_curr_aisle['<<ARGS[1]>>']
-	cart_curr_quantity['<<ARGS[1]>>'] += 1
-	if $event_curr_aisle['<<ARGS[1]>>'] ! '': dynamic "<<$event_curr_aisle['<<ARGS[1]>>']>>"
-	gt $loc_s, $args_s
-end
+	ARGS[2] = iif(max_curr_aisle['<<ARGS[1]>>'] ! 0, min(max_curr_aisle['<<ARGS[1]>>'] - (cart_curr_quantity['<<ARGS[1]>>'] + mc_inventory[$var_curr_aisle['<<ARGS[1]>>']]), ARGS[2]), ARGS[2])
 
-if $ARGS[0] = 'add10':
-	cart_tally += cost_curr_aisle['<<ARGS[1]>>']*10
-	cart_curr_quantity['<<ARGS[1]>>'] += 10
+	cart_tally += cost_curr_aisle['<<ARGS[1]>>'] * ARGS[2]
+	cart_curr_quantity['<<ARGS[1]>>'] += ARGS[2]
+
 	if $event_curr_aisle['<<ARGS[1]>>'] ! '': dynamic "<<$event_curr_aisle['<<ARGS[1]>>']>>"
 	gt $loc_s, $args_s
 end
 
 if $ARGS[0] = 'simple_add':
-	cart_tally += cost_curr_aisle['<<ARGS[1]>>']*max(1,ARGS[2])
-	cart_curr_quantity['<<ARGS[1]>>'] += 1*max(1,ARGS[2])
+	cart_tally += cost_curr_aisle['<<ARGS[1]>>'] * max(1, ARGS[2])
+	cart_curr_quantity['<<ARGS[1]>>'] += 1 * max(1, ARGS[2])
 end
 
 if $ARGS[0] = 'cart_total':
@@ -113,18 +101,6 @@ if $ARGS[0] = 'cart_total':
 	$item_line[2] += '</TR></table></center>'
 	*p $item_line[2]
 end
-!!{
-if $ARGS[0] = 'shoppping_cart':
-    cart_idx = 0
-	cart_shoppingCost = 0
-    :cart_checkout
-        if tmp_$var_$curr_aisle['cart_idx']['cart_idx'] > 0:
-            basket total += tmp_$curr_aisle['cart_idx'] * cost_$curr_aisle['cart_idx']                           
-        end
-   if idx < arrsize($item_$curr_aisle): idx += 1 & jump 'cart_checkout'
-	'<center>Total cost of shopping:' + cart_tally + '<b>₽</b></center>'
-end
-}
 
 if $ARGS[0] = 'cash':
 	i = 1
