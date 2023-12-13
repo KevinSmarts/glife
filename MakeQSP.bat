@@ -15,7 +15,7 @@ set QGEN=tools\QGen5\QGen.exe
 set QSPFILE=glife.qsp
 
 :: Chimrod validation tool
-set QSPParser=tools\Parcer\qsp_parser.exe
+set QSPParser=tools\Parser\qsp_parser.exe
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 
 :menu
