@@ -69,7 +69,7 @@ if defined NOT_FOUND (
 )
 
 echo.
-echo ACTIONS: (B)uild  (R)un  (F)ull  (Q)Gen (V) Validate (E)xit
+echo ACTIONS: (B)uild  (R)un  (F)ull  (Q)Gen (V)alidate (E)xit
 echo.
 set /p action=Choose an action:
 
