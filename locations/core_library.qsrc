@@ -1,10 +1,66 @@
 # core_library
 
+
 !! Date Created: 17th Sept, 2022
 !! Modified date: 
 !! Version: .01 - initial release
+!! Version: .02 - refactoring to streamline content start, new standardised locations function for kitchen and bathroom test code
 !! Author: Hooded Silence
 !!
+
+!! Ballet School Initiator - This class is to act as a gateway to the various locations for the ballet school
+
+if $ARGS[0] = 'init':
+
+    !!  Summer School
+    
+     !! alterstrtimg is the mc backstry, mod_ballet[beta] is a test variable to initiate regardless
+    if alterstrtimg = 13 or mod_ballet['beta'] = 1: 
+        if daystart = 1:
+            mod_ballet['blocker'] = 1
+        end    
+        !! Parents Home Triggers
+        if $loc = 'kuhrPar':
+            if daystart < 6 and  mod_ballet['blocker'] = 1:
+                gs 'pushkin_ballet_init', 'init'
+            end
+    
+            if  (daystart > 6 and mod_ballet['letter'] = 0) or daystart > 45:	
+                gs 'pushkin_ballet_init', 'start'
+            end 
+        end
+    
+        !! Pavlovsk
+        if $loc = 'gdksport':
+            !! Close down Starlets
+            if mod_ballet['letter'] = 1 and (month = 7 or (month = 6 and day > 6)):
+                if AlbinaQW['StarletsJoined'] > 0 and AlbinaQW['StarletsShutDown'] = 0 and npc_pregtalk['A23'] = 0 and AlbinaQW['startletsday'] ! daystart:
+                    if hour = 15 and starlets_on = 1:
+                        act 'Tell Albina about the letter' : gt 'pushkin_ballet_evt', 'starlets'
+                    end
+                end
+            end
+            !! Dance job?
+    
+        end
+    
+        if $loc = 'pav_commcenter':
+            if month = 7 and day = 3 and (hour >= 16 and hour < 17) and mod_ballet['letter'] = 1:
+                ! Pre-flight - travel to school dorms
+                act '<font color="#80E656">Get on the bus</font>': gs 'shortgs', 'remove_array_element', 'mod_ballet', 'letter' & gt 'pushkin_ballet_res', 'start'	
+            end
+        end
+    
+        !! Pushkin
+    
+        !! Theatre 
+    
+        !! Other Events
+    end
+ end
+    
+!! --- Generic shared Locations and classes ---
+
 
 !! like SetLoc, to reduce code bloat and memorisation of header title and images.
 !! Project: allow for scene changes on the fly rather than static content based on story?
@@ -13,36 +69,32 @@
 !! $setloc[''StageTitle'']: Var to set up $loc h1 header
 !! $setloc[''StageImage'']: Var to set up $loc image - set 1 to randomise
 if $ARGS[0] = 'stage_title':
-    if $ARGS[1] = 1: 
+    if $ARGS[1] = '1': 
         $temp_StageExt = 'gif'
-    elseif $ARGS[1] = 2:
+    elseif $ARGS[1] = '2':
         $temp_StageExt = 'mp4'
     else 
         $temp_StageExt = 'jpg'
     end
-	
-	if $ARGS[2] = 2:
-	!! Randomise header image	
-		!!dummyr
-	end
+    
+    if $ARGS[2] = '2':
+    !! Randomise header image	
+        !!dummyr
+    end
     *clr & cla
-	'<center><h2><<$setloc[''StageTitle'']>></h2></center>'
-	'<center><img <<$set_imgh>> src="mod/img_ballet/<<$setloc[''StageImage>'']>>.<<$setloc[''temp_StageExt>>'']>>"></center>'
+    '<center><h2><<$setloc[''StageTitle'']>></h2></center>'
+    '<center><img <<$set_imgh>> src="images/<<$setloc[''StageImage'']>>.<<$temp_StageExt>>"></center>'
 
     !! Clean up
-    killvar '$setloc'
+    killvar '$temp_StageExt'
 
     !! set indoor or outdoor location specific variables
 
-    !!
-
     !! set standardised location variables such as kitchen, bathroom, personal bedroom
     
-    !! npc location tracker - if tracking npc locations add them here.
-
-    
+    !! npc location tracker - if tracking npc locations add them here.    
 end
-
+    
 if $ARGS[0] = 'corridor':
     if frost > 0: frost = 0
     music_loop = 0
@@ -57,6 +109,10 @@ end
 if $ARGS[0] = 'bathroom':
     !! Location facilities
     if $location_type = 'private':
+        'Your accommodation for the week has the luxury of a private shower and a bath. There''s a poster on the wall promoting the health benefits of ice baths and other advice on looking after your body.' 
+        *nl  
+            'There is a shower, toilet, sink, and a <a href="exec:gt ''mirror'',''start''">mirror</a> where you can ' + iif(pcs_hairbsh = 0,'<a href="exec:gt ''mirror'',''brush''">brush</a>','brush') + ' your hair.'
+
         gs 'din_van', 'private'
     elseif $location_type = 'public':
         act 'Take a shower':
@@ -69,6 +125,8 @@ if $ARGS[0] = 'bathroom':
             dynamic $showerdin	
             gs 'stat'
             'You grab a quick shower, but you wish you could stay longer in the shower to let the heat soak into your muscles.'
+                'There is a shower and <a href="exec:gt ''mirror'',''start''">mirrors</a> where you can ' + iif(pcs_hairbsh = 0,'<a href="exec:gt ''mirror'',''brush''">brush</a>','brush') + ' your hair.'
+
             act 'Continue' : gt $loc, $loc_arg
         end
     elseif $location_type = 'communal':
@@ -93,60 +151,44 @@ if $ARGS[0] = 'bathroom':
     end  
 end
 
-
-
 if $ARGS[0] = 'kitchen':
     !! Location facilities
     if $location_type = 'private':
         !! Home or parents kitchen
         dynamic $edasnack
         dynamic $sandwich
-        dynamic $driwater
-        dynamic $dritea
-        dynamic $fill_bottle
         dynamic $pranik
         dynamic $fatdel
         dynamic $lekarstvo
         dynamic $vitamin 
     elseif $location_type = 'public_indoors':
         !! canteen type location
-        dynamic $driwater
-        dynamic $dritea
-        dynamic $fill_bottle
     elseif $location_type = 'communal':
         !! shared or communal kitchen
         dynamic $edasnack
         dynamic $sandwich
-        dynamic $driwater
-        dynamic $dritea
-        dynamic $fill_bottle
         dynamic $pranik
         dynamic $vitamin 
     end    
     !! Default facilities
+    dynamic $driwater
+    dynamic $dritea
+    dynamic $fill_bottle
 end
-
-
 
 if $ARGS[0] = 'bedroom':
 !! Default facilities
-    if $location_type = 'private':
-        act 'Relax on your bed': gt 'bed', 'start'
-        act 'Open wardrobe': gt 'wardrobe', 'start'        
+    if $location_type = 'private':   
         if pcs_horny >= 50:
             act 'Masturbate':gt 'selfplay', 'start'
         end
-        gs 'events', 'read'
-        gs 'exercise', 'start'
-
     elseif $location_type = 'guest':
     elseif $location_type = 'private_shared': 
-        act 'Relax on your bed': gt 'bed', 'start'
-        act 'Open wardrobe': gt 'wardrobe', 'start'
-        gs 'events', 'read'
-        gs 'exercise', 'start'
     end
-
+    act 'Relax on your bed': gt 'bed', 'start'
+    act 'Open wardrobe': gt 'wardrobe', 'start'
+    gs 'events', 'read'
+    gs 'exercise', 'start'
 
 end
 --- core_library ---------------------------------

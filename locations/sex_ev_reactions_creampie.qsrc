@@ -506,13 +506,13 @@ if $ARGS[0] = 'creampie_ask_next_time':
 						end
 						if npc_free_creampies[$boy] = 2:
 							'"I thought you said I didn''t have to ask," <<$npc_firstname[$boy]>> says confusedly.'
-							'"Changed my mind. You need to start asking again."'
+							'"You still need to warn me," you scowl.'
 						elseif sex_ev['cum_wherever'] = 1:
 							'"You told me I could come wherever I wanted," he pants in return, smiling.'
 							'"You still need to warn me," you say, ' + iif(sex_ev['came_together'] > 0,'managing a slightly better glare this time, though it has an equally negligible effect.', 'letting your frown deepen into a scowl.')
 						elseif npc_know_bc[$boy] = 1:
 							'"You''re on birth control anyways aren''t you?"'
-							'"You still need to ask," you grumble, ' + iif(sex_ev['came_together'] > 0, 'managing a slightly better glare this time, though it has an equally negligible effect.', 'your frown deepening.')
+							'"You still need to ask," ' + iif(sex_ev['came_together'] > 0, 'managing to put on a proper scowl, though it has an equally negligible effect.', 'you scowl.')
 						else
 							'"Sorry," <<$npc_firstname[$boy]>> mumbles, apparently exhausted from emptying his balls into you without permission.'
 						end
@@ -544,7 +544,17 @@ if $ARGS[0] = 'creampie_ask_next_time':
 						$sex_ev['ask_next_time'] = 'not_mad'
 						cla & *nl
 						'"I thought I told you to ask...?" you say.'
-						'"Sorry," he replies sheepishly.'
+						
+						if sex_ev['cum_wherever'] = 1:
+							'"You told me I could come wherever I wanted," he grins in return.'
+							'"You still need to warn me," you chide gently.'
+						elseif npc_know_bc[$boy] = 1:
+							'"You''re on birth control anyways aren''t you?"'
+							'"You still need to ask," you chide gently.'
+						else
+							'"Sorry," <<$npc_firstname[$boy]>> mumbles, apparently exhausted from emptying his balls into you without permission.'
+						end
+						
 						act'I liked it':
 							cla & *nl
 							'"It''s okay," you smile gently, cupping his face with your hand. "I liked it."'
@@ -556,6 +566,28 @@ if $ARGS[0] = 'creampie_ask_next_time':
 							'"Next time..." you smile gently, cupping his face with your hand.'
 							gs'sex_ev_cum', 'what_now'
 						end
+					end
+					
+					act'I thought I told you to ask (annoyed)':
+						npc_ask_creampie[$boy] = 1
+						$sex_ev['ask_next_time'] = 'annoyed'
+						cla & *nl
+						if sex_ev['came_together'] > 0:
+							'"What happened... to asking...?" you pant, glaring at <<$npc_firstname[$boy]>> through your post orgasm haze.'
+						else
+							'"What happened to asking?" you scowl.'
+						end
+						
+						if sex_ev['cum_wherever'] = 1:
+							'"You told me I could come wherever I wanted," he grins in return.'
+							'"That doesn''t mean you can do it without permission!" you huff.'
+						elseif npc_know_bc[$boy] = 1:
+							'"You''re on birth control anyways aren''t you?"'
+							'"You still need to ask!" you huff.'
+						else
+							'"Sorry," <<$npc_firstname[$boy]>> mumbles, apparently exhausted from emptying his balls into you without permission.'
+						end
+						gs'sex_ev_sex', 'sex_end'
 					end
 				end
 			end
@@ -854,6 +886,7 @@ if $ARGS[0] = 'creampie_gross':
 	if sex_ev['creampie_ask'] ! 1 and sex_ev['creampie_orgasm'] = 0:
 		act'That was gross':
 			npc_dont_like_creampie[$boy] = 1
+			sex_ev['creampie_gross'] = 1
 			if sex_ev['just_cum_inside_me'] = 1:
 				sex_ev['cock_inserted'] = 0
 				cla & *clr
@@ -1736,6 +1769,8 @@ if $ARGS[0] = 'did_you_come_inside':
 					gs'sex_ev_reactions_creampie', 'creampie_gross'
 				end
 			end
+			
+			gs'sex_ev_reactions_creampie', 'creampie_accident_birth_control'
 			
 			gs'sex_ev_reactions_creampie', 'first_creampie'
 			
@@ -2743,7 +2778,7 @@ if $ARGS[0] = 'have_plan_b2':
 end
 
 if $ARGS[0] = 'creampie_accident_birth_control':
-	if birth_control['think_safe'] = 1:
+	if birth_control['think_safe'] = 1 and npc_know_bc[$boy] = 0:
 		if tabletkishot > 0:
 			$sex_ev['bc_type'] = 'shot'
 		else
@@ -2753,30 +2788,33 @@ if $ARGS[0] = 'creampie_accident_birth_control':
 			gs'sex_ev_stats', 'birth_control_know'
 			npc_know_not_bc[$boy] = 0
 			cla & *nl
-			if sex_ev['condom'] = 1:
-				'"It''s okay." you reassure him. "I''m on the <<$sex_ev[''bc_type'']>>. I just like condoms for extra safety."'
-			else
+			if sex_ev['no_condom'] = 1:
 				'"It''s okay." you reassure him. "I''m on the <<$sex_ev[''bc_type'']>>."'
+			else
+				'"It''s okay." you reassure him. "I''m on the <<$sex_ev[''bc_type'']>>. I just like condoms for extra safety."'
 			end
 			'<<$npc_firstname[$boy]>> seems to relax, relieved that you''re not upset.'
-			gs'sex_ev_cum', 'what_now'
+			'"Does... does that mean I can come inside you in the future?"'
+			gs 'sex_ev_talk', 'creampie_permission2'
 		end
 	else
-		act'I''m on birth control (lie)':
-			gs'sex_ev_stats', 'birth_control_know'
-			npc_know_not_bc[$boy] = 0
-			cla & *nl
-			'"It''s okay," you smile, telling a barefaced lie. "I''m on birth control."'
-			'<<$npc_firstname[$boy]>> seems to relax, relieved that you''re not upset.'
-			*nl
-			'<i>I wonder if his baby is going to be swimming around inside me after this?</i>'
-			gs'sex_ev_cum', 'what_now'
-		end
-
 		act'If I get pregnant, you better take responsibility (tease)':
 			cla & *nl
 			'"If I get pregnant, you better take responsibility for this," you say with a smile to let him know you''re only teasing. He seems deeply discomforted by your joke though...'
 			gs'sex_ev_cum', 'what_now'
+		end
+		
+		if sex_ev['creampie_count'] = 1 and sex_ev['bc_tell'] = 0:
+			act'I''m on birth control (lie)':
+				gs'sex_ev_stats', 'birth_control_know'
+				npc_know_not_bc[$boy] = 0
+				cla & *nl
+				'"It''s okay," you smile, telling a barefaced lie. "I''m on birth control."'
+				'<<$npc_firstname[$boy]>> seems to relax, relieved that you''re not upset.'
+				*nl
+				'<i>I wonder if his baby is going to be swimming around inside me after this?</i>'
+				gs'sex_ev_cum', 'what_now'
+			end
 		end
 	end
 end

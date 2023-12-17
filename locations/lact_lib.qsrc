@@ -45,7 +45,7 @@
 if $ARGS[0] = 'init_breasttissue':
 	!!	use func('lact_lib','init_breasttissue')
 	!!	getting the useable tissue
-	lactation['useable_cupsize'] = nbsize + magicf2b - vofat
+	lactation['useable_cupsize'] = pcs_mass['bust'] + bodyVars['bust_magic'] + bodyVars['bust_other'] - bodyVars['vofat']
 	!!	checking the variable. If it is greater 0, sveta has natural breast tissue to work with.
 	!!	else she has fake breasts or no breasts at all and no ability to lactate
 	if lactation['useable_cupsize'] > 0:
@@ -54,11 +54,11 @@ if $ARGS[0] = 'init_breasttissue':
 		!! breast density type. Density of glands.
 		!! 0 = not initialized, 1 = 17% gland tissue, 2 = 36% gland tissue, 3 = 55% gland tissue, 4 = 74% gland tissue, 5 = 93% gland tissue. This is based on studies I found on the internet.
 		!! The logic behind the below is, when losing fat, breasts usually volunteer first. So the more bodyfat sveta has, the more she has in her breasts, and therefore the percentage of gland tissue goes down.
-		!! Breasts cannot lose glandular tissue (if not cut out, yikes), therefore this will define the maximum they can shrink if fat is removed. At the moment this is done by Genbsize. The below will replace this in the future.
-		!! Genbsize is the breastsize that is given to Sveta by her parents. During puberty the breasts swell up to this size with mostly being fat tissue. Due to genetic variability and hormones, breasts will develop more or
+		!! Breasts cannot lose glandular tissue (if not cut out, yikes), therefore this will define the maximum they can shrink if fat is removed. At the moment this is done by pcs_mass['bust_gen']. The below will replace this in the future.
+		!! pcs_mass['bust_gen'] is the breastsize that is given to Sveta by her parents. During puberty the breasts swell up to this size with mostly being fat tissue. Due to genetic variability and hormones, breasts will develop more or
 		!! less mammary gland tissue during puberty. As the game starts after Svetas puberty, this is impossible to simulate. That is why I came up with the below part. It will calculate the breastdensity using Svetas body fat.
 		!! During pregnancy most of the breast fat is getting replaced by conjuctive tissue and mammary glands. But the genetical breastsize also affects the total mammary gland growth. So for example, if Sveta is a chubby,
-		!! and has D cups with a breastdensitytype of 1, and she looses weight, her breast will shrink down to B cups. If her Genbsize is D, then she will grow D cups or bigger during pregnancy. But that is part of another function.
+		!! and has D cups with a breastdensitytype of 1, and she looses weight, her breast will shrink down to B cups. If her pcs_mass['bust_gen'] is D, then she will grow D cups or bigger during pregnancy. But that is part of another function.
 		lactation['breastcount'] = 2
 		
 		if lactation['breastdensitytype'] < 3:
@@ -102,7 +102,7 @@ if $ARGS[0] = 'bsizetoccm':
 	!!	Getting breast ccm per breast function based on the bra size chart in here https://en.wikipedia.org/wiki/Bra_size
 	!!	I tried to create a math polynom for this, but ended up with x^16 monsters and inaccurate numbers, so I am going this approach.
 	!!	This is the most accurate function I was able to make, and is doing the job really good. So please do not touch it.
-	!!	usage func('lact_lib','bsizetoccm', (nbsize + magicf2b + silicone))
+	!!	usage func('lact_lib','bsizetoccm', (pcs_mass['bust'] + bodyVars['bust_magic'] + bodyVars['bust_silicone']))
 	if ARGS[1] < 0:
 		result = 100
 	elseif ARGS[1] <= 15:
@@ -143,7 +143,7 @@ if $ARGS[0] = 'bsizetoccm':
 end
 
 if $ARGS[0] = 'bccmtosize':
-	!!	backwardsfunction of bsizetoccm. It just reverts breast ccm to "nbsize + magicf2b + silicone" 
+	!!	backwardsfunction of bsizetoccm. It just reverts breast ccm to "pcs_mass['bust'] + bodyVars['bust_magic'] + bodyVars['bust_silicone']" 
 	!!	func('lact_lib','bccmtosize',lactation['breastccm'])
 	if ARGS[1] < 0:
 		result = 0
@@ -184,22 +184,22 @@ if $ARGS[0] = 'bccmtosize':
 	end
 end
 
-!! This function is used for lactation based growth. It writes back to nbsize, magicf2b.
+!! This function is used for lactation based growth. It writes back to pcs_mass['bust'], bodyVars['bust_magic'].
 if $ARGS[0] = 'lactationBreastGrowth':
 	if lactation['maturebreast'] = 1 and lactation['preggrowth'] > 0:
 !!		lactation['lactlib_change'] = 1
-		lactation['useable_cupsize'] = nbsize + magicf2b - vofat
-		nbsize += func('lact_lib','bccmtosize',(func('lact_lib','bsizetoccm', lactation['useable_cupsize']) + (lactation['preggrowth']/100))) + vofat - magicf2b - nbsize
+		lactation['useable_cupsize'] = pcs_mass['bust'] + bodyVars['bust_magic'] - bodyVars['vofat']
+		pcs_mass['bust'] += func('lact_lib','bccmtosize',(func('lact_lib','bsizetoccm', lactation['useable_cupsize']) + (lactation['preggrowth']/100))) + bodyVars['vofat'] - bodyVars['bust_magic'] - pcs_mass['bust']
 		lactation['result'] = func('lact_lib','init_breasttissue')
 	end
 	if lactation['alveoliexpandlvl_change'] <> lactation['alveoliexpandlvl']:
 		!!	lactlib makes a change. we need to flag that, else checkExtBreastGrowth will go off and mess up everything.
 !!		lactation['lactlib_change'] = 1
 		if lactation['alveoliexpandlvl'] mod 3 = 0 and lactation['alveoliexpandlvl_change'] + 1 = lactation['alveoliexpandlvl']:
-			nbsize += 5
+			pcs_mass['bust'] += 5
 			'<b>Your breasts seem fuller.</b>'
-		elseif lactation['alveoliexpandlvl_change'] mod 3 = 0 and lactation['alveoliexpandlvl'] + 1 = lactation['alveoliexpandlvl_change'] and lactation['alveoliexpandlvl_change'] > 0 and nbsize > 10:
-			nbsize -= 5
+		elseif lactation['alveoliexpandlvl_change'] mod 3 = 0 and lactation['alveoliexpandlvl'] + 1 = lactation['alveoliexpandlvl_change'] and lactation['alveoliexpandlvl_change'] > 0 and pcs_mass['bust'] > 10:
+			pcs_mass['bust'] -= 5
 			'<b>Your breasts seem to be getting smaller.</b>'
 		end	
 		lactation['alveoliexpandlvl_change'] = lactation['alveoliexpandlvl'] 	
@@ -243,8 +243,8 @@ if $ARGS[0] = 'prod_milk':
 		lactation['used_lactaterate'] += ARGS[1]
 		if lactation['used_lactaterate'] > lactation['lactaterate']: lactation['used_lactaterate'] = lactation['lactaterate']
 	end
-	!!	If Sveta has salo <= 15, she will not produce breast milk as she is basically starving and her body will shut down everything that is causing too much energy consumption.
-	if lactation['active'] > 0 and salo > 15:
+	!!	If Sveta has pcs_mass['body'] <= 15, she will not produce breast milk as she is basically starving and her body will shut down everything that is causing too much energy consumption.
+	if lactation['active'] > 0 and pcs_mass['body'] > 15:
 		!!	checking how much hydration, stamina and hunger is needed to produce x amount of breast milk
 		!!	checking if enough stamina and hydra is available
 		if (lactation['prod_milk_req']/10000) < pcs_stam and (lactation['prod_milk_req']/10000) < pcs_hydra:
@@ -304,15 +304,15 @@ if $ARGS[0] = 'prod_milk':
 					if pcs_energy < 1: pcs_energy = 1
 				end
 			else
-				!!	If energy is too low, milk will be produced but there is a chance that salo will shrink.
+				!!	If energy is too low, milk will be produced but there is a chance that pcs_mass['body'] will shrink.
 				pcs_energy = 1
-				if rand(0,100) > 95: salo -= 1
+				if rand(0,100) > 95: pcs_mass['body'] -= 1
 				if pain['breasts'] < 20: pain['breasts'] += 1
 			end
 			if pcs_energy < 1: pcs_energy = 1
 			if pcs_hydra < 1: pcs_hydra = 1
 			if pcs_stam < 1: pcs_stam = 1
-			result = lactation['prod_milk_temp_var']			
+			result = lactation['prod_milk_temp_var']
 		end
 	else
 		result = 0
@@ -323,7 +323,7 @@ end
 if $ARGS[0] = 'breast_stat_disp':
 !! breast status
 	if lactation['active'] <= 0:
-		if lactation['growthsoreness_on'] > 0: $stat_msg += '<BR>'+iif(night_mode > 0,'<font color = white>','<font color = black>')+'Your breasts feel sore and swollen.</font><BR>'
+		if lactation['growthsoreness_on'] > 0: $stat_msg += '<BR><font color='+$fcolor+'Your breasts feel sore and swollen.</font><BR>'
 	elseif lactation['active'] > 0 and lactation['pc_aware'] > 0:
 		if lactation['engorgement'] > 0 and lactation['lactmess'] < 1:
 			$stat_msg += '<BR><font color = orange>Your breasts are so full they hurt.</font><BR>'
@@ -340,13 +340,13 @@ if $ARGS[0] = 'breast_stat_disp':
 		elseif lactation['engorgement'] > 0 and lactation['lactmess'] >= 6:
 			$stat_msg += '<BR><font color = red>Your breasts are so full they hurt and you can feel your milk spraying out. Your top is drenched with your breast milk.</font><BR>'
 		elseif lactation['engorgement'] < 1 and lactation['breastmv'] > lactation['breastmm']*9/10:
-			$stat_msg += '<BR>'+iif(night_mode > 0,'<font color = white>','<font color = black>')+'Your breasts are firm and full from your milk.</font><BR>'
+			$stat_msg += '<BR><font color='+$fcolor+'Your breasts are firm and full from your milk.</font><BR>'
 		elseif lactation['engorgement'] < 1 and lactation['breastmv'] > lactation['breastmm']/2:
-			$stat_msg += '<BR>'+iif(night_mode > 0,'<font color = white>','<font color = black>')+'Your breasts are heavy with your milk.</font><BR>'
+			$stat_msg += '<BR><font color='+$fcolor+'Your breasts are heavy with your milk.</font><BR>'
 		elseif lactation['engorgement'] < 1 and lactation['breastmv'] > lactation['breastmm']/4:
-			$stat_msg += '<BR>'+iif(night_mode > 0,'<font color = white>','<font color = black>')+'Your breasts feel slightly heavy from the milk inside.</font><BR>'
+			$stat_msg += '<BR><font color='+$fcolor+'Your breasts feel slightly heavy from the milk inside.</font><BR>'
 		elseif lactation['engorgement'] < 1 and lactation['breastmv'] > 0:
-			$stat_msg += '<BR>'+iif(night_mode > 0,'<font color = white>','<font color = black>')+'Your feel an easy pressure in your breasts from your milk.</font><BR>'
+			$stat_msg += '<BR><font color='+$fcolor+'Your feel an easy pressure in your breasts from your milk.</font><BR>'
 		end
 	elseif lactation['active'] > 0 and lactation['pc_aware'] < 1:
 		if lactation['engorgement'] > 0 and lactation['lactmess'] < 1:
@@ -364,13 +364,13 @@ if $ARGS[0] = 'breast_stat_disp':
 		elseif lactation['engorgement'] > 0 and lactation['lactmess'] >= 6:
 			$stat_msg += '<BR><font color = red>Your breasts hurt and your nipples tingle a lot. Your top is drenched with a warm liquid.</font><BR>'
 		elseif lactation['engorgement'] < 1 and lactation['breastmv'] > lactation['breastmm']*9/10:
-			$stat_msg += '<BR>'+iif(night_mode > 0,'<font color = white>','<font color = black>')+'Your breasts feel firm and under pressure.</font><BR>'
+			$stat_msg += '<BR><font color='+$fcolor+'Your breasts feel firm and under pressure.</font><BR>'
 		elseif lactation['engorgement'] < 1 and lactation['breastmv'] > lactation['breastmm']/2:
-			$stat_msg += '<BR>'+iif(night_mode > 0,'<font color = white>','<font color = black>')+'Your breasts feel heavy.</font><BR>'
+			$stat_msg += '<BR><font color='+$fcolor+'Your breasts feel heavy.</font><BR>'
 		elseif lactation['engorgement'] < 1 and lactation['breastmv'] > lactation['breastmm']/4:
-			$stat_msg += '<BR>'+iif(night_mode > 0,'<font color = white>','<font color = black>')+'Your breasts feel slightly heavy.</font><BR>'
+			$stat_msg += '<BR><font color='+$fcolor+'Your breasts feel slightly heavy.</font><BR>'
 		elseif lactation['engorgement'] < 1 and lactation['breastmv'] > 0:
-			$stat_msg += '<BR>'+iif(night_mode > 0,'<font color = white>','<font color = black>')+'Your feel an easy pressure in your breasts.</font><BR>'
+			$stat_msg += '<BR><font color='+$fcolor+'Your feel an easy pressure in your breasts.</font><BR>'
 		end
 	end
 end
@@ -591,8 +591,8 @@ if $ARGS[0] = 'breastcycle':
 			lactation['growthsoreness_on'] = 1
 			if pain['breasts'] <= 20: pain['breasts'] = 20
 		end
-		!!	If sveta meets alveoliexpandlvl 10 and her prolactinlvl is between random 200 and 250, her lactation will set in. This is happening during induction or during pregnancy
-		if rand(1,50) + lactation['prolactinlvl']  >= rand(200,250) and lactation['alveoliexpandlvl'] >= 10:
+		!!	If sveta meets alveoliexpandlvl 10 and her prolactinlvl is between random 200 and 250, her lactation will set in, will not switch if only lactating. This is happening during induction or during pregnancy
+		if rand(1,50) + lactation['prolactinlvl']  >= rand(200,250) and lactation['alveoliexpandlvl'] >= 10 and lactation['active'] = 0:
 			lactation['result'] = func('lact_lib','lact_switch')
 		end
 	else
