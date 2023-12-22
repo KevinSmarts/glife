@@ -12,7 +12,7 @@ if $ARGS[0] = 'main' or $ARGS[0] = '':
 		'You have no internet access, ' + iif(access['metered'], ' you have to buy more minutes.', ' maybe you forgot to pay the internet bill?')
 		act '<B>Close the browser</B>': gt 'komp','start'
 	else
-		'<center><img <<$set_imgh>> src="images/system/image_needed.jpg"></center>'
+		'<center><img <<$set_imgh>> src="images/system/image_needed.png"></center>'
 		'You''re currently on Russia''s biggest social network site, "Assbook". Almost everyone has an account here'
 		*nl
 		if $assbook['account_name'] = '':
@@ -30,7 +30,7 @@ end
 
 if $ARGS[0] = 'signup':
 	'<center><b>Assbook</b></center>'
-	'<center><img <<$set_imgh>> src="images/system/image_needed.jpg"></center>'
+	'<center><img <<$set_imgh>> src="images/system/image_needed.png"></center>'
 	'You consider which name you''d like to register under.'
 	$assbook['account_name'] = input('Which name would you like to use? (Leave blank for <<$pcs_nickname>>)')
 	if $assbook['account_name'] = '': $assbook['account_name'] = '<<$pcs_nickname>>'
@@ -42,12 +42,150 @@ if $ARGS[0] = 'signup':
 end
 
 if $ARGS[0] = 'login':
-	'<center><img <<$set_imgh>> src="images/system/image_needed.jpg"></center>'
+	'<center><img <<$set_imgh>> src="images/system/image_needed.png"></center>'
 	
-	'This content is WIP.'
+	'<font color="red">This content is WIP.</font>'
+	*nl
+	'<a href="exec: gt ''komp_assbook'', ''upload_photo''">Upload a new photo</a>'
+	*nl
+	'Uploaded photos:'
+	gs 'phone_selfies', 'Phone_selfie_totals'
+
+	temp_locationCnt = 0
+	:LocationLoop
+		gs 'komp_assbook', 'showlocation', temp_locationCnt
+		temp_locationCnt += 1
+	if temp_locationCnt < arrsize('$selfieLoc'): jump'LocationLoop'
 	
 	act 'Go back to the main page': gt 'komp_assbook', 'main'
 end
+
+
+if $ARGS[0] = 'showlocation':
+	!'<center><h4><font color="maroon"><<$selfieLocDesc[ARGS[1]]>> selfies</font></h4></center>'
+	*nl
+	gs 'komp_assbook', 'listretrieve', ARGS[1], $selfieLoc[ARGS[1]]
+end
+
+
+if $ARGS[0] = 'listretrieve':
+	gs 'komp_assbook', 'retrieve_clothed_selfies',		ARGS[1], $ARGS[2]
+	gs 'komp_assbook', 'retrieve_swim_selfies',			ARGS[1], $ARGS[2]
+end
+
+!!  ARGS[1] is the index of the location in $selfieLoc[]
+!! $ARGS[2] is the selfie location
+if $ARGS[0] = 'retrieve_clothed_selfies':
+	!!Loop for clothed selfies, dynamics set variables as mixing them in loop instructions is bad
+	if selfieClotot[ARGS[1]] > 0:
+		!'<center><b>Clothed selfies</b></center>'
+		*nl
+		temp_clocnt = 1
+		:temp_loop
+			!!setting value to unmixed variable so it can be checked in the if below
+			dynamic 'assbook_locval = assbook_<<$ARGS[2]>>_clothed[<<temp_clocnt>>]'
+			if assbook_locval = 1: *p func('phone_selfies_popup', 'set_selfie', $ARGS[2], 'clothed', ARGS[1], temp_clocnt)
+			temp_clocnt += 1
+		if temp_clocnt <= selfieClotot[ARGS[1]]: jump 'temp_loop'
+	end
+end
+
+if $ARGS[0] = 'retrieve_swim_selfies':
+	if selfieSwimtot[ARGS[1]] > 0:
+		!'<center><b>Swimwear selfies</b></center>'
+		*nl
+		temp_clocnt = 1
+		:temp_loop1
+			!!setting value to unmixed variable so it can be checked in the if below
+			dynamic 'assbook_locval = assbook_<<$ARGS[2]>>_bikini[<<temp_clocnt>>]'
+			if assbook_locval = 1: *p func('phone_selfies_popup', 'set_selfie', $ARGS[2], 'bikini', ARGS[1], temp_clocnt)
+			temp_clocnt += 1
+		if temp_clocnt <= selfieSwimtot[ARGS[1]]: jump 'temp_loop1'
+	end
+end
+
+
+if $ARGS[0] = 'upload_photo':
+	menu_off = 1
+	temp_suppress_other_selfies = 1
+	$temp_ssh_ret_loc = 'komp_assbook'
+	$temp_ssh_ret_arg = 'upload_photo2'
+
+
+	gs 'phone_selfies', 'Phone_selfie_totals'
+
+	temp_locationCnt = 0
+	:LocationLoop
+		gs 'komp_assbook', 'showlocation2', temp_locationCnt
+		temp_locationCnt += 1
+	if temp_locationCnt < arrsize('$selfieLoc'): jump'LocationLoop'
+
+
+	act 'Go back to your page':
+		menu_off = 0
+		killvar 'temp_suppress_other_selfies'
+		killvar '$temp_ssh_ret_loc'
+		killvar '$temp_ssh_ret_arg'
+		gt 'komp_assbook', 'login'
+	end
+end
+
+if $ARGS[0] = 'upload_photo2':
+	dynamic 'assbook_<<$ARGS[2]>>_<<$ARGS[3]>>[<<ARGS[5]>>] = 1'
+	menu_off = 0
+	killvar 'temp_suppress_other_selfies'
+	killvar '$temp_ssh_ret_loc'
+	killvar '$temp_ssh_ret_arg'
+	gt 'komp_assbook', 'login'
+end
+
+
+if $ARGS[0] = 'showlocation2':
+	'<center><h4><font color="maroon"><<$selfieLocDesc[ARGS[1]]>> selfies</font></h4></center>'
+	*nl
+	gs 'komp_assbook', 'listretrieve2', ARGS[1], $selfieLoc[ARGS[1]]
+end
+
+
+if $ARGS[0] = 'listretrieve2':
+	gs 'komp_assbook', 'upload_clothed_selfies',		ARGS[1], $ARGS[2]
+	gs 'komp_assbook', 'upload_swim_selfies',			ARGS[1], $ARGS[2]
+end
+
+
+!!  ARGS[1] is the index of the location in $selfieLoc[]
+!! $ARGS[2] is the selfie location
+if $ARGS[0] = 'upload_clothed_selfies':
+	!!Loop for clothed selfies, dynamics set variables as mixing them in loop instructions is bad
+	if selfieClotot[ARGS[1]] > 0:
+		!'<center><b>Clothed selfies</b></center>'
+		*nl
+		temp_clocnt = 1
+		:temp_loop
+			!!setting value to unmixed variable so it can be checked in the if below
+			dynamic 'assbook_locval = assbook_<<$ARGS[2]>>_clothed[<<temp_clocnt>>]'
+			dynamic 'phone_locval = <<$ARGS[2]>>_closelfie[<<temp_clocnt>>]'
+			if assbook_locval = 0 and phone_locval = 1: *p func('phone_selfies_popup', 'set_selfie', $ARGS[2], 'clothed', ARGS[1], temp_clocnt)
+			temp_clocnt += 1
+		if temp_clocnt <= selfieClotot[ARGS[1]]: jump 'temp_loop'
+	end
+end
+
+if $ARGS[0] = 'upload_swim_selfies':
+	if selfieSwimtot[ARGS[1]] > 0:
+		!'<center><b>Swimwear selfies</b></center>'
+		*nl
+		temp_clocnt = 1
+		:temp_loop1
+			!!setting value to unmixed variable so it can be checked in the if below
+			dynamic 'assbook_locval = assbook_<<$ARGS[2]>>_bikini[<<temp_clocnt>>]'
+			dynamic 'phone_locval = <<$ARGS[2]>>_swim[<<temp_clocnt>>]'
+			if assbook_locval = 0 and phone_locval = 1: *p func('phone_selfies_popup', 'set_selfie', $ARGS[2], 'bikini', ARGS[1], temp_clocnt)
+			temp_clocnt += 1
+		if temp_clocnt <= selfieSwimtot[ARGS[1]]: jump 'temp_loop1'
+	end
+end
+
 
 
 if $ARGS[0] = 'mission_statements':
