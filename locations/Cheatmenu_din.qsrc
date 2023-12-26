@@ -782,8 +782,13 @@ $cheatmenu['setLooks'] = {
 }
 
 $cheatmenu['setLooksInput'] = {
-	temp_input = input("Set your <<$ARGS[1]>> level:")
-	gs 'shortgs', 'setStat', $ARGS[0], temp_input
+	$temp_input = $input("Set your <<$ARGS[1]>> level:")
+	if isnum($temp_input) ! 0:
+		gs 'shortgs', 'setStat', $ARGS[0], val($temp_input)
+	elseif $temp_input ! '':
+		msg 'invalid input'
+	end
+	killvar '$temp_input'
 	dynamic $cheatmenu['looks']
 }
 
@@ -836,6 +841,9 @@ $cheatmenu['looks'] = {
 	'<a href="exec:pcs_hgt = input(''Enter <<$pcs_nickname>>s height in centimetres<br><br>(default 170, min 100, max 200, values below 160 and above 180 will cause problems in the calculation of BMI/weight the more you deviate from the default 170)'') & dynamic $cheatmenu[''looks'']">Change <<$pcs_nickname>>''s height</a>'
 	*nl
 	*p 'Musculature (<<stren_plus_lvl>>): ' & dynamic $cheatmenu['printLooksLinks'], 'stren_plus', 'Musculature'
+	*pl '<font color="grey">Allows strength to go past 100'
+	*pl'<font color="red">Negatively</font> affects appearance</font>'
+	*nl
 	*p 'Toned Butt (<<butt_tr_lvl>>): ' & dynamic $cheatmenu['printLooksLinks'], 'butt_tr', 'Toned Butt'
 	*nl
 	'You have <<$titsize>> breasts'
@@ -1154,14 +1162,24 @@ $cheatmenu['setStat'] = {
 }
 
 $cheatmenu['setStatInput'] = {
-	temp_input = input("Set your <<$ARGS[1]>> level:")
-	gs 'shortgs', 'setStat', $ARGS[0], temp_input
+	$temp_input = $input("Set your <<$ARGS[1]>> level:")
+	if isnum($temp_input) ! 0:
+		gs 'shortgs', 'setStat', $ARGS[0], val($temp_input)
+	elseif $temp_input ! '':
+		msg 'invalid input'
+	end
+	killvar '$temp_input'
 	dynamic $cheatmenu['stats']
 }
 
 $cheatmenu['setStatInputInverted'] = {
-	temp_input = input("Set your <<$ARGS[1]>> level:")
-	gs 'shortgs', 'setStat', $ARGS[0], (100 - temp_input)
+	$temp_input = $input("Set your <<$ARGS[1]>> level:")
+	if isnum($temp_input) ! 0:
+		gs 'shortgs', 'setStat', $ARGS[0], (100 - val($temp_input))
+	elseif $temp_input ! '':
+		msg 'invalid input'
+	end
+	killvar '$temp_input'
 	dynamic $cheatmenu['stats']
 }
 
@@ -1673,7 +1691,7 @@ $cheatmenu['input_time'] = {
 
 $cheatmenu['time'] = {
 	if currtimecheck = 1:
-		if ((year mod 4 = 0) and (year mod 100 ! 0)) or (year mod 400 = 0): 
+		if ((year mod 4 = 0) and (year mod 100 ! 0)) or (year mod 400 = 0):
 			monthsend[2] = 29
 		else
 			monthsend[2] = 28
@@ -1682,13 +1700,13 @@ $cheatmenu['time'] = {
 	gs 'daystart'
 	gs 'outdoors', 'temp_set'
 	gs 'stat'
-	
+
 	temp_daystart = (year - 2016) * 365
 	!! leap year correction
 	temp_daystart += (year - 2013) / 4
 
 	copyarr 'temp_monthsend', 'monthsend'
-	if ((temp_year mod 4 = 0) and (temp_year mod 100 ! 0)) or (temp_year mod 400 = 0): 
+	if ((temp_year mod 4 = 0) and (temp_year mod 100 ! 0)) or (temp_year mod 400 = 0):
 		temp_monthsend[2] = 29
 	else
 		temp_monthsend[2] = 28
@@ -2095,8 +2113,7 @@ $cheatmenu['display'] = {
 	*clr & cla
 	gs 'obj_din', 'settingtabs'
 	'<center><h1>Display Setting</h1></center>'
-	'<center><table cellspacing="0" cellpadding="20" valign="top"><tr>'
-	'<td cellspacing="0" cellpadding="20" valign="top">'
+	*p '<center><table cellspacing="0" cellpadding="20" valign="top"><tr><td cellspacing="0" cellpadding="20" valign="top">'
 	if usePopUps = 1:
 		'Allow Popup Pictures: Currently ON - <a href="exec:usePopUps = 0 & dynamic $cheatmenu[''display'']">Turn OFF</a>'
 	else
@@ -2130,7 +2147,7 @@ $cheatmenu['display'] = {
 
 	*p iif($theme['name'] = 'Custom', 'Custom&nbsp;', '<a href="exec:gs ''themes'', ''set_custom'' & gs ''$menu_obnovit'' & dynamic $cheatmenu[''display'']">Custom</a>&nbsp;')
 
-	*pl '<a href="exec:msg ''test''"><img src="images/system/image_needed.png" height="<<fsize+2>>"></a>'
+	*pl '<a href="exec:dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/preferences<<iif(theme[''is_dark''] = 0, ''_b'', ''_w'')>>.png" height="<<fsize*15/10>>"></a>'
 
 	'<font color="grey">Dynamic theme (default) will change colour based on the game hour.</font>'
 	*nl
@@ -2160,7 +2177,263 @@ $cheatmenu['display'] = {
 	else
 		'Show Debug window on save load: Currently ON - <a href="exec:loadg_show_debug = 0 & debug_warning_closed = 1 & showobjs 0 & dynamic $cheatmenu[''display'']">Turn OFF</a>'
 	end
-	'</tr></table></b></center>'
+	*p '</td></tr></table></center>'
+}
+
+$cheatmenu['theme_customize_input'] = {
+	if $ARGS[0] = 'fname':
+		$temp_input = $trim($input('Enter Font name:'))
+		if $temp_input ! '': $custom_theme['fname'] = $temp_input
+	elseif $ARGS[0] = 'fsize':
+		$temp_input = $trim($input('Enter Font size:'))
+		if $temp_input ! '':
+			if isnum($temp_input):
+				custom_theme['fsize'] = iif(val($temp_input) < 9, 9, val($temp_input))
+			else
+				msg 'invalid input'
+			end
+		end
+	elseif $ARGS[0] = 'rgb':
+		result = ARGS[2]
+		$temp_input = $ucase($trim($input('Enter <<$ARGS[1]>> color component in 0 - 255 or 00 - FF format')))
+		if $temp_input ! '':
+			if isnum($temp_input) ! 0:
+				if val($temp_input) < 0 or val($temp_input) > 255:
+					msg 'invalid input'
+				else
+					temp_result = val($temp_input)
+				end
+			else
+				if len($temp_input) > 2 or instr('0123456789ABCDEF', $mid($temp_input, 1, 1)) = 0 or instr('0123456789ABCDEF', $mid($temp_input, 2, 1)) = 0:
+					msg 'invalid input'
+				else
+					temp_result = func('shortgs', 'hex_str_to_int', $temp_input)
+				end
+			end
+		end
+		if arrsize('temp_result') = 1:
+			if $ARGS[1] = 'red':
+				result = ((ARGS[2] and -256) or temp_result)
+			elseif $ARGS[1] = 'green':
+				result = ((ARGS[2] and -65281) or (temp_result * 256))
+			elseif $ARGS[1] = 'blue':
+				result = ((ARGS[2] and -16711681) or (temp_result * 65536))
+			end
+		end
+		killvar 'temp_result'
+	elseif $ARGS[0] = 'hex':
+		result = ARGS[1]
+		$temp_input = $ucase($trim($input('Enter color in ABC or AABBCC format')))
+		if $temp_input ! '':
+			$temp_input = $replace($temp_input, '#')
+			temp_length = len($temp_input)
+			if temp_length = 3 or temp_length = 6:
+				temp_index = 1
+				:is_hex_loop
+					if instr('0123456789ABCDEF', $mid($temp_input, temp_index, 1)) = 0:
+						msg 'invalid input' & jump 'invalid_input_exit'
+					end
+				if temp_index < temp_length: temp_index += 1 & jump 'is_hex_loop'
+				killvar 'temp_index'
+
+				if temp_length = 3:
+					$temp_red = $mid($temp_input, 1, 1) & $temp_red = $temp_red + $temp_red
+					$temp_green = $mid($temp_input, 2, 1) & $temp_green = $temp_green + $temp_green
+					$temp_blue = $mid($temp_input, 3, 1) & $temp_blue = $temp_blue + $temp_blue
+				else
+					$temp_red = $mid($temp_input, 1, 2)
+					$temp_green = $mid($temp_input, 3, 2)
+					$temp_blue = $mid($temp_input, 5, 2)
+				end
+
+				result = rgb(func('shortgs', 'hex_str_to_int', $temp_red), func('shortgs', 'hex_str_to_int', $temp_green), func('shortgs', 'hex_str_to_int', $temp_blue))
+
+				killvar '$temp_red' & killvar '$temp_green' & killvar '$temp_blue'
+			else
+				msg 'invalid input'
+			end
+			:invalid_input_exit
+			killvar 'temp_length'
+		end
+	end
+	killvar '$temp_input'
+}
+
+$cheatmenu['extract_color_component'] = {
+	if $ARGS[0] = 'red':
+		result = (ARGS[1] and 255)
+	elseif $ARGS[0] = 'green':
+		result = ((ARGS[1] and 65280) / 256)
+	elseif $ARGS[0] = 'blue':
+		result = ((ARGS[1] and 16711680) / 65536)
+	end
+}
+
+$cheatmenu['theme_customize_increment'] = {
+	if $ARGS[0] = 'rgb':
+		result = dyneval($cheatmenu['extract_color_component'], $ARGS[1], ARGS[2]) + ARGS[3]
+		result = iif(result > 255, result - 256, iif(result < 0, 256 + result, result))
+		if $ARGS[1] = 'red':
+			result = ((ARGS[2] and -256) or result)
+		elseif $ARGS[1] = 'green':
+			result = ((ARGS[2] and -65281) or (result * 256))
+		elseif $ARGS[1] = 'blue':
+			result = ((ARGS[2] and -16711681) or (result * 65536))
+		else
+			result = ARGS[2]
+		end
+	end
+}
+
+$cheatmenu['theme_customize_print_color_line'] = {
+	$result = '<a href="exec: <<$ARGS[1]>> = dyneval($cheatmenu[''theme_customize_increment''], ''rgb'', ''<<$ARGS[0]>>'', <<$ARGS[1]>>, -custom_theme[''increment'']) & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/less<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
+	$result += '&nbsp;<<dyneval($cheatmenu[''extract_color_component''], ''<<$ARGS[0]>>'', dyneval(''result = <<$ARGS[1]>>''))>>&nbsp;'
+	$result += '<a href="exec: <<$ARGS[1]>> = dyneval($cheatmenu[''theme_customize_increment''], ''rgb'', ''<<$ARGS[0]>>'', <<$ARGS[1]>>, custom_theme[''increment'']) & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/more<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
+	$result += '&nbsp;'
+	$result += '<a href="exec: <<$ARGS[1]>> = dyneval($cheatmenu[''theme_customize_input''], ''rgb'', ''<<$ARGS[0]>>'', <<$ARGS[1]>>) & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/pencil<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
+}
+
+$cheatmenu['theme_customize'] = {
+	*clr
+	gs 'themes', 'check_custom_vars'
+	if $theme['name'] = 'Custom': gs 'themes', 'set_custom' & gs '$menu_obnovit'
+	menu_page = -1
+	gs 'obj_din', 'settingtabs'
+	cla
+	act 'Return': menu_page = 1 & dynamic $cheatmenu['display']
+	'<center><h1>Customize Theme</h1></center>'
+	*p '<center><table width="80%" cellspacing="0" cellpadding="20" valign="top"><tr><td bgcolor="black" width="50%" cellspacing="0" cellpadding="20" valign="top"><font face="Tahoma" size="4" color="white">'
+
+	$icon_selector = '_w'
+	icon_height = 13 &!* 15 / 10
+!!  --- FONT ---
+	*p 'Font Family: <<$custom_theme[''fname'']>>&nbsp;'
+	*pl '<a href="exec: dynamic $cheatmenu[''theme_customize_input''], ''fname'' & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/pencil<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
+
+	*p 'Font Size:&nbsp;'
+	*p '<a href="exec: custom_theme[''fsize''] = iif(custom_theme[''fsize''] <= 9, 9, custom_theme[''fsize''] - 1) & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/less<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
+	*p '&nbsp;<<custom_theme[''fsize'']>>&nbsp;'
+	*p '<a href="exec: custom_theme[''fsize''] += 1 & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/more<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
+	*p '&nbsp;'
+	*pl '<a href="exec: dynamic $cheatmenu[''theme_customize_input''], ''fsize'' & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/pencil<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
+
+!!  --- BCOLOR ---
+	*nl
+	*p 'BG Color: <<func(''shortgs'', ''rgb_to_hex'', custom_theme[''bcolor''])>>&nbsp;'
+	*pl '<a href="exec: custom_theme[''bcolor''] = dyneval($cheatmenu[''theme_customize_input''], ''hex'', custom_theme[''bcolor'']) & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/pencil<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
+
+	*p 'R:&nbsp;'
+	*p dyneval($cheatmenu['theme_customize_print_color_line'], 'red', 'custom_theme[''bcolor'']')
+	*p '&nbsp;|&nbsp;'
+
+	*p 'G:&nbsp;' + $dyneval($cheatmenu['theme_customize_print_color_line'], 'green', 'custom_theme[''bcolor'']') + '&nbsp;|&nbsp;'
+
+	*p 'B:&nbsp;'
+	*pl dyneval($cheatmenu['theme_customize_print_color_line'], 'blue', 'custom_theme[''bcolor'']')
+
+!!  --- FCOLOR ---
+	*nl
+	*p 'FG (text) Color: <<func(''shortgs'', ''rgb_to_hex'', custom_theme[''fcolor''])>>&nbsp;'
+	*pl '<a href="exec: custom_theme[''fcolor''] = dyneval($cheatmenu[''theme_customize_input''], ''hex'', custom_theme[''fcolor'']) & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/pencil<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
+
+	*p 'R:&nbsp;'
+	*p dyneval($cheatmenu['theme_customize_print_color_line'], 'red', 'custom_theme[''fcolor'']')
+	*p '&nbsp;|&nbsp;'
+
+	*p 'G:&nbsp;'
+	*p dyneval($cheatmenu['theme_customize_print_color_line'], 'green', 'custom_theme[''fcolor'']')
+	*p '&nbsp;|&nbsp;'
+
+	*p 'B:&nbsp;'
+	*pl dyneval($cheatmenu['theme_customize_print_color_line'], 'blue', 'custom_theme[''fcolor'']')
+
+!!  --- LCOLOR ---
+	*nl
+	*p 'Link Color: <<func(''shortgs'', ''rgb_to_hex'', custom_theme[''lcolor''])>>&nbsp;'
+	*pl '<a href="exec: custom_theme[''lcolor''] = dyneval($cheatmenu[''theme_customize_input''], ''hex'', custom_theme[''lcolor'']) & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/pencil<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
+
+	*p 'R:&nbsp;'
+	*p dyneval($cheatmenu['theme_customize_print_color_line'], 'red', 'custom_theme[''lcolor'']')
+	*p '&nbsp;|&nbsp;'
+
+	*p 'G:&nbsp;'
+	*p dyneval($cheatmenu['theme_customize_print_color_line'], 'green', 'custom_theme[''lcolor'']')
+	*p '&nbsp;|&nbsp;'
+
+	*p 'B:&nbsp;'
+	*pl dyneval($cheatmenu['theme_customize_print_color_line'], 'blue', 'custom_theme[''lcolor'']')
+
+!!  --- TABLE BG ---
+	*nl
+	*p 'Table BG: <<func(''shortgs'', ''rgb_to_hex'', custom_theme[''table_bg''])>>&nbsp;'
+	*pl '<a href="exec: custom_theme[''table_bg''] = dyneval($cheatmenu[''theme_customize_input''], ''hex'', custom_theme[''table_bg'']) & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/pencil<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
+
+	*p 'R:&nbsp;'
+	*p dyneval($cheatmenu['theme_customize_print_color_line'], 'red', 'custom_theme[''table_bg'']')
+	*p '&nbsp;|&nbsp;'
+
+	*p 'G:&nbsp;'
+	*p dyneval($cheatmenu['theme_customize_print_color_line'], 'green', 'custom_theme[''table_bg'']')
+	*p '&nbsp;|&nbsp;'
+
+	*p 'B:&nbsp;'
+	*pl dyneval($cheatmenu['theme_customize_print_color_line'], 'blue', 'custom_theme[''table_bg'']')
+
+!!  --- TABLE BG ALT ---
+	*nl
+	*p 'Alt Table BG: <<func(''shortgs'', ''rgb_to_hex'', custom_theme[''table_bg_alt''])>>&nbsp;'
+	*pl '<a href="exec: custom_theme[''table_bg_alt''] = dyneval($cheatmenu[''theme_customize_input''], ''hex'', custom_theme[''table_bg_alt'']) & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/pencil<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
+
+	*p 'R:&nbsp;'
+	*p dyneval($cheatmenu['theme_customize_print_color_line'], 'red', 'custom_theme[''table_bg_alt'']')
+	*p '&nbsp;|&nbsp;'
+
+	*p 'G:&nbsp;'
+	*p dyneval($cheatmenu['theme_customize_print_color_line'], 'green', 'custom_theme[''table_bg_alt'']')
+	*p '&nbsp;|&nbsp;'
+
+	*p 'B:&nbsp;'
+	*pl dyneval($cheatmenu['theme_customize_print_color_line'], 'blue', 'custom_theme[''table_bg_alt'']')
+
+!!  --- DARK MODE ---
+	*nl
+	*p 'Dark Mode&nbsp;'
+	if $custom_theme['is_dark'] = '0':
+		*pl '<a href="exec: $custom_theme[''is_dark''] = ''1'' & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/box<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
+	else
+		*pl '<a href="exec: $custom_theme[''is_dark''] = ''0'' & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/check<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
+	end
+
+!!  --- INCREMENT ---
+	*nl
+	if custom_theme['increment'] = 0: custom_theme['increment'] = 16
+	*p 'Increment:&nbsp;'
+	*p '<a href="exec: custom_theme[''increment''] = iif(custom_theme[''increment''] < 2, 1, custom_theme[''increment''] - 1) & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/less<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
+	*p '&nbsp;<<custom_theme[''increment'']>>&nbsp;'
+	*pl '<a href="exec: custom_theme[''increment''] += 1 & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/more<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
+
+	*p '</font></td>'
+
+!!  --- LOREM IPSUM ---
+	$icon_selector = iif(theme['is_dark'] = 0, '_b', '_w')
+	icon_height = fsize * 15 / 10
+	*p '<td width="50%" cellspacing="0" cellpadding="20" valign="top">'
+
+	*p '"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."'
+
+	*p '<table width="100%" cellspacing="0" cellpadding="20">'
+	$temp_bgcolor = func('themes', 'alt_color', $temp_bgcolor)
+	*p '<tr bgcolor="<<$temp_bgcolor>>"><td>Alt Table Color</td><td align="center" width="6%"><img src="images/system/ui/more<<$icon_selector>>.png" height="<<icon_height>>"></td></tr>'
+
+	$temp_bgcolor = func('themes', 'alt_color', $temp_bgcolor)
+	*p '<tr bgcolor="<<$temp_bgcolor>>"><td>Table Color</td><td align="center" width="6%"><img src="images/system/ui/less<<$icon_selector>>.png" height="<<icon_height>>"></td></tr>'
+
+	$temp_bgcolor = func('themes', 'alt_color', $temp_bgcolor)
+	*p '<tr bgcolor="<<$temp_bgcolor>>"><td>Alt Table Color</td><td align="center" width="6%"><img src="images/system/ui/more<<$icon_selector>>.png" height="<<icon_height>>"></td></tr>'
+	*p '</table>'
+
+	*p '</td></tr></table></center>'
+	killvar '$icon_selector' & killvar 'icon_height' & killvar '$temp_bgcolor'
 }
 
 $cheatmenu['status'] = {
@@ -2445,7 +2718,7 @@ $cheatmenu['pain'] = {
 	'You may still have pain from gaping or having been spanked, you can clear these using "Cure all ailments." in "Cheat Menu - Character State Changes"'
 	'You currently have vaginal gaping of <<vgape>>'
 	'You currently have anal gaping of <<agape>>'
-	'You currently have spanked level <<spanked>>'	
+	'You currently have spanked level <<spanked>>'
 }
 
 $cheatmenu['DNA'] = {
@@ -3305,7 +3578,7 @@ $cheatmenu['items'] = {
 	if showPharmacyItems = 1:
 		'<a href = "exec: showPharmacyItems = 0 & dynamic $cheatmenu[''items'']">Hide Details </a>'
 		*pl 'Morning after pill: <a href="exec:mc_inventory[''morning_after_pill'']=input(''Set number'') & dynamic $cheatmenu[''items'']"><b> <<mc_inventory[''morning_after_pill'']>> </b></a>'
-		*pl 'Condoms: <a href="exec:mc_inventory[''equipped_condoms'']=input(''Set number'') & dynamic $cheatmenu[''items'']"><b> <<mc_inventory[''equipped_condoms'']>> </b></a>'
+		*pl 'Condoms: <a href="exec:mc_inventory[''normal_condoms'']=input(''Set number'') & dynamic $cheatmenu[''items'']"><b> <<mc_inventory[''normal_condoms'']>> </b></a>'
 		*pl 'Pregnancy test: <a href="exec:mc_inventory[''pregnancy_test'']=input(''Set number'') & dynamic $cheatmenu[''items'']"><b> <<mc_inventory[''pregnancy_test'']>> </b></a>'
 		*pl 'Birth control pills: <a href="exec:mc_inventory[''contraceptive_pill'']=input(''Set number'') & dynamic $cheatmenu[''items'']"><b> <<mc_inventory[''contraceptive_pill'']>> </b></a>'
 		*pl 'Antibiotics: <a href="exec:mc_inventory[''antibiotics'']=input(''Set number'') & dynamic $cheatmenu[''items'']"><b> <<mc_inventory[''antibiotics'']>> </b></a>'
