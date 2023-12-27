@@ -1,0 +1,111 @@
+# SMStext_builder
+
+!	How to use SMStext_builder:
+!	
+!	Start with:
+!		gs 'SMStext_builder', 'start'
+!	Then add your content through "send" and "receive":
+!		gs 'SMStext_builder', 'send', [$text]
+!		gs 'SMStext_builder', 'receive', [$text]
+!		...
+!		...
+!	
+!	If you want Sveta to reply to this (and thus the player potentially having a choice):
+!		gs 'SMStext_builder', 'add_reply', [$text], [$file_name], [$file_args0], [$file_args1], ...
+!		gs 'SMStext_builder', 'add_reply', [$text], [$file_name], [$file_args0], [$file_args1], ...
+!	
+!	Finally, if this is a new sms-chain, use:
+!		gs 'SMStext_builder', 'add_sms', [$npc_code]
+!	
+!	If you are updating an ongoing sms-chain (usually in reponse to a choice made in the replies), use:
+!		gs 'SMStext_builder', 'show_sms', ARGS[{n}]
+!				where {n} is one more than the number of args you passed to the choice.
+!				So if you are used:
+!					gs 'SMStext_builder', 'add_reply', [$text], [$file_name], [$file_args0], [$file_args1].
+!				Then you would pass ARGS[2] (since you used $ARGS[0] and $ARGS[1]):
+!				gs 'SMStext_builder', 'add_sms', ARGS[2]
+!	
+!	Finally after the player has made a choice, you want to rebuild the SMS-history again (to get rid of the replies).
+!	Starting fresh or having done your final update (even if you never updated it anyway)
+!	End it with:
+!		gs 'SMStext_builder', 'end'
+
+
+
+
+if $ARGS[0] = 'start':
+	$temp_SMStext = ''
+
+elseif $ARGS[0] = 'end':
+	killvar '$temp_SMStext'
+	killvar '$temp_SMSreplies'
+	killvar 'stb_i'
+	killvar 'stb_maxi'
+end
+
+if $ARGS[0] = 'send':
+	$temp_SMStext += '<table width=80%><tr><td width=10%></td><td collspan=2 bgcolor=pink><font color=black>'
+	$temp_SMStext += $ARGS[1]
+	$temp_SMStext += '</font></td></tr></table>'
+
+elseif $ARGS[0] = 'receive':
+	$temp_SMStext += '<table width=80%><tr><td collspan=2 bgcolor="#D4CEF9"><font color=black>'
+	$temp_SMStext += $ARGS[1]
+	$temp_SMStext += '</font></td><td width=10%></td></tr></table>'
+end
+
+
+!	How to use 'add_reply':
+!		gs 'SMStext_builder', 'add_reply', $reply_text, $file_loc, $file_arg1, $file_arg2, $file_args2, ...
+!		gs 'SMStext_builder', 'add_reply', 'Hello', 'band_tour_anushka_SMS', 'week1', 'choice_a'
+if $ARGS[0] = 'add_reply':
+	$temp_reply_str = '<a href="exec: gs '
+
+	stb_n_args = arrsize('$ARGS')
+	stb_i = 2
+	:SMS_build_reply_loop
+		$temp_reply_str += '''<<$ARGS[stb_i]>>'', '
+		stb_i += 1
+	if stb_i < stb_n_args: jump 'SMS_build_reply_loop'
+
+	$temp_reply_str += 'telefon[''SMSid'']">' + $ARGS[1] + '</a>'
+	$temp_SMSreplies[] = $temp_reply_str
+
+	killvar 'temp_reply_str'
+	killvar 'stb_i'
+	killvar 'stb_n_args'
+
+elseif $ARGS[0] = 'set_replies':
+	$temp_SMStext += '<table><tr><th> Reply</th></tr><tr><td>'
+
+	stb_maxi = arrsize('temp_SMSreplies')
+	stb_i = 0
+	if stb_maxi >= 2:
+		:SMS_reply_loop
+			$temp_SMStext += $temp_SMSreplies[stb_i]
+			$temp_SMStext += '</td></tr><tr><td>'
+			stb_i += 1
+		if stb_i < stb_maxi - 1: jump 'SMS_reply_loop'
+	end
+	$temp_SMStext += $temp_SMSreplies[stb_i]
+	$temp_SMStext += '</td></tr></table>'
+
+	killvar '$temp_SMSreplies'
+	killvar 'stb_i'
+	killvar 'stb_maxi'
+end
+
+if $ARGS[0] = 'add_sms':
+	if arrsize('temp_SMSreplies') > 0: gs 'SMStext_builder', 'set_replies'
+	gs 'telefon', 'add_sms', $ARGS[1], $temp_SMStext, $ARGS[2], $ARGS[3], $ARGS[4], $ARGS[5]
+
+elseif $ARGS[0] = 'show_sms':
+	if arrsize('temp_SMSreplies') > 0: gs 'SMStext_builder', 'set_replies'
+	$SMSMessage[ARGS[1]] = $temp_SMStext
+	gs 'telefon', 'show_sms', ARGS[1], $ARGS[2], $ARGS[3], $ARGS[4], $ARGS[5]
+end
+
+
+
+
+--- SMStext_builder ---------------------------------
