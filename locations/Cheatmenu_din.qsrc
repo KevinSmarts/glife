@@ -2050,6 +2050,7 @@ $cheatmenu['cycle'] = {
 $cheatmenu['setting'] = {
 	*clr & cla
 	$BACKIMAGE = ''
+	if $theme['name'] = 'Custom': gs 'themes', 'check_custom_vars' & gs 'themes', 'set_custom' & gs '$menu_obnovit'
 	gs 'obj_din', 'settingtabs'
 	'<center><h1>Gameplay Settings</h1></center>'
 	'<center><table cellspacing="0" cellpadding="20" valign="top"><tr>'
@@ -2193,7 +2194,16 @@ $cheatmenu['theme_customize_input'] = {
 		$temp_input = $trim($input('Enter Font size:'))
 		if $temp_input ! '':
 			if isnum($temp_input):
-				custom_theme['fsize'] = iif(val($temp_input) < 9, 9, val($temp_input))
+				custom_theme['fsize'] = iif(val($temp_input) <= 9, 9, val($temp_input))
+			else
+				msg 'invalid input'
+			end
+		end
+	elseif $ARGS[0] = 'increment':
+		$temp_input = $trim($input('Enter increment:'))
+		if $temp_input ! '':
+			if isnum($temp_input):
+				custom_theme['increment'] = iif(val($temp_input) <= 1, 1, val($temp_input))
 			else
 				msg 'invalid input'
 			end
@@ -2302,10 +2312,16 @@ $cheatmenu['theme_customize'] = {
 	*clr
 	gs 'themes', 'check_custom_vars'
 	if $theme['name'] = 'Custom': gs 'themes', 'set_custom' & gs '$menu_obnovit'
+
 	menu_page = -1
 	gs 'obj_din', 'settingtabs'
+
 	cla
 	act 'Return': menu_page = 1 & dynamic $cheatmenu['display']
+	act 'Presets': dynamic $cheatmenu['theme_presets']
+	act 'Import': killvar 'menu_page' & gt 'initg', 'set_game_set'
+	act 'Export': dynamic $cheatmenu['theme_export']
+
 	'<center><h1>Customize Theme</h1></center>'
 	*p '<center><table width="90%" cellspacing="0" cellpadding="20" valign="top"><tr><td bgcolor="black" width="50%" cellspacing="0" cellpadding="20" valign="top"><font face="Tahoma" size="4" color="white">'
 
@@ -2319,86 +2335,52 @@ $cheatmenu['theme_customize'] = {
 	*p '<a href="exec: custom_theme[''fsize''] = iif(custom_theme[''fsize''] <= 9, 9, custom_theme[''fsize''] - 1) & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/less<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
 	*p '&nbsp;<<custom_theme[''fsize'']>>&nbsp;'
 	*p '<a href="exec: custom_theme[''fsize''] += 1 & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/more<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
-	*p '&nbsp;'
-	*pl '<a href="exec: dynamic $cheatmenu[''theme_customize_input''], ''fsize'' & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/pencil<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
+	*pl '&nbsp;<a href="exec: dynamic $cheatmenu[''theme_customize_input''], ''fsize'' & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/pencil<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
 
 !!  --- BCOLOR ---
 	*nl
 	*p 'BG Color: <<func(''shortgs'', ''rgb_to_hex'', custom_theme[''bcolor''])>>&nbsp;'
 	*pl '<a href="exec: custom_theme[''bcolor''] = dyneval($cheatmenu[''theme_customize_input''], ''hex'', custom_theme[''bcolor'']) & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/pencil<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
 
-	*p 'R:&nbsp;'
-	*p dyneval($cheatmenu['theme_customize_print_color_line'], 'red', 'custom_theme[''bcolor'']')
-	*p '&nbsp;|&nbsp;'
-
+	*p 'R:&nbsp;' + dyneval($cheatmenu['theme_customize_print_color_line'], 'red', 'custom_theme[''bcolor'']') + '&nbsp;|&nbsp;'
 	*p 'G:&nbsp;' + $dyneval($cheatmenu['theme_customize_print_color_line'], 'green', 'custom_theme[''bcolor'']') + '&nbsp;|&nbsp;'
-
-	*p 'B:&nbsp;'
-	*pl dyneval($cheatmenu['theme_customize_print_color_line'], 'blue', 'custom_theme[''bcolor'']')
+	*pl 'B:&nbsp;' + dyneval($cheatmenu['theme_customize_print_color_line'], 'blue', 'custom_theme[''bcolor'']')
 
 !!  --- FCOLOR ---
 	*nl
 	*p 'FG (text) Color: <<func(''shortgs'', ''rgb_to_hex'', custom_theme[''fcolor''])>>&nbsp;'
 	*pl '<a href="exec: custom_theme[''fcolor''] = dyneval($cheatmenu[''theme_customize_input''], ''hex'', custom_theme[''fcolor'']) & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/pencil<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
 
-	*p 'R:&nbsp;'
-	*p dyneval($cheatmenu['theme_customize_print_color_line'], 'red', 'custom_theme[''fcolor'']')
-	*p '&nbsp;|&nbsp;'
-
-	*p 'G:&nbsp;'
-	*p dyneval($cheatmenu['theme_customize_print_color_line'], 'green', 'custom_theme[''fcolor'']')
-	*p '&nbsp;|&nbsp;'
-
-	*p 'B:&nbsp;'
-	*pl dyneval($cheatmenu['theme_customize_print_color_line'], 'blue', 'custom_theme[''fcolor'']')
+	*p 'R:&nbsp;' + dyneval($cheatmenu['theme_customize_print_color_line'], 'red', 'custom_theme[''fcolor'']') + '&nbsp;|&nbsp;'
+	*p 'G:&nbsp;' + dyneval($cheatmenu['theme_customize_print_color_line'], 'green', 'custom_theme[''fcolor'']') + '&nbsp;|&nbsp;'
+	*pl 'B:&nbsp;' + dyneval($cheatmenu['theme_customize_print_color_line'], 'blue', 'custom_theme[''fcolor'']')
 
 !!  --- LCOLOR ---
 	*nl
 	*p 'Link Color: <<func(''shortgs'', ''rgb_to_hex'', custom_theme[''lcolor''])>>&nbsp;'
 	*pl '<a href="exec: custom_theme[''lcolor''] = dyneval($cheatmenu[''theme_customize_input''], ''hex'', custom_theme[''lcolor'']) & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/pencil<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
 
-	*p 'R:&nbsp;'
-	*p dyneval($cheatmenu['theme_customize_print_color_line'], 'red', 'custom_theme[''lcolor'']')
-	*p '&nbsp;|&nbsp;'
-
-	*p 'G:&nbsp;'
-	*p dyneval($cheatmenu['theme_customize_print_color_line'], 'green', 'custom_theme[''lcolor'']')
-	*p '&nbsp;|&nbsp;'
-
-	*p 'B:&nbsp;'
-	*pl dyneval($cheatmenu['theme_customize_print_color_line'], 'blue', 'custom_theme[''lcolor'']')
+	*p 'R:&nbsp;' + dyneval($cheatmenu['theme_customize_print_color_line'], 'red', 'custom_theme[''lcolor'']') + '&nbsp;|&nbsp;'
+	*p 'G:&nbsp;' + dyneval($cheatmenu['theme_customize_print_color_line'], 'green', 'custom_theme[''lcolor'']') + '&nbsp;|&nbsp;'
+	*pl 'B:&nbsp;' + dyneval($cheatmenu['theme_customize_print_color_line'], 'blue', 'custom_theme[''lcolor'']')
 
 !!  --- TABLE BG ---
 	*nl
 	*p 'Table BG: <<func(''shortgs'', ''rgb_to_hex'', custom_theme[''table_bg''])>>&nbsp;'
 	*pl '<a href="exec: custom_theme[''table_bg''] = dyneval($cheatmenu[''theme_customize_input''], ''hex'', custom_theme[''table_bg'']) & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/pencil<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
 
-	*p 'R:&nbsp;'
-	*p dyneval($cheatmenu['theme_customize_print_color_line'], 'red', 'custom_theme[''table_bg'']')
-	*p '&nbsp;|&nbsp;'
-
-	*p 'G:&nbsp;'
-	*p dyneval($cheatmenu['theme_customize_print_color_line'], 'green', 'custom_theme[''table_bg'']')
-	*p '&nbsp;|&nbsp;'
-
-	*p 'B:&nbsp;'
-	*pl dyneval($cheatmenu['theme_customize_print_color_line'], 'blue', 'custom_theme[''table_bg'']')
+	*p 'R:&nbsp;' + dyneval($cheatmenu['theme_customize_print_color_line'], 'red', 'custom_theme[''table_bg'']') + '&nbsp;|&nbsp;'
+	*p 'G:&nbsp;' + dyneval($cheatmenu['theme_customize_print_color_line'], 'green', 'custom_theme[''table_bg'']') + '&nbsp;|&nbsp;'
+	*pl 'B:&nbsp;' + dyneval($cheatmenu['theme_customize_print_color_line'], 'blue', 'custom_theme[''table_bg'']')
 
 !!  --- TABLE BG ALT ---
 	*nl
 	*p 'Alt Table BG: <<func(''shortgs'', ''rgb_to_hex'', custom_theme[''table_bg_alt''])>>&nbsp;'
 	*pl '<a href="exec: custom_theme[''table_bg_alt''] = dyneval($cheatmenu[''theme_customize_input''], ''hex'', custom_theme[''table_bg_alt'']) & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/pencil<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
 
-	*p 'R:&nbsp;'
-	*p dyneval($cheatmenu['theme_customize_print_color_line'], 'red', 'custom_theme[''table_bg_alt'']')
-	*p '&nbsp;|&nbsp;'
-
-	*p 'G:&nbsp;'
-	*p dyneval($cheatmenu['theme_customize_print_color_line'], 'green', 'custom_theme[''table_bg_alt'']')
-	*p '&nbsp;|&nbsp;'
-
-	*p 'B:&nbsp;'
-	*pl dyneval($cheatmenu['theme_customize_print_color_line'], 'blue', 'custom_theme[''table_bg_alt'']')
+	*p 'R:&nbsp;' + dyneval($cheatmenu['theme_customize_print_color_line'], 'red', 'custom_theme[''table_bg_alt'']') + '&nbsp;|&nbsp;'
+	*p 'G:&nbsp;' + dyneval($cheatmenu['theme_customize_print_color_line'], 'green', 'custom_theme[''table_bg_alt'']') + '&nbsp;|&nbsp;'
+	*pl 'B:&nbsp;' + dyneval($cheatmenu['theme_customize_print_color_line'], 'blue', 'custom_theme[''table_bg_alt'']')
 
 !!  --- DARK MODE ---
 	*nl
@@ -2413,9 +2395,10 @@ $cheatmenu['theme_customize'] = {
 	*nl
 	if custom_theme['increment'] = 0: custom_theme['increment'] = 16
 	*p 'Increment:&nbsp;'
-	*p '<a href="exec: custom_theme[''increment''] = iif(custom_theme[''increment''] < 2, 1, custom_theme[''increment''] - 1) & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/less<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
+	*p '<a href="exec: custom_theme[''increment''] = iif(custom_theme[''increment''] <= 1, 1, custom_theme[''increment''] - 1) & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/less<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
 	*p '&nbsp;<<custom_theme[''increment'']>>&nbsp;'
-	*pl '<a href="exec: custom_theme[''increment''] += 1 & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/more<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
+	*p '<a href="exec: custom_theme[''increment''] += 1 & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/more<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
+	*pl '&nbsp;<a href="exec: dynamic $cheatmenu[''theme_customize_input''], ''increment'' & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/pencil<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
 
 	*p '</font></td>'
 
@@ -2460,6 +2443,45 @@ $cheatmenu['theme_customize'] = {
 	'<b>1914 translation by H. Rackham</b>'
 	*nl
 	'"On the other hand, we denounce with righteous indignation and dislike men who are so beguiled and demoralized by the charms of pleasure of the moment, so blinded by desire, that they cannot foresee the pain and trouble that are bound to ensue; and equal blame belongs to those who fail in their duty through weakness of will, which is the same as saying through shrinking from toil and pain. These cases are perfectly simple and easy to distinguish. In a free hour, when our power of choice is untrammelled and when nothing prevents our being able to do what we like best, every pleasure is to be welcomed and every pain avoided. But in certain circumstances and owing to the claims of duty or the obligations of business it will frequently occur that pleasures have to be repudiated and annoyances accepted. The wise man therefore always holds in these matters to this principle of selection: he rejects pleasures to secure other greater pleasures, or else he endures pains to avoid worse pains."'
+}
+
+$cheatmenu['theme_presets'] = {
+	cla
+	act 'Return': dynamic $cheatmenu['theme_customize']
+	act 'White': gs 'themes', 'set_white' & dynamic $cheatmenu['theme_presets_copy']
+	act 'Black': gs 'themes', 'set_black' & dynamic $cheatmenu['theme_presets_copy']
+	act 'Modern Grey': gs 'themes', 'set_gray' & dynamic $cheatmenu['theme_presets_copy']
+}
+
+$cheatmenu['theme_presets_copy'] = {
+	$custom_theme['fname'] = $theme['fname']
+	custom_theme['fsize'] = theme['fsize']
+
+	custom_theme['bcolor'] = theme['bcolor']
+	custom_theme['fcolor'] = theme['fcolor']
+	custom_theme['lcolor'] = theme['lcolor']
+
+	custom_theme['table_bg'] = rgb(func('shortgs', 'hex_str_to_int', $mid($theme['table_bg'], 2, 2)), func('shortgs', 'hex_str_to_int', $mid($theme['table_bg'], 4, 2)), func('shortgs', 'hex_str_to_int', $mid($theme['table_bg'], 6, 2)))
+	custom_theme['table_bg_alt'] = rgb(func('shortgs', 'hex_str_to_int', $mid($theme['table_bg_alt'], 2, 2)), func('shortgs', 'hex_str_to_int', $mid($theme['table_bg_alt'], 4, 2)), func('shortgs', 'hex_str_to_int', $mid($theme['table_bg_alt'], 6, 2)))
+
+	$custom_theme['is_dark'] = str(theme['is_dark'])
+
+	gs 'themes', 'set_custom'
+	dynamic $cheatmenu['theme_customize']
+}
+
+$cheatmenu['theme_export'] = {
+	msg "$custom_theme['fname'] = '<<$custom_theme['fname']>>'
+		custom_theme['fsize'] = <<custom_theme['fsize']>>
+
+		custom_theme['bcolor'] = <<custom_theme['bcolor']>>
+		custom_theme['fcolor'] = <<custom_theme['fcolor']>>
+		custom_theme['lcolor'] = <<custom_theme['lcolor']>>
+
+		custom_theme['table_bg'] = <<custom_theme['table_bg']>>
+		custom_theme['table_bg_alt'] = <<custom_theme['table_bg_alt']>>
+
+		$custom_theme['is_dark'] = '<<$custom_theme['is_dark']>>'"
 }
 
 $cheatmenu['status'] = {
