@@ -9,7 +9,10 @@
 !		gs 'SMStext_builder', 'receive', [$text]
 !		...
 !		...
-!	
+!	You can send/receive an image using "send_img" and "receive_img". Optionally, you can add an alt-name to the image in case it does not load
+!		gs 'SMStext_builder', 'send_img', [$img_path], ([$img_name])
+!		gs 'SMStext_builder', 'receive_img', [$img_path], ([$img_name])
+!
 !	If you want Sveta to reply to this (and thus the player potentially having a choice):
 !		gs 'SMStext_builder', 'add_reply', [$text], [$file_name], [$file_args0], [$file_args1], ...
 !		gs 'SMStext_builder', 'add_reply', [$text], [$file_name], [$file_args0], [$file_args1], ...
@@ -29,7 +32,8 @@
 !				Then you would pass ARGS[2] (since you used $ARGS[0] and $ARGS[1]):
 !				gs 'SMStext_builder', 'add_sms', ARGS[2]
 !	
-!	Finally after the player has made a choice, you want to rebuild the SMS-history again (to get rid of the replies).
+!	Finally after the player has made a choice, everything but the replies are stored.
+!	If you want to reset the text (but not the end images), use gs 'SMStext_builder', 'reset'
 !	Starting fresh or having done your final update (even if you never updated it anyway)
 !	End it with:
 !		gs 'SMStext_builder', 'end'
@@ -43,8 +47,15 @@ if $ARGS[0] = 'start':
 elseif $ARGS[0] = 'end':
 	killvar '$temp_SMStext'
 	killvar '$temp_SMSreplies'
+	killvar '$temp_SMSimgs'
 	killvar 'stb_i'
 	killvar 'stb_maxi'
+	killvar '$temp_SMS_reset_flag'
+	killvar '$temp_SMSRepliestext'
+end
+
+if $ARGS[0] = 'reset':
+	$temp_SMS_reset_flag = 1
 end
 
 if $ARGS[0] = 'send':
@@ -98,30 +109,79 @@ if $ARGS[0] = 'add_reply':
 	killvar 'stb_i'
 	killvar 'stb_n_args'
 
-elseif $ARGS[0] = 'set_replies':
-	$temp_SMStext += '<table><tr><th> Reply</th></tr>'
+elseif $ARGS[0] = 'private_set_replies':
+	$temp_SMSRepliestext += '<table>'
 
 	stb_maxi = arrsize('temp_SMSreplies')
 	stb_i = 0
 	:SMS_reply_loop
-		$temp_SMStext += '<tr><td>' + $temp_SMSreplies[stb_i] + '</td></tr>'
+		$temp_SMSRepliestext += '<tr><td>' + $temp_SMSreplies[stb_i] + '</td></tr>'
 		stb_i += 1
 	if stb_i < stb_maxi: jump 'SMS_reply_loop'
-	$temp_SMStext += '</table>'
+	$temp_SMSRepliestext += '</table>'
 
 	killvar '$temp_SMSreplies'
 	killvar 'stb_i'
 	killvar 'stb_maxi'
 end
 
+
+if $ARGS[0] = 'add_end_img':
+	if $temp_imgs[0] = '':
+		$temp_SMSimgs[0] = $ARGS[1]
+	elseif $temp_imgs[1] = '':
+		$temp_SMSimgs[1] = $ARGS[1]
+	elseif $temp_imgs[2] = '':
+		$temp_SMSimgs[2] = $ARGS[1]
+	elseif $temp_imgs[3] = '':
+		$temp_SMSimgs[3] = $ARGS[1]
+	end
+end
+
+if $ARGS[0] = 'private_set_end_img':
+	stb_i = 0
+	:stb_psei_loop
+	if stb_i < arrsize('temp_SMSimgs'):
+		if $SMSPicture1[ARGS[1]] = '':
+			$SMSPicture1[ARGS[1]] = $temp_SMSimgs[stb_i]
+		elseif $SMSPicture2[ARGS[1]] = '':
+			$SMSPicture2[ARGS[1]] = $temp_SMSimgs[stb_i]
+		elseif $SMSPicture3[ARGS[1]] = '':
+			$SMSPicture3[ARGS[1]] = $temp_SMSimgs[stb_i]
+		elseif $SMSPicture4[ARGS[1]] = '':
+			$SMSPicture4[ARGS[1]] = $temp_SMSimgs[stb_i]
+		end
+		stb_i += 1
+	end
+	killvar 'stb_i'
+	killvar '$temp_SMSimgs'
+end
+
 if $ARGS[0] = 'add_sms':
-	if arrsize('temp_SMSreplies') > 0: gs 'SMStext_builder', 'set_replies'
-	gs 'telefon', 'add_sms', $ARGS[1], $temp_SMStext, $ARGS[2], $ARGS[3], $ARGS[4], $ARGS[5]
+	if arrsize('temp_SMSreplies') > 0: 
+		gs 'SMStext_builder', 'private_set_replies'
+	else
+		$temp_SMSRepliestext = ''
+	end
+	gs 'telefon', 'add_sms', $ARGS[1], $temp_SMStext, $temp_SMSRepliestext, $temp_SMSimgs[0], $temp_SMSimgs[1], $temp_SMSimgs[2], $temp_SMSimgs[3]
+	
+	killvar '$temp_SMSRepliestext'
 
 elseif $ARGS[0] = 'show_sms':
-	if arrsize('temp_SMSreplies') > 0: gs 'SMStext_builder', 'set_replies'
-	$SMSMessage[ARGS[1]] = $temp_SMStext
-	gs 'telefon', 'show_sms', ARGS[1], $ARGS[2], $ARGS[3], $ARGS[4], $ARGS[5]
+	if arrsize('temp_SMSreplies') > 0:
+		gs 'SMStext_builder', 'private_set_replies'
+	else
+		killvar '$temp_SMSRepliestext'
+	end
+	if arrsize('temp_SMSimgs') > 0: gs 'SMStext_builder', 'private_set_end_img', ARGS[1]
+	if temp_SMS_reset_flag = 1: $SMSMessage[ARGS[1]] = ''
+
+	$SMSMessage[ARGS[1]] += $temp_SMStext
+	$SMSReplies[ARGS[1]] = $temp_SMSRepliestext
+	gs 'telefon', 'show_sms', ARGS[1]
+
+	killvar 'temp_SMS_reset_flag'
+	killvar '$temp_SMSRepliestext'
 end
 
 ! $ARGS[1] = displayed text
