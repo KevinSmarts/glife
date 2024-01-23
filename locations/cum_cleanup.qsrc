@@ -52,8 +52,15 @@ if $ARGS[0] = 'cleanloc' and arrsize('ARGS') > 1:
 	if i < arrsize('$sparrnam'):
 		if sparrloc[i] = ARGS[1]:
 			if sparrloc[i] = 0 or sparrloc[i] = 3:
-				sparrvol[i] = 0
-				sparrslc[i] = 0
+				if mc_inventory['enema_kit'] = 1 or cheatKlisma = 0:
+					cumsumvag -= iif(sparrloc[i]=0,sparrvol[i],0)
+					cumsumass -= iif(sparrloc[i]=3,sparrvol[i],0)
+					sparrvol[i] = 0
+					sparrslc[i] = 0
+				else
+					cumspclnt = 15
+					gs 'cum_cleanup'
+				end
 			else
 				gs 'cum_cleanup', 'cleandeposit', i
 			end
@@ -63,6 +70,8 @@ if $ARGS[0] = 'cleanloc' and arrsize('ARGS') > 1:
 	end
 elseif $ARGS[0] = 'cleandeposit' and arrsize('ARGS') > 1:
 	cumsumbod -= sparrvol[ARGS[1]]
+	cumsumvag -= iif(sparrloc[ARGS[1]]=0,sparrvol[ARGS[1]],0)
+	cumsumass -= iif(sparrloc[ARGS[1]]=3,sparrvol[ARGS[1]],0)
 	KILLVAR 'sparrage',ARGS[1]
 	KILLVAR 'sparrloc',ARGS[1]
 	KILLVAR '$sparrnam',ARGS[1]
@@ -71,6 +80,9 @@ elseif $ARGS[0] = 'cleandeposit' and arrsize('ARGS') > 1:
 	KILLVAR 'sparrvol',ARGS[1]
 	KILLVAR 'sparrslc',ARGS[1]
 	KILLVAR 'sparrcnt',ARGS[1]
+	if cumsumbod < 0: cumsumbod = 0
+	if cumsumvag <= 0: cumsumvag = 0 & cum_vol['vagina'] = 0 & cumvol[0] = 0 & cum_loc['vagina'] = 0 & cumloc[0] = 0
+	if cumsumass <= 0: cumsumass = 0 & cum_vol['anus'] = 0   & cumvol[3] = 0 & cum_loc['anus'] = 0   & cumloc[3] = 0
 elseif $ARGS[0] = 'cleanwomb' and arrsize('ARGS') > 1:
 	KILLVAR 'cumarrcpt',ARGS[1]
 	KILLVAR 'cumarrppt',ARGS[1]
@@ -81,7 +93,7 @@ elseif $ARGS[0] = 'cleanwomb' and arrsize('ARGS') > 1:
 	KILLVAR 'cumarrcnt',ARGS[1]
 	KILLVAR 'cumarrcon',ARGS[1]
 elseif $ARGS[0] = 'cumcondslip':
-	if cumcondslip_deep > (pcs_vag / 2):
+	if cumcondslip_deep > (pcs_vag / 2) and vgape < 3:
 		'The condom is too deep inside you to be pulled out by hand. You need to seek professional help!'
 	else
 		gs 'cum_cleanup', 'cleanloc', 17
@@ -102,6 +114,7 @@ elseif $ARGS[0] = 'reset':
 	KILLVAR 'cumarrcon'
 	KILLVAR 'cumcount'
 	KILLVAR 'cumloc'
+	killvar 'cum_loc'
 	KILLVAR '$cumowner'
 	KILLVAR 'cumspclnt'
 	KILLVAR 'cumvolume'
@@ -128,17 +141,20 @@ elseif $ARGS[0] = 'reset':
 	spdirtyv = 0
 	spdirty = 0
 elseif $ARGS[0] = '':
-	cumsumbod = 0
-	cumsumvag = 0
-	cumsumass = 0
 
 	KILLVAR 'spafinloc'
 	killvar 'toclean'
 	killvar 'deresidue'
 	if cumspclnt = 1 or cumspclnt = 10:
+		if hypnoAddict > 0:
+			!{full clean but skipping internal due to hypno}
+			cumspclnt = 18
+			gs 'cum_cleanup'
+			exit
+		end
 		!{full external clean}
-		deresidue[arrsize('deresidue')] = 0
-		deresidue[arrsize('deresidue')] = 3
+		if isprok = 0 and vibratorIN = 0: deresidue[arrsize('deresidue')] = 0
+		if analplugin = 0: deresidue[arrsize('deresidue')] = 3
 		toclean[arrsize('toclean')] = 1
 		toclean[arrsize('toclean')] = 2
 		toclean[arrsize('toclean')] = 4
@@ -162,10 +178,9 @@ elseif $ARGS[0] = '':
 		toclean[arrsize('toclean')] = 0
 		toclean[arrsize('toclean')] = 3
 		toclean[arrsize('toclean')] = 17
+		if hypnoAddict > 0 and (cumloc[0] > 0 or cumloc[3] > 0): 'You have no reason to, but you carefully avoid cleaning out your pussy and ass.'
 	elseif cumspclnt = 4:
 		!{external body clean}
-		deresidue[arrsize('deresidue')] = 0
-		deresidue[arrsize('deresidue')] = 3
 		toclean[arrsize('toclean')] = 1
 		toclean[arrsize('toclean')] = 4
 		toclean[arrsize('toclean')] = 8
@@ -214,6 +229,7 @@ elseif $ARGS[0] = '':
 		toclean[arrsize('toclean')] = 4
 		deresidue[arrsize('deresidue')] = 0
 		deresidue[arrsize('deresidue')] = 3
+		if hypnoAddict > 0 and (cumloc[0] > 0 or cumloc[3] > 0): 'You have no reason to, but you carefully avoid cleaning out your pussy and ass.'
 	elseif cumspclnt = 16:
 		!{Breasts}
 		toclean[arrsize('toclean')] = 15
@@ -254,30 +270,70 @@ elseif $ARGS[0] = '':
 	:cumcleanloop
 	if i < arrsize('$sparrnam'):
 		tmp = arrpos('deresidue', sparrloc[i])
-		if tmp ! -1 and tmp < arrsize('deresidue'): sparrslc[i] = 0 & sparrvol[i] = 0
+		if tmp ! -1 and tmp < arrsize('deresidue'):
+			!! vagina
+			if sparrloc[i] = 0:
+				!! cannot be completely cleaned with tissues\toilet use\hypno block\no enema kit
+				if FUNC('Cum_Manage', 'check_innards', sparrloc[i]) = 1 _ 
+				or (hypnoAddict = 0 and (mc_inventory['enema_kit'] = 1 or cheatKlisma = 0) _ 
+				and ((cumspclnt = 10 or cumspclnt = 1 or cumspclnt = 3) or cheatKlisma = 0)):
+					cumsumbod -= sparrvol[i] & cumsumvag -= sparrvol[i]
+					sparrslc[i] = 0 & sparrvol[i] = 0
+					isprok = 0 & vibratorIN = 0
+				end
+			!! ass
+			elseif sparrloc[i] = 3:
+				if FUNC('Cum_Manage', 'check_innards', sparrloc[i]) = 1 or cumspclnt = 7 _ 
+				or (hypnoAddict = 0 and (mc_inventory['enema_kit'] = 1 or cheatKlisma = 0) _ 
+				and ((cumspclnt = 10 or cumspclnt = 1 or cumspclnt = 3) or cheatKlisma = 0)):
+					cumsumbod -= sparrvol[i] & cumsumass -= sparrvol[i]
+					sparrslc[i] = 0 & sparrvol[i] = 0
+					analplugin = 0
+				end
+			else
+				cumsumbod -= sparrvol[i]
+				sparrslc[i] = 0 & sparrvol[i] = 0
+			end
+		end
 
 		tmp = arrpos('toclean', sparrloc[i])
 		if tmp ! -1 and tmp < arrsize('toclean'):
-			gs 'cum_cleanup', 'cleandeposit', i
+			!! vagina
+			if sparrloc[i] = 0:
+				if cumsumvag*rand(6,9)/6 >= FUNC('Cum_Manage', 'check_innards', sparrloc[i], 1) and isprok = 0 and vibratorIN = 0 _ 
+				or (hypnoAddict = 0 and (mc_inventory['enema_kit'] = 1 or cheatKlisma = 0) _ 
+				and ((cumspclnt = 10 or cumspclnt = 1 or cumspclnt = 3) or cheatKlisma = 0)):
+					gs 'cum_cleanup', 'cleandeposit', i
+					if cumspclnt = 3: isprok = 0 & vibratorIN = 0
+				end
+			!! ass
+			elseif sparrloc[i] = 3:
+				if (cumsumass*rand(6,9)/6 >= FUNC('Cum_Manage', 'check_innards', sparrloc[i], 1) and analplugin = 0) or cumspclnt = 7 _ 
+				or (hypnoAddict = 0 and (mc_inventory['enema_kit'] = 1 or cheatKlisma = 0) _ 
+				and ((cumspclnt = 10 or cumspclnt = 1 or cumspclnt = 3) or cheatKlisma = 0)):
+					gs 'cum_cleanup', 'cleandeposit', i
+					if cumspclnt = 3 or cumspclnt = 7: analplugin = 0
+				end
+			else
+				gs 'cum_cleanup', 'cleandeposit', i
+			end
 		else
 			i += 1
-			cumsumbod += sparrvol[i]
-			if sparrloc[i] = 0:
-				cumsumvag += sparrvol[i]
-			elseif sparrloc[i] = 3:
-				cumsumass += sparrvol[i]
-			end
 		end
 		jump 'cumcleanloop'
 	end
-	spdirty = 0
-	cumloc[0] = 0
-	spdirtyn = 0
-	spdirtyv = 0
-	cumloc[12] = 0
-	cumloc[6] = 0
-	cumloc[7] = 0
+	killvar 'spdirty'
+	killvar 'spdirtyn'
+	killvar 'spdirtyv'
+	killvar 'toclean'
+	killvar 'deresidue'
 	killvar 'cumloc'
+	killvar 'cum_loc'
+	killvar 'tmp'
+	killvar 'i'
+	if cumsumvag > 0: cum_vol['vagina'] = cumsumvag & cumvol[0] = cumsumvag & cum_loc['vagina'] = 1 & cumloc[0] = 1
+	if cumsumass > 0: cum_vol['anus'] = cumsumass   & cumvol[3] = cumsumass & cum_loc['anus'] = 1   & cumloc[3] = 1
+
 end
 
 --- cum_cleanup ---------------------------------
