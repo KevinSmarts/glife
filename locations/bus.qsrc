@@ -22,19 +22,23 @@ if $ARGS[0] = 'community':
 	gs 'stat'
 
 	'<center><img <<$set_imgh>> src="images/locations/system/image_needed.jpg" ></center>'
-	'The community center bus station'
+	'The community center bus stop'
 	*nl
 	gs 'transport_functions', 'set_bus_wait_time', 'community'
-	'The next bus in the direction of Gadukino ' + iif(transportVars['bus_wait_gadukino'] = 0, 'is leaving now!', 'leaves in <<transportVars[''bus_wait_gadukino'']>> minutes.')
 
 	act 'Walk to the community center (0:01)': minut += 1 & gt 'pav_commcenter'
 
-	if transportVars['buspass_day'] > daystart:
-		*nl
-		func('transport_functions', 'display_buspass_time')
-		act 'Go to platforms': gt 'bus', 'community_busses'
+	if transportVars['bus_wait_gadukino'] <= 60:
+		'The next bus in the direction of Gadukino ' + iif(transportVars['bus_wait_gadukino'] = 0, 'is leaving now!', 'leaves in <<transportVars[''bus_wait_gadukino'']>> minutes.')
+		if transportVars['buspass_day'] > daystart:
+			*nl
+			func('transport_functions', 'display_buspass_time')
+			act 'Go to platforms': gt 'bus', 'community_busses'
+		else
+			act 'Buy a ticket': gt 'bus', 'community_tickets'
+		end
 	else
-		act 'Buy a ticket': gt 'bus', 'community_tickets'
+		'It''s too late to take the bus. The next one arrives in <<transportVars[''bus_wait_gadukino'']/60>> hours'
 	end
 
 elseif $ARGS[0] = 'community_tickets':
@@ -44,7 +48,13 @@ elseif $ARGS[0] = 'community_tickets':
 	
 	act 'Leave the ticket office': gt 'bus', 'community'
 
-	gs 'transport_functions', 'buy_bus_ticket', 'community', 'pv'
+	act 'Look at the bus schedule':
+		*clr & cla
+		gs 'transport_functions', 'display_bus_schedule', 'pg'
+		act 'Stop looking at the schedule': gt 'bus', 'community_tickets'
+	end
+
+	gs 'transport_functions', 'buy_bus_ticket', 'community', 'pg'
 
 elseif $ARGS[0] = 'community_busses':
 	$menu_loc = 'bus'
@@ -55,6 +65,12 @@ elseif $ARGS[0] = 'community_busses':
 	'The next bus in the direction of Gadukino ' + iif(transportVars['bus_wait_gadukino'] = 0, 'is leaving now!', 'leaves in <<transportVars[''bus_wait_gadukino'']>> minutes.')
 
 	act 'Leave the platform': gt 'bus', 'community'
+
+	act 'Look at the bus schedule':
+		*clr & cla
+		gs 'transport_functions', 'display_bus_schedule', 'pg'
+		act 'Stop looking at the schedule': gt 'bus', 'community_busses.'
+	end
 
 	act 'Take a bus to the Pavlovsk train station (<<func(''transport_functions'', ''display_bus_timecost'', ''community'', ''pavstation'')>>)':	gt 'bus', 'community_pavstation'
 	act 'Take a bus to the old town district of Pushkin (<<func(''transport_functions'', ''display_bus_timecost'', ''community'', ''pushkin'')>>)':	gt 'bus', 'community_pushkin'
@@ -78,20 +94,25 @@ if $ARGS[0] = 'pavstation':
 	gs 'stat'
 
 	'<center><img <<$set_imgh>> src="images/locations/system/image_needed.jpg" ></center>'
-	'Bus station near the Pavlovsk train station'
+	'The Pavlovsk train station bus stop'
 	*nl
 	gs 'transport_functions', 'set_bus_wait_time', 'pavstation'
-	'The next bus in the direction of the Pavlovsk community center ' + iif(transportVars['bus_wait_pavlovsk'] = 0, 'is leaving now!', 'leaves in <<transportVars[''bus_wait_pavlovsk'']>> minutes.')
-	'The next bus in the direction of Gadukino ' + iif(transportVars['bus_wait_gadukino'] = 0, 'is leaving now!', 'leaves in <<transportVars[''bus_wait_gadukino'']>> minutes.')
 
 	act 'Walk to the train station (0:02)': minut += 2 & gt 'pav_train_hall'
 
-	if transportVars['buspass_day'] > daystart:
-		*nl
-		func('transport_functions', 'display_buspass_time')
-		act 'Go to platforms': gt 'bus', 'pavstation_busses'
+	if transportVars['bus_wait_pavlovsk'] <= 60 or transportVars['bus_wait_gadukino'] <= 60:
+		'The next bus in the direction of the Pavlovsk community center ' + iif(transportVars['bus_wait_pavlovsk'] = 0, 'is leaving now!', 'leaves in <<transportVars[''bus_wait_pavlovsk'']>> minutes.')
+		'The next bus in the direction of Gadukino ' + iif(transportVars['bus_wait_gadukino'] = 0, 'is leaving now!', 'leaves in <<transportVars[''bus_wait_gadukino'']>> minutes.')
+
+		if transportVars['buspass_day'] > daystart:
+			*nl
+			func('transport_functions', 'display_buspass_time')
+			act 'Go to platforms': gt 'bus', 'pavstation_busses'
+		else
+			act 'Buy a ticket': gt 'bus', 'pavstation_tickets'
+		end
 	else
-		act 'Buy a ticket': gt 'bus', 'pavstation_tickets'
+		'It''s too late to take the bus. The next one arrives in <<min(transportVars[''bus_wait_pavlovsk'']/60, transportVars[''bus_wait_gadukino'']/60)>> hours.'
 	end
 
 elseif $ARGS[0] = 'pavstation_tickets':
@@ -101,7 +122,16 @@ elseif $ARGS[0] = 'pavstation_tickets':
 	
 	act 'Leave the ticket office': gt 'bus', 'pavstation'
 
-	gs 'transport_functions', 'buy_bus_ticket', 'pavstation', 'pv'
+	act 'Look at the bus schedule':
+		*clr & cla
+		gs 'transport_functions', 'display_bus_schedule', 'pg'
+		*nl
+		*nl
+		gs 'transport_functions', 'display_bus_schedule', 'gp'
+		act 'Stop looking at the schedule': gt 'bus', 'pavstation_tickets'
+	end
+
+	gs 'transport_functions', 'buy_bus_ticket', 'pavstation', 'pg'
 
 elseif $ARGS[0] = 'pavstation_busses':
 	$menu_loc = 'bus'
@@ -113,6 +143,15 @@ elseif $ARGS[0] = 'pavstation_busses':
 	'The next bus in the direction of Gadukino ' + iif(transportVars['bus_wait_gadukino'] = 0, 'is leaving now!', 'leaves in <<transportVars[''bus_wait_gadukino'']>> minutes.')
 
 	act 'Leave the platform': gt 'bus', 'pavstation'
+
+	act 'Look at the bus schedule':
+		*clr & cla
+		gs 'transport_functions', 'display_bus_schedule', 'pg'
+		*nl
+		*nl
+		gs 'transport_functions', 'display_bus_schedule', 'gp'
+		act 'Stop looking at the schedule': gt 'bus', 'pavstation_busses'
+	end
 
 	act 'Take a bus to the Pavlovsk community center (<<func(''transport_functions'', ''display_bus_timecost'', ''pavstation'', ''community'')>>)':		gt 'bus', 'pavstation_community'
 	act 'Take a bus to the old town district of Pushkin (<<func(''transport_functions'', ''display_bus_timecost'', ''pavstation'', ''pushkin'')>>)':	gt 'bus', 'pavstation_pushkin'
@@ -136,20 +175,24 @@ if $ARGS[0] = 'pushkin':
 	gs 'stat'
 
 	'<center><img <<$set_imgh>> src="images/locations/system/image_needed.jpg" ></center>'
-	'The bus station in old town center of Pushkin'
+	'The bus stop in the old town center of Pushkin'
 	*nl
 	gs 'transport_functions', 'set_bus_wait_time', 'pushkin'
-	'The next bus in the direction of Pavlovsk ' + iif(transportVars['bus_wait_pavlovsk'] = 0, 'is leaving now!', 'leaves in <<transportVars[''bus_wait_pavlovsk'']>> minutes.')
-	'The next bus in the direction of Gadukino ' + iif(transportVars['bus_wait_gadukino'] = 0, 'is leaving now!', 'leaves in <<transportVars[''bus_wait_gadukino'']>> minutes.')
 
-	act 'Walk to pushkin (0:05)': minut += 5 & !gt '???'
+	act 'Walk to pushkin (0:05)': minut += 5 & gt 'pushkin'
 
-	if transportVars['buspass_day'] > daystart:
-		*nl
-		func('transport_functions', 'display_buspass_time')
-		act 'Go to platforms': gt 'bus', 'pushkin_busses'
+	if transportVars['bus_wait_pavlovsk'] <= 60 or transportVars['bus_wait_gadukino'] <= 60:
+		'The next bus in the direction of Pavlovsk ' + iif(transportVars['bus_wait_pavlovsk'] = 0, 'is leaving now!', 'leaves in <<transportVars[''bus_wait_pavlovsk'']>> minutes.')
+		'The next bus in the direction of Gadukino ' + iif(transportVars['bus_wait_gadukino'] = 0, 'is leaving now!', 'leaves in <<transportVars[''bus_wait_gadukino'']>> minutes.')
+		if transportVars['buspass_day'] > daystart:
+			*nl
+			func('transport_functions', 'display_buspass_time')
+			act 'Go to platforms': gt 'bus', 'pushkin_busses'
+		else
+			act 'Buy a ticket': gt 'bus', 'pushkin_tickets'
+		end
 	else
-		act 'Buy a ticket': gt 'bus', 'pushkin_tickets'
+		'It''s too late to take the bus. The next one arrives in <<min(transportVars[''bus_wait_pavlovsk'']/60, transportVars[''bus_wait_gadukino'']/60)>> hours.'
 	end
 
 elseif $ARGS[0] = 'pushkin_tickets':
@@ -159,7 +202,16 @@ elseif $ARGS[0] = 'pushkin_tickets':
 	
 	act 'Leave the ticket office': gt 'bus', 'pushkin'
 
-	gs 'transport_functions', 'buy_bus_ticket', 'pushkin', 'pv'
+	act 'Look at the bus schedule':
+		*clr & cla
+		gs 'transport_functions', 'display_bus_schedule', 'pg'
+		*nl
+		*nl
+		gs 'transport_functions', 'display_bus_schedule', 'gp'
+		act 'Stop looking at the schedule': gt 'bus', 'pushkin_tickets'
+	end
+
+	gs 'transport_functions', 'buy_bus_ticket', 'pushkin', 'pg'
 
 elseif $ARGS[0] = 'pushkin_busses':
 	$menu_loc = 'bus'
@@ -171,6 +223,15 @@ elseif $ARGS[0] = 'pushkin_busses':
 	'The next bus in the direction of Gadukino ' + iif(transportVars['bus_wait_gadukino'] = 0, 'is leaving now!', 'leaves in <<transportVars[''bus_wait_gadukino'']>> minutes.')
 
 	act 'Leave the platform': gt 'bus', 'pushkin'
+
+	act 'Look at the bus schedule':
+		*clr & cla
+		gs 'transport_functions', 'display_bus_schedule', 'pg'
+		*nl
+		*nl
+		gs 'transport_functions', 'display_bus_schedule', 'gp'
+		act 'Stop looking at the schedule': gt 'bus', 'pushkin_busses'
+	end
 
 	act 'Take a bus to the Pavlovsk community center (<<func(''transport_functions'', ''display_bus_timecost'', ''pushkin'', ''community'')>>)':	gt 'bus', 'pushkin_community'
 	act 'Take a bus to the Pavlovsk train station (<<func(''transport_functions'', ''display_bus_timecost'', ''pushkin'', ''pavstation'')>>)':		gt 'bus', 'pushkin_pavstation'
@@ -194,20 +255,24 @@ if $ARGS[0] = 'construction':
 	gs 'stat'
 
 	'<center><img <<$set_imgh>> src="images/locations/system/image_needed.jpg" ></center>'
-	'The construction site bus station'
+	'The temporary bus stop near the construction site'
 	*nl
 	gs 'transport_functions', 'set_bus_wait_time', 'construction'
-	'The next bus in the direction of Gadukino ' + iif(transportVars['bus_wait_gadukino'] = 0, 'is leaving now!', 'leaves in <<transportVars[''bus_wait_gadukino'']>> minutes.')
-	'The next bus in the direction of Pavlovsk ' + iif(transportVars['bus_wait_pavlovsk'] = 0, 'is leaving now!', 'leaves in <<transportVars[''bus_wait_pavlovsk'']>> minutes.')
 
 	act 'Walk to the construction site (0:05)': minut += 5 & nroad = 16 & gt 'road'
 
-	if transportVars['buspass_day'] > daystart:
-		*nl
-		func('transport_functions', 'display_buspass_time')
-		act 'Go to platforms': gt 'bus', 'construction_busses'
+	if transportVars['bus_wait_pavlovsk'] <= 60 or transportVars['bus_wait_gadukino'] <= 60:
+		'The next bus in the direction of Gadukino ' + iif(transportVars['bus_wait_gadukino'] = 0, 'is leaving now!', 'leaves in <<transportVars[''bus_wait_gadukino'']>> minutes.')
+		'The next bus in the direction of Pavlovsk ' + iif(transportVars['bus_wait_pavlovsk'] = 0, 'is leaving now!', 'leaves in <<transportVars[''bus_wait_pavlovsk'']>> minutes.')
+		if transportVars['buspass_day'] > daystart:
+			*nl
+			func('transport_functions', 'display_buspass_time')
+			act 'Go to platforms': gt 'bus', 'construction_busses'
+		else
+			act 'Buy a ticket': gt 'bus', 'construction_tickets'
+		end
 	else
-		act 'Buy a ticket': gt 'bus', 'construction_tickets'
+		'It''s too late to take the bus. The next one arrives in <<min(transportVars[''bus_wait_pavlovsk'']/60, transportVars[''bus_wait_gadukino'']/60)>> hours.'
 	end
 
 elseif $ARGS[0] = 'construction_tickets':
@@ -217,7 +282,16 @@ elseif $ARGS[0] = 'construction_tickets':
 	
 	act 'Leave the ticket office': gt 'bus', 'construction'
 
-	gs 'transport_functions', 'buy_bus_ticket', 'construction', 'vp'
+	act 'Look at the bus schedule':
+		*clr & cla
+		gs 'transport_functions', 'display_bus_schedule', 'gp'
+		*nl
+		*nl
+		gs 'transport_functions', 'display_bus_schedule', 'pg'
+		act 'Stop looking at the schedule': gt 'bus', 'construction_tickets'
+	end
+
+	gs 'transport_functions', 'buy_bus_ticket', 'construction', 'gp'
 
 elseif $ARGS[0] = 'construction_busses':
 	$menu_loc = 'bus'
@@ -229,6 +303,15 @@ elseif $ARGS[0] = 'construction_busses':
 	'The next bus in the direction of Pavlovsk ' + iif(transportVars['bus_wait_pavlovsk'] = 0, 'is leaving now!', 'leaves in <<transportVars[''bus_wait_pavlovsk'']>> minutes.')
 
 	act 'Leave the platform': gt 'bus', 'construction'
+
+	act 'Look at the bus schedule':
+		*clr & cla
+		gs 'transport_functions', 'display_bus_schedule', 'gp'
+		*nl
+		*nl
+		gs 'transport_functions', 'display_bus_schedule', 'pg'
+		act 'Stop looking at the schedule': gt 'bus', 'construction_busses'
+	end
 
 	act 'Take a bus to the village of Gadukino (<<func(''transport_functions'', ''display_bus_timecost'', ''construction'', ''gadukino'')>>)':			gt 'bus', 'construction_gadukino'
 	act 'Take a bus to the old town district of Pushkin (<<func(''transport_functions'', ''display_bus_timecost'', ''construction'', ''pushkin'')>>)':	gt 'bus', 'construction_pushkin'
@@ -252,20 +335,24 @@ if $ARGS[0] = 'gadukino':
 	gs 'stat'
 
 	'<center><img <<$set_imgh>> src="images/locations/system/image_needed.jpg" ></center>'
-	'The bus station at the forest road of the village of Gadukino'
+	'The bus stop at the forest road of the village of Gadukino'
 	*nl
 	gs 'transport_functions', 'set_bus_wait_time', 'gadukino'
-	'The next bus in the direction of Pavlovsk ' + iif(transportVars['bus_wait_pavlovsk'] = 0, 'is leaving now!', 'leaves in <<transportVars[''bus_wait_pavlovsk'']>> minutes.')
-	'The next bus in the direction of the suburbs of St. Petersburg ' + iif(transportVars['bus_wait_suburbs'] = 0, 'is leaving now!', 'leaves in <<transportVars[''bus_wait_suburbs'']>> minutes.')
 
 	act 'Walk to Gadukino (0:01)': minut += 1 & gt 'gadroad'
 
-	if transportVars['buspass_day'] > daystart:
-		*nl
-		func('transport_functions', 'display_buspass_time')
-		act 'Go to platforms': gt 'bus', 'gadukino_busses'
+	if transportVars['bus_wait_pavlovsk'] <= 60 or transportVars['bus_wait_suburbs'] <= 60:
+		'The next bus in the direction of Pavlovsk ' + iif(transportVars['bus_wait_pavlovsk'] = 0, 'is leaving now!', 'leaves in <<transportVars[''bus_wait_pavlovsk'']>> minutes.')
+		'The next bus in the direction of the suburbs of St. Petersburg ' + iif(transportVars['bus_wait_suburbs'] = 0, 'is leaving now!', 'leaves in <<transportVars[''bus_wait_suburbs'']>> minutes.')
+		if transportVars['buspass_day'] > daystart:
+			*nl
+			func('transport_functions', 'display_buspass_time')
+			act 'Go to platforms': gt 'bus', 'gadukino_busses'
+		else
+			act 'Buy a ticket': gt 'bus', 'gadukino_tickets'
+		end
 	else
-		act 'Buy a ticket': gt 'bus', 'gadukino_tickets'
+		'It''s too late to take the bus. The next one arrives in <<min(transportVars[''bus_wait_pavlovsk'']/60, transportVars[''bus_wait_suburbs'']/60)>> hours.'
 	end
 
 elseif $ARGS[0] = 'gadukino_tickets':
@@ -275,8 +362,17 @@ elseif $ARGS[0] = 'gadukino_tickets':
 	
 	act 'Leave the ticket office': gt 'bus', 'gadukino'
 
-	gs 'transport_functions', 'buy_bus_ticket', 'gadukino', 'vp'
-	gs 'transport_functions', 'buy_bus_ticket', 'gadukino', 'vs'
+	act 'Look at the bus schedule':
+		*clr & cla
+		gs 'transport_functions', 'display_bus_schedule', 'gp'
+		*nl
+		*nl
+		gs 'transport_functions', 'display_bus_schedule', 'gs'
+		act 'Stop looking at the schedule': gt 'bus', 'gadukino_tickets'
+	end
+
+	gs 'transport_functions', 'buy_bus_ticket', 'gadukino', 'gp'
+	gs 'transport_functions', 'buy_bus_ticket', 'gadukino', 'gs'
 
 elseif $ARGS[0] = 'gadukino_busses':
 	$menu_loc = 'bus'
@@ -288,6 +384,15 @@ elseif $ARGS[0] = 'gadukino_busses':
 	'The next bus in the direction of the suburbs of the St. Petersburg suburbs ' + iif(transportVars['bus_wait_suburbs'] = 0, 'is leaving now!', 'leaves in <<transportVars[''bus_wait_suburbs'']>> minutes.')
 
 	act 'Leave the platform': gt 'bus', 'gadukino'
+
+	act 'Look at the bus schedule':
+		*clr & cla
+		gs 'transport_functions', 'display_bus_schedule', 'gp'
+		*nl
+		*nl
+		gs 'transport_functions', 'display_bus_schedule', 'gs'
+		act 'Stop looking at the schedule': gt 'bus', 'gadukino_busses'
+	end
 
 	act 'Take a bus to the construction site (<<func(''transport_functions'', ''display_bus_timecost'', ''gadukino'', ''construction'')>>)':			gt 'bus', 'gadukino_construction'
 	act 'Take a bus to the old town district of Pushkin (<<func(''transport_functions'', ''display_bus_timecost'', ''gadukino'', ''pushkin'')>>)':		gt 'bus', 'gadukino_pushkin'
@@ -315,7 +420,7 @@ if $ARGS[0] = 'communal':
 	gs 'stat'
 
 	'<center><img <<$set_imgh>> src="images/locations/system/image_needed.jpg" ></center>'
-	'The communal village bus station'
+	'The bus stop in the communal village'
 	*nl
 	gs 'transport_functions', 'set_bus_wait_time', 'communal'
 	'The next bus in the direction of Gadukino ' + iif(transportVars['bus_wait_gadukino'] = 0, 'is leaving now!', 'leaves in <<transportVars[''bus_wait_gadukino'']>> minutes.')
@@ -323,12 +428,19 @@ if $ARGS[0] = 'communal':
 
 	act 'Walk to the communal village (0:03)': minut += 3 & gt 'dachi'
 
-	if transportVars['buspass_day'] > daystart:
-		*nl
-		func('transport_functions', 'display_buspass_time')
-		act 'Go to platforms': gt 'bus', 'communal_busses'
+	if transportVars['bus_wait_gadukino'] <= 60 or transportVars['bus_wait_suburbs'] <= 60:
+		'The next bus in the direction of Gadukino ' + iif(transportVars['bus_wait_gadukino'] = 0, 'is leaving now!', 'leaves in <<transportVars[''bus_wait_gadukino'']>> minutes.')
+		'The next bus in the direction of the suburbs of St. Petersburg ' + iif(transportVars['bus_wait_suburbs'] = 0, 'is leaving now!', 'leaves in <<transportVars[''bus_wait_suburbs'']>> minutes.')
+
+		if transportVars['buspass_day'] > daystart:
+			*nl
+			func('transport_functions', 'display_buspass_time')
+			act 'Go to platforms': gt 'bus', 'communal_busses'
+		else
+			act 'Buy a ticket': gt 'bus', 'communal_tickets'
+		end
 	else
-		act 'Buy a ticket': gt 'bus', 'communal_tickets'
+		'It''s too late to take the bus. The next one arrives in <<min(transportVars[''bus_wait_gadukino'']/60, transportVars[''bus_wait_suburbs'']/60)>> hours.'
 	end
 
 elseif $ARGS[0] = 'communal_tickets':
@@ -338,7 +450,16 @@ elseif $ARGS[0] = 'communal_tickets':
 	
 	act 'Leave the ticket office': gt 'bus', 'communal'
 
-	gs 'transport_functions', 'buy_bus_ticket', 'communal', 'vs'
+	act 'Look at the bus schedule':
+		*clr & cla
+		gs 'transport_functions', 'display_bus_schedule', 'gs'
+		*nl
+		*nl
+		gs 'transport_functions', 'display_bus_schedule', 'sg'
+		act 'Stop looking at the schedule': gt 'bus', 'communal_tickets'
+	end
+
+	gs 'transport_functions', 'buy_bus_ticket', 'communal', 'gs'
 
 elseif $ARGS[0] = 'communal_busses':
 	$menu_loc = 'bus'
@@ -350,6 +471,15 @@ elseif $ARGS[0] = 'communal_busses':
 	'The next bus in the direction of the suburbs of the St. Petersburg suburbs ' + iif(transportVars['bus_wait_suburbs'] = 0, 'is leaving now!', 'leaves in <<transportVars[''bus_wait_suburbs'']>> minutes.')
 
 	act 'Leave the platform': gt 'bus', 'communal'
+
+	act 'Look at the bus schedule':
+		*clr & cla
+		gs 'transport_functions', 'display_bus_schedule', 'gs'
+		*nl
+		*nl
+		gs 'transport_functions', 'display_bus_schedule', 'sg'
+		act 'Stop looking at the schedule': gt 'bus', 'communal_busses'
+	end
 
 	act 'Take a bus to the village of Gadukino (<<func(''transport_functions'', ''display_bus_timecost'', ''communal'', ''gadukino'')>>)':					gt 'bus', 'communal_gadukino'
 	act 'Take a bus the cemetery outside of St. Petersburg (<<func(''transport_functions'', ''display_bus_timecost'', ''communal'', ''graveyard'')>>)':	gt 'bus', 'communal_graveyard'
@@ -372,20 +502,24 @@ if $ARGS[0] = 'graveyard':
 	gs 'stat'
 
 	'<center><img <<$set_imgh>> src="images/locations/system/image_needed.jpg" ></center>'
-	'The cemetery bus station'
+	'The cemetery bus stop'
 	*nl
 	gs 'transport_functions', 'set_bus_wait_time', 'graveyard'
-	'The next bus in the direction of Gadukino ' + iif(transportVars['bus_wait_gadukino'] = 0, 'is leaving now!', 'leaves in <<transportVars[''bus_wait_gadukino'']>> minutes.')
-	'The next bus in the direction of the suburbs of St. Petersburg ' + iif(transportVars['bus_wait_suburbs'] = 0, 'is leaving now!', 'leaves in <<transportVars[''bus_wait_suburbs'']>> minutes.')
 
 	act 'Walk to the graveyard (0:01)': minut += 1 & nroad = 3 & gt 'road'
 
-	if transportVars['buspass_day'] > daystart:
-		*nl
-		func('transport_functions', 'display_buspass_time')
-		act 'Go to platforms': gt 'bus', 'graveyard_busses'
+	if transportVars['bus_wait_gadukino'] <= 60 or transportVars['bus_wait_suburbs'] <= 60:
+		'The next bus in the direction of Gadukino ' + iif(transportVars['bus_wait_gadukino'] = 0, 'is leaving now!', 'leaves in <<transportVars[''bus_wait_gadukino'']>> minutes.')
+		'The next bus in the direction of the suburbs of St. Petersburg ' + iif(transportVars['bus_wait_suburbs'] = 0, 'is leaving now!', 'leaves in <<transportVars[''bus_wait_suburbs'']>> minutes.')
+		if transportVars['buspass_day'] > daystart:
+			*nl
+			func('transport_functions', 'display_buspass_time')
+			act 'Go to platforms': gt 'bus', 'graveyard_busses'
+		else
+			act 'Buy a ticket': gt 'bus', 'graveyard_tickets'
+		end
 	else
-		act 'Buy a ticket': gt 'bus', 'graveyard_tickets'
+		'It''s too late to take the bus. The next one arrives in <<min(transportVars[''bus_wait_gadukino'']/60, transportVars[''bus_wait_suburbs'']/60)>> hours.'
 	end
 
 elseif $ARGS[0] = 'graveyard_tickets':
@@ -395,7 +529,16 @@ elseif $ARGS[0] = 'graveyard_tickets':
 	
 	act 'Leave the ticket office': gt 'bus', 'graveyard'
 
-	gs 'transport_functions', 'buy_bus_ticket', 'graveyard', 'sv'
+	act 'Look at the bus schedule':
+		*clr & cla
+		gs 'transport_functions', 'display_bus_schedule', 'sg'
+		*nl
+		*nl
+		gs 'transport_functions', 'display_bus_schedule', 'gs'
+		act 'Stop looking at the schedule': gt 'bus', 'graveyard_tickets'
+	end
+
+	gs 'transport_functions', 'buy_bus_ticket', 'graveyard', 'sg'
 
 elseif $ARGS[0] = 'graveyard_busses':
 	$menu_loc = 'bus'
@@ -407,6 +550,15 @@ elseif $ARGS[0] = 'graveyard_busses':
 	'The next bus in the direction of Gadukino ' + iif(transportVars['bus_wait_gadukino'] = 0, 'is leaving now!', 'leaves in <<transportVars[''bus_wait_gadukino'']>> minutes.')
 
 	act 'Leave the platform': gt 'bus', 'communal'
+
+	act 'Look at the bus schedule':
+		*clr & cla
+		gs 'transport_functions', 'display_bus_schedule', 'sg'
+		*nl
+		*nl
+		gs 'transport_functions', 'display_bus_schedule', 'gs'
+		act 'Stop looking at the schedule': gt 'bus', 'graveyard_busses'
+	end
 
 	act 'Take a bus to the suburbs of St. Petersburg (<<func(''transport_functions'', ''display_bus_timecost'', ''graveyard'', ''suburbs'')>>)':	gt 'bus', 'graveyard_suburbs'
 	act 'Take a bus to the communal village (<<func(''transport_functions'', ''display_bus_timecost'', ''graveyard'', ''communal'')>>)':			gt 'bus', 'graveyard_communal'
@@ -429,19 +581,23 @@ if $ARGS[0] = 'suburbs':
 	gs 'stat'
 
 	'<center><img <<$set_imgh>> src="images/locations/system/image_needed.jpg" ></center>'
-	'The bus station near the suburbs of St. Petersburg'
+	'The bus stop near the suburbs of St. Petersburg'
 	*nl
 	gs 'transport_functions', 'set_bus_wait_time', 'suburbs'
-	'The next bus in the direction of Gadukino ' + iif(transportVars['bus_wait_gadukino'] = 0, 'is leaving now!', 'leaves in <<transportVars[''bus_wait_gadukino'']>> minutes.')
 
 	act 'Walk to the suburbs (0:05)': minut += 5 & gt 'city_suburbs', 'start'
 
-	if transportVars['buspass_day'] > daystart:
-		*nl
-		func('transport_functions', 'display_buspass_time')
-		act 'Go to platforms': gt 'bus', 'suburbs_busses'
+	if transportVars['bus_wait_gadukino'] <= 60:
+		'The next bus in the direction of Gadukino ' + iif(transportVars['bus_wait_gadukino'] = 0, 'is leaving now!', 'leaves in <<transportVars[''bus_wait_gadukino'']>> minutes.')
+		if transportVars['buspass_day'] > daystart:
+			*nl
+			func('transport_functions', 'display_buspass_time')
+			act 'Go to platforms': gt 'bus', 'suburbs_busses'
+		else
+			act 'Buy a ticket': gt 'bus', 'suburbs_tickets'
+		end
 	else
-		act 'Buy a ticket': gt 'bus', 'suburbs_tickets'
+		'It''s too late to take the bus. The next one arrives in <<transportVars[''bus_wait_gadukino'']/60>> hours'
 	end
 
 elseif $ARGS[0] = 'suburbs_tickets':
@@ -451,7 +607,13 @@ elseif $ARGS[0] = 'suburbs_tickets':
 	
 	act 'Leave the ticket office': gt 'bus', 'suburbs'
 
-	gs 'transport_functions', 'buy_bus_ticket', 'suburbs', 'sv'
+	act 'Look at the bus schedule':
+		*clr & cla
+		gs 'transport_functions', 'display_bus_schedule', 'sg'
+		act 'Stop looking at the schedule': gt 'bus', 'suburbs_tickets'
+	end
+
+	gs 'transport_functions', 'buy_bus_ticket', 'suburbs', 'sg'
 
 elseif $ARGS[0] = 'suburbs_busses':
 	$menu_loc = 'bus'
@@ -463,6 +625,12 @@ elseif $ARGS[0] = 'suburbs_busses':
 	'The next bus in the direction of Gadukino ' + iif(transportVars['bus_wait_gadukino'] = 0, 'is leaving now!', 'leaves in <<transportVars[''bus_wait_gadukino'']>> minutes.')
 
 	act 'Leave the platform': gt 'bus', 'suburbs'
+
+	act 'Look at the bus schedule':
+		*clr & cla
+		gs 'transport_functions', 'display_bus_schedule', 'sg'
+		act 'Stop looking at the schedule': gt 'bus', 'suburbs_busses'
+	end
 
 	act 'Take a bus the cemetery outside of St. Petersburg (<<func(''transport_functions'', ''display_bus_timecost'', ''suburbs'', ''graveyard'')>>)':	gt 'bus', 'suburbs_graveyard'
 	act 'Take a bus to the communal village (<<func(''transport_functions'', ''display_bus_timecost'', ''suburbs'', ''communal'')>>)':					gt 'bus', 'suburbs_communal'
