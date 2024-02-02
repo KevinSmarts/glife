@@ -113,14 +113,40 @@ end
 if $ARGS[0] = 'bask_satisfaction':
 	act'Quiet satisfaction':gt'sex_ev_reactions', 'bask_route'
 	
-	act'Catch your breath':sex_ev['catch_breath'] = 1 & gt'sex_ev_reactions', 'bask_route'
+	if sex_ev['catch_breath'] = 0:
+		act'Catch your breath':
+			sex_ev['catch_breath'] = 1
+			sex_ev['react'] = 0
+			sex_ev['did_we_cum_together'] = 0
+			cla & *clr
+			if sex_ev['orgasm'] < orgasm and sex_ev['cum_together_fake'] ! 1:
+				!! if Sveta came
+				if $sex_ev['last_cum'] = 'creampie':
+					gs 'sex_ev_reactions', 'bask_creampie1'
+				elseif $sex_ev['last_cum'] = 'condom':
+					gs 'sex_ev_reactions', 'bask_condom1'
+				else
+					gs 'sex_ev_reactions', 'bask_external_cum1'
+				end
+			else
+				if $sex_ev['last_cum'] = 'creampie':
+					gs 'sex_ev_reactions', 'bask_creampie2'
+				elseif $sex_ev['last_cum'] = 'condom':
+					gs 'sex_ev_reactions', 'bask_condom2'
+				else
+					gs 'sex_ev_reactions', 'bask_external_cum2'
+				end
+			end
+			gs'sex_ev_reactions', 'react_menu'
+		end
+	end
 end
 
 if $ARGS[0] = 'bask_route':
 	cla & *clr
 	minut += rand(1,3)
 	gs 'stat'
-	sex_ev['react'] = 1
+	if sex_ev['catch_breath'] = 0: sex_ev['react'] = 1
 	if sex_ev['orgasm'] < orgasm and sex_ev['cum_together_fake'] ! 1:
 		!! if Sveta came
 		if $sex_ev['last_cum'] = 'creampie':
@@ -529,7 +555,7 @@ if $ARGS[0] = 'why_not_inside':
 				'<center><img <<$set_imgh>> src="images/shared/sex/vag/cowgirl/3.jpg"></center>'
 			end
 			'"Aww," you moan. "What a waste. Why didn''t you come inside me?"'
-			if npc_childfree[$boy] > 0:
+			if npc_childfree[$boy] > 0 and npc_know_bc[$boy] ! 1:
 				if npc_know_not_bc[$boy] = 1:
 					if $npc_cum_pref[$boy] = 'creampie':
 						'"Just cause it feels good doesn''t mean I want to get you pregnant," <<$npc_firstname[$boy]>> says, frowning. "Didn''t you say you''re not on birth control?"'
@@ -546,7 +572,7 @@ if $ARGS[0] = 'why_not_inside':
 					
 					act'But it feels good':
 						cla & *nl
-						npc_rel[$boy] -= 1
+						gs 'npc_relationship', 'modify', $boy, 'dislike'
 						'"So?" you smile wryly. "Pleasure is pleasure. Not really thinking about the consequences right now."'
 						'"Maybe for you..."'
 						gs 'sex_ev_sex', 'sex_end'
@@ -554,7 +580,7 @@ if $ARGS[0] = 'why_not_inside':
 					
 					act'The risk makes it sexy':
 						cla & *nl
-						npc_rel[$boy] -= 2
+						gs 'npc_relationship', 'modify', $boy, 'dislike'
 						'"But that''s the best part," you grin. "The risk is what makes it exciting."'
 						'"Maybe for you..."'
 						gs 'sex_ev_sex', 'sex_end'
@@ -760,7 +786,7 @@ if $ARGS[0] = 'facial_happy_reacts':
 			sex_ev['react'] = 1
 			$sex_ev['facial_pic']
 			'"So, how do I look?" you ask, with a cum glazed smile.'
-			if npc_abusive[$boy] > 0 and rand(0,1) = 1:
+			if $npc_abusive[$boy] and rand(0,1) = 1:
 				'"Like a walking cumdumpster," <<$npc_firstname[$boy]>> snickers.'
 				act'Offended':
 					cla & *clr
@@ -884,7 +910,7 @@ if $ARGS[0] = 'facial_happy_reacts':
 				
 				act'Curious':
 					cla & *clr
-					'<center><img <<$set_imgh>> src="images/shared/sex/cum/facial/facial36.jpg"></center>'
+					'<center><img <<$set_imgh>> src="images/shared/sex/cum/facial/facial37.jpg"></center>'
 					'"Do guys really like doing this?" you ask with genuine curiosity, popping an eyebrow to look at <<$npc_firstname[$boy]>> through the cum glazing your face.'
 					if $npc_cum_pref[$boy] = 'facial':
 						'"Yeah," <<$npc_firstname[$boy]>> smiles back. "You have no idea how hot it is, seeing you with my cum all over your face."'
@@ -1338,6 +1364,7 @@ end
 if $ARGS[0] = 'no_tits_cum':
 	if $sex_ev['cum_choice'] = 'tits' and $sex_ev['last_cum'] ! 'tits':
 		act'Don''t cum on my tits':
+			cla
 			act'That''s gross':
 				cla & *nl
 				!! IMAGE HERE
@@ -1358,7 +1385,7 @@ end
 if $ARGS[0] = 'no_facial':
 	if $sex_ev['cum_choice'] = 'facial' and $sex_ev['last_cum'] ! 'facial' and $sex_ev['last_cum'] ! 'face_mouth':
 		act'Don''t cum on my face':
-		cla
+			cla
 			act'That''s gross':
 				cla & *nl
 				!! IMAGE HERE
@@ -1885,10 +1912,11 @@ if $ARGS[0] = '2pump_react2':
 			cla & *clr
 			'<center><video autoplay loop src="images/shared/sex/misc/wait.mp4"></video></center>'
 			'"Now that that''s out of the way, you ready to go again?" you ask.'
-			if sex_ev['cum_count'] >= npc_sexdrive[$boy] + sex_ev['extra_cum']:
+			if (rand(1,10) >= npc_sexdrive[$boy] or sex_ev['cum_count'] >= 5 + sex_ev['extra_cum']) and sex_ev['boy_cum'] = 1:
 				gs 'sex_ev_after', 'fucked_out'
 			else
-				'<<$npc_firstname[$boy]>> nods back eagerly and starts working his cock with his hand, trying to get hard again.'
+				'"Yeah."'
+				'<<$npc_firstname[$boy]>> smiles warmly at you and you can see his cock already beginning to stiffen up again.'
 				gs'sex_ev_sex', 'reset'
 				gs'sex_ev_sex', 'sex_menu'
 			end

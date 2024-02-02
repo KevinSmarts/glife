@@ -316,6 +316,7 @@ if $ARGS[0] = 'cum_decider':
 	elseif (sex_ev['danger_day'] = 1 or (npc_diligent[$boy] > 0 and $npc_cum_pref[$boy] = 'pullout')) and sex_ev['no_condom'] = 1:
 		sex_ev['extra_caution'] = rand(0,1)
 	end
+	if sex_ev['creampie_allowance'] ! 1 or npc_know_bc[$boy] = 0: sex_ev['extra_caution'] = 0
 	
 !!	if npc_generous[$boy] = 1 and sex_ev['cum_choice'] <= 9:
 
@@ -329,7 +330,7 @@ if $ARGS[0] = 'cum_decider':
 		sex_ev['cum_warn'] = 0
 		if sex_ev['two_pump'] = 1: sex_ev['two_pump'] = 2
 		
-		if sex_ev['extra_caution'] = 1 and sex_ev['no_condom'] = 1 and sex_ev['creampie_allowance'] ! 1:
+		if sex_ev['extra_caution'] = 1 and sex_ev['no_condom'] = 1:
 			$sex_ev['cum_choice'] = 'pullout'
 		else
 			if rand(0,1) = 1 and sex_ev['creampie_allowance'] ! 1:
@@ -422,12 +423,12 @@ if $ARGS[0] = 'fuck_cum':
 	if sex_ev['dirty_talk'] = 1: sex_ev['dirty_talk_talk'] = 1
 	sex_ev['cycle_limit'] += 1
 !!	if sex_ev['cycle_limit'] >= npc_sex_stamina[$boy] or rand(1,npc_sex_stamina[$boy]) = npc_sex_stamina[$boy]:sex_ev['boy_cum'] = 1
-	if rand(1,20) = npc_sex_stamina[$boy] and sex_ev['boy_cocaine'] = 0:
+	if rand(1,25) = npc_sex_stamina[$boy] and sex_ev['boy_cocaine'] = 0:
 		sex_ev['cant_hold_cum'] = 1
 		sex_ev['boy_cum'] = 1
 	end
 	
-	if (sex_ev['cycle_limit'] + sex_ev['extra_stim'] >= npc_sex_stamina[$boy] and sex_ev['boy_cocaine'] = 0) or (sex_ev['boy_cocaine'] = 1 and sex_ev['cycle_limit'] + sex_ev['extra_stim'] = 10): sex_ev['boy_cum'] = 1
+	if (sex_ev['cycle_limit'] + sex_ev['extra_stim'] > npc_sex_stamina[$boy] and sex_ev['boy_cocaine'] = 0) or (sex_ev['boy_cocaine'] = 1 and sex_ev['cycle_limit'] + sex_ev['extra_stim'] = 10): sex_ev['boy_cum'] = 1
 	
 	if npc_two_pump[$boy] = 1 and sex_ev['two_pump'] = 0:
 		sex_ev['two_pump'] = 1
@@ -483,7 +484,7 @@ if $ARGS[0] = 'fuck_cum2':
 			if npc_free_creampies[$boy] = 1 and sex_ev['safe_day'] = 0 and sex_ev['probably_safe_day'] = 0 and sex_ev['danger_day'] = 0 and mesec <= 0 and sex_ev['condom'] ! 1:
 				'"Can I come inside you? Is it safe today?" <<$npc_firstname[$boy]>> whimpers almost pleadingly.'
 			elseif sex_ev['orgasm'] < orgasm:
-				'"Let''s come together," <<$npc_firstname[$boy]>> says, smiling at you.'
+				'"Let''s come together," <<$npc_firstname[$boy]>> moans.'
 			else
 				'"I wanna come inside you so bad," <<$npc_firstname[$boy]>> says.'
 			end
@@ -684,7 +685,7 @@ if $ARGS[0] = 'fuck_cum2':
 			end}
 			
 			act'Pull out!':sex_ev['pullout_ask'] = 1 & gt 'sex_ev_cum', 'cum_pullout'
-			if sex_ev['cum_where'] = 1 or sex_ev['he_ask_creampie'] = 1:
+			if sex_ev['creampie_allowance'] = 0 and npc_free_creampies[$boy] < 2:
 				act'Not inside me!':sex_ev['not_inside'] = 1 & gt 'sex_ev_cum', 'cum_not_inside'
 			end
 		end
@@ -797,7 +798,6 @@ if $ARGS[0] = 'cum_wherever':
 	elseif $sex_ev['cum_choice'] = 'facial':
 		gs'sex_ev_cum', 'facial_he_jerks'
 	elseif $sex_ev['cum_choice'] = 'tits':
-		sex_ev['he_ask_tits'] = 1
 		gs 'sex_ev_cum', 'cum_tits1'
 	else
 !!		if $npc_cum_pref[$boy] = 'creampie' and (npc_childfree[$boy] ! 1 or npc_know_bc[$boy] = 1):
@@ -1577,7 +1577,7 @@ if $ARGS[0] = 'cum_tits4':
 			gs 'stat'
 			cla & *clr
 			'<center><video autoplay loop src="images/shared/sex/cum/chest/tits1.mp4"></video></center>'
-			if sex_ev['cum_choice'] = 'tits':
+			if $sex_ev['cum_choice'] = 'tits':
 				'"I can do you one better than that," you grin.'
 			else
 				'"I''ve got an even better idea," you grin.'
@@ -1616,7 +1616,7 @@ if $ARGS[0] = 'creampie_code':
 	
 	gs'cum_call', '',$boy,1
 	$sex_ev['last_cum'] = 'creampie'
-	if $npc_cum_pref = 'creampie': npc_rel[$boy] += 1
+	if $npc_cum_pref = 'creampie': gs 'npc_relationship', 'modify', $boy, 'like'
 	gs'stat'
 end
 
@@ -1800,17 +1800,20 @@ if $ARGS[0] = 'creampie_menu':
 			act'Make him come inside you':gt'sex_ev_cum', 'cum_force'
 		end
 	end
-!!{	if sex_ev['prostitution'] = 1 and npc_rule_no_creampies[$boy] = 1:
+	if sex_ev['prostitution'] = 1 and npc_rule_no_creampies[$boy] = 1 and sex_ev['p_creampie_bonus'] = 0:
 		act'Creampies cost extra':
 			cla & *nl
-			'"Coming inside costs extra," you say, giving <<$npc_firstname[$boy]>> a sultry look.'
+			sex_ev['p_creampie_bonus'] = 1
+			sex_ev['prostitution_bonus'] += 1000
+			'"Finishing inside costs extra," you smirk teasingly.'
 !!			if $npc_cum_pref[$boy] = 'creampie':
 !!			else
 !!			end
-			'"Ungh~! Paid!" he grunts and thrusts balls deep into you.'
-			act'Continue':gt 'sex_ev_cum', 'cum_inside'
+			'"Ungh~! Done!"'
+			'<<$npc_firstname[$boy]>> doesn''t even hesitate and thrusts balls deep into you with a loud groan.'
+			act'Get creampied':gt 'sex_ev_cum', 'cum_inside'
 		end
-	end}
+	end
 end
 
 if $ARGS[0] = 'cum_inside':
@@ -2020,7 +2023,7 @@ if $ARGS[0] = 'cum_inside_pull_away':
 						'Raising your hips up, you pull yourself off <<$npc_firstname[$boy]>>''s cock. It flops from your pussy and you feel a thick glob of cum immediately begin to leak from your snatch.'
 					end
 				end
-				if sex_ev['surprise_cum_together'] = 1:
+				if sex_ev['surprise_cum_together'] = 1 and sex_ev['came_together'] < 3:
 					*nl
 					'<<$npc_firstname[$boy]>>''s cum.'
 					gs'sex_ev_reactions_creampie', 'creampie_cum_together_react'
@@ -2481,10 +2484,10 @@ if $ARGS[0] = 'creampie_surprise':
 		'Suddenly, <<$npc_firstname[$boy]>> grabs you tight, pulling you down against his chest and thrusting himself deep into you. His cock becomes even more rigid, pulsing like a second heartbeat in your cunt. And then, warmth floods your pussy.'
 	end
 	
-	gs'sex_ev_cum', 'creampie_surprise_react'
+	gs'sex_ev_cum', 'creampie_surprise2'
 end
 
-if $ARGS[0] = 'creampie_surprise_react':
+if $ARGS[0] = 'creampie_surprise2':
 		
 	gs'sex_ev_reactions_creampie', 'take_in_stride1'
 	
@@ -2560,8 +2563,9 @@ if $ARGS[0] = 'creampie_surprise_react':
 	end
 	
 	gs 'sex_ev_reactions_creampie', 'creampie_pc_startled'
-	gs 'sex_ev_reactions_creampie', 'creampie_wtf'
+	gs 'sex_ev_reactions_creampie', 'creampie_wtf_instant'
 	gs 'sex_ev_reactions_creampie', 'creampie_accident_oh_shit'
+	gs'sex_ev_reactions_creampie', 'idk_you_panic_instant'
 end
 
 if $ARGS[0] = 'creampie_surprise_cum_together':
@@ -2597,19 +2601,20 @@ if $ARGS[0] = 'what_now':
 		gs'sex_ev_sex', 'sex_end'
 	else
 		if (npc_selfish[$boy] = 1 or npc_abusive[$boy] > 0) and npc_caretaker[$boy] = 0:
-			if sex_ev['cum_count'] < npc_sexdrive[$boy]:
+			if rand(1,10) >= npc_sexdrive[$boy] or sex_ev['cum_count'] >= 5 + sex_ev['extra_cum']:
+				sex_ev['sex_over'] = 1
+				'"We should probably stop anyways," <<$npc_firstname[$boy]>> shrugs. "I think I''m pretty much all tapped out."'
+			else
 				'"So..." <<$npc_firstname[$boy]>> says. "We gonna go again or...?"'
 				$sex_ev['more_creampies_dialogue'] = 'Yeah. You need to pump more cum into me,'
-			else
-				'"We should probably anyways," <<$npc_firstname[$boy]>> shrugs. "I think I''m pretty much all tapped out."'
 			end
 		else
-			
-			if sex_ev['cum_count'] < npc_sexdrive[$boy]:
+			if rand(1,10) >= npc_sexdrive[$boy] or sex_ev['cum_count'] >= 5 + sex_ev['extra_cum']:
+				sex_ev['sex_over'] = 1
+				'"Uhh... I think that was my last shot..." <<$npc_firstname[$boy]>> says awkwardly. ' + iif(sex_ev['cock_inserted'] = 1, 'As he says it, his cock is already softening inside you.', 'As he says it, his cock is already losing stiffness right before your eyes.')
+			else
 				'"Uhh..." <<$npc_firstname[$boy]>> says awkwardly. "So... what now?"'
 				$sex_ev['more_creampies_dialogue'] = 'Pump me full of more cum, obviously!'
-			else
-				'"Uhh... I think that was my last shot..." <<$npc_firstname[$boy]>> says awkwardly. ' + iif(sex_ev['cock_inserted'] = 1, 'As he says it, you feel his cock softening inside you.', 'As he says it, his cock is already losing stiffness right before your eyes.')
 			end
 		end
 		act'Let''s stop':
@@ -2623,12 +2628,12 @@ if $ARGS[0] = 'what_now':
 			gs'sex_ev_after', 'after_sex1'
 		end
 		
-		if sex_ev['cum_count'] < npc_sexdrive[$boy] + sex_ev['extra_cum']:
+		if sex_ev['sex_over'] = 0:
 			act'Keep going':
 				cla & *clr
 				'<center><video autoplay loop src="images/shared/sex/misc/wait.mp4"></video></center>'
 				'"Let''s just keep going," you say. "I''m not satisfied yet anyways."'
-				'"Great! Gimme a minute to get hard again," he says, working his cock, concentrating hard to try and stiffen up again.'
+				'"Great! Gimme a minute to get hard again," he says, working his cock, concentrating hard to stiffen up again.'
 				gs'sex_ev_sex', 'reset'
 				gs'sex_ev_sex', 'sex_menu'
 			end

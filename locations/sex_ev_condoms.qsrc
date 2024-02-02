@@ -39,7 +39,7 @@ if $ARGS[0] = 'condoms':
 		if npc_bareback[$boy] = 1 and sex_ev['condom'] ! 1:
 	!!		if npc_know_bc[$boy] = 1 and npc_condom_conscious[$boy] ! 2: sex_ev['no_condom'] = 1
 			'You agreed to stop using condoms with <<$npc_firstname[$boy]>> and he makes no move to get one.'
-			if npc_free_creampies[$boy] = 1:
+			if npc_free_creampies[$boy] = 1 or npc_creampie_permission[$boy] = 1:
 				gs 'sex_ev_condoms', 'safeday_check'
 			else
 				gs 'sex_ev_sex', 'position_choose'
@@ -50,6 +50,7 @@ if $ARGS[0] = 'condoms':
 				gs 'sex_ev_condoms', 'no_more_free_creampies1'
 				gs 'sex_ev_condoms', 'already_creampie1'
 			end
+			if npc_free_creampies[$boy] = 2 or npc_creampie_permission[$boy] = 2: sex_ev['creampie_allowance'] = 1
 		!!elseif npc_free_creampies[$boy] = 1:
 		elseif npc_bareback[$boy] = 2 and sex_ev['no_condom'] ! 1 and sex_ev['condom'] ! 1:
 			if npc_free_creampies[$boy] = 1:
@@ -66,6 +67,11 @@ if $ARGS[0] = 'condoms':
 			elseif sex_ev['condom_count'] > 0 and (rand(0,1) + rand(0,npc_diligent[$boy]) - npc_risktaker[$boy] >= 1 or npc_always_condoms[$boy] = 1) and ((npc_risktaker[$boy] ! 1 and $npc_cum_pref[$boy] ! 'pullout') or (npc_risktaker[$boy] ! 1 and $npc_cum_pref[$boy] ! 'facial')) and npc_no_condoms[$boy] ! 1:
 				!! boy is less likely to use a condom if he is a risktaker and more likely if he is diligent
 				act'Continue':gs 'sex_ev_condoms', 'npc_condom_use'
+			elseif sex_ev['creampie_allowance'] = 1 and npc_free_creampies[$boy] < 1 and npc_creampie_permission[$boy] < 1:
+				sex_ev['no_condom'] = 1
+				'"Is it really okay for me to come inside?" <<$npc_firstname[$boy]>> asks as he gets into position.'
+				'You nod back, smiling warmly. He returns the smile and starts pushing his way in.'
+				gs 'sex_ev_sex', 'position_choose'
 			else
 				*nl
 				'<<$npc_firstname[$boy]>> makes no indication that he''s going to put on a condom.'
@@ -376,6 +382,7 @@ end
 
 if $ARGS[0] = 'pc_skip_the_condom':
 	act'We could skip the condom':
+		sex_ev['pc_skip_the_condom'] = 1
 		sex_ev['skip_condom'] = 1
 		sex_ev['no_condom'] = 1
 		sex_ev['must_fuck'] = 1
@@ -945,7 +952,7 @@ if $ARGS[0] = 'trust_no_creampie':
 		cla & *nl
 		sex_ev['no_condom'] = 1
 		sex_ev['promise_no_creampie'] = 1
-		npc_rel[$boy] += 1
+		gs 'npc_relationship', 'modify', $boy, 'like'
 		$sex_ev['bed_room']
 		'You hesitate for a moment before relenting.'
 		'"I guess it''s okay... I trust you," you smile as <<$npc_firstname[$boy]>> eagerly forgoes the condom.'
@@ -958,7 +965,7 @@ if $ARGS[0] = 'trust_no_creampie_nervous':
 		cla & *nl
 		sex_ev['no_condom'] = 1
 		sex_ev['promise_no_creampie'] = 1
-		npc_rel[$boy] += 1
+		gs 'npc_relationship', 'modify', $boy, 'like'
 		$sex_ev['bed_room']
 		'You hesitate for a moment before relenting.'
 		'"If you promise..." you say reluctantly as <<$npc_firstname[$boy]>> eagerly forgoes the condom.'
@@ -969,6 +976,7 @@ end
 if $ARGS[0] = 'condom_why2':
 	!! player says they don''t want to use a condom
 	act'We don''t need a condom (feel better)':
+		sex_ev['pc_skip_the_condom'] = 1
 		cla & *nl
 		'"Come on," you say, grabbing his arm. "Let''s skip the condom. It''ll feel better without one."'
 		if npc_condom_conscious[$boy] = 2 or (npc_condom_conscious[$boy] = 1 and npc_childfree[$boy] = 1):
@@ -992,6 +1000,7 @@ if $ARGS[0] = 'condom_why2':
 				gs'sex_ev_stats', 'birth_control_know'
 				npc_know_not_bc[$boy] = 0
 				sex_ev['must_fuck'] = 1
+				sex_ev['pc_skip_the_condom'] = 1
 				cla & *nl
 				'"Hey," you smile, grabbing his arm. "We don''t need condoms. I''m on the shot."'
 				if npc_condom_conscious[$boy] = 2:
@@ -1011,6 +1020,7 @@ if $ARGS[0] = 'condom_why2':
 				gs'sex_ev_stats', 'birth_control_know'
 				npc_know_not_bc[$boy] = 0
 				sex_ev['must_fuck'] = 1
+				sex_ev['pc_skip_the_condom'] = 1
 				cla & *nl
 				'"Hey," you smile, grabbing his arm. "We don''t need condoms. I''m on the pill."'
 				if npc_condom_conscious[$boy] = 2:
@@ -1030,6 +1040,7 @@ if $ARGS[0] = 'condom_why2':
 		act'Lie about birth control':
 			sex_ev['must_fuck'] = 1
 			gs'sex_ev_stats', 'birth_control_know'
+			sex_ev['pc_skip_the_condom'] = 1
 			npc_know_not_bc[$boy] = 0
 			cla & *nl
 			'"Hey," you smile, grabbing his arm. "We don''t need condoms. I''m on birth control."'
@@ -1596,7 +1607,6 @@ if $ARGS[0] = 'reenable_condoms2':
 		gs 'sex_ev_condoms', 'reenable_condoms3'
 	else
 		gs 'sex_ev_condoms', 'reenable_condoms_code'
-		npc_rel[$boy] += 5
 		'"That''s fair," <<$npc_firstname[$boy]>> nods. "So do you want to use mine or yours today?"'
 		act'Yours':
 			cla & *nl
@@ -1748,6 +1758,7 @@ end
 if $ARGS[0] = 'temp_disable_condoms':
 	if npc_bareback[$boy] = 0 and sex_ev['condom'] = 0:
 		act'Let''s skip the condom':
+			sex_ev['pc_skip_the_condom'] = 1
 			cla & *clr
 			$sex_ev['bed_room']
 			iif($sex_ev['type'] ! 'hookup','"Let''s skip the condom today," you smile.', '"We don''t need to use condoms," you smile.')
@@ -2151,7 +2162,7 @@ if $ARGS[0] = 'pc_dangerous_day2':
 		
 		act'I trust you':
 			cla & *clr
-			npc_rel[$boy] += 1
+			gs 'npc_relationship', 'modify', $boy, 'like'
 			$sex_ev['bed_room']
 			'"No, it''s okay," you say, shaking your head and smiling. "I trust you."'
 			if npc_childfree[$boy] = 1:
@@ -2236,6 +2247,7 @@ if $ARGS[0] = 'pc_safe_day':
 				
 				if npc_bareback[$boy] ! 1:
 					act'We can skip the condom':
+						sex_ev['pc_skip_the_condom'] = 1
 						cla & *clr
 						$sex_ev['bed_room']
 						'"<<$sex_ev[''safe_day_desc1'']>>," you smile at <<$npc_firstname[$boy]>>. "<<$sex_ev[''safe_day_no_condom_desc'']>>."'
@@ -2264,6 +2276,7 @@ if $ARGS[0] = 'pc_safe_day':
 				end
 				if sex_ev['virgin'] = 1:
 					act'I don''t want my first time with a condom':
+						sex_ev['pc_skip_the_condom'] = 1
 						cla & *clr
 						$sex_ev['bed_room']
 						'"<<$sex_ev[''safe_day_desc1'']>>," you smile at <<$npc_firstname[$boy]>>. "Besides, I don''t want my first time to be with a condom."'
@@ -2287,6 +2300,7 @@ if $ARGS[0] = 'already_creampie1':
 		if npc_bareback[$boy] ! 1:
 			act'Already been creampied today (go bareback)':
 				sex_ev['no_condom'] = 1
+				sex_ev['pc_skip_the_condom'] = 1
 				cla & *nl
 				'"Somebody came inside me earlier," you say. "So let''s skip the rubber. Seems a little too late for condoms."'
 				if $npc_cum_pref[$boy] = 'creampie':
@@ -2345,6 +2359,7 @@ if $ARGS[0] = 'already_creampie2':
 		act'Already been creampied today  (go bareback)':
 			cla & *nl
 			sex_ev['no_condom'] = 1
+			sex_ev['pc_skip_the_condom'] = 1
 			'"Well," you say wryly. "Seeing as someone else already came inside me today, it feels a little silly to worry about condoms. So yeah, fuck me bareback."'
 			gs 'sex_ev_sex', 'position_choose'
 		end
@@ -2370,9 +2385,9 @@ if $ARGS[0] = 'started_bc1':
 			sex_ev['creampie_allowance'] = 1
 			gs 'sex_ev_stats', 'birth_control_know'
 			if sex_ev['pullout_game'] = 1:
-				'"Why bother?" you ask in a mischievous tone. ' + iif(tabletkishot > 0, '"I''m on the shot now."', '"I''m on the pill now."')
+				'"Why bother?" you ask in a mischievous tone. ' + iif(tabletkishot > 0, '"I''m on the shot', '"I''m on the pill') + iif(npc_fuck_times[$boy] > 1, ' now."', '."')
 			else
-				'"Don''t worry about pulling out," you say in a mischievous tone. ' + iif(tabletkishot > 0, '"I''m on the shot now."', '"I''m on the pill now."')
+				'"Don''t worry about pulling out," you say in a mischievous tone. ' + iif(tabletkishot > 0, '"I''m on the shot', '"I''m on the pill') + iif(npc_fuck_times[$boy] > 1, ' now."', '."')
 			end
 			'<<$npc_firstname[$boy]>>''s eyes light up.'
 			'"Come inside me as much as you want," you smirk.'
@@ -2385,9 +2400,9 @@ if $ARGS[0] = 'started_bc1':
 			sex_ev['no_condom'] = 1
 			sex_ev['creampie_allowance'] = 1
 			if sex_ev['pullout_game'] = 1:
-				'"You better not," you say in a mischievous tone. ' + iif(tabletkishot > 0, '"I''m on the shot now."', '"I''m on the pill now."')
+				'"You better not," you say in a mischievous tone. ' + iif(tabletkishot > 0, '"I''m on the shot', '"I''m on the pill') + iif(npc_fuck_times[$boy] > 1, ' now."', '."')
 			else
-				'"Don''t you dare pull out," you warn in a mischievous tone. ' + iif(tabletkishot > 0, '"I''m on the shot now."', '"I''m on the pill now."')
+				'"Don''t you dare pull out," you warn in a mischievous tone. ' + iif(tabletkishot > 0, '"I''m on the shot', '"I''m on the pill') + iif(npc_fuck_times[$boy] > 1, ' now."', '."')
 			end
 			'<<$npc_firstname[$boy]>>''s eyes light up.'
 			'"Fill me with your cum," you whisper.'
