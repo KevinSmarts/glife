@@ -71,7 +71,7 @@ if $ARGS[0] = 'CalcWeight':
 	This is an approximation, so that a sveta with a different height has the same BMI for the same pcs_mass['body'] values.
 	The default height of 170 cm is used as a starting point. The bmi deviates by 0.06 for a deviation of 10cm and 0.4 for a deviation of 20cm.}
 
-	result = 30 + (2 * (pcs_mass['body'] + pcs_mass['bust'] + pcs_mass['butt'])) / 5 + (pcs_hgt - 170) * 7 / 10
+	result = (600 + 7 * (pcs_mass['body'] + pcs_mass['bust'] + pcs_mass['butt']) + 14 * (pcs_hgt - 170)) / 20
 
 	!{Do not remove (julzor)
 	This is the old more complex function, but it doesn''t work correctly.
@@ -83,18 +83,18 @@ end
 
 if $ARGS[0] = 'CalcWeight2':
 	!! weight2 = 10 * weight
-	result = 300 + (20 * (pcs_mass['body'] + pcs_mass['bust'] + pcs_mass['butt'])) / 5 + (pcs_hgt - 170) * 7
+	result = (600 + 7 * (pcs_mass['body'] + pcs_mass['bust'] + pcs_mass['butt']) + 14 * (pcs_hgt - 170)) / 2
 	!result = (pcs_hgt * 62 / 17) + (10 * (vhips + (bodyVars['vofat'] * 2))) / 4 + 10 * tits
 end
 
 if $ARGS[0] = 'CalcBMI':
 	!! BMI = weight [kg] / (height [m])^2 = 100^2 * weight [kg] / (height [cm])^2
-	result = (10000 * pcs_weight) / (pcs_hgt * pcs_hgt)
+	result = (1000 * (10 * pcs_weight[0] + pcs_weight[1])) / (pcs_hgt * pcs_hgt)
 end
 
 if $ARGS[0] = 'CalcBMI2':
 	!! BMI2 = 10 * BMI
-	result = (100000 * pcs_weight) / (pcs_hgt * pcs_hgt)
+	result = (10000 * (10 * pcs_weight[0] + pcs_weight[1])) / (pcs_hgt * pcs_hgt)
 end
 
 
@@ -128,8 +128,7 @@ if $ARGS[0] = 'DailyUpdate':
 		gs 'body', 'Update_StatBuffs'
 	end
 
-	gs 'body', 'UpdateBodyImage'
-
+	gs 'body', 'RegularUpdate'
 
 	gs 'body', 'Update_daily_body_other'
 
@@ -157,11 +156,37 @@ if $ARGS[0] = 'DailyUpdate':
 
 	gs 'body', 'Update_Teeth'
 
+	gs 'AppearanceSystem', 'UpdateBaseAppearance'
+	gs 'body', 'Update_Appearance'
+
 	!skin variable reset
 	killvar 'moisturizerDailyCount'
 	killvar 'skinDailyGain'
 	killvar 'skinDailyPenalty'
+	
 end
+
+if $ARGS[0] = 'Update_Appearance':
+	gs 'body', 'UpdateBodyImage'
+	gs 'AppearanceSystem'
+	gs 'body_desc'
+end
+
+
+	!!-------------------------    UPDATE images   -------------------------!!
+
+if $ARGS[0] = 'UpdateBodyImage':
+	!Update body image set
+	if dounspell = 1:
+		salocatnow = (pcs_hips / 10) - 5
+	end
+
+
+	$bodyVars['desc']     = func('body_structure', 'body_desc')
+	$bodyVars['img']      = func('body_structure', 'body_img')
+	$bodyVars['bmi_desc'] = func('body_structure', 'bmi_desc')
+end
+
 
 
 	!!-------------------------    UPDATE eyelashes, hair, pubes, teeth   -------------------------!!
@@ -261,45 +286,6 @@ if $ARGS[0] = 'Update_Teeth':
 	end
 end
 
-
-	!!-------------------------    UPDATE images   -------------------------!!
-
-if $ARGS[0] = 'UpdateBodyImage':
-	!Update body image set
-	if dounspell = 1:
-		salocatnow = (pcs_hips / 10) - 5
-	end
-
-	if bdsetlock = 1:
-		bodset = fixbodset
-	else
-		if knowpreg = 1 or (preg = 1 and (thinkpreg = 1 or PregChem > 3600)):
-			bodset = 3
-		elseif strenbuf >= 100 and stren_plus_lvl > 0:
-			bodset = 2
-		elseif strenbuf <= 50:
-			bodset = 0
-		else
-			bodset = 1
-		end
-	end
-
-	! Update body description
-	if bodset = 3 and (knowpreg = 1 or (preg = 1 and (thinkpreg = 1 or PregChem > 3600))):
-		if PregChem > 6216:
-			$body = $bodimgsets[bodset * 10 + 8]
-		elseif PregChem < 2688:
-			$body = $bodimgsets[bodset * 10]
-		else
-			$body = $bodimgsets[bodset * 10 + (PregChem - 2688) / 504 + 1]
-		end
-
-	elseif salocatnow <= 7:
-		$body = $bodimgsets[bodset * 10 + salocatnow]
-	else
-		$body = $bodimgsets[bodset * 10 + 7]
-	end
-end
 
 
 
@@ -554,10 +540,10 @@ end
 
 if $ARGS[0] = 'Calc_salocat':
 	!!This calculates the current pcs_mass['body'] category; ranges are 20 points, seemed to balance best if the range is x10 the hip devisor
-	if pcs_mass['body'] < 10:
+	if pcs_mass['body'] + pcs_mass['butt'] < 10:
 		result = 0
 	else
-		result = 1 + (pcs_mass['body'] - 10) / 20
+		result = (pcs_mass['body'] + pcs_mass['butt'] + 10) / 20
 	end
 end
 
@@ -662,7 +648,7 @@ if $ARGS[0] = 'Redistribute_Mass':
 					pcs_mass['body'] -= 1
 				!end
 
-			elseif emp_mass_ass < pcs_mass['butt'] and pcs_mass['butt'] > 0:
+			elseif temp_mass_ass < pcs_mass['butt'] and pcs_mass['butt'] > 0:
 				pcs_mass['butt'] -= 1
 				pcs_mass['body'] += 1
 			end
@@ -744,6 +730,7 @@ if $ARGS[0] = 'Reset_mass_distribution':
 	pcs_mass['butt_last']  = pcs_mass['body']
 
 	killvar 'total_mass'
+	killvar 'total_gen_mass'
 
 	gs 'body', 'Update_vhips'
 end
@@ -759,6 +746,7 @@ if $ARGS[0] = 'Set_mass_distribution_using_body':
 	pcs_mass['bust_message'] = pcs_mass['bust']
 	pcs_mass['butt_message'] = pcs_mass['butt']
 	
+	bodyVars['vhips'] = (pcs_mass['body'] - 60 + pcs_mass['butt'] - pcs_mass['butt_gen']) / 2
 end
 
 
@@ -842,13 +830,16 @@ if $ARGS[0] = 'softreset':
 	bodyresetflag = 1
 	:resetloop
 	if pcs_mass['body'] ! salolast:
-		if gamestartflag = 1: salobustdo = 1
+		if gamestartflag = 1:
+			salobustdo = 1
+		end
 		gs 'body', 'Update_Body'
 		jump 'resetloop'
 	end
 
 	!!Updates pcs_apprncbase after a reset
-	gs 'AppearanceSystem', 'UpdateBaseAppearnce'
+	gs 'body', 'UpdateBodyMeasurement'
+	gs 'body', 'Update_Appearance'
 
 	!!Clears the warning and reset status flags if they were set
 	bodyresetflag = 0
@@ -915,7 +906,7 @@ if $ARGS[0] = 'hardreset':
 		killvar 'dounsplkil'
 		newbdsp = 1
 		dounspell = 0
-		gs 'AppearanceSystem', 'UpdateBaseAppearnce'
+		gs 'body', 'Update_Appearance'
 		gs 'body', 'Update_Body'
 		gs 'stat'
 	end
@@ -934,11 +925,17 @@ end
 if $ARGS[0] = 'initial':
 	!!	Sets the genetic bust size if it was not set in the start routines
 	if pcs_mass['bust_gen'] = 0: pcs_mass['bust_gen'] = 12
-	
-	gs 'body', 'Set_mass_distribution_using_body', pcs_mass['body']
+	if pcs_mass['butt_gen'] = 0: pcs_mass['butt_gen'] = 20
 
-	agilbuf = pcs_agil
+	if pcs_mass['body'] >= 50 and pcs_mass['body'] <= 60:
+		pcs_mass['bust'] = pcs_mass['bust_gen']
+		pcs_mass['butt'] = pcs_mass['butt_gen']
+	else
+		gs 'body', 'Set_mass_distribution_using_body', pcs_mass['body']
+	end
+
 	strenbuf = pcs_stren
+	agilbuf  = pcs_agil
 	vitalbuf = pcs_vital
 
 	normbuffpick = -1
@@ -948,7 +945,8 @@ if $ARGS[0] = 'initial':
 	gs 'body', 'softreset'
 
 	!!	This sets/resets the controler variables
-	salocatlast = salocatnow
+	salocatnow = func('body', 'Calc_salocat')
+	salocatlast = salocatlast
 	normbuffpick = 0
 	magf2bdo = 0
 	killvar 'gamestartflag'
@@ -961,7 +959,6 @@ if $ARGS[0] = 'initial':
 	killvar 'temp_bmi'
 
 	gs 'body', 'UpdateBodyImage'
-	gs 'body_desc', 'BMI'
 end
 
 

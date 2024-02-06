@@ -119,7 +119,8 @@ if $ARGS[0] = 'view_milk_bottles':
 				mbarrfill[vmb_i] = 0
 				'<br><<vmb_i + 1>>. - An empty <<mbarrtype[vmb_i]/10>>ml bottle. You can use it to store your breast milk.'
 			else
-				'<br><<vmb_i + 1>>. - A <<mbarrtype[vmb_i]/10>>ml bottle. There is <<mbarrfill[vmb_i]/10>>ml of milk in the bottle. <a href="exec:msg ''<center>You open the bottle and check the milk inside.<br>You can feel the milk is <<$mbarrtemp[vmb_i]>> and it smells <<$mbarrstat[vmb_i]>>.</center>''">Check the content</a>'
+				'<br><<vmb_i + 1>>. - A <<mbarrtype[vmb_i]/10>>ml bottle. There is <<mbarrfill[vmb_i]/10>>ml of milk in the bottle. <a href="exec:msg ''<center>You open the bottle and check the milk inside.<br>You can feel the milk is <<$mbarrtemp[vmb_i]>> and it smells <<$mbarrstat[vmb_i]>>.</center>''">Check the content</a>' + ' ' + _
+				iif(pcs_hydra < 100 and ($mbarrtemp[vmb_i] = 'warm' or $mbarrtemp[vmb_i] =  'normal temparture' or $mbarrtemp[vmb_i] =  'cold' or $mbarrtemp[vmb_i] =  'hot') and ($mbarrstat[vmb_i] = 'fresh' or $mbarrstat[vmb_i] = 'normal'),'<a href="exec:gt''lact_bp'',''drink_milk_bottles'', <<vmb_i>>"> Drink it</a>','')
 				milkedvolume += mbarrfill[vmb_i]
 			end
 		end
@@ -130,6 +131,28 @@ if $ARGS[0] = 'view_milk_bottles':
 		'<br><a href="exec:gt''lact_bp'',''empty_milk_bottles''">Pour the milk into the sink</a>'
 	end
 	act 'Back':gt 'lact_bp', 'bp_milking'
+end
+
+!! drink bottle function
+if $ARGS[0] = 'drink_milk_bottles':
+	if mbarrfill[ARGS[1]] <= 0: exit
+	*clr & cla
+	'<center><img <<$set_imgh>> src="images/pc/body/tits/milk_drink.jpg"></center>'
+	'<center>You drink your own breast milk and clean up the bottle.</center>'
+	if $mbarrtemp[ARGS[1]] = 'warm': '<center>The milk is still warm from your breasts.</center>'
+	pcs_health += mbarrfill[ARGS[1]]/400
+	pcs_energy += mbarrfill[ARGS[1]]/500
+	pcs_hydra += mbarrfill[ARGS[1]] / iif(pcs_hydra>=100,200,100)
+	minut += max(1,(mbarrfill[ARGS[1]]/1000) + 3)
+	act 'Finish':
+		mbarrfill[ARGS[1]] = 0
+		mbarrmage[ARGS[1]] = 0
+		mbarrcool[ARGS[1]] = 0
+		$mbarrstat[ARGS[1]] = 'none'
+		$mbarrtemp[ARGS[1]] = 'none'
+		gs 'stat'
+		menu_off = 0 & gs 'lact_bp', 'view_milk_bottles', 1
+	end
 end
 
 !! empty bottle function
@@ -534,7 +557,7 @@ if $ARGS[0] = 'bp_unbox_event':
 		elseif $location_type = 'private':
 			'You sit down and slowly start to unbox your newly acquired breast pump.'
 		end
-		if kid <= 0 and preg <= 0 and pregtimes <= 0 and pregchem <= 0 and bp_unbox <= 0:
+		if knowpreg = 0 and bp_unbox <= 0:
 			'While examining it, you think about why you bought it in the first place. You are not pregnant nor do you have a kid that needs breast milk.'
 			if lactation['active'] <= 0:
 				'Your breasts haven''t got any milk in them too, so it seems this pump is a bit useless.'

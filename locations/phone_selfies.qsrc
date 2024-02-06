@@ -32,7 +32,7 @@
 }
 
 
-!!For setting the selfies
+! For setting the selfies
 if $ARGS[0] = 'Phone_selfie_totals':
 
 	$selfieLoc[0] = 'misc'
@@ -202,9 +202,10 @@ end
 
 if $ARGS[0] = 'selfies':
 	menu_off = 0
+	*clr & cla
 
 	gs 'phone_selfies', 'Phone_selfie_totals'
-	gs 'phone_selfies', 'set_selfie_layout'
+	*p func('phone_selfies', 'get_selfie_layout')
 
 	gs 'phone_selfies', 'act_exit'
 end
@@ -221,156 +222,392 @@ if $ARGS[0] = 'act_exit':
 end
 
 
-if $ARGS[0] = 'set_selfie_layout':
-	*clr & cla
-	'<center><h4><font color="maroon">Photo library</font></h4></center>'
-	*nl
-	'Selfies'
-
+if $ARGS[0] = 'get_selfie_layout':
+	$result = '<center><h4><font color="maroon">Photo library</font></h4></center>'
+	$result += '<br>'
+	$result += '<table><tr><th>Selfies</th></tr>'
 	temp_locationCnt = 0
 	:LocationLoop
-		'<a href="exec:gt ''phone_selfies'', ''showlocation'', <<temp_locationCnt>>"><<$selfieLocDesc[temp_locationCnt]>> selfies</a>'
+		$result += '<tr><td><a href="exec: gt ''phone_selfies'', ''showlocation'', <<temp_locationCnt>>"><<$selfieLocDesc[temp_locationCnt]>> selfies</a></td></tr>'
 		temp_locationCnt += 1
-	if temp_locationCnt < arrsize('$selfieLoc'): jump'LocationLoop'
+	if temp_locationCnt < arrsize('$selfieLoc'): jump 'LocationLoop'
 
 	if temp_suppress_other_selfies = 0:
-		*nl
-		'Family and friends'
-		'<a href="exec:gt ''phone_selfies'', ''family''">Family</a>'
-		'<a href="exec:gt ''phone_selfies'', ''school''">School friends</a>'
-		'<a href="exec:gt ''phone_selfies'', ''teacher''">Teachers</a>'
-		'<a href="exec:gt ''phone_selfies'', ''pavlovsk''">Pavlovsk friends</a>'
-		'<a href="exec:gt ''phone_selfies'', ''city''">City friends</a>'
+		$result += '<tr></tr><tr><th>Family and friends</th></tr>'
+		$result += '<tr><td><a href="exec:gt ''phone_selfies'', ''family''">Family</a></td></tr>'
+		$result += '<tr><td><a href="exec:gt ''phone_selfies'', ''school''">School friends</a></td></tr>'
+		$result += '<tr><td><a href="exec:gt ''phone_selfies'', ''teacher''">Teachers</a></td></tr>'
+		$result += '<tr><td><a href="exec:gt ''phone_selfies'', ''pavlovsk''">Pavlovsk friends</a></td></tr>'
+		$result += '<tr><td><a href="exec:gt ''phone_selfies'', ''city''">City friends</a></td></tr>'
 	end
+
+	killvar 'temp_locationCnt'
+	$result += '</table>'
 end
 
-!! ARGS[1] is the index of the location in $selfieLoc[]
+! ARGS[1] is the index of the location in $selfieLoc[]
 if $ARGS[0] = 'showlocation':
 	'<center><h4><font color="maroon"><<$selfieLocDesc[ARGS[1]]>> selfies</font></h4></center>'
 	*nl
-	gs 'phone_selfies', 'listretrieve', ARGS[1]
+	*p func('phone_selfies', 'listretrieve', ARGS[1], $selfieLoc[ARGS[1]])
 	
 	act 'Back': gt 'phone_selfies', 'selfies'
 	gs 'phone_selfies', 'act_exit'
 end
 
 
-!! ARGS[1] is the index of the location in $selfieLoc[]
+!  ARGS[1] is the index of the location in $selfieLoc[]
+! $ARGS[2] is the selfie location (park, home, etc)
 if $ARGS[0] = 'listretrieve':
-	$temp_selfie_loc = $selfieLoc[ARGS[1]]
+	$result = '<center><table width=80%>'
+	$result += func('phone_selfies', 'retrieve_clothed_selfies',	ARGS[1], $ARGS[2])
+	$result += func('phone_selfies', 'retrieve_swim_selfies',		ARGS[1], $ARGS[2])
+	$result += func('phone_selfies', 'retrieve_underwear_selfies',	ARGS[1], $ARGS[2])
+	$result += func('phone_selfies', 'retrieve_nude_selfies',		ARGS[1], $ARGS[2])
+	$result += func('phone_selfies', 'retrieve_bath_selfies',		ARGS[1], $ARGS[2])
+	$result += func('phone_selfies', 'retrieve_shower_selfies',		ARGS[1], $ARGS[2])
+	$result += func('phone_selfies', 'retrieve_titflash_selfies',	ARGS[1], $ARGS[2])
+	$result += func('phone_selfies', 'retrieve_assflash_selfies',	ARGS[1], $ARGS[2])
+	$result += func('phone_selfies', 'retrieve_pussyflash_selfies',	ARGS[1], $ARGS[2])
+	$result += '</table></center>'
+end
 
+
+!  ARGS[1] is the index of the location in $selfieLoc[]
+! $ARGS[2] is the selfie location
+if $ARGS[0] = 'retrieve_clothed_selfies':
 	!!Loop for clothed selfies, dynamics set variables as mixing them in loop instructions is bad
 	if selfieClotot[ARGS[1]] > 0:
-		'<center><b>Clothed selfies</b></center>'
-		*nl
+		$result += '<tr><th colspan=5>Clothed selfies</th></tr>'
+		$result += '<tr></tr><tr>'
+
+		temp_cnum = 0
 		temp_clocnt = 1
 		:temp_loop
 			!!setting value to unmixed variable so it can be checked in the if below
-			dynamic 'phone_locval = <<$selfieLoc[ARGS[1]]>>_closelfie[<<temp_clocnt>>]'
-			if phone_locval = 1: *p func('phone_selfies_popup', 'set_selfie', $temp_selfie_loc, 'clothed', ARGS[1], temp_clocnt)
+			dynamic 'phone_locval = <<$ARGS[2]>>_closelfie[<<temp_clocnt>>]'
+			if phone_locval = 1:
+				if temp_cnum = 5: $result += '</tr><tr>' & temp_cnum = 0
+				$result += '<td width="20%">' + func('phone_selfies_popup', 'set_selfie', $ARGS[2], 'clothed', ARGS[1], temp_clocnt) + '</td>'
+				temp_cnum += 1
+			end
 			temp_clocnt += 1
 		if temp_clocnt <= selfieClotot[ARGS[1]]: jump 'temp_loop'
-	end
-	
-	!!Loop for swimwear selfies, dynamics set variables as mixing them in loop instructions is bad
-	if selfieSwimtot[ARGS[1]] > 0:
-		'<center><b>Swimwear selfies</b></center>'
-		*nl
-		temp_clocnt = 1
-		:temp_loop1
-			!!setting value to unmixed variable so it can be checked in the if below
-			dynamic 'phone_locval = <<$selfieLoc[ARGS[1]]>>_swim[<<temp_clocnt>>]'
-			if phone_locval = 1: *p func('phone_selfies_popup', 'set_selfie', $temp_selfie_loc, 'bikini', ARGS[1], temp_clocnt)
-			temp_clocnt += 1
-		if temp_clocnt <= selfieSwimtot[ARGS[1]]: jump 'temp_loop1'
-	end
-		
-	!!loop for underwear selfies
-	if selfieUndtot[ARGS[1]] > 0:
-		'<center><b>Underwear selfies</b></center>'
-		*nl
-		temp_undcnt = 1
-		:temp_loop2
-			dynamic 'phone_locval = <<$selfieLoc[ARGS[1]]>>_undselfie[<<temp_undcnt>>]'
-			if phone_locval = 1: *p func('phone_selfies_popup', 'set_selfie', $temp_selfie_loc, 'underwear', ARGS[1], temp_undcnt)
-			temp_undcnt += 1
-		if temp_undcnt <= selfieUndtot[ARGS[1]]: jump 'temp_loop2'
+		if temp_cnum ! 4: $result += '<td></td>'
+		$result += '</tr><tr></tr>'
+
+		killvar 'temp_cnum'
+		killvar 'temp_clocnt'
 	end
 
-	!!loop for nude selfies
+elseif $ARGS[0] = 'retrieve_swim_selfies':
+	if selfieSwimtot[ARGS[1]] > 0:
+		$result += '<tr><th colspan=5>Swimwear selfies</th></tr>'
+		$result += '<tr></tr><tr>'
+
+		temp_cnum = 0
+		temp_swicnt = 1
+		:temp_loop1
+			!!setting value to unmixed variable so it can be checked in the if below
+			dynamic 'phone_locval = <<$ARGS[2]>>_swim[<<temp_swicnt>>]'
+			if phone_locval = 1:
+				if temp_cnum = 5: $result += '</tr><tr>' & temp_cnum = 0
+				$result += '<td width="20%">' + func('phone_selfies_popup', 'set_selfie', $ARGS[2], 'bikini', ARGS[1], temp_swicnt) + '</td>'
+				temp_cnum += 1
+			end
+			temp_swicnt += 1
+		if temp_swicnt <= selfieSwimtot[ARGS[1]]: jump 'temp_loop1'
+		if temp_cnum ! 4: $result += '<td></td>'
+		$result += '</tr><tr></tr>'
+
+		killvar 'temp_cnum'
+		killvar 'temp_swicnt'
+	end
+
+elseif $ARGS[0] = 'retrieve_underwear_selfies':
+	if selfieUndtot[ARGS[1]] > 0:
+		$result += '<tr><th colspan=5>Underwear selfies</th></tr>'
+		$result += '<tr></tr><tr>'
+
+		temp_cnum = 0
+		temp_undcnt = 1
+		:temp_loop2
+			dynamic 'phone_locval = <<$ARGS[2]>>_undselfie[<<temp_undcnt>>]'
+			if phone_locval = 1:
+				if temp_cnum = 5: $result += '</tr><tr>' & temp_cnum = 0
+				$result += '<td width="20%">' + func('phone_selfies_popup', 'set_selfie', $ARGS[2], 'underwear', ARGS[1], temp_undcnt) + '</td>'
+				temp_cnum += 1
+			end
+			temp_undcnt += 1
+		if temp_undcnt <= selfieUndtot[ARGS[1]]: jump 'temp_loop2'
+		if temp_cnum ! 4: $result += '<td></td>'
+		$result += '</tr><tr></tr>'
+
+		killvar 'temp_cnum'
+		killvar 'temp_undcnt'
+	end
+
+elseif $ARGS[0] = 'retrieve_nude_selfies':
 	if selfieNudtot[ARGS[1]] > 0:
-		'<center><b>Nude selfies</b></center>'
-		*nl
+		$result += '<tr><th colspan=5>Nude selfies</th></tr>'
+		$result += '<tr></tr><tr>'
+
+		temp_cnum = 0
 		temp_nudcnt = 1
 		:temp_loop3
-			dynamic 'phone_locval = <<$selfieLoc[ARGS[1]]>>_nudselfie[<<temp_nudcnt>>]'
-			if phone_locval = 1: *p func('phone_selfies_popup', 'set_selfie', $temp_selfie_loc, 'nude', ARGS[1], temp_nudcnt)
+			dynamic 'phone_locval = <<$ARGS[2]>>_nudselfie[<<temp_nudcnt>>]'
+			if phone_locval = 1:
+				if temp_cnum = 5: $result += '</tr><tr>' & temp_cnum = 0
+				$result += '<td width="20%">' + func('phone_selfies_popup', 'set_selfie', $ARGS[2], 'nude', ARGS[1], temp_nudcnt) + '</td>'
+				temp_cnum += 1
+			end
 			temp_nudcnt += 1
 		if temp_nudcnt <= selfieNudtot[ARGS[1]]: jump 'temp_loop3'
+		if temp_cnum ! 4: $result += '<td></td>'
+		$result += '</tr><tr></tr>'
+
+		killvar 'temp_cnum'
+		killvar 'temp_nudcnt'
 	end
-	
+
+elseif $ARGS[0] = 'retrieve_bath_selfies':
 	!!loop for bath selfies
 	if selfieBathtot[ARGS[1]] > 0:
-		'<center><b>Bath selfies</b></center>'
-		*nl
+		$result += '<tr><th colspan=5>Bath selfies</th></tr>'
+		$result += '<tr></tr><tr>'
+
+		temp_cnum = 0
 		temp_bathcnt = 1
 		:temp_loop4
-			dynamic 'phone_locval = <<$selfieLoc[ARGS[1]]>>_bathselfie[<<temp_bathcnt>>]'
-			if phone_locval = 1: *p func('phone_selfies_popup', 'set_selfie', $temp_selfie_loc, 'bath', ARGS[1], temp_bathcnt)
+			dynamic 'phone_locval = <<$ARGS[2]>>_bathselfie[<<temp_bathcnt>>]'
+			if phone_locval = 1:
+				if temp_cnum = 5: $result += '</tr><tr>' & temp_cnum = 0
+				$result += '<td width="20%">' + func('phone_selfies_popup', 'set_selfie', $ARGS[2], 'bath', ARGS[1], temp_bathcnt) + '</td>'
+				temp_cnum += 1
+			end
 			temp_bathcnt += 1
 		if temp_bathcnt <= selfieBathtot[ARGS[1]]: jump 'temp_loop4'
+		if temp_cnum ! 4: $result += '<td></td>'
+		$result += '</tr><tr></tr>'
+
+		killvar 'temp_cnum'
+		killvar 'temp_bathcnt'
 	end
-	
+
+elseif $ARGS[0] = 'retrieve_shower_selfies':
 	!!loop for shower selfies
 	if selfieShowertot[ARGS[1]] > 0:
-		'<center><b>Shower selfies</b></center>'
-		*nl
+		$result += '<tr><th colspan=5>Shower selfies</th></tr>'
+		$result += '<tr></tr><tr>'
+
+		temp_cnum = 0
 		temp_showercnt = 1
 		:temp_loop5
-			dynamic 'phone_locval = <<$selfieLoc[ARGS[1]]>>_showerselfie[<<temp_showercnt>>]'
-			if phone_locval = 1: *p func('phone_selfies_popup', 'set_selfie', $temp_selfie_loc, 'shower', ARGS[1], temp_showercnt)
+			dynamic 'phone_locval = <<$ARGS[2]>>_showerselfie[<<temp_showercnt>>]'
+			if phone_locval = 1:
+				if temp_cnum = 5: $result += '</tr><tr>' & temp_cnum = 0
+				$result += '<td width="20%">' + func('phone_selfies_popup', 'set_selfie', $ARGS[2], 'shower', ARGS[1], temp_showercnt) + '</td>'
+				temp_cnum += 1
+			end
 			temp_showercnt += 1
 		if temp_showercnt <= selfieShowertot[ARGS[1]]: jump 'temp_loop5'
+		if temp_cnum ! 4: $result += '<td></td>'
+		$result += '</tr><tr></tr>'
+
+		killvar 'temp_cnum'
+		killvar 'temp_showercnt'
 	end
-	
+
+elseif $ARGS[0] = 'retrieve_titflash_selfies':
 	!!loop for flashing tits selfies
 	if selfieTitflash[ARGS[1]] > 0:
-		'<center><b>Flashing tits selfies</b></center>'
-		*nl
+		$result += '<tr><th colspan=5>Flashing tits selfies</th></tr>'
+		$result += '<tr></tr><tr>'
+
+		temp_cnum = 0
 		temp_flashtitscnt = 1
 		:temp_loop6
-			dynamic 'phone_locval = <<$selfieLoc[ARGS[1]]>>_titflash[<<temp_flashtitscnt>>]'
-			if phone_locval = 1: *p func('phone_selfies_popup', 'set_selfie', $temp_selfie_loc, 'titflash', ARGS[1], temp_flashtitscnt)
+			dynamic 'phone_locval = <<$ARGS[2]>>_titflash[<<temp_flashtitscnt>>]'
+			if phone_locval = 1:
+				if temp_cnum = 5: $result += '</tr><tr>' & temp_cnum = 0
+				$result += '<td width="20%">' + func('phone_selfies_popup', 'set_selfie', $ARGS[2], 'titflash', ARGS[1], temp_flashtitscnt) + '</td>'
+				temp_cnum += 1
+			end
 			temp_flashtitscnt += 1
 		if temp_flashtitscnt <= selfieTitflash[ARGS[1]]: jump 'temp_loop6'
+		if temp_cnum ! 4: $result += '<td></td>'
+		$result += '</tr><tr></tr>'
+
+		killvar 'temp_cnum'
+		killvar 'temp_flashtitscnt'
 	end
-	
+
+elseif $ARGS[0] = 'retrieve_assflash_selfies':
 	!!loop for flashing ass selfies
 	if selfieAssflash[ARGS[1]] > 0:
-		'<center><b>Flashing ass selfies</b></center>'
-		*nl
+		$result += '<tr><th colspan=5>Flashing ass selfies</th></tr>'
+		$result += '<tr></tr><tr>'
+
+		temp_cnum = 0
 		temp_flashasscnt = 1
 		:temp_loop7
-			dynamic 'phone_locval = <<$selfieLoc[ARGS[1]]>>_assflash[<<temp_flashasscnt>>]'
-			if phone_locval = 1: *p func('phone_selfies_popup', 'set_selfie', $temp_selfie_loc, 'assflash', ARGS[1], temp_flashasscnt)
+			dynamic 'phone_locval = <<$ARGS[2]>>_assflash[<<temp_flashasscnt>>]'
+			if phone_locval = 1:
+				if temp_cnum = 5: $result += '</tr><tr>' & temp_cnum = 0
+				$result += '<td width="20%">' + func('phone_selfies_popup', 'set_selfie', $ARGS[2], 'assflash', ARGS[1], temp_flashasscnt) + '</td>'
+				temp_cnum += 1
+			end
 			temp_flashasscnt += 1
 		if temp_flashasscnt <= selfieAssflash[ARGS[1]]: jump 'temp_loop7'
+		if temp_cnum ! 4: $result += '<td></td>'
+		$result += '</tr><tr></tr>'
+
+		killvar 'temp_cnum'
+		killvar 'temp_flashasscnt'
 	end
-	
+
+elseif $ARGS[0] = 'retrieve_pussyflash_selfies':
 	!!loop for flashing pussy selfies
 	if selfiePussyflash[ARGS[1]] > 0:
-		'<center><b>Flashing pussy selfies</b></center>'
-		*nl
+		$result += '<tr><th colspan=5>Flashing pussy selfies</th></tr>'
+		$result += '<tr></tr><tr>'
+
+		temp_cnum = 0
 		temp_flashpussycnt = 1
 		:temp_loop8
-			dynamic 'phone_locval = <<$selfieLoc[ARGS[1]]>>_pussyflash[<<temp_flashpussycnt>>]'
-			if phone_locval = 1: *p func('phone_selfies_popup', 'set_selfie', $temp_selfie_loc, 'pussyflash', ARGS[1], temp_flashpussycnt)
+			dynamic 'phone_locval = <<$ARGS[2]>>_pussyflash[<<temp_flashpussycnt>>]'
+			if phone_locval = 1:
+				if temp_cnum = 5: $result += '</tr><tr>' & temp_cnum = 0
+				$result += '<td width="20%">' + func('phone_selfies_popup', 'set_selfie', $ARGS[2], 'pussyflash', ARGS[1], temp_flashpussycnt) + '</td>'
+				temp_cnum += 1
+			end
 			temp_flashpussycnt += 1
 		if temp_flashpussycnt <= selfiePussyflash[ARGS[1]]: jump 'temp_loop8'
+		if temp_cnum ! 4: $result += '<td></td>'
+		$result += '</tr><tr></tr>'
+
+		killvar 'temp_cnum'
+		killvar 'temp_flashpussycnt'
 	end
-	
-	killvar 'temp_selfie_loc'
 end
+
+
+
+
+if $ARGS[0] = 'family':
+	'<center><h4><font color="maroon">Family members</font></h4></center>'
+	$textgrup = ''
+	count1 = 0
+	i = 1
+	'<center><table cellspacing="3" width=80%>'
+	:familygruploop
+		if npc_selfieon['A<<i>>'] = 1 and npc_grupTipe['A<<i>>'] = 7:
+			count1 += 1
+			$textgrup += '' + '<td bgcolor=<<$theme[''table_bg_alt'']>> align="center"><img  height="100" src="images/characters/shared/headshots_main/<<i>>.jpg"><br>' + $npc_selfie['A<<i>>'] + '</td>'
+
+			if count1 = 6:
+				$textgrup +='</tr><tr>'
+				count1 = 0
+			end
+		end
+
+		i += 1
+	if i <= aarraynumber: jump 'familygruploop'
+
+	'<<$textgrup>>'
+	'</table></center>'
+
+	act 'Back': gt 'phone_selfies', 'selfies'
+	gs 'phone_selfies', 'act_exit'
+end
+
+if $ARGS[0] = 'school':
+	'<center><h4><font color="maroon">School friends</font></h4></center>'
+	$textgrup = ''
+	count1 = 0
+	i = 1
+	'<center><table cellspacing="3" width=80%>'
+	:schoolgruploop	
+		if npc_selfieon['A<<i>>'] = 1 and (npc_grupTipe['A<<i>>'] = 1 or npc_grupTipe['A<<i>>'] = 2 or npc_grupTipe['A<<i>>'] = 3 or npc_grupTipe['A<<i>>'] = 4 or npc_grupTipe['A<<i>>'] = 5):
+			count1 += 1
+			$textgrup += '' + '<td bgcolor=<<$theme[''table_bg_alt'']>> align="center"><img  height="100" src="images/characters/shared/headshots_main/<<i>>.jpg"><br>' + $npc_selfie['A<<i>>'] + '</td>'
+
+			if count1 = 6:
+				$textgrup +='</tr><tr>'
+				count1 = 0
+			end
+		end
+
+		i += 1
+	if i <= aarraynumber: jump 'schoolgruploop'
+
+	'<<$textgrup>>'
+	'</table></center>'
+
+	act 'Back': gt 'phone_selfies', 'selfies'
+	gs 'phone_selfies', 'act_exit'
+end
+
+if $ARGS[0] = 'teacher':
+	'<center><h4><font color="maroon">Teachers</font></h4></center>'
+	$textgrup = ''
+	count1 = 0
+	i = 1
+	'<center><table cellspacing="3" width=80%>'
+	:teachergruploop
+		if npc_selfieon['A<<i>>'] = 1 and npc_grupTipe['A<<i>>'] = 6:
+			count1 += 1
+			$textgrup += '' + '<td bgcolor=<<$theme[''table_bg_alt'']>> align="center"><img  height="100" src="images/characters/shared/headshots_main/<<i>>.jpg"><br>' + $npc_selfie['A<<i>>'] + '</td>'
+
+			if count1 = 6:
+				$textgrup +='</tr><tr>'
+				count1 = 0
+			end
+		end
+
+		i += 1
+	if i <= aarraynumber: jump 'teachergruploop'
+
+	'<<$textgrup>>'
+	'</table></center>'
+
+	act 'Back': gt 'phone_selfies', 'selfies'
+	gs 'phone_selfies', 'act_exit'
+end
+
+if $ARGS[0] = 'pavlovsk':
+	'<center><h4><font color="maroon">Pavlovsk friends</font></h4></center>'
+	$textgrup = ''
+	count1 = 0
+	i = 1
+	'<center><table cellspacing="3" width=80%>'
+	:pavgruploop
+		if npc_grupTipe['A<<i>>'] = 8 and npc_selfieon['A<<i>>'] = 1:
+			count1 += 1
+			$textgrup += '' + '<td bgcolor=<<$theme[''table_bg_alt'']>> align="center"><img  height="100" src="images/characters/shared/headshots_main/<<i>>.jpg"><br>' + $npc_selfie['A<<i>>'] + '</td>'
+
+			if count1 = 6:
+				$textgrup +='</tr><tr>'
+				count1 = 0
+			end
+		end
+		i += 1
+	if i <= aarraynumber: jump 'pavgruploop'
+
+	'<<$textgrup>>'
+	'</table></center>'
+
+	act 'Back': gt 'phone_selfies', 'selfies'
+	gs 'phone_selfies', 'act_exit'
+end
+
+if $ARGS[0] = 'city':
+	'<center><h4><font color="maroon">City friends</font></h4></center>'
+
+	act 'Back': gt 'phone_selfies', 'selfies'
+	gs 'phone_selfies', 'act_exit'
+end
+
 
 
 !! Sets up a list of selfies taken by category
@@ -469,9 +706,8 @@ if $ARGS[0] = 'populateClothesType':
 	if temp_clocnt <= CloMaxSize: jump 'tempCloTakenLoop'
 end
 
-
-if $ARGS[0] = 'listretrieve2':
-	if numnpc = 1:
+if $ARGS[0] = 'get_npc_selfie_totals':
+	if ARGS[1] = 1:
 		'<center><h4><font color="maroon">Dimka pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/dimka/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/dimka/selfies/'
@@ -480,7 +716,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 2:
+	elseif ARGS[1] = 2:
 		'<center><h4><font color="maroon">Artem pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/artem/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/artem/selfies/'
@@ -489,7 +725,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 3:
+	elseif ARGS[1] = 3:
 		'<center><h4><font color="maroon">Ivan pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/ivan/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/ivan/selfies/'
@@ -498,7 +734,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 4:
+	elseif ARGS[1] = 4:
 		'<center><h4><font color="maroon">Igor pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/igor/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/igor/selfies/'
@@ -507,7 +743,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 5:
+	elseif ARGS[1] = 5:
 		'<center><h4><font color="maroon">Fedor pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/fedor/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/fedor/selfies/'
@@ -516,7 +752,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 6:
+	elseif ARGS[1] = 6:
 		'<center><h4><font color="maroon">Petka pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/petka/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/petka/selfies/'
@@ -525,7 +761,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 7:
+	elseif ARGS[1] = 7:
 		'<center><h4><font color="maroon">Lesco pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/lesco/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/lesco/selfies/'
@@ -534,7 +770,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 8:
+	elseif ARGS[1] = 8:
 		'<center><h4><font color="maroon">Svyatoslav pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/svyatoslav/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/svyatoslav/selfies/'
@@ -543,7 +779,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 9:
+	elseif ARGS[1] = 9:
 		'<center><h4><font color="maroon">Vitek pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/vitek/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/vitek/selfies/'
@@ -552,7 +788,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 10:
+	elseif ARGS[1] = 10:
 		'<center><h4><font color="maroon">Dan pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/dan/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/dan/selfies/'
@@ -561,7 +797,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 11:
+	elseif ARGS[1] = 11:
 		'<center><h4><font color="maroon">Vasily pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/vasily/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/vasily/selfies/'
@@ -570,7 +806,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 12:
+	elseif ARGS[1] = 12:
 		'<center><h4><font color="maroon">Julia pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/julia/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/julia/selfies/'
@@ -579,7 +815,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 13:
+	elseif ARGS[1] = 13:
 		'<center><h4><font color="maroon">Lariska pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/lariska/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/lariska/selfies/'
@@ -588,7 +824,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 14:
+	elseif ARGS[1] = 14:
 		'<center><h4><font color="maroon">Katja pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/katja/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/katja/selfies/'
@@ -597,7 +833,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 15:
+	elseif ARGS[1] = 15:
 		'<center><h4><font color="maroon">Vicky pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/vicky/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/vicky/selfies/'
@@ -606,7 +842,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 16:
+	elseif ARGS[1] = 16:
 		'<center><h4><font color="maroon">Natasha pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/natasha/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/natasha/selfies/'
@@ -615,7 +851,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 17:
+	elseif ARGS[1] = 17:
 		'<center><h4><font color="maroon">Inna pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/inna/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/inna/selfies/'
@@ -624,7 +860,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 18:
+	elseif ARGS[1] = 18:
 		'<center><h4><font color="maroon">Christina pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/christina/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/christina/selfies/'
@@ -633,7 +869,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 19:
+	elseif ARGS[1] = 19:
 		'<center><h4><font color="maroon">Lina pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/lina/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/lina/selfies/'
@@ -642,7 +878,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 20:
+	elseif ARGS[1] = 20:
 		'<center><h4><font color="maroon">Lena pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/lena/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/lena/selfies/'
@@ -651,7 +887,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 21:
+	elseif ARGS[1] = 21:
 		'<center><h4><font color="maroon">Lera pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/lera/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/lera/selfies/'
@@ -660,7 +896,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 22:
+	elseif ARGS[1] = 22:
 		'<center><h4><font color="maroon">Bella pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/bella/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/bella/selfies/'
@@ -669,7 +905,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 23:
+	elseif ARGS[1] = 23:
 		'<center><h4><font color="maroon">Albina pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/albina/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/albina/selfies/'
@@ -678,7 +914,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 24:
+	elseif ARGS[1] = 24:
 		'<center><h4><font color="maroon">Pauline pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/pauline/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/pauline/selfies/'
@@ -687,7 +923,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 25:
+	elseif ARGS[1] = 25:
 		'<center><h4><font color="maroon">Sonia pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/sonia/'
 		$imgloc = 'images/characters/pavlovsk/school/girl/sonia/selfies/'
@@ -696,7 +932,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 45
 		loopmaxsveta = 25
 		loopmaxsex = 9
-	elseif numnpc = 26:
+	elseif ARGS[1] = 26:
 		'<center><h4><font color="maroon">Anatoly pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/anatoly/'
 		$imgloc = 'images/characters/pavlovsk/school/teacher/anatoly/selfies/'
@@ -705,7 +941,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 28:
+	elseif ARGS[1] = 28:
 		'<center><h4><font color="maroon">Stepfather pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/vladimir/'
 		$imgloc = 'images/characters/pavlovsk/resident/vladimir/selfies/'
@@ -714,7 +950,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 29:
+	elseif ARGS[1] = 29:
 		'<center><h4><font color="maroon">Mother pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/mom/'
 		$imgloc = 'images/characters/pavlovsk/resident/mom/selfies/'
@@ -723,7 +959,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 33:
+	elseif ARGS[1] = 33:
 		'<center><h4><font color="maroon">Anya pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/anya/'
 		$imgloc = 'images/characters/pavlovsk/resident/anya/selfies/'
@@ -732,7 +968,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 34:
+	elseif ARGS[1] = 34:
 		'<center><h4><font color="maroon">Kolka pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/kolka/'
 		$imgloc = 'images/characters/pavlovsk/resident/kolka/selfies/'
@@ -741,7 +977,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 35:
+	elseif ARGS[1] = 35:
 		'<center><h4><font color="maroon">Father pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/???/'
 !! Where are these located?
@@ -751,7 +987,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 54:
+	elseif ARGS[1] = 54:
 		'<center><h4><font color="maroon">Uncle Misha pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/misha/'
 		$imgloc = 'images/characters/pavlovsk/resident/misha/selfies/'
@@ -760,7 +996,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 56:
+	elseif ARGS[1] = 56:
 		'<center><h4><font color="maroon">Roma pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/roma/'
 		$imgloc = 'images/characters/pavlovsk/resident/roma/selfies/'
@@ -769,7 +1005,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 57:
+	elseif ARGS[1] = 57:
 		'<center><h4><font color="maroon">Rex pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/rex/'
 		$imgloc = 'images/characters/pavlovsk/resident/rex/selfies/'
@@ -778,7 +1014,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 69:
+	elseif ARGS[1] = 69:
 		'<center><h4><font color="maroon">Mikhail pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/mikhail/'
 		$imgloc = 'images/characters/pavlovsk/school/teacher/mikhail/selfies/'
@@ -787,7 +1023,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 54:
+	elseif ARGS[1] = 54:
 		'<center><h4><font color="maroon">Sergey pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/sergey/'
 		$imgloc = 'images/characters/pavlovsk/resident/sergey/selfies/'
@@ -796,7 +1032,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 128:
+	elseif ARGS[1] = 128:
 		'<center><h4><font color="maroon">Makar pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/makar/'
 		$imgloc = 'images/characters/pavlovsk/school/teacher/makar/selfies/'
@@ -805,7 +1041,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 129:
+	elseif ARGS[1] = 129:
 		'<center><h4><font color="maroon">Serafim pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/serafim/'
 		$imgloc = 'images/characters/pavlovsk/school/teacher/serafim/selfies/'
@@ -814,7 +1050,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 130:
+	elseif ARGS[1] = 130:
 		'<center><h4><font color="maroon">Ilya pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/ilya/'
 		$imgloc = 'images/characters/pavlovsk/school/teacher/ilya/selfies/'
@@ -823,7 +1059,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 131:
+	elseif ARGS[1] = 131:
 		'<center><h4><font color="maroon">Viktor pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/viktor/'
 		$imgloc = 'images/characters/pavlovsk/school/teacher/viktor/selfies/'
@@ -832,7 +1068,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 132:
+	elseif ARGS[1] = 132:
 		'<center><h4><font color="maroon">Ruslan pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/ruslan/'
 		$imgloc = 'images/characters/pavlovsk/school/teacher/ruslan/selfies/'
@@ -841,7 +1077,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 133:
+	elseif ARGS[1] = 133:
 		'<center><h4><font color="maroon">Rolan pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/rolan/'
 		$imgloc = 'images/characters/pavlovsk/school/teacher/rolan/selfies/'
@@ -850,7 +1086,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 134:
+	elseif ARGS[1] = 134:
 		'<center><h4><font color="maroon">Aleksandrina pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/aleksandrina/'
 		$imgloc = 'images/characters/pavlovsk/school/teacher/aleksandrina/selfies/'
@@ -859,7 +1095,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 135:
+	elseif ARGS[1] = 135:
 		'<center><h4><font color="maroon">Yeva pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/yeva/'
 		$imgloc = 'images/characters/pavlovsk/school/teacher/yeva/selfies/'
@@ -868,7 +1104,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 136:
+	elseif ARGS[1] = 136:
 		'<center><h4><font color="maroon">Olga pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/olga/'
 		$imgloc = 'images/characters/pavlovsk/school/teacher/olga/selfies/'
@@ -877,7 +1113,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 137:
+	elseif ARGS[1] = 137:
 		'<center><h4><font color="maroon">Raven pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/raven/'
 		$imgloc = 'images/characters/pavlovsk/school/teacher/raven/selfies/'
@@ -886,7 +1122,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 138:
+	elseif ARGS[1] = 138:
 		'<center><h4><font color="maroon">Arina pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/arina/'
 		$imgloc = 'images/characters/pavlovsk/school/teacher/arina/selfies/'
@@ -895,7 +1131,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 139:
+	elseif ARGS[1] = 139:
 		'<center><h4><font color="maroon">Stasya pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/stasya/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/stasya/selfies/'
@@ -904,7 +1140,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 140:
+	elseif ARGS[1] = 140:
 		'<center><h4><font color="maroon">Lizaveta pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/lizaveta/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/lizaveta/selfies/'
@@ -913,7 +1149,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 141:
+	elseif ARGS[1] = 141:
 		'<center><h4><font color="maroon">Veronika pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/veronika/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/veronika/selfies/'
@@ -922,7 +1158,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 142:
+	elseif ARGS[1] = 142:
 		'<center><h4><font color="maroon">Zinaida pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/zinaida/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/zinaida/selfies/'
@@ -931,7 +1167,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 143:
+	elseif ARGS[1] = 143:
 		'<center><h4><font color="maroon">Alyona pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/alyona/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/alyona/selfies/'
@@ -940,7 +1176,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 144:
+	elseif ARGS[1] = 144:
 		'<center><h4><font color="maroon">Anushka pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/anushka/'
 		$imgloc = 'images/characters/pavlovsk/school/girl/anushka/selfies/'
@@ -949,7 +1185,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 22
 		loopmaxsveta = 2
 		loopmaxsex = 7
-	elseif numnpc = 145:
+	elseif ARGS[1] = 145:
 		'<center><h4><font color="maroon">Ekaterina pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/ekaterina/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/ekaterina/selfies/'
@@ -958,7 +1194,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 146:
+	elseif ARGS[1] = 146:
 		'<center><h4><font color="maroon">Marcus pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/marcus/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/marcus/selfies/'
@@ -967,7 +1203,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 147:
+	elseif ARGS[1] = 147:
 		'<center><h4><font color="maroon">Andrey pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/andrey/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/andrey/selfies/'
@@ -976,7 +1212,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 148:
+	elseif ARGS[1] = 148:
 		'<center><h4><font color="maroon">Mefodiy pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/mefodiy/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/mefodiy/selfies/'
@@ -985,7 +1221,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 149:
+	elseif ARGS[1] = 149:
 		'<center><h4><font color="maroon">Lazar pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/lazar/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/lazar/selfies/'
@@ -994,7 +1230,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 150:
+	elseif ARGS[1] = 150:
 		'<center><h4><font color="maroon">Erast pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/erast/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/erast/selfies/'
@@ -1003,7 +1239,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 151:
+	elseif ARGS[1] = 151:
 		'<center><h4><font color="maroon">Evgeny pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/evgeny/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/evgeny/selfies/'
@@ -1012,7 +1248,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 152:
+	elseif ARGS[1] = 152:
 		'<center><h4><font color="maroon">Feofan pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/feofan/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/feofan/selfies/'
@@ -1021,7 +1257,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 153:
+	elseif ARGS[1] = 153:
 		'<center><h4><font color="maroon">Gerasim pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/gerasim/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/gerasim/selfies/'
@@ -1030,7 +1266,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 154:
+	elseif ARGS[1] = 154:
 		'<center><h4><font color="maroon">Radomir pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/radomir/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/radomir/selfies/'
@@ -1039,7 +1275,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 155:
+	elseif ARGS[1] = 155:
 		'<center><h4><font color="maroon">Lavrenti pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/lavrenti/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/lavrenti/selfies/'
@@ -1048,7 +1284,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 156:
+	elseif ARGS[1] = 156:
 		'<center><h4><font color="maroon">Arkadi pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/arkadi/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/arkadi/selfies/'
@@ -1057,7 +1293,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 157:
+	elseif ARGS[1] = 157:
 		'<center><h4><font color="maroon">Roman pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/roman/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/roman/selfies/'
@@ -1066,7 +1302,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 158:
+	elseif ARGS[1] = 158:
 		'<center><h4><font color="maroon">Valentin pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/valentin/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/valentin/selfies/'
@@ -1075,7 +1311,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 159:
+	elseif ARGS[1] = 159:
 		'<center><h4><font color="maroon">Petia pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/petia/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/petia/selfies/'
@@ -1084,7 +1320,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 165:
+	elseif ARGS[1] = 165:
 		'<center><h4><font color="maroon">Vanya pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/vanya/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/vanya/selfies/'
@@ -1093,7 +1329,7 @@ if $ARGS[0] = 'listretrieve2':
 		loopmax = 0
 		loopmaxsveta = 0
 		loopmaxsex = 0
-	elseif numnpc = 189:
+	elseif ARGS[1] = 189:
 		'<center><h4><font color="maroon">Nikolai pictures</font></h4></center>'
 		$photoloc = 'images/pc/pictures/nikolai/'
 		$imgloc = 'images/characters/pavlovsk/school/boy/nikolai/selfies/'
@@ -1105,171 +1341,107 @@ if $ARGS[0] = 'listretrieve2':
 	else
 		!! New npcs with selfies should be included above
 	end
+end
+
+if $ARGS[0] = 'listretrieve2':
+	gs 'get_npc_selfie_totals', numnpc
+
+	$temp_table = '<table>'
 
 	if loopmaxev > 0:
-		*nl
-		'<center><b>Pictures</b></center>'
-		*nl
+		$temp_table += '<tr><th colspan=5>Pictures</th></tr>'
+		$temp_table += '<tr></tr><tr>'
 
-		i = 1
+		temp_cnum = 0
+		lr2_pic_i = 1
 		:temp_loopev
-			dynamic '$selfie = <<$selfienpc>>photo[<<i>>]'
-			if $selfie = 1: *p '<a href="exec: gs ''phone_selfies_popup'', ''show2'', ''<<$photoloc>>'', ''<<i>>''"><img src="<<$photoloc>><<i>>.jpg"	 height="150" /></a>  '
-			i += 1
-		if i <= loopmax: jump 'temp_loopev'
+			dynamic '$selfie = <<$selfienpc>>photo[<<lr2_pic_i>>]'
+			if $selfie = 1:
+				if temp_cnum = 5: $result += '</tr><tr>' & temp_cnum = 0
+				$temp_table += '<td width="20%">' + func('phone_selfies_popup', 'set_selfie2', $photoloc, lr2_pic_i) + '</td>'
+				temp_cnum += 1
+			end
+			lr2_pic_i += 1
+		if lr2_pic_i <= loopmax: jump 'temp_loopev'
+		if temp_cnum ! 4: $temp_table += '<td></td>'
+		$temp_table += '</tr><tr></tr>'
+
+		killvar 'temp_cnum'
+		killvar 'lr2_pic_i'
 	end
 
 	if loopmax > 0:
-		*nl
-		'<center><b>Regular selfies</b></center>'
-		*nl
-		
-		i = 1
+		$temp_table += '<tr><th colspan=5>Regular selfies</th></tr>'
+		$temp_table += '<tr></tr><tr>'
+
+		temp_cnum = 0
+		lr2_regself_i = 1
 		:temp_loopselfies
-			dynamic '$selfie = <<$selfienpc>>[<<i>>]'
-			if $selfie = 1: *p '<a href="exec: gs ''phone_selfies_popup'', ''show2'', ''<<$imgloc>>'', ''<<i>>''"><img src="<<$imgloc>><<i>>.jpg"	 height="150" /></a>  '
-			i += 1
-		if i <= loopmax: jump 'temp_loopselfies'
+			dynamic '$selfie = <<$selfienpc>>[<<lr2_regself_i>>]'
+			if $selfie = 1:
+				if temp_cnum = 5: $result += '</tr><tr>' & temp_cnum = 0
+				$temp_table += '<td width="20%">' + func('phone_selfies_popup', 'set_selfie2', $imgloc, lr2_regself_i) + '</td>'
+				temp_cnum += 1
+			end
+			lr2_regself_i += 1
+		if lr2_regself_i <= loopmax: jump 'temp_loopselfies'
+		if temp_cnum ! 4: $temp_table += '<td></td>'
+		$temp_table += '</tr><tr></tr>'
+
+		killvar 'temp_cnum'
+		killvar 'lr2_regself_i'
 	end
 
 	if loopmaxsveta > 0:
-		*nl
-		'<center><b>Selfies with me</b></center>'
-		*nl
-		
-		i = 1
+		$temp_table += '<tr><th colspan=5>Selfies with me</th></tr>'
+		$temp_table += '<tr></tr><tr>'
+
+		temp_cnum = 0
+		lr2_swm_i = 1
 		:temp_loopselfiessveta
-			dynamic '$selfie = <<$selfienpc>>sveta[<<i>>]'
-			if $selfie = 1: *p '<a href="exec: gs ''phone_selfies_popup'', ''show2'', ''<<$imgloc>>sveta/'', ''<<i>>''"><img src="<<$imgloc>>sveta/<<i>>.jpg"	 height="150" /></a>  '
-			i += 1
-		if i <= loopmaxsveta: jump 'temp_loopselfiessveta'
+			dynamic '$selfie = <<$selfienpc>>sveta[<<lr2_swm_i>>]'
+			if $selfie = 1:
+				if temp_cnum = 5: $result += '</tr><tr>' & temp_cnum = 0
+				$temp_table += '<td width="20%">' + func('phone_selfies_popup', 'set_selfie2', '<<$imgloc>>sveta/', lr2_swm_i) + '</td>'
+				temp_cnum += 1
+			end
+			lr2_swm_i += 1
+		if lr2_swm_i <= loopmaxsveta: jump 'temp_loopselfiessveta'
+		if temp_cnum ! 4: $temp_table += '<td></td>'
+		$temp_table += '</tr><tr></tr>'
+
+		killvar 'temp_cnum'
+		killvar 'lr2_swm_i'
 	end
 
 	if loopmaxsex > 0:
-		*nl
-		'<center><b>Sex selfies</b></center>'
-		*nl
-		
-		i = 1
+		$temp_table += '<tr><th colspan=5>Sex selfies</th></tr>'
+		$temp_table += '<tr></tr><tr>'
+
+		temp_cnum = 0
+		lr2_sex_i = 1
 		:temp_loopselfiessex
-			dynamic '$selfie = <<$selfienpc>>sex[<<i>>]'
-			if $selfie = 1: *p '<a href="exec: gs ''phone_selfies_popup'', ''show2'', ''<<$imgloc>>sex/'', ''<<i>>''"><img src="<<$imgloc>>sex/<<i>>.jpg"	 height="150" /></a>  '
-			i += 1
-		if i <= loopmaxsex: jump 'temp_loopselfiessex'
+			dynamic '$selfie = <<$selfienpc>>sex[<<lr2_sex_i>>]'
+			if $selfie = 1:
+				if temp_cnum = 5: $result += '</tr><tr>' & temp_cnum = 0
+				$temp_table += '<td width="20%">' + func('phone_selfies_popup', 'set_selfie2', '<<$imgloc>>sex/', lr2_sex_i) + '</td>'
+				temp_cnum += 1
+			end
+			lr2_sex_i += 1
+		if lr2_sex_i <= loopmaxsex: jump 'temp_loopselfiessex'
+		if temp_cnum ! 4: $temp_table += '<td></td>'
+		$temp_table += '</tr><tr></tr>'
+
+		killvar 'temp_cnum'
+		killvar 'lr2_sex_i'
 	end
+	$temp_table += '</table>'
+
+	*p $temp_table
 
 	act 'Back': gt 'phone_selfies', 'selfies'
 	gs 'phone_selfies', 'act_exit'
 end
 
-if $ARGS[0] = 'family':
-	'<center><h4><font color="maroon">Family members</font></h4></center>'
-	$textgrup = ''
-	count1 = 0
-	i = 1
-	'<center><table cellspacing="3">'
-	:familygruploop
-		if npc_selfieon['A<<i>>'] = 1 and npc_grupTipe['A<<i>>'] = 7:
-			count1 += 1
-			$textgrup += '' + '<td bgcolor=<<$theme[''table_bg_alt'']>> align="center"><img  height="100" src="images/characters/shared/headshots_main/<<i>>.jpg"><br>' + $npc_selfie['A<<i>>'] + '</td>'
-
-			if count1 = 6:
-				$textgrup +='</tr><tr>'
-				count1 = 0
-			end
-		end
-
-		i += 1
-	if i <= aarraynumber: jump 'familygruploop'
-
-	'<<$textgrup>>'
-
-	act 'Back': gt 'phone_selfies', 'selfies'
-	gs 'phone_selfies', 'act_exit'
-end
-
-if $ARGS[0] = 'school':
-	'<center><h4><font color="maroon">School friends</font></h4></center>'
-	$textgrup = ''
-	count1 = 0
-	i = 1
-	'<center><table cellspacing="3">'
-	:schoolgruploop	
-		if npc_selfieon['A<<i>>'] = 1 and (npc_grupTipe['A<<i>>'] = 1 or npc_grupTipe['A<<i>>'] = 2 or npc_grupTipe['A<<i>>'] = 3 or npc_grupTipe['A<<i>>'] = 4 or npc_grupTipe['A<<i>>'] = 5):
-			count1 += 1
-			$textgrup += '' + '<td bgcolor=<<$theme[''table_bg_alt'']>> align="center"><img  height="100" src="images/characters/shared/headshots_main/<<i>>.jpg"><br>' + $npc_selfie['A<<i>>'] + '</td>'
-
-			if count1 = 6:
-				$textgrup +='</tr><tr>'
-				count1 = 0
-			end
-		end
-
-		i += 1
-	if i <= aarraynumber: jump 'schoolgruploop'
-
-	'<<$textgrup>>'
-
-	act 'Back': gt 'phone_selfies', 'selfies'
-	gs 'phone_selfies', 'act_exit'
-end
-
-if $ARGS[0] = 'teacher':
-	'<center><h4><font color="maroon">Teachers</font></h4></center>'
-	$textgrup = ''
-	count1 = 0
-	i = 1
-	'<center><table cellspacing="3">'
-	:teachergruploop
-		if npc_selfieon['A<<i>>'] = 1 and npc_grupTipe['A<<i>>'] = 6:
-			count1 += 1
-			$textgrup += '' + '<td bgcolor=<<$theme[''table_bg_alt'']>> align="center"><img  height="100" src="images/characters/shared/headshots_main/<<i>>.jpg"><br>' + $npc_selfie['A<<i>>'] + '</td>'
-
-			if count1 = 6:
-				$textgrup +='</tr><tr>'
-				count1 = 0
-			end
-		end
-
-		i += 1
-	if i <= aarraynumber: jump 'teachergruploop'
-
-	'<<$textgrup>>'
-
-	act 'Back': gt 'phone_selfies', 'selfies'
-	gs 'phone_selfies', 'act_exit'
-end
-
-if $ARGS[0] = 'pavlovsk':
-	'<center><h4><font color="maroon">Pavlovsk friends</font></h4></center>'
-	$textgrup = ''
-	count1 = 0
-	i = 1
-	'<center><table cellspacing="3">'
-	:pavgruploop
-		if npc_grupTipe['A<<i>>'] = 8 and npc_selfieon['A<<i>>'] = 1:
-			count1 += 1
-			$textgrup += '' + '<td bgcolor=<<$theme[''table_bg_alt'']>> align="center"><img  height="100" src="images/characters/shared/headshots_main/<<i>>.jpg"><br>' + $npc_selfie['A<<i>>'] + '</td>'
-
-			if count1 = 6:
-				$textgrup +='</tr><tr>'
-				count1 = 0
-			end
-		end
-		i += 1
-	if i <= aarraynumber: jump 'pavgruploop'
-
-	'<<$textgrup>>'
-
-	act 'Back': gt 'phone_selfies', 'selfies'
-	gs 'phone_selfies', 'act_exit'
-end
-
-if $ARGS[0] = 'city':
-	'<center><h4><font color="maroon">City friends</font></h4></center>'
-
-	act 'Back': gt 'phone_selfies', 'selfies'
-	gs 'phone_selfies', 'act_exit'
-end
 
 --- phone_selfies ---------------------------------

@@ -484,6 +484,16 @@ if $ARGS[0] = 'breast_engorment':
 			if lactation['lactmess'] < 0: lactation['lactmess'] = 0
 		end
 	end
+	if lactation['engorgement'] > 0 and pain['breasts'] < max(5, lactation['breastmm']/10000):
+		tmp = max(0, rand(0, 6 - lactation['lactmess']))
+		pain['breasts'] += tmp
+		lactation['engorgement_pain'] += tmp
+		killvar 'tmp'
+	elseif lactation['engorgement'] = 0 and lactation['engorgement_pain'] > 0:
+		pain['breasts'] -= lactation['engorgement_pain'] / 2
+		lactation['engorgement_pain'] /= 2
+		if pain['breasts'] < 0: pain['breasts'] = 0
+	end
 end
 
 !!	Lactation On/Off switch function
@@ -503,7 +513,7 @@ if $ARGS[0] = 'lact_switch':
 		!!	setting milk volume in breasts to 0. Will fill up with lactaterate in another part of the breastcycle
 		lactation['breastmv'] = 0
 		!!	nipples will grow a bit with extended milk channels. If lactation stops, this will be substracted from the nipples again and nipples will shrink.
-		lactation['nipgrowth'] = 2
+		lactation['nipgrowth'] += rand(5,10)
 		pcs_nips += lactation['nipgrowth']
 		if lactation['alveoliexpandlvl'] < 10: lactation['alveoliexpandlvl'] = 10
 		if lactation['alveoliexpandlvl_change'] < 10: lactation['alveoliexpandlvl_change'] = 10
@@ -516,7 +526,7 @@ if $ARGS[0] = 'lact_switch':
 		lactation['alveoliexpandlvl'] = 0
 		lactation['alveoliexpandlvl_change'] = 1
 		lactation['prolactinlvl'] = 0
-		if pcs_nips > lactation['nipgrowth']: pcs_nips -= lactation['nipgrowth']
+		if lactation['nipgrowth'] > 0 and lactation['nipgrowth'] <= 10: pcs_nips -= lactation['nipgrowth'] & lactation['nipgrowth'] = 0
 		lactation['nipgrowth'] = 0
 	end
 	!!	Always trigger the breastcycle after breast change, or the changes to svetas breasts will not happen.
@@ -597,6 +607,7 @@ if $ARGS[0] = 'breastcycle':
 		end
 	else
 	!!	things that happen when Sveta is lactating lactation['active'] > 1
+		if lactation['milkprod_type'] = 1 and lactation['caplactaterate'] <= 0: lactation['caplactaterate'] = 4
 		if lactation['milkgrowday'] < daystart:
 			!!	Lactation rate growth. The higher the lactationrate is, the slower it will grow. I have not found a study on this, so this is pure asumption and common sense.
 			!!	funny parabelfunction for the lactrategrowth > 65 - ((1/1466)*((lactrate-304)*(lactrate-304)))
@@ -604,7 +615,7 @@ if $ARGS[0] = 'breastcycle':
 			lactation['prolactinlvl'] += (lactation['dailyoverdemand']/10000)
 			if lactation['dailyoverdemand'] > 0 and lactation['breastpumped'] >= 0 and lactation['lactaterate'] ! 0:
 				!!  adding cap
-				if (lactation['breastmm'] / lactation['lactaterate']) > lactation['caplactaterate']:		
+				if (lactation['breastmm'] / lactation['lactaterate']) > lactation['caplactaterate']:
 					lactation['max_lactrate_growth'] = (65 - ((((lactation['lactaterate']/1000) - 304)*((lactation['lactaterate']/1000) - 304))/1466))*1000
 					if lactation['max_lactrate_growth'] < ((10*lactation['prolactinlvl'])/2) and lactation['max_lactrate_growth'] >= 1000:
 						lactation['lactaterate'] += lactation['max_lactrate_growth']
@@ -612,6 +623,16 @@ if $ARGS[0] = 'breastcycle':
 						lactation['lactaterate'] += 1000
 					else
 						lactation['lactaterate'] += (10*lactation['prolactinlvl'])/2
+					end
+				elseif (lactation['breastmm'] / lactation['lactaterate']) <> lactation['caplactaterate']:
+					!!	lactation rate is dropping with below function.
+					lactation['lactaterate'] = max(0, lactation['lactaterate'] - (lactation['lactaterate']/2) + (lactation['lactaterate']/5) - (lactation['lactaterate']/8))
+					!! shrink nipples
+					if lactation['nipgrowth'] > lactation['useable_cupsize']*3/2:
+						tmp = max(0, rand(-5, lactation['breastmm']/100000))
+						pcs_nips -= tmp
+						lactation['nipgrowth'] -= tmp
+						killvar 'tmp'
 					end
 				end
 				lactation['prolactinlvl'] = 100
@@ -627,7 +648,7 @@ if $ARGS[0] = 'breastcycle':
 				if lactation['lactaterate'] > 0:
 					!!	lactation rate is dropping with below function.
 					lactation['prolactinlvl'] = 100
-					if ((lactation['lactaterate']/2) + (lactation['lactaterate']/5) - (lactation['lactaterate']/8)) < 1:
+					if ((lactation['lactaterate']/2) + (lactation['lactaterate']/5) - (lactation['lactaterate']/8)) < 10:
 						lactation['lactaterate'] -= 1
 					else
 						lactation['lactaterate'] = (lactation['lactaterate'] - (lactation['lactaterate']/2) + (lactation['lactaterate']/5) - (lactation['lactaterate']/8))
@@ -644,6 +665,13 @@ if $ARGS[0] = 'breastcycle':
 		!!	Filling milk into svetas breast every hour and checking for breastengorgement
 		if lactation['breastmv'] < lactation['breastmm'] and lactation['lactaterate'] >= 500 and lactation['milkprod_type'] = 1:
 			lactation['breastmv'] += func('lact_lib','prod_milk',lactation['lactaterate'])
+			!! nipples are growing if Sveta keeps pumping milk
+			if lactation['nipgrowth'] < lactation['useable_cupsize']*2:
+				tmp = max(0, rand(-10, lactation['breastmm']/100000))
+				pcs_nips += tmp
+				lactation['nipgrowth'] += tmp
+				killvar 'tmp'
+			end
 		elseif lactation['breastmv'] < lactation['breastmm'] and lactation['lactaterate'] >= 500 and lactation['milkprod_type'] = 0:
 			lactation['breastmv'] += lactation['lactaterate']
 			if lactation['breastmv'] > lactation['breastmm']: lactation['breastmv'] = lactation['breastmm']
@@ -776,23 +804,23 @@ if $ARGS[0] = 'get_sorenessmod':
 	if lactation['nipple_cream_applied'] > 0:
 		lactation['nipple_cream_applied'] = 0
 		if lactation['dailyoverdemand'] = 0:
-			result = 40
+			result = rand(10,30)
 		elseif lactation['dailyoverdemand'] <= (lactation['breastmm'] / 2):
-			result = 30
+			result = rand(5,15)
 		elseif lactation['dailyoverdemand'] <= lactation['breastmm']:
-			result = 20
+			result = rand(4,8)
 		else
-			result = 10
+			result = rand(3,5)
 		end
 	else
 		if lactation['dailyoverdemand'] = 0:
-			result = 30
+			result = rand(5,10)
 		elseif lactation['dailyoverdemand'] <= (lactation['breastmm'] / 2):
-			result = 20
+			result = rand(3,6)
 		elseif lactation['dailyoverdemand'] <= lactation['breastmm']:
-			result = 10
+			result = rand(2,4)
 		else
-			result = 1
+			result = rand(1,3)
 		end
 	end
 end

@@ -209,7 +209,7 @@ $cheatmenu['bodyMod'] = {
 	'Changing body shape does not resize clothes.'
 	'May cause adverse interactions, use at your own risk!'
 	''
-	'You are currently <<$body>>.'
+	'You are currently <<$bodyVars[''desc'']>>.'
 	''
 	'You may select from the following sizes:'
 	''
@@ -727,13 +727,11 @@ $cheatmenu['state'] = {
 			'Lactate Rate: <a href="exec:lactation[''lactaterate''] -= 10000 & dynamic $cheatmenu[''state'']">-10</a> <<lactation[''lactaterate'']/1000>>ml/h'
 		else
 			'Lactate Rate: <a href="exec:lactation[''lactaterate''] -= 10000 & dynamic $cheatmenu[''state'']">-10</a> <<lactation[''lactaterate'']/1000>>ml/h <a href="exec:lactation[''lactaterate''] += 10000 & dynamic $cheatmenu[''state'']">+10</a>'
-			if lactation['caplactaterate'] <= 0:
-				'Cap Lactate Rate: <a href="exec:lactation[''caplactaterate''] = 24 & dynamic $cheatmenu[''state'']">Switch ON</a>'
-			elseif lactation['caplactaterate'] >= 72:
-				'Cap Lactate Rate: <a href="exec:lactation[''caplactaterate''] -= 24 & dynamic $cheatmenu[''state'']">-24h</a> <<lactation[''caplactaterate'']>>h'
-			else
-				'Cap Lactate Rate: <a href="exec:lactation[''caplactaterate''] -= 24 & dynamic $cheatmenu[''state'']">-24h</a> <<lactation[''caplactaterate'']>>h <a href="exec:lactation[''caplactaterate''] += 24 & dynamic $cheatmenu[''state'']">+24h</a>'
-			end
+			'Cap Lactate Rate: ' + _ 
+			iif(lactation['milkprod_type'] = 0 and lactation['caplactaterate'] > 0,'<a href="exec:lactation[''caplactaterate''] -= 2 & dynamic $cheatmenu[''state'']">-2h</a> ','') + _ 
+			iif(lactation['milkprod_type'] = 1 and lactation['caplactaterate'] > 4,'<a href="exec:lactation[''caplactaterate''] -= 2 & dynamic $cheatmenu[''state'']">-2h</a> ','') + _ 
+			iif(lactation['caplactaterate'] > 0,'<<lactation[''caplactaterate'']>>h ','OFF ') + _ 
+			iif(lactation['caplactaterate'] < 72,'<a href="exec:lactation[''caplactaterate''] += 2 & dynamic $cheatmenu[''state'']">+2h</a>','')
 			'<font color="grey">Cap lactate rate makes lactate rate stop growing if <<$pcs_firstname>> needs milking more often.</font>'
 		end
 		'Milk in Breasts: <<lactation[''breastmv'']/1000>>ml'
@@ -782,8 +780,13 @@ $cheatmenu['setLooks'] = {
 }
 
 $cheatmenu['setLooksInput'] = {
-	temp_input = input("Set your <<$ARGS[1]>> level:")
-	gs 'shortgs', 'setStat', $ARGS[0], temp_input
+	$temp_input = $input("Set your <<$ARGS[1]>> level:")
+	if isnum($temp_input) ! 0:
+		gs 'shortgs', 'setStat', $ARGS[0], val($temp_input)
+	elseif $temp_input ! '':
+		msg 'invalid input'
+	end
+	killvar '$temp_input'
 	dynamic $cheatmenu['looks']
 }
 
@@ -836,6 +839,9 @@ $cheatmenu['looks'] = {
 	'<a href="exec:pcs_hgt = input(''Enter <<$pcs_nickname>>s height in centimetres<br><br>(default 170, min 100, max 200, values below 160 and above 180 will cause problems in the calculation of BMI/weight the more you deviate from the default 170)'') & dynamic $cheatmenu[''looks'']">Change <<$pcs_nickname>>''s height</a>'
 	*nl
 	*p 'Musculature (<<stren_plus_lvl>>): ' & dynamic $cheatmenu['printLooksLinks'], 'stren_plus', 'Musculature'
+	*pl '<font color="grey">Allows strength to go past 100'
+	*pl'<font color="red">Negatively</font> affects appearance</font>'
+	*nl
 	*p 'Toned Butt (<<butt_tr_lvl>>): ' & dynamic $cheatmenu['printLooksLinks'], 'butt_tr', 'Toned Butt'
 	*nl
 	'You have <<$titsize>> breasts'
@@ -865,8 +871,8 @@ $cheatmenu['looks'] = {
 	if pcs_lip > 0:'<a href="exec:pcs_lip -= 1 & dynamic $cheatmenu[''looks'']">Shrink lips</a>'
 	*nl
 	'<<$skin>>'
-	if pcs_skin < 900: '<a href="exec:pcs_skin += 200 & gs ''AppearanceSystem'', ''UpdateBaseAppearnce'' & dynamic $cheatmenu[''looks'']">Improve skin</a>'
-	if pcs_skin > 0: '<a href="exec:pcs_skin -= 200 & gs ''AppearanceSystem'', ''UpdateBaseAppearnce'' & dynamic $cheatmenu[''looks'']">Worsen skin</a>'
+	if pcs_skin < 900: '<a href="exec:pcs_skin += 200 & gs ''AppearanceSystem'', ''UpdateBaseAppearance'' & dynamic $cheatmenu[''looks'']">Improve skin</a>'
+	if pcs_skin > 0: '<a href="exec:pcs_skin -= 200 & gs ''AppearanceSystem'', ''UpdateBaseAppearance'' & dynamic $cheatmenu[''looks'']">Worsen skin</a>'
 	if pcs_tan >= 0:'<a href="exec:pcs_tan += 10 & dynamic $cheatmenu[''looks'']">Become tanned</a>'
 	if pcs_tan > 0:'<a href="exec:pcs_tan = 0 & dynamic $cheatmenu[''looks'']">Remove tan</a>'
 	*nl
@@ -1036,10 +1042,15 @@ $cheatmenu['parameters'] = {
 	'waist (pcs_waist) = <<pcs_waist>>'
 	'hips (pcs_hips) = <<pcs_hips>>'
 	'bust - band (pcs_cupsize) = <<pcs_cupsize>>'
-	'bodyVars[''bust_silicone''] = <<bodyVars[''bust_silicone'']>>'
 	'pcs_mass[''bust''] = <<pcs_mass[''bust'']>>'
-	'bodyVars[''bust_magic''] = <<bodyVars[''bust_magic'']>>'
 	'pcs_mass[''bust_gen''] = <<pcs_mass[''bust_gen'']>>'
+	'bodyVars[''bust_magic''] = <<bodyVars[''bust_magic'']>>'
+	'bodyVars[''bust_silicone''] = <<bodyVars[''bust_silicone'']>>'
+	'bodyVars[''bust_other''] = <<bodyVars[''bust_other'']>>'
+	'pcs_mass[''butt''] = <<pcs_mass[''butt'']>>'
+	'pcs_mass[''butt_gen''] = <<pcs_mass[''butt_gen'']>>'
+	'bodyVars[''butt_silicone''] = <<bodyVars[''butt_silicone'']>>'
+	'bodyVars[''butt_other''] = <<bodyVars[''butt_other'']>>'
 	'bodyVars[''vhips''] = <<bodyVars[''vhips'']>>'
 	'bodyVars[''wratio''] = <<bodyVars[''wratio'']>>'
 	'bodyVars[''bratio''] = <<bodyVars[''bratio'']>>'
@@ -1154,14 +1165,24 @@ $cheatmenu['setStat'] = {
 }
 
 $cheatmenu['setStatInput'] = {
-	temp_input = input("Set your <<$ARGS[1]>> level:")
-	gs 'shortgs', 'setStat', $ARGS[0], temp_input
+	$temp_input = $input("Set your <<$ARGS[1]>> level:")
+	if isnum($temp_input) ! 0:
+		gs 'shortgs', 'setStat', $ARGS[0], val($temp_input)
+	elseif $temp_input ! '':
+		msg 'invalid input'
+	end
+	killvar '$temp_input'
 	dynamic $cheatmenu['stats']
 }
 
 $cheatmenu['setStatInputInverted'] = {
-	temp_input = input("Set your <<$ARGS[1]>> level:")
-	gs 'shortgs', 'setStat', $ARGS[0], (100 - temp_input)
+	$temp_input = $input("Set your <<$ARGS[1]>> level:")
+	if isnum($temp_input) ! 0:
+		gs 'shortgs', 'setStat', $ARGS[0], (100 - val($temp_input))
+	elseif $temp_input ! '':
+		msg 'invalid input'
+	end
+	killvar '$temp_input'
 	dynamic $cheatmenu['stats']
 }
 
@@ -1673,7 +1694,7 @@ $cheatmenu['input_time'] = {
 
 $cheatmenu['time'] = {
 	if currtimecheck = 1:
-		if ((year mod 4 = 0) and (year mod 100 ! 0)) or (year mod 400 = 0): 
+		if ((year mod 4 = 0) and (year mod 100 ! 0)) or (year mod 400 = 0):
 			monthsend[2] = 29
 		else
 			monthsend[2] = 28
@@ -1682,13 +1703,13 @@ $cheatmenu['time'] = {
 	gs 'daystart'
 	gs 'outdoors', 'temp_set'
 	gs 'stat'
-	
-	temp_daystart = (year - 2016) * 365
+
+	temp_daystart = (temp_year - 2016) * 365
 	!! leap year correction
-	temp_daystart += (year - 2013) / 4
+	temp_daystart += (temp_year - 2013) / 4
 
 	copyarr 'temp_monthsend', 'monthsend'
-	if ((temp_year mod 4 = 0) and (temp_year mod 100 ! 0)) or (temp_year mod 400 = 0): 
+	if ((temp_year mod 4 = 0) and (temp_year mod 100 ! 0)) or (temp_year mod 400 = 0):
 		temp_monthsend[2] = 29
 	else
 		temp_monthsend[2] = 28
@@ -2027,6 +2048,7 @@ $cheatmenu['cycle'] = {
 $cheatmenu['setting'] = {
 	*clr & cla
 	$BACKIMAGE = ''
+	if $theme['name'] = 'Custom': gs 'themes', 'check_custom_vars' & gs 'themes', 'set_custom' & gs '$menu_obnovit'
 	gs 'obj_din', 'settingtabs'
 	'<center><h1>Gameplay Settings</h1></center>'
 	'<center><table cellspacing="0" cellpadding="20" valign="top"><tr>'
@@ -2095,8 +2117,7 @@ $cheatmenu['display'] = {
 	*clr & cla
 	gs 'obj_din', 'settingtabs'
 	'<center><h1>Display Setting</h1></center>'
-	'<center><table cellspacing="0" cellpadding="20" valign="top"><tr>'
-	'<td cellspacing="0" cellpadding="20" valign="top">'
+	*p '<center><table cellspacing="0" cellpadding="20" valign="top"><tr><td cellspacing="0" cellpadding="20" valign="top">'
 	if usePopUps = 1:
 		'Allow Popup Pictures: Currently ON - <a href="exec:usePopUps = 0 & dynamic $cheatmenu[''display'']">Turn OFF</a>'
 	else
@@ -2130,7 +2151,7 @@ $cheatmenu['display'] = {
 
 	*p iif($theme['name'] = 'Custom', 'Custom&nbsp;', '<a href="exec:gs ''themes'', ''set_custom'' & gs ''$menu_obnovit'' & dynamic $cheatmenu[''display'']">Custom</a>&nbsp;')
 
-	*pl '<a href="exec:msg ''test''"><img src="images/system/image_needed.png" height="<<fsize+2>>"></a>'
+	*pl '<a href="exec:dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/preferences<<iif(theme[''is_dark''] = 0, ''_b'', ''_w'')>>.png" height="<<fsize*15/10>>"></a>'
 
 	'<font color="grey">Dynamic theme (default) will change colour based on the game hour.</font>'
 	*nl
@@ -2160,7 +2181,307 @@ $cheatmenu['display'] = {
 	else
 		'Show Debug window on save load: Currently ON - <a href="exec:loadg_show_debug = 0 & debug_warning_closed = 1 & showobjs 0 & dynamic $cheatmenu[''display'']">Turn OFF</a>'
 	end
-	'</tr></table></b></center>'
+	*p '</td></tr></table></center>'
+}
+
+$cheatmenu['theme_customize_input'] = {
+	if $ARGS[0] = 'fname':
+		$temp_input = $trim($input('Enter Font name:'))
+		if $temp_input ! '': $custom_theme['fname'] = $temp_input
+	elseif $ARGS[0] = 'fsize':
+		$temp_input = $trim($input('Enter Font size:'))
+		if $temp_input ! '':
+			if isnum($temp_input):
+				custom_theme['fsize'] = iif(val($temp_input) <= 9, 9, val($temp_input))
+			else
+				msg 'invalid input'
+			end
+		end
+	elseif $ARGS[0] = 'increment':
+		$temp_input = $trim($input('Enter increment:'))
+		if $temp_input ! '':
+			if isnum($temp_input):
+				custom_theme['increment'] = iif(val($temp_input) <= 1, 1, val($temp_input))
+			else
+				msg 'invalid input'
+			end
+		end
+	elseif $ARGS[0] = 'rgb':
+		result = ARGS[2]
+		$temp_input = $ucase($trim($input('Enter <<$ARGS[1]>> color component in 0 - 255 or 00 - FF format')))
+		if $temp_input ! '':
+			if isnum($temp_input) ! 0:
+				if val($temp_input) < 0 or val($temp_input) > 255:
+					msg 'invalid input'
+				else
+					temp_result = val($temp_input)
+				end
+			else
+				if len($temp_input) > 2 or instr('0123456789ABCDEF', $mid($temp_input, 1, 1)) = 0 or instr('0123456789ABCDEF', $mid($temp_input, 2, 1)) = 0:
+					msg 'invalid input'
+				else
+					temp_result = func('shortgs', 'hex_str_to_int', $temp_input)
+				end
+			end
+		end
+		if arrsize('temp_result') = 1:
+			if $ARGS[1] = 'red':
+				result = ((ARGS[2] and (-256)) or temp_result)
+			elseif $ARGS[1] = 'green':
+				result = ((ARGS[2] and (-65281)) or (temp_result * 256))
+			elseif $ARGS[1] = 'blue':
+				result = ((ARGS[2] and (-16711681)) or (temp_result * 65536))
+			end
+		end
+		killvar 'temp_result'
+	elseif $ARGS[0] = 'hex':
+		result = ARGS[1]
+		$temp_input = $ucase($trim($input('Enter color in ABC or AABBCC format')))
+		if $temp_input ! '':
+			$temp_input = $replace($temp_input, '#')
+			temp_length = len($temp_input)
+			if temp_length = 3 or temp_length = 6:
+				temp_index = 1
+				:is_hex_loop
+					if instr('0123456789ABCDEF', $mid($temp_input, temp_index, 1)) = 0:
+						msg 'invalid input' & jump 'invalid_input_exit'
+					end
+				if temp_index < temp_length: temp_index += 1 & jump 'is_hex_loop'
+				killvar 'temp_index'
+
+				if temp_length = 3:
+					$temp_red = $mid($temp_input, 1, 1) & $temp_red = $temp_red + $temp_red
+					$temp_green = $mid($temp_input, 2, 1) & $temp_green = $temp_green + $temp_green
+					$temp_blue = $mid($temp_input, 3, 1) & $temp_blue = $temp_blue + $temp_blue
+				else
+					$temp_red = $mid($temp_input, 1, 2)
+					$temp_green = $mid($temp_input, 3, 2)
+					$temp_blue = $mid($temp_input, 5, 2)
+				end
+
+				result = rgb(func('shortgs', 'hex_str_to_int', $temp_red), func('shortgs', 'hex_str_to_int', $temp_green), func('shortgs', 'hex_str_to_int', $temp_blue))
+
+				killvar '$temp_red' & killvar '$temp_green' & killvar '$temp_blue'
+			else
+				msg 'invalid input'
+			end
+			:invalid_input_exit
+			killvar 'temp_length'
+		end
+	end
+	killvar '$temp_input'
+}
+
+$cheatmenu['extract_color_component'] = {
+	if $ARGS[0] = 'red':
+		result = (ARGS[1] and 255)
+	elseif $ARGS[0] = 'green':
+		result = ((ARGS[1] and 65280) / 256)
+	elseif $ARGS[0] = 'blue':
+		result = ((ARGS[1] and 16711680) / 65536)
+	end
+}
+
+$cheatmenu['theme_customize_increment'] = {
+	if $ARGS[0] = 'rgb':
+		result = dyneval($cheatmenu['extract_color_component'], $ARGS[1], ARGS[2]) + ARGS[3]
+		result = iif(result > 255, result - 256, iif(result < 0, 256 + result, result))
+		if $ARGS[1] = 'red':
+			result = ((ARGS[2] and (-256)) or result)
+		elseif $ARGS[1] = 'green':
+			result = ((ARGS[2] and (-65281)) or (result * 256))
+		elseif $ARGS[1] = 'blue':
+			result = ((ARGS[2] and (-16711681)) or (result * 65536))
+		else
+			result = ARGS[2]
+		end
+	end
+}
+
+$cheatmenu['theme_customize_print_color_line'] = {
+	$result = '<a href="exec: <<$ARGS[1]>> = dyneval($cheatmenu[''theme_customize_increment''], ''rgb'', ''<<$ARGS[0]>>'', <<$ARGS[1]>>, -custom_theme[''increment'']) & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/less<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
+	$result += '&nbsp;<<dyneval($cheatmenu[''extract_color_component''], ''<<$ARGS[0]>>'', dyneval(''result = <<$ARGS[1]>>''))>>&nbsp;'
+	$result += '<a href="exec: <<$ARGS[1]>> = dyneval($cheatmenu[''theme_customize_increment''], ''rgb'', ''<<$ARGS[0]>>'', <<$ARGS[1]>>, custom_theme[''increment'']) & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/more<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
+	$result += '&nbsp;'
+	$result += '<a href="exec: <<$ARGS[1]>> = dyneval($cheatmenu[''theme_customize_input''], ''rgb'', ''<<$ARGS[0]>>'', <<$ARGS[1]>>) & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/pencil<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
+}
+
+$cheatmenu['theme_customize'] = {
+	*clr
+	gs 'themes', 'check_custom_vars'
+	if $theme['name'] = 'Custom': gs 'themes', 'set_custom' & gs '$menu_obnovit'
+
+	menu_page = -1
+	gs 'obj_din', 'settingtabs'
+
+	cla
+	act 'Return': menu_page = 1 & dynamic $cheatmenu['display']
+	act 'Presets': dynamic $cheatmenu['theme_presets']
+	act 'Export': dynamic $cheatmenu['theme_export']
+	act 'Import': killvar 'menu_page' & gt 'initg', 'set_game_set'
+
+	'<center><h1>Customize Theme</h1></center>'
+	*p '<center><table width="90%" cellspacing="0" cellpadding="20" valign="top"><tr><td bgcolor="black" width="50%" cellspacing="0" cellpadding="20" valign="top"><font face="Tahoma" size="4" color="white">'
+
+	$icon_selector = '_w'
+	icon_height = 13
+!!  --- FONT ---
+	*p 'Font Family: <<$custom_theme[''fname'']>>&nbsp;'
+	*pl '<a href="exec: dynamic $cheatmenu[''theme_customize_input''], ''fname'' & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/pencil<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
+
+	*p 'Font Size:&nbsp;'
+	*p '<a href="exec: custom_theme[''fsize''] = iif(custom_theme[''fsize''] <= 9, 9, custom_theme[''fsize''] - 1) & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/less<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
+	*p '&nbsp;<<custom_theme[''fsize'']>>&nbsp;'
+	*p '<a href="exec: custom_theme[''fsize''] += 1 & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/more<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
+	*pl '&nbsp;<a href="exec: dynamic $cheatmenu[''theme_customize_input''], ''fsize'' & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/pencil<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
+
+!!  --- BCOLOR ---
+	*nl
+	*p 'BG Color: <<func(''shortgs'', ''rgb_to_hex'', custom_theme[''bcolor''])>>&nbsp;'
+	*pl '<a href="exec: custom_theme[''bcolor''] = dyneval($cheatmenu[''theme_customize_input''], ''hex'', custom_theme[''bcolor'']) & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/pencil<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
+
+	*p 'R:&nbsp;' + dyneval($cheatmenu['theme_customize_print_color_line'], 'red', 'custom_theme[''bcolor'']') + '&nbsp;|&nbsp;'
+	*p 'G:&nbsp;' + dyneval($cheatmenu['theme_customize_print_color_line'], 'green', 'custom_theme[''bcolor'']') + '&nbsp;|&nbsp;'
+	*pl 'B:&nbsp;' + dyneval($cheatmenu['theme_customize_print_color_line'], 'blue', 'custom_theme[''bcolor'']')
+
+!!  --- FCOLOR ---
+	*nl
+	*p 'FG (text) Color: <<func(''shortgs'', ''rgb_to_hex'', custom_theme[''fcolor''])>>&nbsp;'
+	*pl '<a href="exec: custom_theme[''fcolor''] = dyneval($cheatmenu[''theme_customize_input''], ''hex'', custom_theme[''fcolor'']) & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/pencil<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
+
+	*p 'R:&nbsp;' + dyneval($cheatmenu['theme_customize_print_color_line'], 'red', 'custom_theme[''fcolor'']') + '&nbsp;|&nbsp;'
+	*p 'G:&nbsp;' + dyneval($cheatmenu['theme_customize_print_color_line'], 'green', 'custom_theme[''fcolor'']') + '&nbsp;|&nbsp;'
+	*pl 'B:&nbsp;' + dyneval($cheatmenu['theme_customize_print_color_line'], 'blue', 'custom_theme[''fcolor'']')
+
+!!  --- LCOLOR ---
+	*nl
+	*p 'Link Color: <<func(''shortgs'', ''rgb_to_hex'', custom_theme[''lcolor''])>>&nbsp;'
+	*pl '<a href="exec: custom_theme[''lcolor''] = dyneval($cheatmenu[''theme_customize_input''], ''hex'', custom_theme[''lcolor'']) & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/pencil<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
+
+	*p 'R:&nbsp;' + dyneval($cheatmenu['theme_customize_print_color_line'], 'red', 'custom_theme[''lcolor'']') + '&nbsp;|&nbsp;'
+	*p 'G:&nbsp;' + dyneval($cheatmenu['theme_customize_print_color_line'], 'green', 'custom_theme[''lcolor'']') + '&nbsp;|&nbsp;'
+	*pl 'B:&nbsp;' + dyneval($cheatmenu['theme_customize_print_color_line'], 'blue', 'custom_theme[''lcolor'']')
+
+!!  --- TABLE BG ---
+	*nl
+	*p 'Table BG: <<func(''shortgs'', ''rgb_to_hex'', custom_theme[''table_bg''])>>&nbsp;'
+	*pl '<a href="exec: custom_theme[''table_bg''] = dyneval($cheatmenu[''theme_customize_input''], ''hex'', custom_theme[''table_bg'']) & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/pencil<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
+
+	*p 'R:&nbsp;' + dyneval($cheatmenu['theme_customize_print_color_line'], 'red', 'custom_theme[''table_bg'']') + '&nbsp;|&nbsp;'
+	*p 'G:&nbsp;' + dyneval($cheatmenu['theme_customize_print_color_line'], 'green', 'custom_theme[''table_bg'']') + '&nbsp;|&nbsp;'
+	*pl 'B:&nbsp;' + dyneval($cheatmenu['theme_customize_print_color_line'], 'blue', 'custom_theme[''table_bg'']')
+
+!!  --- TABLE BG ALT ---
+	*nl
+	*p 'Alt Table BG: <<func(''shortgs'', ''rgb_to_hex'', custom_theme[''table_bg_alt''])>>&nbsp;'
+	*pl '<a href="exec: custom_theme[''table_bg_alt''] = dyneval($cheatmenu[''theme_customize_input''], ''hex'', custom_theme[''table_bg_alt'']) & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/pencil<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
+
+	*p 'R:&nbsp;' + dyneval($cheatmenu['theme_customize_print_color_line'], 'red', 'custom_theme[''table_bg_alt'']') + '&nbsp;|&nbsp;'
+	*p 'G:&nbsp;' + dyneval($cheatmenu['theme_customize_print_color_line'], 'green', 'custom_theme[''table_bg_alt'']') + '&nbsp;|&nbsp;'
+	*pl 'B:&nbsp;' + dyneval($cheatmenu['theme_customize_print_color_line'], 'blue', 'custom_theme[''table_bg_alt'']')
+
+!!  --- DARK MODE ---
+	*nl
+	*p 'Dark Mode&nbsp;'
+	if $custom_theme['is_dark'] = '0':
+		*pl '<a href="exec: $custom_theme[''is_dark''] = ''1'' & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/box<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
+	else
+		*pl '<a href="exec: $custom_theme[''is_dark''] = ''0'' & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/check<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
+	end
+
+!!  --- INCREMENT ---
+	*nl
+	if custom_theme['increment'] = 0: custom_theme['increment'] = 16
+	*p 'Increment:&nbsp;'
+	*p '<a href="exec: custom_theme[''increment''] = iif(custom_theme[''increment''] <= 1, 1, custom_theme[''increment''] - 1) & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/less<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
+	*p '&nbsp;<<custom_theme[''increment'']>>&nbsp;'
+	*p '<a href="exec: custom_theme[''increment''] += 1 & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/more<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
+	*pl '&nbsp;<a href="exec: dynamic $cheatmenu[''theme_customize_input''], ''increment'' & dynamic $cheatmenu[''theme_customize'']"><img src="images/system/ui/pencil<<$icon_selector>>.png" height="<<icon_height>>"></img></a>'
+
+	*p '</font></td>'
+
+!!  --- LOREM IPSUM ---
+	$icon_selector = iif(theme['is_dark'] = 0, '_b', '_w')
+	icon_height = fsize * 15 / 10
+	*p '<td width="50%" cellspacing="0" cellpadding="20" valign="top">'
+
+	*p '"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."'
+
+	*p '<table width="100%" cellspacing="0" cellpadding="20">'
+	*p '<tr><td></td></tr>'
+	$temp_bgcolor = func('themes', 'alt_color', $temp_bgcolor)
+	*p '<tr bgcolor="<<$temp_bgcolor>>"><td>Table Color</td><td align="center" width="6%"><img src="images/system/ui/more<<$icon_selector>>.png" height="<<icon_height>>"></td></tr>'
+
+	$temp_bgcolor = func('themes', 'alt_color', $temp_bgcolor)
+	*p '<tr bgcolor="<<$temp_bgcolor>>"><td>Alt Table Color</td><td align="center" width="6%"><img src="images/system/ui/less<<$icon_selector>>.png" height="<<icon_height>>"></td></tr>'
+
+	$temp_bgcolor = func('themes', 'alt_color', $temp_bgcolor)
+	*p '<tr bgcolor="<<$temp_bgcolor>>"><td>Table Color</td><td align="center" width="6%"><img src="images/system/ui/preferences<<$icon_selector>>.png" height="<<icon_height>>"></td></tr>'
+	*p '</table>'
+
+	*p '</td></tr></table></center>'
+	killvar '$icon_selector' & killvar 'icon_height' & killvar '$temp_bgcolor'
+	*nl
+	'<b>The standard Lorem Ipsum passage, used since the 1500s</b>'
+	*nl
+	'"Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."'
+	*nl
+	'<b>Section 1.10.32 of "de Finibus Bonorum et Malorum", written by Cicero in 45 BC</b>'
+	*nl
+	'"Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit, sed quia non numquam eius modi tempora incidunt ut labore et dolore magnam aliquam quaerat voluptatem. Ut enim ad minima veniam, quis nostrum exercitationem ullam corporis suscipit laboriosam, nisi ut aliquid ex ea commodi consequatur? Quis autem vel eum iure reprehenderit qui in ea voluptate velit esse quam nihil molestiae consequatur, vel illum qui dolorem eum fugiat quo voluptas nulla pariatur?"'
+	*nl
+	'<b>1914 translation by H. Rackham</b>'
+	*nl
+	'"But I must explain to you how all this mistaken idea of denouncing pleasure and praising pain was born and I will give you a complete account of the system, and expound the actual teachings of the great explorer of the truth, the master-builder of human happiness. No one rejects, dislikes, or avoids pleasure itself, because it is pleasure, but because those who do not know how to pursue pleasure rationally encounter consequences that are extremely painful. Nor again is there anyone who loves or pursues or desires to obtain pain of itself, because it is pain, but because occasionally circumstances occur in which toil and pain can procure him some great pleasure. To take a trivial example, which of us ever undertakes laborious physical exercise, except to obtain some advantage from it? But who has any right to find fault with a man who chooses to enjoy a pleasure that has no annoying consequences, or one who avoids a pain that produces no resultant pleasure?"'
+	*nl
+	'<b>Section 1.10.33 of "de Finibus Bonorum et Malorum", written by Cicero in 45 BC</b>'
+	*nl
+	'"At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident, similique sunt in culpa qui officia deserunt mollitia animi, id est laborum et dolorum fuga. Et harum quidem rerum facilis est et expedita distinctio. Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus id quod maxime placeat facere possimus, omnis voluptas assumenda est, omnis dolor repellendus. Temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus saepe eveniet ut et voluptates repudiandae sint et molestiae non recusandae. Itaque earum rerum hic tenetur a sapiente delectus, ut aut reiciendis voluptatibus maiores alias consequatur aut perferendis doloribus asperiores repellat."'
+	*nl
+	'<b>1914 translation by H. Rackham</b>'
+	*nl
+	'"On the other hand, we denounce with righteous indignation and dislike men who are so beguiled and demoralized by the charms of pleasure of the moment, so blinded by desire, that they cannot foresee the pain and trouble that are bound to ensue; and equal blame belongs to those who fail in their duty through weakness of will, which is the same as saying through shrinking from toil and pain. These cases are perfectly simple and easy to distinguish. In a free hour, when our power of choice is untrammelled and when nothing prevents our being able to do what we like best, every pleasure is to be welcomed and every pain avoided. But in certain circumstances and owing to the claims of duty or the obligations of business it will frequently occur that pleasures have to be repudiated and annoyances accepted. The wise man therefore always holds in these matters to this principle of selection: he rejects pleasures to secure other greater pleasures, or else he endures pains to avoid worse pains."'
+}
+
+$cheatmenu['theme_presets'] = {
+	cla
+	act 'Return': dynamic $cheatmenu['theme_customize']
+	act 'White': gs 'themes', 'set_white' & dynamic $cheatmenu['theme_presets_copy']
+	act 'Black': gs 'themes', 'set_black' & dynamic $cheatmenu['theme_presets_copy']
+	act 'Modern Grey': gs 'themes', 'set_gray' & dynamic $cheatmenu['theme_presets_copy']
+}
+
+$cheatmenu['theme_presets_copy'] = {
+	$custom_theme['fname'] = $theme['fname']
+	custom_theme['fsize'] = theme['fsize']
+
+	custom_theme['bcolor'] = theme['bcolor']
+	custom_theme['fcolor'] = theme['fcolor']
+	custom_theme['lcolor'] = theme['lcolor']
+
+	custom_theme['table_bg'] = theme['table_bg']
+	custom_theme['table_bg_alt'] = theme['table_bg_alt']
+
+	$custom_theme['is_dark'] = str(theme['is_dark'])
+
+	gs 'themes', 'set_custom'
+	dynamic $cheatmenu['theme_customize']
+}
+
+$cheatmenu['theme_export'] = {
+	*clr & cla
+	act 'Return': dynamic $cheatmenu['theme_customize']
+	"$custom_theme['fname'] = '<<$custom_theme['fname']>>'"
+	"custom_theme['fsize'] = <<custom_theme['fsize']>>"
+	""
+	"custom_theme['bcolor'] = <<custom_theme['bcolor']>>"
+	"custom_theme['fcolor'] = <<custom_theme['fcolor']>>"
+	"custom_theme['lcolor'] = <<custom_theme['lcolor']>>"
+	""
+	"custom_theme['table_bg'] = <<custom_theme['table_bg']>>"
+	"custom_theme['table_bg_alt'] = <<custom_theme['table_bg_alt']>>"
+	""
+	"$custom_theme['is_dark'] = '<<$custom_theme['is_dark']>>'"
 }
 
 $cheatmenu['status'] = {
@@ -2216,7 +2537,7 @@ $cheatmenu['status'] = {
 	end
 
 	if Enable_scalepic = 1:
-		'Scalebar is now as <b>Image</b>, you can switch to <a href="exec:Enable_scalepic = 0 & dynamic $cheatmenu[''status''] & gs ''stat''">Character</a> or <a href="exec:Enable_scalepic = 2 & dynamic $cheatmenu[''status''] & gs ''stat''">Table</a>'
+		'Scalebar is now as <b>Image</b>, you can switch to <a href="exec:Enable_scalepic = 2 & dynamic $cheatmenu[''status''] & gs ''stat''">Character</a> or <a href="exec:Enable_scalepic = 0 & dynamic $cheatmenu[''status''] & gs ''stat''">Table</a>'
 		if Enable_scalewidth > 0:
 			'Scalebar Width: <a href="exec:input(''Input Scalebar Width (default to 120)'') & dynamic $cheatmenu[''status''] & gs ''stat''"><<Enable_scalewidth-1>></a>, Set is currently <a href="exec:Enable_scalewidth = 0 & dynamic $cheatmenu[''status''] & gs ''stat''">ON</a>'
 		else
@@ -2227,15 +2548,15 @@ $cheatmenu['status'] = {
 		else
 			'Scalebar Height: Lock is currently <a href="exec:Enable_scaleheight=1+input(''InputS calebar Height (default to 15)'') & dynamic $cheatmenu[''status''] & gs ''stat''">OFF</a>'
 		end
-	elseif Enable_scalepic = 0:
-		'Scalebar is now as <b>Character</b>, you can switch to <a href="exec:Enable_scalepic = 1 & dynamic $cheatmenu[''status''] & gs ''stat''">Image</a> or <a href="exec:Enable_scalepic = 2 & dynamic $cheatmenu[''status''] & gs ''stat''">Table</a>'
+	elseif Enable_scalepic = 2:
+		'Scalebar is now as <b>Character</b>, you can switch to <a href="exec:Enable_scalepic = 1 & dynamic $cheatmenu[''status''] & gs ''stat''">Image</a> or <a href="exec:Enable_scalepic = 0 & dynamic $cheatmenu[''status''] & gs ''stat''">Table</a>'
 		if cheatStatusBars = 1:
 			'Set status bar size: Currently Small - <a href="exec:cheatStatusBars = 0 & dynamic $cheatmenu[''status''] & gs ''stat''">Set large</a>'
 		else
 			'Set status bar size: Currently Large - <a href="exec:cheatStatusBars = 1 & dynamic $cheatmenu[''status''] & gs ''stat''">Set small</a>'
 		end
-	elseif Enable_scalepic = 2:
-		'Scalebar is now as <b>Table</b>, you can switch to <a href="exec:Enable_scalepic = 0 & dynamic $cheatmenu[''status''] & gs ''stat''">Image</a> or <a href="exec:Enable_scalepic = 1 & dynamic $cheatmenu[''status''] & gs ''stat''">Character</a>'
+	elseif Enable_scalepic = 0:
+		'Scalebar is now as <b>Table</b>, you can switch to <a href="exec:Enable_scalepic = 1 & dynamic $cheatmenu[''status''] & gs ''stat''">Image</a> or <a href="exec:Enable_scalepic = 2 & dynamic $cheatmenu[''status''] & gs ''stat''">Character</a>'
 	end
 	if Enable_statfsize<0:Enable_statfsize=0
 	if Enable_statfsize > 0:
@@ -2405,7 +2726,7 @@ $cheatmenu['pain'] = {
 	'pain[head] = <<pain[''head'']>> <a href="exec:pain[''head''] -= 10 & dynamic $cheatmenu[''pain'']">-10</a> <a href="exec:pain[''head''] += 10 & dynamic $cheatmenu[''pain'']">+10</a>'
 	'pain[hair] = <<pain[''hair'']>> <a href="exec:pain[''hair''] -= 10 & dynamic $cheatmenu[''pain'']">-10</a> <a href="exec:pain[''hair''] += 10 & dynamic $cheatmenu[''pain'']">+10</a>'
 	'pain[ears] = <<pain[''ears'']>> <a href="exec:pain[''ears''] -= 10 & dynamic $cheatmenu[''pain'']">-10</a> <a href="exec:pain[''ears''] += 10 & dynamic $cheatmenu[''pain'']">+10</a>'
-	'pain[eyebrows] = <<pain[''ears'']>> <a href="exec:pain[''eyebrows''] -= 10 & dynamic $cheatmenu[''pain'']">-10</a> <a href="exec:pain[''eyebrows''] += 10 & dynamic $cheatmenu[''pain'']">+10</a>'
+	'pain[eyebrows] = <<pain[''eyebrows'']>> <a href="exec:pain[''eyebrows''] -= 10 & dynamic $cheatmenu[''pain'']">-10</a> <a href="exec:pain[''eyebrows''] += 10 & dynamic $cheatmenu[''pain'']">+10</a>'
 	'pain[eyes] = <<pain[''eyes'']>> <a href="exec:pain[''eyes''] -= 10 & dynamic $cheatmenu[''pain'']">-10</a> <a href="exec:pain[''eyes''] += 10 & dynamic $cheatmenu[''pain'']">+10</a>'
 	'pain[cheeks] = <<pain[''cheeks'']>> <a href="exec:pain[''cheeks''] -= 10 & dynamic $cheatmenu[''pain'']">-10</a> <a href="exec:pain[''cheeks''] += 10 & dynamic $cheatmenu[''pain'']">+10</a>'
 	'pain[nose] = <<pain[''nose'']>> <a href="exec:pain[''nose''] -= 10 & dynamic $cheatmenu[''pain'']">-10</a> <a href="exec:pain[''nose''] += 10 & dynamic $cheatmenu[''pain'']">+10</a>'
@@ -2445,7 +2766,7 @@ $cheatmenu['pain'] = {
 	'You may still have pain from gaping or having been spanked, you can clear these using "Cure all ailments." in "Cheat Menu - Character State Changes"'
 	'You currently have vaginal gaping of <<vgape>>'
 	'You currently have anal gaping of <<agape>>'
-	'You currently have spanked level <<spanked>>'	
+	'You currently have spanked level <<spanked>>'
 }
 
 $cheatmenu['DNA'] = {
@@ -3283,7 +3604,7 @@ $cheatmenu['about'] = {
 	gs 'addbuilddate'
 	'<center><h1>About Window</h1></center>'
 	'<center><table cellspacing="0" cellpadding="20" valign="top">'
-	'<tr><td><h3><center>Girl Life version <<version_major>>.<<version_minor>>.<<version_revision>>.<<version_patch>></center></h3></td></tr>'
+	'<tr><td><h3><center>Girl Life version <<version_major+"."+version_minor+"."+version_revision+"."+version_patch+iif($git_hash ! "", "<br>"+$git_hash+" (dev build)", "")>></center></h3></td></tr>'
 	'<tr><td><h3><center>built on <<$builddate>></center></h3></td></tr>'
 	'<tr><td><h5><center>if loaded so it was the save from</center></h5></td></tr>'
 	'<tr><td cellspacing="0" cellpadding="20" valign="top"><center><<$version>></center></td></tr>'
@@ -3305,7 +3626,7 @@ $cheatmenu['items'] = {
 	if showPharmacyItems = 1:
 		'<a href = "exec: showPharmacyItems = 0 & dynamic $cheatmenu[''items'']">Hide Details </a>'
 		*pl 'Morning after pill: <a href="exec:mc_inventory[''morning_after_pill'']=input(''Set number'') & dynamic $cheatmenu[''items'']"><b> <<mc_inventory[''morning_after_pill'']>> </b></a>'
-		*pl 'Condoms: <a href="exec:mc_inventory[''equipped_condoms'']=input(''Set number'') & dynamic $cheatmenu[''items'']"><b> <<mc_inventory[''equipped_condoms'']>> </b></a>'
+		*pl 'Condoms: <a href="exec:mc_inventory[''normal_condoms'']=input(''Set number'') & dynamic $cheatmenu[''items'']"><b> <<mc_inventory[''normal_condoms'']>> </b></a>'
 		*pl 'Pregnancy test: <a href="exec:mc_inventory[''pregnancy_test'']=input(''Set number'') & dynamic $cheatmenu[''items'']"><b> <<mc_inventory[''pregnancy_test'']>> </b></a>'
 		*pl 'Birth control pills: <a href="exec:mc_inventory[''contraceptive_pill'']=input(''Set number'') & dynamic $cheatmenu[''items'']"><b> <<mc_inventory[''contraceptive_pill'']>> </b></a>'
 		*pl 'Antibiotics: <a href="exec:mc_inventory[''antibiotics'']=input(''Set number'') & dynamic $cheatmenu[''items'']"><b> <<mc_inventory[''antibiotics'']>> </b></a>'

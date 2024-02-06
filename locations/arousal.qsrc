@@ -56,9 +56,10 @@ eg: gs 'arousal', 'trib', 10, 'bound', 'sub'
 In this case lesbianism is automatically added, much as feet would be applied to 'footjob'
 
 Lubrication - if one of the arguments $ARGS[2] - [8] is set to 'lube', it supposes that it is used some kind of lubricant - preferably from PCs supply of lube.
-The lube will remain applied to the orifice in question until 'end' is called. The usage of Svetas lube and checks for her having any must be done in the sex act.
+The lube will remain applied to the orifice in question until 'end' is called. The usage of Svetas lube and checks for her having any must be done in the sex act or use the auto lube action.
 The lubrication is binded with anal or vaginal action. I think that the best combo is with 'anal_finger' and 'vaginal_finger'
 Only call one at a time, if more required, use multiple calls
+Also - if one of the arguments $ARGS[2] - [8] is set to 'spit' then it will apply lube at half value, again this must be with a vaginal or anal action. I would suggest skipping the specific finger part
 
 Unaware - if one of the arguments $ARGS[2] - [8] is set to 'unaware', Sveta is not aware of this Sexact. Sveta will never know she had Sex!
 no_orgasm_msg - if one of the arguments $ARGS[2] - [8] is set to 'no_orgasm_msg', the system will not generate a generic arousal message
@@ -89,13 +90,8 @@ killvar 'orgasm_flag'
 
 if $ARGS[0] ! 'end' and $ARGS[0] ! 'checks' and $ARGS[0] ! 'count' and $ARGS[0] ! 'count2':
 
-	if strpos($ARGS[2]+$ARGS[3]+$ARGS[4]+$ARGS[5]+$ARGS[6]+ $ARGS[7]+ $ARGS[8],'unaware') > 0:
-		temp_unaware = 1
-	end
-
-	if strpos($ARGS[2]+$ARGS[3]+$ARGS[4]+$ARGS[5]+$ARGS[6]+ $ARGS[7]+ $ARGS[8],'no_orgasm_msg') > 0:
-		temp_text = 1
-	end
+	if arrpos('$ARGS', 'unaware') >= 0: temp_unaware = 1
+	if arrpos('$ARGS', 'no_orgasm_msg') >= 0: temp_text = 1
 	
 	if mid($ARGS[2],1,4) = 'dick':
 		temp_dick = dyneval('result='+$ARGS[2])
@@ -106,22 +102,67 @@ if $ARGS[0] ! 'end' and $ARGS[0] ! 'checks' and $ARGS[0] ! 'count' and $ARGS[0] 
 		temp_silavag = silavag
 		$temp_dick_girth = $dick_girth
 	end
-	if strpos($ARGS[2]+$ARGS[3]+$ARGS[4]+$ARGS[5]+$ARGS[6]+ $ARGS[7]+ $ARGS[8],'rough')+strpos($ARGS[2]+$ARGS[3]+$ARGS[4]+$ARGS[5]+$ARGS[6]+ $ARGS[7]+ $ARGS[8],'beast') > 0: temp_silavag = 0
+	if arrpos('$ARGS', 'prostitution') >= 0: temp_silavag = rand(0,1)
+	if arrpos('$ARGS', 'gangbang') >= 0: temp_silavag = rand(0,2)
+	if arrpos('$ARGS', 'rape') >= 0 or arrpos('$ARGS', 'rough') >= 0 or arrpos('$ARGS', 'beast') >= 0: temp_silavag = 0
 	grange = dyneval('result=strpos(''skinny   slimx     well pr   thicker   thickx    massive   monstrous'',$ARGS[0])',mid($temp_dick_girth+'x',1,6))/2
 
 	!! first let us determine how slippery are pc''s holes
-	if vaginal_slip < pcs_horny / 10: vaginal_slip = pcs_horny / 10
-	if strpos($ARGS[2]+$ARGS[3]+$ARGS[4]+$ARGS[5]+$ARGS[6]+ $ARGS[7]+ $ARGS[8],'lube') > 0:
-		if ar_anal_lube = 0:
-			if mid($ARGS[0],1,4) = 'anal':
-				anal_slip = 8
+	if anal_slip < max(1, 8 + pain['asshole']/2 - pcs_ass) _ 
+	and mid($ARGS[0],1,4) = 'anal' and arrpos('$ARGS', 'anal_finger') < 0:
+		!! cum
+		if cumloc[3] > 0: anal_slip += rand(cumvol[3]/15, cumvol[3]/10)
+		!! spit
+		if arrpos('$ARGS', 'spit') >= 0: anal_slip += 4
+		!! lube
+		if anal_slip < max(1, 8 + pain['asshole']/2 - pcs_ass):
+			!! event lube
+			if arrpos('$ARGS', 'lube') >= 0 and ar_anal_lube = 0:
+				anal_slip += 8
 				ar_anal_lube = 1
+			!! PC lube
+			elseif auto_anal_lube = 1 _ 
+			and arrpos('$ARGS', 'rape') < 0 _ 
+			and arrpos('$ARGS', 'gangbang') < 0 _ 
+			and arrpos('$ARGS', 'rough') < 0 _ 
+			and arrpos('$ARGS', 'beast') < 0 _ 
+			and arrpos('$ARGS', 'BDSM') < 0 _ 
+			and arrpos('$ARGS', 'bound') < 0 _ 
+			and arrpos('$ARGS', 'humiliation') < 0:
+				gs 'arousal', 'auto_lube', 'anal'
 			end
 		end
-		if ar_vag_lube = 0:
-			if mid($ARGS[0],1,4) = 'vagi':
-				vaginal_slip = 8
+		!! an old(?) variable that is still in use somewhere
+		if anal_slip <> lubonus and lubonus > 0:
+			anal_slip += lubonus
+			lubonus = anal_slip
+		end
+	end
+
+	if vaginal_slip < max(1, 8 + pain['vaginal']/2 - pcs_vag) _ 
+	and mid($ARGS[0],1,4) = 'vagi' and arrpos('$ARGS', 'vaginal_finger') < 0:
+		!! horny
+		if vaginal_slip < pcs_horny / 10: vaginal_slip = pcs_horny / 10
+		!! cum
+		if cumloc[0] > 0: vaginal_slip += rand(cumvol[0]/10, cumvol[0]/5)
+		!! spit
+		if arrpos('$ARGS', 'spit') >= 0: vaginal_slip += 4
+		!! lube
+		if vaginal_slip < max(1, 8 + pain['vaginal']/2 - pcs_vag):
+			!! event lube
+			if arrpos('$ARGS', 'lube') >= 0 and ar_vag_lube = 0:
+				vaginal_slip += 8
 				ar_vag_lube = 1
+			!! PC lube
+			elseif auto_vag_lube = 1 _ 
+			and arrpos('$ARGS', 'rape') < 0 _ 
+			and arrpos('$ARGS', 'gangbang') < 0 _ 
+			and arrpos('$ARGS', 'rough') < 0 _ 
+			and arrpos('$ARGS', 'beast') < 0 _ 
+			and arrpos('$ARGS', 'BDSM') < 0 _ 
+			and arrpos('$ARGS', 'bound') < 0 _ 
+			and arrpos('$ARGS', 'humiliation') < 0:
+				gs 'arousal', 'auto_lube', 'vag'
 			end
 		end
 	end
@@ -141,6 +182,66 @@ if $ARGS[0] ! 'end' and $ARGS[0] ! 'checks' and $ARGS[0] ! 'count' and $ARGS[0] 
 
 !!set a magnitude as a random
 	stim['mag'] = rand(0,3) + rand(0,3) + rand(0,3) 
+
+!! set up pain coefficient
+	pain_coeff = 0
+	if arrpos('$ARGS', 'rape') >= 0:         pain_coeff += rand(15,30)
+	if arrpos('$ARGS', 'gangbang') >= 0:     pain_coeff += rand(10,15)
+	if arrpos('$ARGS', 'beast') >= 0:        pain_coeff += rand(7,10)
+	if arrpos('$ARGS', 'rough') >= 0:        pain_coeff += rand(5,7)
+	if arrpos('$ARGS', 'BDSM') >= 0:         pain_coeff += rand(4,5)
+	if arrpos('$ARGS', 'maso') >= 0:         pain_coeff += rand(3,4)
+	if arrpos('$ARGS', 'bound') >= 0:        pain_coeff += rand(2,3)
+	if arrpos('$ARGS', 'sub') >= 0:          pain_coeff += rand(1,2)
+	if arrpos('$ARGS', 'prostitution') >= 0: pain_coeff += max(0, rand(-3,2))
+	if arrpos('$ARGS', 'unknown') >= 0:      pain_coeff += max(0, rand(-4,1))
+
+	stim_time = max(1, iif(ARGS[1]<0, -ARGS[1], ARGS[1]))
+	$get_hole_pain = {
+		!! ARGS[0] hole size
+		!! ARGS[1] hole slippery
+		!! ARGS[2] current pain
+		!! ARGS[3] length of inserted object
+		!! ARGS[4] grange of inserted object
+		!! ARGS[5] skill (0-2) aka silavag
+		!! ARGS[6] stimulation time
+		!! length and girth abilities of hole are not also separated
+		!! but I suppose that they are related although it is not propable
+		!! we can estimate difference in girth and length
+		grdif = (ARGS[4] - ARGS[0])/2
+		ltdif = (ARGS[3] - ARGS[0])/4
+		!! painful intercourse
+		if pain_coeff > rand(0,2):
+			grdif += rand(pain_coeff/2, pain_coeff)
+			ltdif += rand(pain_coeff/2, pain_coeff)
+		end
+		!! in pain, compensated with lube
+		if ARGS[2] > 0:
+			if ARGS[2] > rand(ARGS[1]/2, ARGS[1]): grdif += rand(ARGS[2] / max(1,ARGS[1]/2), ARGS[2] / max(1,ARGS[1]/4))
+			if ARGS[2] > rand(ARGS[1]/2, ARGS[1]): ltdif += rand(ARGS[2] / max(1,ARGS[1]/2), ARGS[2] / max(1,ARGS[1]/4))
+		end
+		!! lube can compensate the difference a bit, or make it worse if there is no lube at all
+		if ARGS[1] > 0:
+			grdif -= rand(ARGS[1]/2, ARGS[1])
+			ltdif -= rand(ARGS[1]/4, ARGS[1]/2)
+		else
+			grdif += max(1, rand(grdif/4, grdif/2)) / max(1,ARGS[5]+1)
+			ltdif += max(1, rand(ltdif/6, ltdif/4)) / max(1,ARGS[5]+1)
+		end
+		!! when skilled, it does not harm PC
+		if ARGS[5] > 0 and ltdif > 0: ltdif /= ARGS[5]+1
+		!! if there is any discomfort, check intercourse duration, compensated by skill
+		if stim_time > 1:
+			if grdif > rand(stim_time): grdif += rand(stim_time / (max(1,ARGS[5])*5), stim_time / (max(1,ARGS[5])*3))
+			if ltdif > rand(stim_time): ltdif += rand(stim_time / (max(1,ARGS[5])*5), stim_time / (max(1,ARGS[5])*3))
+		end
+
+		!! min\max
+		grdif = max(0, grdif / max(1, (ARGS[0]/6)))
+		ltdif = max(0, ltdif / max(1, (ARGS[0]/6)))
+
+		!{ 'hole size <<ARGS[0]>>; length: <<ARGS[3]>>; grange: <<ARGS[4]>>; hole slippery: <<ARGS[1]>>; current pain: <<ARGS[2]>>; stim_time: <<stim_time>>; skill: <<ARGS[5]>>; grdif: <<grdif>>; ltdif: <<ltdif>>' }
+	}
 
 !!add count and effects due to action
 	if $ARGS[0] = 'clit_finger':
@@ -170,17 +271,30 @@ if $ARGS[0] ! 'end' and $ARGS[0] ! 'checks' and $ARGS[0] ! 'count' and $ARGS[0] 
 	elseif $ARGS[0] = 'kiss':
 		count['kiss'] = 1
 		stim['act'] = 10
-!!	elseif $ARGS[0] = 'breasts':
-!!		stim['act'] = 30
-!!		!! No idea where else to put this. This is used for breast stimulation which will eventually cause lactation in sveta without her knowledge. If anyone knows a better place for this, please let me know. - milky_boobs.
-!!		milkedvolume += func('lact_lib','$get_breastmilk', 8, ARGS[1])
+	elseif $ARGS[0] = 'breasts':
+		stim['act'] = 30
+		!! lose some milk
+		if lactation['active'] > 0 and lactation['breastmv'] > lactation['breastmm']*3/2:
+			stim['act'] += rand(10,20)
+			lactation['breastmv'] = max(0, lactation['breastmv'] - rand(lactation['breastmv']/20, lactation['breastmv']/10)*max(1,stim_time/2))
+		end
+
+		if pain_coeff > 0:
+			gs 'pain', rand(pain_coeff)/2, 'breasts', 'twist'
+			gs 'pain', rand(pain_coeff)/2, 'nipples', 'pinch'
+		end
+
+		!! No idea where else to put this. This is used for breast stimulation which will eventually cause lactation in sveta without her knowledge. If anyone knows a better place for this, please let me know. - milky_boobs.
+		!! milkedvolume += func('lact_lib','$get_breastmilk', 8, ARGS[1])
 	elseif $ARGS[0] = 'massage':
+		pcs_sweat += rand(2,4)*max(1,stim_time/5)
 		count['massage'] = 1
 		stim['act'] = 25
 	elseif $ARGS[0] = 'foreplay':
 		count['foreplay'] = 1
 		stim['act'] = 20
 	elseif $ARGS[0] = 'cuni':
+		pcs_sweat += rand(0,1)*max(1,stim_time/5)
 		orgasm_flag['vaginal'] = 1
 		count['cuni'] = 1
 		stim['mag'] += 4
@@ -202,45 +316,7 @@ if $ARGS[0] ! 'end' and $ARGS[0] ! 'checks' and $ARGS[0] ! 'count' and $ARGS[0] 
 		stim['mag'] += 3
 		stim['act'] = 70
 		stim_les = 1
-	elseif $ARGS[0] = 'anal':
-		stat['last_sex_day'] = daystart
-		orgasm_flag['anal'] = 1
-		if temp_unaware = 1:
-			count['hidden_anal'] = 1
-		else
-			count['anal'] = 1
-		end
-		if pcs_traits['buttslut_lvl'] = 1:
-			stim['mag'] += 1
-		elseif pcs_traits['buttslut_lvl'] >= 2:
-			stim['mag'] += 3
-		end
-		if pcs_ass < temp_dick:pcs_ass += 1
-		if pcs_ass*2 < temp_dick:pcs_ass += 1
-		!! length and girth abilities of anus are not also separated , but I suppose that they are related although it is not propable
-		!! we can estimate difference in girth and length anal_girth_difference and anal_lenght_difference - names are shortened
-		altdif = temp_dick - pcs_ass
-		agrdif = grange - pcs_ass
-		!! negative influence of the difference can be reduced by sex skill and also by lubricant
-		!! I made it as simply as possible so you do not complain about reality, feel free to modify the algorithm
-		!! when the boy is skilled, he can compensate the difference partly
-		altdif = altdif / (temp_silavag+1)
-		agrdif = agrdif *(5/4 - 1/(4 - temp_silavag))
-		!! when the boy is skilled, he does not harm PC with his long dick
-		if (temp_silavag = 2) and (altdif > 0): altdif = 0
-		!! lube can compensate the difference a bit
-		if -agrdif > anal_slip: agrdif = agrdif + anal_slip else if agrdif < 0: agrdif = 0
-		if agrdif > anal_slip: agrdif = agrdif - anal_slip else if agrdif > 0: agrdif = 0
-
-		stim['act'] = 80 - (iif(altdif>0,altdif,-altdif) + iif(agrdif >0,agrdif,-agrdif)) + temp_silavag*8
-		!! if the dick is smaller, it cannot harm PC
-		if agrdif < 0: agrdif = 0
-		if altdif < 0: altdif = 0
-		!! calculate the harm
-		agape = iif((agrdif + altdif) > 10*agape,(agrdif + altdif)/10,agape)
-		!! the pain lover the pleasure
-		gs 'pain', (agrdif + altdif)/5 , 'asshole', 'stretch'
-		stim['act'] = stim['act'] - (agrdif + altdif)
+		if pain_coeff > 0:gs 'pain', rand(pain_coeff)/5, 'clitoris', 'twist'
 	elseif $ARGS[0] = 'anal_finger':
 		orgasm_flag['anal'] = 1
 		count['anal_finger'] = 1
@@ -252,6 +328,7 @@ if $ARGS[0] ! 'end' and $ARGS[0] ! 'checks' and $ARGS[0] ! 'count' and $ARGS[0] 
 			stim['mag'] += 1
 			stim['act'] = 80
 		end
+		if pain_coeff > 0:gs 'pain', rand(pain_coeff), 'asshole', 'stretch'
 	elseif $ARGS[0] = 'anal_fist':
 		orgasm_flag['anal'] = 1
 		count['anal_fist'] = 1
@@ -261,74 +338,27 @@ if $ARGS[0] ! 'end' and $ARGS[0] ! 'checks' and $ARGS[0] ! 'count' and $ARGS[0] 
 		elseif pcs_traits['buttslut_lvl'] >= 2:
 			stim['act'] = 70
 		end
-		if pcs_ass + anal_slip < 30:
-			pcs_ass = 30
-			gs 'pain', 4-agape, 'asshole', 'stretch'
-			if agape < 3:agape = 3
-		end
+		dynamic $get_hole_pain, pcs_ass, anal_slip, pain['asshole'], rand(15,20), rand(35,40), rand(0,2)
+		stim['act'] -= grdif + ltdif
+		gs 'pain', grdif+ltdif, 'asshole', 'stretch'
+		if grdif + ltdif > agape*2 + pcs_ass/2: agape += 1
+		pcs_ass += 1
 	elseif $ARGS[0] = 'self_fisting_anal':
 		orgasm_flag['anal'] = 1
 		count['self_fisting_anal'] = 1
+		!! add lube from saliva
+		if anal_slip < max(1, pcs_hydra/20): anal_slip = max(1, pcs_hydra/20)
 		stim['act'] = 30
 		if pcs_traits['buttslut_lvl'] = 1:
 			stim['act'] = 50
 		elseif pcs_traits['buttslut_lvl'] >= 2:
 			stim['act'] = 70
 		end
-		if pcs_ass + anal_slip < 30:
-			pcs_ass = 30
-			gs 'pain', 4-agape, 'asshole', 'stretch'
-			if agape < 3:agape = 3
-		end
-	elseif $ARGS[0] = 'anal_dildo':
-		orgasm_flag['anal'] = 1
-		count['anal_dildo'] = 1
-		!! the same as for 'anal'
-		if pcs_ass < temp_dick:pcs_ass += 1
-		if pcs_ass*2 < temp_dick:pcs_ass += 1
-		altdif = temp_dick - pcs_ass
-		agrdif = grange - pcs_ass
-		altdif = altdif / (temp_silavag+1)
-		agrdif = agrdif *(5/4 - 1/(4 - temp_silavag))
-		if (temp_silavag = 2) and (altdif > 0): altdif = 0
-		if agrdif > anal_slip: agrdif = agrdif - anal_slip else if agrdif > 0: agrdif = 0
-		if -agrdif > anal_slip: agrdif = agrdif + anal_slip else if agrdif < 0: agrdif = 0
-		stim['act'] = 80 - (iif(altdif>0,altdif,-altdif) + iif(agrdif >0,agrdif,-agrdif)) + temp_silavag*8
-		if pcs_traits['buttslut_lvl'] = 1:
-			stim['act'] += 10
-		elseif pcs_traits['buttslut_lvl'] >= 2:
-			stim['mag'] += 1
-		end
-		if agrdif < 0: agrdif = 0
-		if altdif < 0: altdif = 0
-		agape = iif((agrdif + altdif) > 10*agape,(agrdif + altdif)/10,agape)
-		gs 'pain', (agrdif + altdif)/5 , 'asshole', 'stretch'
-		stim['act'] = stim['act'] - (agrdif + altdif)
-	elseif $ARGS[0] = 'anal_strap':
-		stat['last_sex_day'] = daystart
-		orgasm_flag['anal'] = 1
-		count['anal_strap'] = 1
-		!! the same as for 'anal'
-		if pcs_ass < temp_dick:pcs_ass += 1
-		if pcs_ass*2 < temp_dick:pcs_ass += 1
-		altdif = temp_dick - pcs_ass
-		agrdif = grange - pcs_ass
-		altdif = altdif / (temp_silavag+1)
-		agrdif = agrdif *(5/4 - 1/(4 - temp_silavag))
-		if (temp_silavag = 2) and (altdif > 0): altdif = 0
-		if agrdif > anal_slip: agrdif = agrdif - anal_slip else if agrdif > 0: agrdif = 0
-		if -agrdif > anal_slip: agrdif = agrdif + anal_slip else if agrdif < 0: agrdif = 0
-		stim['act'] = 80 - (iif(altdif>0,altdif,-altdif) + iif(agrdif >0,agrdif,-agrdif)) + temp_silavag*8
-		if pcs_traits['buttslut_lvl'] = 1:
-			stim['act'] += 10
-		elseif pcs_traits['buttslut_lvl'] >= 2:
-			stim['mag'] += 1
-		end
-		if agrdif < 0: agrdif = 0
-		if altdif < 0: altdif = 0
-		agape = iif((agrdif + altdif) > 10*agape,(agrdif + altdif)/10,agape)
-		gs 'pain', (agrdif + altdif)/5 , 'asshole', 'stretch'
-		stim['act'] = stim['act'] - (agrdif + altdif)
+		dynamic $get_hole_pain, pcs_ass, anal_slip, pain['asshole'], rand(10,15), rand(30,35), 2
+		stim['act'] -= grdif + ltdif
+		gs 'pain', grdif+ltdif, 'asshole', 'stretch'
+		if grdif + ltdif > agape*2 + pcs_ass/2: agape += 1
+		pcs_ass += 1
 	elseif $ARGS[0] = 'anal_vibe':
 		orgasm_flag['anal'] = 1
 		count['anal_vibe'] = 1
@@ -341,16 +371,123 @@ if $ARGS[0] ! 'end' and $ARGS[0] ! 'checks' and $ARGS[0] ! 'count' and $ARGS[0] 
 			stim['mag'] += 2
 			stim['act'] = 90
 		end
-	elseif $ARGS[0] = 'vaginal':
-		
+	elseif $ARGS[0] = 'anal':
+		pcs_sweat += rand(1,4)*max(1,stim_time/5)
+		stat['last_sex_day'] = daystart
+		orgasm_flag['anal'] = 1
+		if temp_unaware = 1:
+			count['hidden_anal'] = 1
+		else
+			count['anal'] = 1
+		end
+		if pcs_traits['buttslut_lvl'] = 1:
+			stim['mag'] += 1
+		elseif pcs_traits['buttslut_lvl'] >= 2:
+			stim['mag'] += 3
+		end
+		if vaginal_slip < max(1, anal_slip/2):
+			if cumloc[3] > 0: vaginal_slip += rand(cumvol[3]/10, cumvol[3]/5)
+		end
+		dynamic $get_hole_pain, pcs_ass, anal_slip, pain['asshole'], temp_dick, grange, temp_silavag
+		stim['act'] = 80 - grdif + ltdif + temp_silavag*8
+		!! the pain lover the pleasure
+		gs 'pain', grdif + ltdif, 'asshole', 'stretch'
+		!! calculate the harm
+		if grdif + ltdif > agape*2 + pcs_ass/2: agape += 1
+		!! force cum leak
+		if ARGS[1] > 0 and cumvol[3] > rand(pcs_ass/2,pcs_ass): gs 'cum_manage', 'cum_decay', ((temp_dick+grange)/2)*max(1,stim_time/5)
+		if pcs_ass < temp_dick:pcs_ass += 1
+		if pcs_ass*2 < temp_dick:pcs_ass += 1
+	elseif $ARGS[0] = 'anal_dildo':
+		pcs_sweat += rand(0,2)*max(1,stim_time/5)
+		orgasm_flag['anal'] = 1
+		count['anal_dildo'] = 1
+		!! the same as for 'anal'
+		if vaginal_slip < max(1, anal_slip/2):
+			if cumloc[3] > 0: vaginal_slip += rand(cumvol[3]/10, cumvol[3]/5)
+		end
+		dynamic $get_hole_pain, pcs_ass, anal_slip, pain['asshole'], temp_dick, grange, temp_silavag
+		stim['act'] = 80 - grdif + ltdif + temp_silavag*8
+		if pcs_traits['buttslut_lvl'] = 1:
+			stim['act'] += 10
+		elseif pcs_traits['buttslut_lvl'] >= 2:
+			stim['mag'] += 1
+		end
+		gs 'pain', grdif + ltdif, 'asshole', 'stretch'
+		if grdif + ltdif > agape*2 + pcs_ass/2: agape += 1
+		if ARGS[1] > 0 and cumvol[3] > rand(pcs_ass/2,pcs_ass): gs 'cum_manage', 'cum_decay', ((temp_dick+grange)/2)*max(1,stim_time/5)
+		if pcs_ass < temp_dick:pcs_ass += 1
+		if pcs_ass*2 < temp_dick:pcs_ass += 1
+	elseif $ARGS[0] = 'anal_strap':
+		pcs_sweat += rand(1,2)*max(1,stim_time/5)
+		stat['last_sex_day'] = daystart
+		orgasm_flag['anal'] = 1
+		count['anal_strap'] = 1
+		if pcs_traits['buttslut_lvl'] = 1:
+			stim['act'] += 10
+		elseif pcs_traits['buttslut_lvl'] >= 2:
+			stim['mag'] += 1
+		end
+		!! the same as for 'anal'
+		if vaginal_slip < max(1, anal_slip/2):
+			if cumloc[3] > 0: vaginal_slip += rand(cumvol[3]/10, cumvol[3]/5)
+		end
+		dynamic $get_hole_pain, pcs_ass, anal_slip, pain['asshole'], temp_dick, grange, temp_silavag
+		stim['act'] = 80 - grdif + ltdif + temp_silavag*8
+		gs 'pain', grdif + ltdif, 'asshole', 'stretch'
+		if grdif + ltdif > agape*2 + pcs_ass/2: agape += 1
+		!! force cum leak
+		if ARGS[1] > 0 and cumvol[3] > rand(pcs_ass/2,pcs_ass): gs 'cum_manage', 'cum_decay', ((temp_dick+grange)/2)*max(1,stim_time/5)
+		if pcs_ass < temp_dick:pcs_ass += 1
+		if pcs_ass*2 < temp_dick:pcs_ass += 1
+	elseif $ARGS[0] = 'vaginal_finger':
 		orgasm_flag['vaginal'] = 1
+		count['vaginal_finger'] = 1
+		stim['mag'] += 1
+		stim['act'] = 80
+		if pain_coeff > 0:gs 'pain', rand(pain_coeff), 'vaginal', 'stretch'
+	elseif $ARGS[0] = 'vaginal_fist':
+		pcs_sweat += rand(0,1)*max(1,stim_time/5)
+		orgasm_flag['vaginal'] = 1
+		count['vaginal_fist'] = 1
+		stim['act'] = 70
+		dynamic $get_hole_pain, pcs_vag, vaginal_slip, pain['vaginal'], rand(15,20), rand(35,40), rand(0,2)
+		stim['act'] -= grdif + ltdif
+		gs 'pain', grdif+ltdif, 'vaginal', 'stretch'
+		gs 'pain', rand(grdif), 'labia', 'stretch'
+		if grdif + ltdif > vgape*2 + pcs_vag/2: vgape += 1
+		pcs_vag += 1
+	elseif $ARGS[0] = 'self_fisting':
+		orgasm_flag['vaginal'] = 1
+		count['self_fisting'] = 1
+		!! add lube from saliva
+		if vaginal_slip < max(1, pcs_hydra/20): vaginal_slip = max(1, pcs_hydra/20)
+		stim['act'] = 70
+		dynamic $get_hole_pain, pcs_vag, vaginal_slip, pain['vaginal'], rand(10,15), rand(30,35), 2
+		stim['act'] -= grdif + ltdif
+		gs 'pain', grdif+ltdif, 'vaginal', 'stretch'
+		gs 'pain', rand(grdif), 'labia', 'stretch'
+		if grdif + ltdif > vgape*2 + pcs_vag/2: vgape += 1
+		pcs_vag += 1
+	elseif $ARGS[0] = 'vaginal_vibe':
+		orgasm_flag['vaginal'] = 1
+		count['vaginal_vibe'] = 1
+		stim['mag'] += 2
+		stim['act'] = 90
+	elseif $ARGS[0] = 'vaginal':
+		pcs_sweat += rand(1,3)*max(1,stim_time/5)
+		orgasm_flag['vaginal'] = 1
+		!! add anal lube from vaginal juices
+		if anal_slip < max(1, vaginal_slip/2):
+			anal_slip = max(1, vaginal_slip/rand(2,3))
+			if cumloc[0] > 0: anal_slip += rand(cumvol[0]/15, cumvol[0]/10)
+		end
 		!! pre-cum check
 		if rand(0,120) < ARGS[1]: cumprecheck = 1 & gs 'cum_manage'
-		
 		if temp_unaware = 1:
 			count['hidden_vaginal'] = 1
 		else
-			if stat['think_virgin'] = 1:
+			if virgin_stats['vaginal'] = 0 and (stat['think_virgin'] = 1 or pcs_vag = 0):
 				virgin_stats['day_lost'] = daystart
 				virgin_stats['age_lost'] = age
 				virgin_stats['vaginal'] = 1
@@ -362,113 +499,65 @@ if $ARGS[0] ! 'end' and $ARGS[0] ! 'checks' and $ARGS[0] ! 'count' and $ARGS[0] 
 			stat['last_man_sex_day'] = daystart
 		end
 		stim['mag'] += 3
-		if pcs_vag < dick:pcs_vag += 1
-		if pcs_vag*2 < dick:pcs_vag += 1
-		!! length and girth abilities of vagina are not separated , but I suppose that they are related
-		!! we can estimate difference in girth and length vaginal_girth_difference and vaginal_lenght_difference - names are shortened
-		vgrdif = grange - pcs_vag
-		vltdif = temp_dick - pcs_vag
-		!! negative influence of the difference can be reduced by sex skill and also by PCs horniness, using of a lubricant is not established yet
-		!! I made it as simply as possible so you do not complain about reality, feel free to modify the algorithm
-		!! when the boy is skilled, he can compensate the difference partly
-		vltdif = vltdif / (temp_silavag+1)
-		vgrdif = vgrdif *(5/4 - 1/(4 - temp_silavag))
-		!! when the boy is skilled, he does not harm PC with his long dick
-		if (temp_silavag = 2) and (vltdif > 0): vltdif = 0
-		!! even PC horniness can compensate the difference 
-		if vgrdif > vaginal_slip: vgrdif = vgrdif - vaginal_slip else if (vgrdif > 0): vgrdif = 0
-		if -1*vgrdif > vaginal_slip: vgrdif = vgrdif + vaginal_slip else if (vgrdif < 0): vgrdif = 0
-
-		stim['act'] = 80 - (iif(vltdif>0,vltdif,-vltdif) + iif(vgrdif >0,vgrdif,-vgrdif)) + temp_silavag*8
-		!! if the dick is smaller, it cannot harm PC
-		if vgrdif < 0: vgrdif = 0
-		if vltdif < 0: vltdif = 0
-		!! calculate the harm
-		vgape = iif((vgrdif + vltdif) > 10*vgape,(vgrdif + vltdif)/10,vgape)
+		dynamic $get_hole_pain, pcs_vag, vaginal_slip, pain['vaginal'], temp_dick, grange, temp_silavag
+		stim['act'] = 80 - grdif + ltdif + temp_silavag*8
 		!! the pain lover the pleasure
-		gs 'pain', (vgrdif + vltdif)/5 , 'vaginal', 'stretch'
-		stim['act'] = stim['act'] - (vgrdif + vltdif)
-	elseif $ARGS[0] = 'vaginal_finger':
-		orgasm_flag['vaginal'] = 1
-		count['vaginal_finger'] = 1
-		stim['mag'] += 1
-		stim['act'] = 80
-	elseif $ARGS[0] = 'vaginal_fist':
-		orgasm_flag['vaginal'] = 1
-		count['vaginal_fist'] = 1
-		stim['act'] = 70
-		if pcs_vag + vaginal_slip < 30:
-			!! same as for 'vaginal'
-			pcs_vag += 3
-			gs 'pain', 3 - vgape, 'vaginal', 'stretch'
-			if vgape < 3:vgape = 3
-		end
-	elseif $ARGS[0] = 'self_fisting':
-		orgasm_flag['vaginal'] = 1
-		count['self_fisting'] = 1
-		stim['act'] = 70
-		if pcs_vag + vaginal_slip < 30:
-			!! same as for 'vaginal'
-			pcs_vag += 3
-			gs 'pain', 3 - vgape, 'vaginal', 'stretch'
-			if vgape < 3:vgape = 3
-		end
+		gs 'pain', grdif+ltdif, 'vaginal', 'stretch'
+		if temp_dick/max(1, temp_silavag) > rand(pcs_vag/2,pcs_vag): gs 'pain', rand(ltdif), 'cervix', 'shock'
+		if grange/max(1, temp_silavag)    > rand(pcs_vag/2,pcs_vag): gs 'pain', rand(grdif), 'labia', 'stretch'
+		if pain_coeff > 0: gs 'pain', rand(pain_coeff)/5, 'clitoris', 'hit'
+		!! calculate the harm
+		if grdif + ltdif > vgape*2 + pcs_vag/2: vgape += 1
+		!! force cum leak
+		if ARGS[1] > 0 and cumvol[0] > rand(pcs_vag/2,pcs_vag): gs 'cum_manage', 'cum_decay', ((temp_dick+grange)/2)*max(1,stim_time/5)
+		if pcs_vag < temp_dick:pcs_vag += 1
+		if pcs_vag*2 < temp_dick:pcs_vag += 1
 	elseif $ARGS[0] = 'vaginal_dildo':
+		pcs_sweat += rand(0,2)*max(1,stim_time/5)
 		orgasm_flag['vaginal'] = 1
 		count['vaginal_dildo'] = 1
 		stim['mag'] += 1
 		!! the same as for 'vaginal'
+		if anal_slip < max(1, vaginal_slip/2):
+			anal_slip = max(1, vaginal_slip/rand(2,3))
+			if cumloc[0] > 0: anal_slip += rand(cumvol[0]/15, cumvol[0]/10)
+		end
+		dynamic $get_hole_pain, pcs_vag, vaginal_slip, pain['vaginal'], temp_dick, grange, temp_silavag
+		stim['act'] = 80 - grdif + ltdif + temp_silavag*8
+		gs 'pain', grdif + ltdif, 'vaginal', 'stretch'
+		if temp_dick/max(1, temp_silavag) > rand(pcs_vag/2,pcs_vag): gs 'pain', rand(ltdif), 'cervix', 'shock'
+		if grange/max(1, temp_silavag)    > rand(pcs_vag/2,pcs_vag): gs 'pain', rand(grdif), 'labia', 'stretch'
+		if ARGS[1] > 0 and cumvol[0] > rand(pcs_vag/2,pcs_vag): gs 'cum_manage', 'cum_decay', ((temp_dick+grange)/2)*max(1,stim_time/5)
+		if grdif + ltdif > vgape*2 + pcs_vag/2: vgape += 1
 		if pcs_vag < temp_dick:pcs_vag += 1
 		if pcs_vag*2 < temp_dick:pcs_vag += 1
-		vgrdif = grange - pcs_vag
-		vltdif = temp_dick - pcs_vag
-		vltdif = vltdif / (temp_silavag+1)
-		vgrdif = vgrdif *(5/4 - 1/(4 - temp_silavag))
-		if (temp_silavag = 2) and (vltdif > 0): vltdif = 0
-		if vgrdif > vaginal_slip: vgrdif = vgrdif - vaginal_slip else if (vgrdif > 0): vgrdif = 0
-		if -1*vgrdif > vaginal_slip: vgrdif = vgrdif + vaginal_slip else if (vgrdif < 0): vgrdif = 0
-		stim['act'] = 80 - (iif(vltdif>0,vltdif,-vltdif) + iif(vgrdif >0,vgrdif,-vgrdif)) + temp_silavag*8
-		if vgrdif < 0: vgrdif = 0
-		if vltdif < 0: vltdif = 0
-		vgape = iif((vgrdif + vltdif) > 10*vgape,(vgrdif + vltdif)/10,vgape)
-		gs 'pain', (vgrdif + vltdif)/5 , 'vaginal', 'stretch'
-		stim['act'] = stim['act'] - (vgrdif + vltdif)
 	elseif $ARGS[0] = 'vaginal_strap':
+		pcs_sweat += rand(1,2)*max(1,stim_time/5)
 		orgasm_flag['vaginal'] = 1
 		count['vaginal_strap'] = 1
-		if stat['think_virgin'] = 1:
+		if virgin_stats['strapon'] = 0 and (stat['think_virgin'] = 1 or pcs_vag = 0):
 			virgin_stats['day_lost'] = daystart
 			virgin_stats['age_lost'] = age
 			virgin_stats['strapon'] = 1
 			$virgin_stats['virgin_taker_ID'] = $boy
-			if birthday = day and birthmonth = month:
-				virgin_stats['birthday'] = 1
-			end
+			if birthday = day and birthmonth = month: virgin_stats['birthday'] = 1
 			!! if dont_know_npc_name
 		end
 		stim['mag'] += 1
-		!! virginal capacity increase
+		!! the same as for 'vaginal'
+		if anal_slip < max(1, vaginal_slip/2):
+			anal_slip = max(1, vaginal_slip/rand(2,3))
+			if cumloc[0] > 0: anal_slip += rand(cumvol[0]/15, cumvol[0]/10)
+		end
+		dynamic $get_hole_pain, pcs_vag, vaginal_slip, pain['vaginal'], temp_dick, grange, temp_silavag
+		stim['act'] = 80 - grdif + ltdif + temp_silavag*8
+		gs 'pain', grdif + ltdif, 'vaginal', 'stretch'
+		if temp_dick/max(1, temp_silavag) > rand(pcs_vag/2,pcs_vag): gs 'pain', rand(ltdif), 'cervix', 'shock'
+		if grange/max(1, temp_silavag)    > rand(pcs_vag/2,pcs_vag): gs 'pain', rand(grdif), 'labia', 'stretch'
+		if grdif + ltdif > vgape*2 + pcs_vag/2: vgape += 1
+		if ARGS[1] > 0 and cumvol[0] > rand(pcs_vag/2,pcs_vag): gs 'cum_manage', 'cum_decay', ((temp_dick+grange)/2)*max(1,stim_time/5)
 		if pcs_vag < temp_dick:pcs_vag += 1
 		if pcs_vag*2 < temp_dick:pcs_vag += 1
-		!! the same as for 'vaginal'
-		vgrdif = grange - pcs_vag
-		vltdif = temp_dick - pcs_vag
-		vltdif = vltdif / (temp_silavag+1)
-		vgrdif = vgrdif *(5/4 - 1/(4 - temp_silavag))
-		if (temp_silavag = 2) and (vltdif > 0): vltdif = 0
-		if vgrdif > vaginal_slip: vgrdif = vgrdif - vaginal_slip else if (vgrdif > 0): vgrdif = 0
-		if -1*vgrdif > vaginal_slip: vgrdif = vgrdif + vaginal_slip else if (vgrdif < 0): vgrdif = 0
-		stim['act'] = 80 - (iif(vltdif>0,vltdif,-vltdif) + iif(vgrdif >0,vgrdif,-vgrdif)) + temp_silavag*8
-		if vgrdif < 0: vgrdif = 0
-		if vltdif < 0: vltdif = 0
-		vgape = iif((vgrdif + vltdif) > 10*vgape,(vgrdif + vltdif)/10,vgape)
-		gs 'pain', (vgrdif + vltdif)/5 , 'vaginal', 'stretch'
-		stim['act'] = stim['act'] - (vgrdif + vltdif)
-	elseif $ARGS[0] = 'vaginal_vibe':
-		orgasm_flag['vaginal'] = 1
-		count['vaginal_vibe'] = 1
-		stim['mag'] += 2
-		stim['act'] = 90
 	elseif $ARGS[0] = 'flashlite':
 		count['flashlite'] = 1
 		stim['act'] = 10
@@ -482,12 +571,14 @@ if $ARGS[0] ! 'end' and $ARGS[0] ! 'checks' and $ARGS[0] ! 'count' and $ARGS[0] 
 		count['pee'] = 1
 		stim['act'] = 10
 	elseif $ARGS[0] = 'massage_give':
+		pcs_sweat += rand(3,6)*max(1,stim_time/5)
 		count['massage_give'] = 1
 		stim['act'] = 10
 	elseif $ARGS[0] = 'foreplay_give':
 		count['foreplay_give'] = 1
 		stim['act'] = 20
 	elseif $ARGS[0] = 'cuni_give':
+		pcs_sweat += rand(0,1)*max(1,stim_time/5)
 		count['cuni_give'] = 1
 		stim['act'] = 30
 		stim_les = 1
@@ -501,12 +592,14 @@ if $ARGS[0] ! 'end' and $ARGS[0] ! 'checks' and $ARGS[0] ! 'count' and $ARGS[0] 
 		count['anal_fist_give'] = 1
 		stim['act'] = 30
 	elseif $ARGS[0] = 'anal_dildo_give':
+		pcs_sweat += rand(0,1)*max(1,stim_time/5)
 		count['anal_dildo_give'] = 1
 		stim['act'] = 40
 	elseif $ARGS[0] = 'anal_vibe_give':
 		count['anal_vibe_give'] = 1
 		stim['act'] = 40
 	elseif $ARGS[0] = 'anal_strap_give':
+		pcs_sweat += rand(2,4)*max(1,stim_time/5)
 		count['anal_strap_give'] = 1
 		stim['act'] = 40
 	elseif $ARGS[0] = 'vaginal_finger_give':
@@ -522,10 +615,12 @@ if $ARGS[0] ! 'end' and $ARGS[0] ! 'checks' and $ARGS[0] ! 'count' and $ARGS[0] 
 		stim['act'] = 50
 		stim_les = 1
 	elseif $ARGS[0] = 'vaginal_dildo_give':
+		pcs_sweat += rand(0,1)*max(1,stim_time/5)
 		count['vaginal_dildo_give'] = 1
 		stim['act'] = 60
 		stim_les = 1
 	elseif $ARGS[0] = 'vaginal_strap_give':
+		pcs_sweat += rand(2,4)*max(1,stim_time/5)
 		count['vaginal_strap_give'] = 1
 		stim['act'] = 70
 		stim_les = 1
@@ -534,6 +629,7 @@ if $ARGS[0] ! 'end' and $ARGS[0] ! 'checks' and $ARGS[0] ! 'count' and $ARGS[0] 
 		stim['act'] = 60
 		stim_les = 1
 	elseif $ARGS[0] = 'hj':
+		pcs_sweat += rand(0,3)*max(1,stim_time/5)
 		if temp_unaware = 1:
 			count['hidden_hj'] = 1
 		else
@@ -541,18 +637,62 @@ if $ARGS[0] ! 'end' and $ARGS[0] ! 'checks' and $ARGS[0] ! 'count' and $ARGS[0] 
 		end
 		stim['act'] = 25
 	elseif $ARGS[0] = 'bj':
+		pcs_sweat += rand(0,1)*max(1,stim_time/5)
+		!! add lube from saliva
+		if anal_slip < max(1, pcs_hydra/20): anal_slip += max(1, pcs_hydra/20)
+		if vaginal_slip < max(1, pcs_hydra/20): vaginal_slip += max(1, pcs_hydra/20)
 		if temp_unaware = 1:
 			count['hidden_bj'] = 1
 		else
 			count['bj'] = 1
 		end
 		stim['act'] = 45
-		if temp_dick > pcs_throat: pcs_throat += 1
+		if pain_coeff > 0:gs 'pain', rand(pain_coeff), 'mouth', 'stretch'
+		if pcs_lipbalm > 0:
+			pcs_lipbalm = max(0, pcs_lipbalm - 1*max(1,stim_time/5))
+			if arrpos('$ARGS', 'rape') >= 0 _ 
+			or arrpos('$ARGS', 'rough') >= 0 _ 
+			or arrpos('$ARGS', 'gangbang') >= 0 _ 
+			or arrpos('$ARGS', 'beast') >= 0:
+				pcs_lipbalm = max(0, pcs_lipbalm - 1*max(1,stim_time/5))
+			end
+		end
+		if arrpos('$ARGS', 'deepthroat') >= 0:
+			dynamic $get_hole_pain, pcs_throat, pcs_hydra/10, pain['throat'], temp_dick, grange, temp_silavag
+			stim['act'] = 80 - ltdif + grdif + temp_silavag*8
+			gs 'pain', grdif + ltdif, 'throat', 'stretch'
+			gs 'pain', grdif, 'jaw', 'stretch'
+			if pcs_throat < temp_dick:pcs_throat += 1
+			if pcs_throat*2 < temp_dick:pcs_throat += 1
+		end
+		if pcs_throat*3 < temp_dick:pcs_throat += 1
 	elseif $ARGS[0] = 'dildo_suck':
 		count['dildo_suck'] = 1
 		stim['act'] = 30
-		if temp_dick > pcs_throat: pcs_throat += 1
+		!! add lube from saliva
+		if anal_slip < max(1, pcs_hydra/20): anal_slip += max(1, pcs_hydra/20)
+		if vaginal_slip < max(1, pcs_hydra/20): vaginal_slip += max(1, pcs_hydra/20)
+		if pain_coeff > 0:gs 'pain', rand(pain_coeff), 'mouth', 'stretch'
+		if pcs_lipbalm > 0:
+			pcs_lipbalm = max(0, pcs_lipbalm - 1*max(1,stim_time/5))
+			if arrpos('$ARGS', 'rape') >= 0 _ 
+			or arrpos('$ARGS', 'rough') >= 0 _ 
+			or arrpos('$ARGS', 'gangbang') >= 0 _ 
+			or arrpos('$ARGS', 'beast') >= 0:
+				pcs_lipbalm = max(0, pcs_lipbalm - 1*max(1,stim_time/5))
+			end
+		end
+		if arrpos('$ARGS', 'deepthroat') >= 0:
+			dynamic $get_hole_pain, pcs_throat, pcs_hydra/10, pain['throat'], temp_dick, grange, temp_silavag
+			stim['act'] = 80 - ltdif + grdif + temp_silavag*8
+			gs 'pain', grdif + ltdif, 'throat', 'stretch'
+			gs 'pain', grdif, 'jaw', 'stretch'
+			if pcs_throat < temp_dick:pcs_throat += 1
+			if pcs_throat*2 < temp_dick:pcs_throat += 1
+		end
+		if pcs_throat*3 < temp_dick:pcs_throat += 1
 	elseif $ARGS[0] = 'footjob':
+		pcs_sweat += rand(0,2)*max(1,stim_time/5)
 		if temp_unaware = 1:
 			count['hidden_footjob'] = 1
 		else
@@ -561,6 +701,7 @@ if $ARGS[0] ! 'end' and $ARGS[0] ! 'checks' and $ARGS[0] ! 'count' and $ARGS[0] 
 		stim['act'] = 25
 		stim_foot = 1
 	elseif $ARGS[0] = 'titjob':
+		pcs_sweat += rand(3,5)*max(1,stim_time/5)
 		if temp_unaware = 1:
 			count['hidden_titjob'] = 1
 		else
@@ -568,12 +709,15 @@ if $ARGS[0] ! 'end' and $ARGS[0] ! 'checks' and $ARGS[0] ! 'count' and $ARGS[0] 
 		end
 		stim['act'] = 45
 		stim_titjob = 1
+		if pain_coeff > 0:gs 'pain', rand(pain_coeff), 'breasts', 'pull'
 	elseif $ARGS[0] = 'BDSM_give':
+		pcs_sweat += rand(0,3)*max(1,stim_time/5)
 		count['BDSM_give'] = 1
 		stim['act'] = 20
 	elseif $ARGS[0] = 'pee_give':
 		count['pee_give'] = 1
 		stim['act'] = 10
+		last_pee = totminut
 	end
 
 	!! anal acts
@@ -582,8 +726,48 @@ if $ARGS[0] ! 'end' and $ARGS[0] ! 'checks' and $ARGS[0] ! 'count' and $ARGS[0] 
 			stim['act'] += 20
 		end
 	end
-
-
+	
+	if pcs_hairbsh >= 0:
+		if arrpos('$ARGS', 'rape') >= 0:          pcs_hairbsh = iif(rand(30, pcs_hairlng)>30,-1,pcs_hairbsh)
+		if arrpos('$ARGS', 'rough') >= 0:         pcs_hairbsh = iif(rand(30, pcs_hairlng)>40,-1,pcs_hairbsh)
+		if arrpos('$ARGS', 'gangbang') >= 0:      pcs_hairbsh = iif(rand(30, pcs_hairlng)>50,-1,pcs_hairbsh)
+		if arrpos('$ARGS', 'group') >= 0:         pcs_hairbsh = iif(rand(30, pcs_hairlng)>70,-1,pcs_hairbsh)
+		if arrpos('$ARGS', 'BDSM') >= 0:          pcs_hairbsh = iif(rand(30, pcs_hairlng)>80,-1,pcs_hairbsh)
+		if arrpos('$ARGS', 'beast') >= 0:         pcs_hairbsh = iif(rand(30, pcs_hairlng)>100,-1,pcs_hairbsh)
+		if arrpos('$ARGS', 'maso') >= 0:          pcs_hairbsh = iif(rand(30, pcs_hairlng)>125,rand(-1,0),pcs_hairbsh)
+		if arrpos('$ARGS', 'prostitution') >= 0:  pcs_hairbsh = iif(rand(30, pcs_hairlng)>150,rand(-1,0),pcs_hairbsh)
+		if arrpos('$ARGS', 'unknown') >= 0:       pcs_hairbsh = iif(rand(30, pcs_hairlng)>200,rand(-1,pcs_hairbsh),pcs_hairbsh)
+		if arrpos('$ARGS', 'anal') >= 0 _ 
+		or arrpos('$ARGS', 'anal_strap') >= 0:    pcs_hairbsh = iif(rand(30, pcs_hairlng)>220,rand(-1,pcs_hairbsh),pcs_hairbsh)
+		if arrpos('$ARGS', 'vaginal') >= 0 _ 
+		or arrpos('$ARGS', 'vaginal_strap') >= 0: pcs_hairbsh = iif(rand(30, pcs_hairlng)>240,rand(-1,pcs_hairbsh),pcs_hairbsh)
+		if pcs_hairbsh > 0:
+			if arrpos('$ARGS', 'bound') >= 0:     pcs_hairbsh = iif(rand(30, pcs_hairlng)>270,rand(0,pcs_hairbsh),pcs_hairbsh)
+			if arrpos('$ARGS', 'sub') >= 0:       pcs_hairbsh = iif(rand(30, pcs_hairlng)>300,rand(0,pcs_hairbsh),pcs_hairbsh)
+		end
+	end
+	if pcs_makeup > 1:
+		if arrpos('$ARGS', 'rape') >= 0:                  pcs_makeup = iif(rand(pcs_makeup, pcs_makupskl/10)<7,0,pcs_makeup)
+		if arrpos('$ARGS', 'rough') >= 0:                 pcs_makeup = iif(rand(pcs_makeup, pcs_makupskl/10)<5,0,pcs_makeup)
+		if arrpos('$ARGS', 'gangbang') >= 0:              pcs_makeup = iif(rand(pcs_makeup, pcs_makupskl/10)<5,0,pcs_makeup)
+		if arrpos('$ARGS', 'beast') >= 0:                 pcs_makeup = iif(rand(pcs_makeup, pcs_makupskl/10)<4,0,pcs_makeup)
+		if arrpos('$ARGS', 'bj') >= 0 or arrpos('$ARGS', 'deepthroat') >= 0:
+			if arrpos('$ARGS', 'group') >= 0:             pcs_makeup = iif(rand(pcs_makeup, pcs_makupskl/10)<3,0,pcs_makeup)
+			if arrpos('$ARGS', 'BDSM') >= 0:              pcs_makeup = iif(rand(pcs_makeup, pcs_makupskl/10)<3,0,pcs_makeup)
+			if arrpos('$ARGS', 'deepthroat') >= 0:
+				if arrpos('$ARGS', 'maso') >= 0:          pcs_makeup = iif(rand(pcs_makeup, pcs_makupskl/10)<3,0,pcs_makeup)
+				if arrpos('$ARGS', 'prostitution') >= 0:  pcs_makeup = iif(rand(pcs_makeup, pcs_makupskl/10)<4,0,pcs_makeup)
+				if arrpos('$ARGS', 'unknown') >= 0:       pcs_makeup = iif(rand(pcs_makeup, pcs_makupskl/10)<4,0,pcs_makeup)
+				if arrpos('$ARGS', 'bound') >= 0:         pcs_makeup = iif(rand(pcs_makeup, pcs_makupskl/10)<5,0,pcs_makeup)
+				if arrpos('$ARGS', 'sub') >= 0:           pcs_makeup = iif(rand(pcs_makeup, pcs_makupskl/10)<5,0,pcs_makeup)
+			end
+		end
+		if pcs_makeup > 1:
+			if (arrpos('$ARGS', 'bj') >= 0 _ 
+			or arrpos('$ARGS', 'cuni_give') >= 0):        pcs_makeup = iif(rand(pcs_makeup, pcs_makupskl/10)<3,rand(0,1),pcs_makeup)
+		end
+	end
+	
 	if stim['mag'] > 9: stim['mag'] = 9
 
 	if ARGS[1] > 0: minut += ARGS[1]
@@ -788,6 +972,7 @@ if $ARGS[0] ! 'end' and $ARGS[0] ! 'checks' and $ARGS[0] ! 'count' and $ARGS[0] 
 	stim['total'] = ((stim['mag']*stim['act']*stim['kink']/100) + stim['pref'])*stim['time'] / 120
 
 !!Reduction in arousal linked to pain, masochism helps to deal with this
+	gs 'pain', 'calc'
 	if pain['total'] > 0:
 		if maso['pref'] <= 0 and pain['total'] < 50:
 			if pain['total'] - (maso['exp'] + 1 / 6) > 0:stim['total'] -= (pain['total'] - (maso['exp'] / 6))
@@ -856,7 +1041,8 @@ if $ARGS[0] ! 'end' and $ARGS[0] ! 'checks' and $ARGS[0] ! 'count' and $ARGS[0] 
 	killvar '$orgasm_txt'
 	killvar '$stim_les'
 	killvar '$stim_foot'
-	
+	killvar '$get_hole_pain'
+
 	gs 'nichUtil','onArouse',$ARGS[0]
 	
 end
@@ -926,12 +1112,24 @@ if $ARGS[0] = 'end':
 		end
 		stat['anal_partners'] += 1
 	end
-	
+
+	if analplugout > 0:
+		if pain['asshole'] > 10:
+			gs 'dinsex', 'after_anal','no_plug'
+		else
+			gs 'dinsex', 'after_anal','pc'
+		end
+	end
+
+	killvar 'lubonus'
 	killvar 'anal_slip'
 	killvar 'ar_anal_lube'
 	killvar 'vaginal_slip'
 	killvar 'ar_vag_lube'
 	killvar '$orgasm_or'
+	killvar 'stim_time'
+	killvar 'pain_coeff'
+	killvar 'grdif' & killvar 'ltdif'
 
 !!Updating fetish exp for acts carried out and clearing data
 	gs 'arousal', 'checks', 'maso'
@@ -1059,7 +1257,7 @@ end
 !!to use enter gs 'arousal', 'auto_lube', 'anal' or 'vag'
 !!add 'custom' to display a custom or no text by setting $lube_txt, if $lube_txt is '' no text will be displayed
 if $ARGS[0] = 'auto_lube':
-	if $ARGS[1] = 'anal' and auto_anal_lube = 1:
+	if $ARGS[1] = 'anal' and auto_anal_lube = 1 and anal_slip < 8 + pain['asshole']/2 - pcs_ass:
 		if mc_inventory['lubricant'] > 0:
 			if $ARGS[2] ! 'custom': 
 				'You rub some lube in and around your anus.'
@@ -1067,14 +1265,14 @@ if $ARGS[0] = 'auto_lube':
 				$lube_txt
 			end
 			gs 'arousal', 'anal_finger', 1
-			anal_slip = 8
+			anal_slip += 8
 			ar_anal_lube = 1
 			mc_inventory['lubricant'] -= 1
 		elseif $ARGS[2] ! 'custom' or ($ARGS[2] = 'custom' and $lube_txt ! ''):
 			'You do not have any lube left so cannot use it during this sex act.'
 		end
 	end
-	if $ARGS[1] = 'vag' and auto_vag_lube = 1:
+	if $ARGS[1] = 'vag' and auto_vag_lube = 1 and vaginal_slip < 8 + pain['vaginal']/2 - pcs_vag:
 		if mc_inventory['lubricant'] > 0:
 			if $ARGS[2] ! 'custom': 
 				'You rub some lube in and around your vagina.'
@@ -1082,7 +1280,7 @@ if $ARGS[0] = 'auto_lube':
 				$lube_txt
 			end
 			gs 'arousal', 'vaginal_finger', 1
-			vaginal_slip = 8
+			vaginal_slip += 8
 			ar_vag_lube = 1
 			mc_inventory['lubricant'] -= 1
 		elseif $ARGS[2] ! 'custom' or ($ARGS[2] = 'custom' and $lube_txt ! ''):

@@ -22,6 +22,7 @@ if $ARGS[0] = 'start':
 	special_model['roll'] = rand(30,1400)
 	special_skill_model['roll'] = rand(1,500)
 	foto['documentary'] = rand(1,100)
+	act'Leave':gt'city_center'
 	act'Strip down':
 		cla & *clr
 		menu_off = 1
@@ -177,13 +178,6 @@ if $ARGS[0] = 'studio':
 	*clr & cla
 	killvar '$modelopt'
 
-	if model['spcial_job_day'] ! daystart:
-		model['spcial_job_day'] = daystart
-		if special_model['roll'] < min(fame['city_modelling'], 700) and modelfoto['topless'] > 0 and hour < 15: gt 'foto_events', 'fame'
-		if special_skill_model['roll'] < pcs_mdlng and modelfoto['nip'] > 0: gt 'foto_events', 'skill'
-		if foto['documentary'] >= 95 and $pantyworntype = 'none' and modelfoto['shoots']>= foto['documentary_timer']: gt 'foto_model_documentary', '1st_documentary'
-	end
-
 	minut += 5
 	gs 'stat'
 	gs 'themes', 'indoors'
@@ -232,8 +226,70 @@ if $ARGS[0] = 'studio':
 		gs 'foto', 'wandering_models'
 	end
 
+	if model['status'] = 1: act 'Go to the showers':gt'foto','showers'
+	if model['status'] = 1: act 'Go to your makeup station':gt'foto','makeup'
+	if model['status'] = 1: act 'Talk to a manager':gt'foto','manager_talk'
+	gs 'foto','microcamera_ask'
+	if parkblackmail = 2: act 'Look around for the blackmailer':gt 'foto', 'blackm'
+
+	if model['status'] = 0:
+		gs 'foto', 'hiring_ask'
+	elseif model['status'] = 1:
+		act 'Look for work':
+			delact 'Look for work'
+			*clr
+			menu_off = 1
+			'<center><b><font color="maroon">Floor Manager</font></b></center>'
+			'<center><img <<$set_imgh>> src="images/locations/city/citycenter/photo/fotograph.jpg"></center>'
+
+			$tmp = iif(rand(2)=1,iif(rand(2)=1,$model['firstname']+' '+$model['lastname'],$model['firstname']),$model['nickname'])
+			if venera > 2:
+				'<<$tmp>>! There is no way anyone is going to want to see pictures of you while your STD is so obvious, you should see a doctor.'
+			elseif func('body_din','pregnancyVisibility') = 1:
+				'"<<$tmp>>! Who knocked you up!? Didn''t we pay you enough to use contraception? Sorry, but we don''t specialize in this type of shots."'
+			elseif pcs_apprnc < 80:
+				'"I''m sorry but you are going to have to work on your appearance if you want to do a shoot."'
+			elseif cumsumbod-cumsumvag-cumsumass > rand(0,5):
+				'"Ugh, <<$tmp>>, what the hell is that?" he looks at you and the cum on you with disgust. "We don''t care what your sexual habits are outside of work, but we''re not shooting Japanese porn here. At least take a shower after getting laid."'
+			elseif pcs_leghair > 3:
+				'"Go shave your legs, we''re not running a nature special on gorillas."'
+			elseif mesec > 0 and isprok = 0:
+				'"What the hell <<$tmp>>!"'
+				'You follow his gaze to see the blood running down your legs.'
+				'"Go wash that off and put a tampon in already! There''s a dispenser in the shower room."'
+			elseif pcs_sweat >= 20:
+				'"You''re all sweaty. Go take a shower before asking for work. And don''t forget to do your makeup after."'
+			elseif pcs_makeup = 0:
+				'"Your makeup is smeared all over your face <<$tmp>>. Go clean up and see the makeup artists first."'
+			elseif pcs_makeup = 1:
+				'"<<$tmp>>, you forget to do your makeup. Hurry up! We don''t have all day."'
+			else
+				cla
+				if model['spcial_job_day'] ! daystart:
+					model['spcial_job_day'] = daystart
+					if special_model['roll'] < min(fame['city_modelling'], 700) and modelfoto['topless'] > 0 and hour < 15: gt 'foto_events', 'fame'
+					if special_skill_model['roll'] < pcs_mdlng and modelfoto['nip'] > 0: gt 'foto_events', 'skill'
+					if foto['documentary'] >= 95 and $pantyworntype = 'none' and modelfoto['shoots']>= foto['documentary_timer']: gt 'foto_model_documentary', '1st_documentary'
+				end
+
+				'"Hello <<$tmp>>. Are you here to work?"'
+				act 'Perform the shoots':
+					if model_job_week >= 2:
+						gt 'foto_practice','start'
+					else
+						gt 'foto_shoot','model'
+					end
+				end
+				if first_fame_event = 2: act 'Ask if there''s special work available': gt'foto_events','special'
+				!!act'Check auditions':gt'foto_events2','auditions'
+				act 'Never mind': gt'foto','studio'
+			end
+			killvar '$tmp'
+		end
+	end
+	
 	if model['status'] = 1:
-		act 'Leave':
+		act 'Leave studio':
 			*clr & cla
 			menu_off = 1
 			if studio_underwear_steal > 0:
@@ -252,64 +308,8 @@ if $ARGS[0] = 'studio':
 			end
 		end
 	elseif model['status'] = 0:
-		act 'Leave': minut += 1 & gt 'city_center'
+		act 'Leave studio': minut += 1 & gt 'city_center'
 	end
-	
-	if model['status'] = 0:
-		gs 'foto', 'hiring_ask'
-	elseif venera < 3:
-		act 'Ask for work':
-			menu_off = 1
-			if pcs_apprnc < 80:
-				*clr & cla
-				menu_off = 1
-				'<center><b><font color="maroon">Floor Manager</font></b></center>'
-				'<center><img <<$set_imgh>> src="images/locations/city/citycenter/photo/fotograph.jpg"></center>'
-				'"I''m sorry but you are going to have to work on your appearance if you want to do a shoot."'
-				act 'Leave':gt'foto','studio'
-			elseif pcs_sweat >= 20:
-				'"You''re all sweaty. Go take a shower before asking for work. And don''t forget to do your makeup after."'
-				act'Go to the showers':gt'foto','showers'
-			!! elseif $stat_cum_msg ! '':
-			elseif cum_loc['labia'] + cum_loc['butt'] + cum_loc['back'] + cum_loc['legs'] + cum_loc['arms'] + cum_loc['hands'] + cum_loc['stomach'] + cum_loc['tits'] + cum_loc['face'] + cum_loc['hair'] + cum_loc['vagina'] + cum_loc['anus'] > 0:
-				'"Ugh, <<$pcs_lastname>>, what the hell is that?" he looks at you and the cum on you with disgust. "We don''t care what your sexual habits are outside of work, but we''re not shooting Japanese porn here. At least take a shower after getting laid."'
-				act'Go to the showers':gt'foto','showers'
-			elseif pcs_leghair > 3:
-				'"Go shave your legs, we''re not running a nature special on gorillas."'
-				act'Go to the showers':gt'foto','showers'
-			elseif mesec > 0 and isprok = 0:
-				'"What the hell <<$pcs_lastname>>!"'
-				'You follow his gaze to see the blood running down your legs.'
-				'"Go wash that off and put a tampon in already! There''s a dispenser in the shower room."'
-				act'Go to the showers':gt'foto','showers'
-			elseif pcs_makeup = 0:
-				'"Your makeup is smeared all over your face <<$pcs_lastname>>. Go clean up and see the makeup artists first."'
-				act'Go to the showers':gt'foto','showers'
-			else
-				if model_job_week >= 2:
-					gt 'foto_practice','start'
-				else
-					gt 'foto_shoot','model'
-				end
-			end
-		end
-		if first_fame_event = 2:
-			act'Ask if there''s special work available':gt'foto_events','special'
-		end
-		!!act'Check auditions':gt'foto_events2','auditions'
-	else
-		*nl
-		'There is no way anyone is going to want to see pictures of you while your STD is so obvious, you should see a doctor.'
-	end
-	if model['status'] = 1:act 'Go to the showers':gt'foto','showers'
-	if model['status'] = 1:act 'Go to your makeup station':gt'foto','makeup'
-	
-	if model['status'] = 1:act'Talk to a manager':gt'foto','manager_talk'
-	
-	
-	gs 'foto','microcamera_ask'
-	
-	if parkblackmail = 2: act 'Look around for the blackmailer':gt 'foto', 'blackm'
 end
 
 if $ARGS[0] = 'bathroom':

@@ -1282,7 +1282,6 @@ if temp_current_save_version  < 00080601:
 
 	gs 'body', 'Update_Body'
 	gs 'body', 'DailyUpdate'
-	gs 'AppearanceSystem', 'UpdateBaseAppearnce'
 	gs 'stat'
 end
 
@@ -1430,7 +1429,7 @@ end
 
 if temp_current_save_version  < 00080800:
 	!!update base appearance to the new calculation
-	gs 'AppearanceSystem', 'UpdateBaseAppearnce'
+	gs 'body', 'Update_Appearance'
 	gs 'AppearanceSystem'
 
 	if $wloc = 'default': $wloc = 'default1'
@@ -2373,12 +2372,12 @@ end
 if temp_current_save_version < 00090200:
 
 	! Body update -- By Anjuna
-	if gensize			! 0:		pcs_mass['bust_gen']		= genbsize		& killvar 'genbsize'
+	if genbsize			! 0:		pcs_mass['bust_gen']		= genbsize		& killvar 'genbsize'
 	if nbsize			! 0:		pcs_mass['bust']			= nbsize		& killvar 'nbsize'
 
 	if pcs_mass['butt_gen'] = 0:
-		pcs_mass['butt_gen']		= 20
-		pcs_mass['butt']			= (20 * salo) / 60
+		pcs_mass['butt_gen']	= 20
+		pcs_mass['butt']		= (20 * salo) / 60
 	end
 	if salo ! 0:
 		pcs_mass['body'] = salo - pcs_mass['butt']
@@ -2399,7 +2398,134 @@ if temp_current_save_version < 00090200:
 	if pcs_mass['butt_message'] = 0: pcs_mass['butt_message'] = pcs_mass['butt']
 
 	!!update_clothing
-	gs 'tailor2'
+	!! Do not think we need this anymore. Since pcs_hips should now be basically unchanged.
+	!!gs 'tailor2'
+	
+	!! Typo Correction -- By Derryth_Love
+	if katjaQW['knows_masterbation'] > 0:
+		katjaQW['knows_masturbation'] = katjaQW['knows_masterbation']
+		gs 'shortgs', 'remove_array_element', 'katjaQW', 'knows_masterbation'
+	end
+
+	!! body_structure introduction and variable migration:
+	if $bmi_desc	! '':		$bodyVars['bmi_desc']	= $bmi_desc		& killvar '$bmi_desc'
+	if $body		! '':		$bodyVars['desc']		= $body			& killvar '$body'
+
+	!! Migration of alterstrtimg and start_type
+	if arrsize('start_type') ! 4 and alterstrtimg ! 0:
+		if mid($start_type[0], 1, 2) = 'sg':
+			$temp_st[0] = 'sg'
+		elseif mid($start_type[0], 1, 3) = 'uni':
+			$temp_st[0] = 'uni'
+		else
+			$temp_st[0] = 'city'
+		end
+
+		$temp_st[1] = $start_type[1]
+		if $temp_st[1] = '': $temp_st[1] = 'magic'
+
+		if alterstrtimg >= 8 and alterstrtimg <= 11:
+			$temp_st[2] = 'nerd'
+			if alterstrtimg = 8:
+				$temp_st[3] = 'nerdqueen'
+			elseif alterstrtimg = 9:
+				$temp_st[3] = 'goodstudent'
+			elseif alterstrtimg = 10:
+				$temp_st[3] = 'computergeek'
+			else
+				$temp_st[3] = 'chessplayer'
+			end
+		elseif alterstrtimg >= 12 and alterstrtimg <= 15:
+			$temp_st[2] = 'jock'
+			if alterstrtimg = 12:
+				$temp_st[3] = 'volleyball'
+			elseif alterstrtimg = 13:
+				$temp_st[3] = 'dancer'
+			elseif alterstrtimg = 14:
+				$temp_st[3] = 'runner'
+			else
+				$temp_st[3] = 'football'
+			end
+		elseif alterstrtimg >= 16 and alterstrtimg <= 17:
+			$temp_st[2] = 'cool'
+			if alterstrtimg = 16:
+				$temp_st[3] = 'socialite'
+			elseif alterstrtimg = 17:
+				$temp_st[3] = 'beautiful'
+			end
+		elseif alterstrtimg >= 18 and alterstrtimg <= 21:
+			$temp_st[2] = 'gopnik'
+			if alterstrtimg = 18:
+				$temp_st[3] = 'gopnikstart'
+			elseif alterstrtimg = 19:
+				$temp_st[3] = 'troublemaker'
+			elseif alterstrtimg = 20:
+				$temp_st[3] = 'vitekgf'
+			else
+				$temp_st[3] = 'alternative'
+			end
+		elseif alterstrtimg >= 22 and alterstrtimg <= 28:
+			$temp_st[2] = 'outcast'
+			if alterstrtimg = 22:
+				$temp_st[3] = 'friendless'
+			elseif alterstrtimg = 23:
+				$temp_st[3] = 'uglyduckling'
+			elseif alterstrtimg = 24:
+				$temp_st[3] = 'goodgirl'
+			elseif alterstrtimg = 25:
+				$temp_st[3] = 'slut'
+			else
+				$temp_st[3] = 'goth'
+			end
+		elseif alterstrtimg = 31:
+			$temp_st[2] = 'cool'
+			$temp_st[3] = 'anorexic'
+		else
+			$temp_st[2] = 'outcast'
+			$temp_st[3] = 'friendless'
+		end
+
+		killvar 'start_type'
+		killvar 'alterstrtimg'
+
+		$start_type['loc']		= $temp_st[0]
+		$start_type['magic']	= $temp_st[1]
+		$start_type['group']	= $temp_st[2]
+		$start_type['cat']		= $temp_st[3]
+
+		killvar 'temp_st'
+	end
+	if $start_type['loc']	= '':	$start_type['loc']		= 'city'
+	if $start_type['magic']	= '':	$start_type['magic']	= 'magic'
+	if $start_type['group'] = '':	$start_type['group']	= 'outcast'
+	if $start_type['cat']	= '':	$start_type['cat']		= 'friendless'
+
+	!update fashionista to fashionista_dress\
+	if ARRSIZE('fashionista') > 0:
+		:loopfashionista2
+			if fashionista[i] = 1:
+				fashionista_dress[i] = 1
+				fashionista_dress_h[i] = fashionista_h[i]
+				fashionista_dress_b[i] = fashionista_b[i]
+				fashionista_dress_s[i] = fashionista_s[i]
+			end
+			i += 4
+		if i <= 200:jump 'loopfashionista2'
+		killvar 'fashionista'
+		killvar 'fashionista_h'
+		killvar 'fashionista_b'
+		killvar 'fashionista_s'
+	end
+
+
+	! Transport update
+	if arrsize('transportVars') < 70:
+		killvar 'transportVars'
+		gs 'transport_functions', 'init_all'
+	end
+	if Trainpass_day ! 0:	transportVars['trainpass_day'] = Trainpass_day	& killvar 'Trainpass_day'
+	killvar 'train_event'
+
 end
 
 

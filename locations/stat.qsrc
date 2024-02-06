@@ -123,6 +123,7 @@ if SNarkTimes >= SNarkvnesh * 25:
 	SNarkvnesh += 1
 	vidage += 1
 end
+if food_loc > 0 and $food_loc <> $loc: killvar 'food_loc'
 
 if gopota >= 20 and gnewQW = 1:gnewQW = 2
 if workDisk = 4 and week > 5:workDisk = 1
@@ -207,8 +208,8 @@ elseif pcs_inhib > 100:
 end
 
 healthmax = (pcs_vital * 10 + pcs_stren * 5)
-stammax = (30* (2 * pcs_vital + pcs_agil + pcs_stren) +1000)/ 13
-speed = (2 * (pcs_stren + pcs_agil) + pcs_vital) / 5
+stammax = (30* (2 * pcs_vital + pcs_agil + pcs_stren) +1000)/ 13 - pregchem/10
+speed = (2 * (pcs_stren + pcs_agil) + pcs_vital) / 5 - pregchem/100
 if healthmax < 1: healthmax = 1
 if willpowermax < 50: willpowermax = 50
 if stammax < 1: stammax = 1
@@ -224,6 +225,15 @@ if pcs_willpwr > willpowermax: pcs_willpwr = willpowermax
 if pcs_stam > stammax: pcs_stam = stammax
 if pcs_mana > manamax: pcs_mana = manamax
 if pcs_mood > 100: pcs_mood = 100
+
+!!set hair flow free
+if hbraids > 5 and pcs_hairbsh = 0: hbraids -= rand(3,5) & pcs_hairbsh = 1
+if pcs_hairbsh <= 0:
+	if hscrunchw <> 0: hscrunchw = 0
+	if hpingripw <> 0: hpingripw = 0
+	if hpigtail <> 0: hpigtail = 0
+	if hbraids <> 0: hbraids = 0
+end
 
 !!Add mood_trauma to events to lower max mood for a period of time
 if mood_trauma > 0:
@@ -244,10 +254,10 @@ if cumloc[0] = 1 or cumloc[3] = 1 or hypnoAddict = 0:
 	killvar 'missCum'
 elseif missCum > timeTresh:
 	if pcs_horny < 90: pcs_horny = 90
-	if preziktype = 0: mc_inventory['normal_condoms'] = mc_inventory['equipped_condoms']
-	if preziktype = 2: mc_inventory['sabotaged_condoms'] = mc_inventory['equipped_condoms']
-	mc_inventory['equipped_condoms'] = 0
-	preziktype = 1
+	if preziktype = 0 or preziktype = 2:
+		if mc_inventory['normal_condoms'] > 0 and mc_inventory['sabotaged_condoms'] < rand(2,3): dynamic $din_Do_Condom_Counts, 4
+		if preziktype <> 2 and mc_inventory['sabotaged_condoms'] > 0: dynamic $din_Do_Condom_Counts, 3
+	end
 end
 
 !!!!!!!!!!!
@@ -358,7 +368,9 @@ end
 !! 6 fetish heel - 60
 !! Only run if at least X minutes have passed since last time
 if heelsminut > totminut: heelsminut = totminut & !! fix for time cheat
-if totminut >= heelsminut + 120:
+if totminut >= heelsminut + 30:
+	killvar 'tmp'
+	heelstime = totminut-heelsminut
 	heelsminut = totminut
 	!! Only check experience and pain gain and if the player wears heels, flats give nothing
 	if PShoHeels > 1:
@@ -378,41 +390,52 @@ if totminut >= heelsminut + 120:
 		if pcs_heels < heelsRequiredskill:
 			heelsSkilldiff = heelsRequiredskill - pcs_heels
 			if heelsSkilldiff <= 5:
-				gs 'exp_gain', 'heels', rand(3,6)
-				if pain['feet'] < 40: gs 'pain', rand(0,1), 'feet', 'ache'
+				tmp = rand(min(3,heelstime/30),min(6,heelstime/15))
+				if pain['feet'] < 40: gs 'pain', rand(heelstime/30,heelstime/15), 'feet', 'ache'
 			elseif heelsSkilldiff <= 10:
-				gs 'exp_gain', 'heels', rand(5,9)
-				if pain['feet'] < 50: gs 'pain', rand(0,2), 'feet', 'ache'
+				tmp = rand(min(5,heelstime/20),min(9,heelstime/10))
+				if pain['feet'] < 50: gs 'pain', rand(heelstime/25,heelstime/12), 'feet', 'ache'
 			elseif heelsSkilldiff <= 15:
-				gs 'exp_gain', 'heels', rand(7,12)
-				if pain['feet'] < 60: gs 'pain', rand(1,3), 'feet', 'ache'
+				tmp = rand(min(7,heelstime/15),min(12,heelstime/8))
+				if pain['feet'] < 60: gs 'pain', rand(heelstime/20,heelstime/10), 'feet', 'ache'
 			elseif heelsSkilldiff <= 20:
-				gs 'exp_gain', 'heels', rand(9,15)
-				if pain['feet'] < 70: gs 'pain', rand(2,4), 'feet', 'ache'
-			elseif heelsSkilldiff > 20:
-				gs 'exp_gain', 'heels', rand(12,20)
-				if pain['feet'] < 80: gs 'pain', rand(3,5), 'feet', 'ache'
+				tmp = rand(min(9,heelstime/10),min(15,heelstime/5))
+				if pain['feet'] < 70: gs 'pain', rand(heelstime/15,heelstime/8), 'feet', 'ache'
+			else
+				tmp = rand(min(12,heelstime/5),min(20,heelstime/2))
+				if pain['feet'] < 80: gs 'pain', rand(heelstime/10,heelstime/5), 'feet', 'ache'
 			end
 		!! Player skill is equal to or higher than the required skill
 		!! Maybe have excessive skill result in no gain, or even a degrading skill?
 		else
+			gs 'pain', rand(heelstime/60,heelstime/30), 'feet', 'ache'
 			heelsSkilldiff = pcs_heels - heelsRequiredskill
 			if heelsSkilldiff <= 5:
-				gs 'exp_gain', 'heels', rand(3,6)
+				tmp = rand(-2,0) + rand(min(8,heelstime/6),min(12,heelstime/3))
 			elseif heelsSkilldiff <= 10:
-				gs 'exp_gain', 'heels', rand(2,4)
+				tmp = rand(-3,0) + rand(min(6,heelstime/10),min(9,heelstime/5))
 			elseif heelsSkilldiff <= 15:
-				gs 'exp_gain', 'heels', rand(1,2)
+				tmp = rand(-4,0) + rand(min(5,heelstime/15),min(7,heelstime/10))
 			elseif heelsSkilldiff <= 20:
-				gs 'exp_gain', 'heels', 0
-			elseif heelsSkilldiff > 20:
-				heels_deg -= rand(0,1)
+				tmp = rand(-5,0) + rand(min(4,heelstime/20),min(6,heelstime/15))
+			else
+				tmp = rand(-6,0) + rand(min(3,heelstime/30),min(4,heelstime/20))
 			end
 		end
 	!! If not wearing heels, degrade heels skill
 	else
-		heels_deg -= rand(0,1)
+		tmp = rand(heelstime/30,heelstime/15)*-1
 	end
+
+	if tmp > 0:
+		gs 'exp_gain', 'heels', tmp
+	elseif tmp < 0:
+		heels_deg += tmp
+	end
+	killvar 'tmp'
+	killvar 'heelstime'
+	killvar 'heelsSkilldiff'
+	killvar 'heelsRequiredskill'
 end
 !!!!!!!!!!!!!!! End heels
 
@@ -446,34 +469,6 @@ if kid > 0:
 		i -= 1
 		jump 'LoopKidAgeCounter'
 	end
-end
-
-if pcs_nerd > 0:
-	if lastreadday = daystart:
-		!!<font color="green">You are completely healthy shine and a healthy glow.</font>
-		pcs_mood = 100
-		SbrosNerdism = 0
-		$mudnerd = '<font color="green">You are lost in a fantasy after reading a book.</font>'
-	end
-
-	if lastreadday + 1 = daystart:
-		SbrosNerdism = 0
-		$mudnerd = '<font color="black">You are a little bored and want to plunge into a book.</font>'
-	end
-	if lastreadday + 2 = daystart:
-		SbrosNerdism = 0
-		if pcs_mood > 50:pcs_mood -= 10
-		$mudnerd = '<font color="red">You really want to read something.</font>'
-	end
-
-	if lastreadday + 3 <= daystart:
-		if pcs_mood > 10:pcs_mood -= 10
-		SbrosNerdism = 1
-		$mudnerd = '<font color="red"><b>You have an incredibly strong desire to read!!!</b></font>'
-	end
-else
-	SbrosNerdism = 0
-	$mudnerd = ''
 end
 
 if bimbolevel > 0:
@@ -546,15 +541,10 @@ else
 		end
 
 !!SECTION: Bimbo (15 minute interval update checks)
-		if bimbolevel = 2:
-			if pcs_mood < 100:pcs_mood += ((pcs_mood / 100) * (rand(0,1)))
-			if pcs_horny < 25:pcs_horny = 25
-			if pcs_horny < 100:pcs_horny += 1
-		end
-		if bimbolevel = 3:
-			if (pcs_mood < 100):pcs_mood += ((pcs_mood / 100) * (rand(0,2)))
-			if pcs_horny < 50:pcs_horny = 50
-			if pcs_horny < 100:pcs_horny += 2
+		if bimbolevel > 0:
+			if (pcs_mood < 100): pcs_mood += (pcs_mood / 100) * max(0, (rand(bimbowithdrawal*-1,bimbolevel)))
+			if pcs_horny < max(0, 30 - bimbowithdrawal * bimbolevel): pcs_horny = max(0, 30 - bimbowithdrawal * bimbolevel)
+			if pcs_horny < 100: pcs_horny += max(0, rand(bimbowithdrawal/-2, bimbolevel))
 		end
 !!SECTION: Commando trait (15 minute interval update checks)
 		if $clothingworntype ! 'nude':
@@ -640,29 +630,11 @@ else
 						sucabscum = 1
 						gs 'cum_cleanup', 'cleandeposit', suctemparr
 						cumloc[suctempi] = 0
-						spdirty = 0
 						!debug code $stat_msg += '<BR>Absorb ext <<sexnutrition>>'
 					end
 				end
 				if suctempi < 17:jump 'SuccAbsorbLoop'
-				cumloc[0] = 0
-				cumloc[1] = 0
-				cumloc[2] = 0
-				cumloc[3] = 0
-				cumloc[4] = 0
-				cumloc[5] = 0
-				cumloc[6] = 0
-				cumloc[7] = 0
-				cumloc[8] = 0
-				cumloc[9] = 0
-				cumloc[10] = 0
-				cumloc[11] = 0
-				cumloc[12] = 0
-				cumloc[13] = 0
-				cumloc[14] = 0
-				cumloc[15] = 0
-				cumloc[16] = 0
-				cumloc[17] = 0
+				cumspclnt = 20 & gs 'cum_cleanup'
 			end
 			if suclezsex < lesbian:
 				sexnutrition += succublvl * 20
@@ -839,8 +811,7 @@ end
 
 !!Health, Willpower, Auto Birth Control pregnancy check
 gs 'body', 'RegularUpdate'
-gs 'AppearanceSystem'
-gs 'body_desc'
+gs 'body', 'Update_Appearance'
 
 if pcs_health >= healthmax:
 	$pcs_health = '<font color="green">You are very healthy.</font>'
@@ -867,9 +838,13 @@ else
 end
 
 !!stop auto birth control pill taking if the player believes they are pregnant or are pregnant
-if (thinkpreg = 1 or knowpreg = 1) and tabletkicheck = 1: tabletkicheck = 0
-
-if birth_control['remind_hour'] > 0 and hour >= birth_control['remind_hour'] and hour <= birth_control['remind_hour'] + 1 and tabletkiday ! daystart:
+if thinkpreg = 1 or knowpreg = 1:
+	if tabletkicheck = 1: tabletkicheck = 0
+	if birth_control['remind_hour'] > 0:
+		birth_control['remind_hour'] = 0
+		if birth_control['remind_icon'] = 1: birth_control['remind_icon'] = 0
+	end
+elseif birth_control['remind_hour'] > 0 and hour >= birth_control['remind_hour'] and hour <= birth_control['remind_hour'] + 1 and tabletkiday ! daystart:
 	birth_control['remind_icon'] = 1
 else
 	birth_control['remind_icon'] = 0
@@ -881,6 +856,8 @@ end
 
 !! detected change in pillcon
 if pillcon ! birth_control['old_pillcon'] or pillcon2 ! birth_control['old_pillcon2']: gs 'fertility', 'update'
+
+gs 'cum_manage', 'cum_decay'
 
 !!Mood
 if cheatNoMood = 0:
@@ -954,7 +931,7 @@ end
 
 if hotelRoom['pav_hotel'] > 0:
 	if hotelRoomDays['pav_hotel'] - 1 = daystart:
-		$stat_msg += '<BR>You have 1 night left on your pav hotel booking.'
+		$stat_msg += '<BR>You have 1 night left on your Pavlosk hotel booking.'
 	elseif hotelRoomDays['pav_hotel'] = daystart and hour < 11:
 		$stat_msg += '<BR>Your room at the Pavlosk hotel has check out today at 11:00'
 	elseif hotelRoomDays['pav_hotel'] = daystart:
@@ -964,7 +941,7 @@ end
 
 if hotelRoom['city_hotel'] > 0:
 	if hotelRoomDays['city_hotel'] - 1 = daystart:
-		$stat_msg += '<BR>You have 1 night left on your pav hotel booking.'
+		$stat_msg += '<BR>You have 1 night left on your St Petersburg hotel booking.'
 	elseif hotelRoomDays['city_hotel'] = daystart and hour < 11:
 		$stat_msg += '<BR>Your room at the St Petersburg hotel has check out today at 11:00'
 	elseif hotelRoomDays['city_hotel'] = daystart:
@@ -989,17 +966,7 @@ stat['cuni'] += kuni & kuni = 0
 stat['anal_strap_give'] += pegging & pegging = 0
 
 !!Pain calculation
-
-paintmp1 = func('shortgs','modul',pain['head'],pain['hair'],pain['ears'],pain['eyebrows'],pain['eyes'],pain['cheeks'],pain['nose'],pain['mouth'])
-paintmp2 = func('shortgs','modul',pain['tummy'],pain['pubic'],pain['vaginal'],pain['labia'],pain['clitoris'],pain['urethra'],pain['cervix'],pain['lips'])
-paintmp3 = func('shortgs','modul',pain['throat'],pain['asscheeks'],pain['asshole'],pain['hips'],pain['thighs'],pain['legL'],pain['legR'],pain['feet'])
-paintmp4 = func('shortgs','modul',pain['toes'],pain['shoulders'],pain['armL'],pain['armR'],pain['hands'],pain['fingers'],pain['chest'],pain['breasts'])
-paintmp5 = func('shortgs','modul',pain['tongue'],pain['neck'],pain['back'],pain['nipples'],pain['ribs'],vgape * 8, agape * 10,spanked * 24)
-
-pain['total'] = func('shortgs','modul',paintmp1,paintmp2,paintmp3,paintmp4,paintmp5)
-
-if pain['total'] > 100: pain['total'] = 100
-pain['damage'] = pain['total']
+gs 'pain', 'calc'
 pain['relief'] = 0
 
 if alko > 9:
@@ -1076,9 +1043,15 @@ else
 	pornstar['icon'] = 0
 end
 
-if therapistday ! daystart and remindedtherapyday ! daystart and hypnoSchedule = 1 and (hour >= 18 and (minut > 45 or hour >= 19)) and (hour < 20 and (minut < 15 or hour < 19)) and menu_off = 0 and workDolg = 0:
-	remindedtherapyday = daystart
-	gt 'therapist_reminder'
+if hypnoSchedule = 1:
+	if therapist_weekly_block = 0 and week = 4 and therapistday ! daystart and remindedtherapyday ! daystart:
+		if menu_off = 0 and workDolg = 0:
+			if (hour >= 18 and (minut > 45 or hour >= 19)) _
+			and (hour < 20 and (minut < 15 or hour < 19)):
+				gs 'therapist_reminder'
+			end
+		end
+	end
 end
 
 !!--------------------------Booty Call SMSs--------------------------------

@@ -168,6 +168,17 @@ if $ARGS[0] = 'hookup_initiate':
 	stat['hookup'] += 1
 end
 
+if $ARGS[0] = 'pc_home_img_init':
+	$sex_ev['loc'] = 'pc_home'
+	if $loc = 'korrPar' or $home['current'] = 'parents_home':
+		$sex_ev['bed_room'] = '<center><img <<$set_imgh>> src="images/locations/pavlovsk/resident/apartment/home/bedrpar.jpg"></center>'
+		$sex_ev['bath_room'] = '<center><img <<$set_imgh>> src="images/locations/pavlovsk/resident/apartment/home/vanrpar.jpg"></center>'
+		$sex_ev['kitchen_room'] = '<center><img <<$set_imgh>> src="images/locations/pavlovsk/resident/apartment/home/kuhrpar.jpg"></center>'
+		$sex_ev['living_room'] = '<center><img <<$set_imgh>> src="images/locations/pavlovsk/resident/apartment/home/sitrpar.jpg"></center>'
+		$sex_ev['hall_way'] = '<center><img <<$set_imgh>> src="images/locations/pavlovsk/resident/apartment/home/korrpar.jpg"></center>'
+	end
+end
+
 if $ARGS[0] = 'lover_home_img_init':
 	$sex_ev['loc'] = 'npc_home'
 	$sex_ev['bed_room'] = $npc_apt_bedroom[$boy]
@@ -186,6 +197,15 @@ if $ARGS[0] = 'pav_hotel_img_init':
 	$sex_ev['hall_way'] = '<center><img <<$set_imgh>> src="images/locations/pavlovsk/hotel/hotel.room.normal.jpg"></center>'
 end
 
+if $ARGS[0] = 'city_hotel_img_init':
+	$sex_ev['loc'] = 'hotel_room'
+	$sex_ev['bed_room'] = '<center><img <<$set_imgh>> src="images/locations/pavlovsk/hotel/hotel.room.best.jpg"></center>'
+	$sex_ev['bath_room'] = '<center><img <<$set_imgh>> src="images/locations/pavlovsk/hotel/hotel.room.best1.jpg"></center>'
+	$sex_ev['kitchen_room'] = 'none'
+	$sex_ev['living_room'] = 'none'
+	$sex_ev['hall_way'] = '<center><img <<$set_imgh>> src="images/locations/pavlovsk/hotel/hotel.room.best.jpg"></center>'
+end
+
 if $ARGS[0] = 'fb_npc_home_start':
 !!	gs 'boystat', $ARGS[1]
 	$sex_ev['type'] = 'booty_call'
@@ -200,6 +220,12 @@ if $ARGS[0] = 'fb_npc_home_start':
 	end
 end
 
+if $ARGS[0] = 'hookup_pc_home_start':
+	gs 'sex_ev_start', 'hookup_initiate'
+	gs 'sex_ev_start', 'pc_home_img_init'
+	gs 'sex_ev_start', 'begin'
+	gs 'sex_ev_start', 'undress'
+end
 if $ARGS[0] = 'hookup_npc_home_start':
 	gs 'sex_ev_start', 'hookup_initiate'
 	gs 'sex_ev_start', 'lover_home_img_init'
@@ -237,6 +263,7 @@ if $ARGS[0] = 'unique_npc_bed_start':
 	sex_ev['unique_npc'] = 1
 	gs 'sex_ev_start', 'lover_home_img_init'
 	gs 'sex_ev_start', 'begin'
+	gs 'sex_ev_start', 'undress_function'
 	gs 'sex_ev_foreplay', 'bed_start'
 end
 
@@ -465,9 +492,19 @@ if $ARGS[0] = 'fb_invited_start':
 				end
 			end
 		end
-		
+		if $pantyworntype = 'none' and $braworntype = 'none':
+			act'Tell him you''re not wearing underwear':
+				cla & *clr
+				$sex_ev['bed_room']
+				'You step inside and draw close to <<$npc_firstname[$boy]>>. You lean in and whisper in his ear...'
+				*nl
+				'<i>"I''m not wearing any underwear."</i>'
+				act'Undress':gt 'sex_ev_start', 'undress'
+			end
+		end
 		if birth_control['think_safe'] = 1 and npc_know_bc[$boy] = 0:
 			act'Tell him you''re on birth control':
+				gs 'sex_ev_stats', 'birth_control_know'
 				cla & *clr
 				$sex_ev['bed_room']
 				'You step inside and draw close to <<$npc_firstname[$boy]>>. You lean in and whisper in his ear...'
@@ -480,7 +517,31 @@ if $ARGS[0] = 'fb_invited_start':
 					else
 						'"<i>I''m on birth control now. Let''s go bareback today.</i>"'
 					end
-					gs 'sex_ev_stats', 'birth_control_know'
+					act'Undress':gt 'sex_ev_start', 'undress'
+				end
+				
+				act'Creampies are okay today':
+					sex_ev['creampie_allowance'] = 1
+					cla & *clr
+					$sex_ev['bed_room']
+					if npc_know_bc_not_effective[$boy] = 1 or npc_bc_promise[$boy] = 1:
+						'"<i>My birth control is ready. You can come inside me.</i>"'
+					else
+						'"<i>I''m on birth control now. You can come inside me.</i>"'
+					end
+					act'Undress':gt 'sex_ev_start', 'undress'
+				end
+			end
+		elseif mesec > 0:
+			act'"I''m on my period"':
+				cla & *clr
+				$sex_ev['bed_room']
+				'You step inside and draw close to <<$npc_firstname[$boy]>>. You lean in and whisper in his ear...'
+				*nl
+				act'No condoms':
+					cla & *clr
+					$sex_ev['bed_room']
+					'"<i>I''m on my period right now. Let''s go bareback today.</i>"'
 					act'Undress':gt 'sex_ev_start', 'undress'
 				end
 				
@@ -488,12 +549,7 @@ if $ARGS[0] = 'fb_invited_start':
 					sex_ev['creampie_allowance'] = 1
 					cla & *clr
 					$sex_ev['bed_room']
-					if npc_know_bc_not_effective[$boy] = 1 or npc_bc_promise[$boy] = 1:
-						'"<i>My birth control is ready. Pump me full of cum.</i>"'
-					else
-						'"<i>I''m on birth control now. Pump me full of cum.</i>"'
-					end
-					gs 'sex_ev_stats', 'birth_control_know'
+					'"<i>I''m on my period right now. You can come inside me.</i>"'
 					act'Undress':gt 'sex_ev_start', 'undress'
 				end
 			end
@@ -548,9 +604,9 @@ if $ARGS[0] = 'fb_uninvited_start':
 		end
 		
 		if rand(1,10) < npc_sexdrive[$boy]:
-			if npc_humor[$boy] = 2 and npc_cum_pref[$boy] = 'creampie':
+			if npc_humor[$boy] = 2 and $npc_cum_pref[$boy] = 'creampie':
 				'"I''m the only one who''s gonna be coming inside," he says, leering at your ass as he steps aside to let you in.'
-			elseif npc_humor[$boy] = 2 and npc_cum_pref[$boy] = 'mouth':
+			elseif npc_humor[$boy] = 2 and $npc_cum_pref[$boy] = 'mouth':
 				'"I''m the only one who''s gonna be coming inside," he says, leering at your ass as he steps aside to let you in. "In your mouth that is."'
 			elseif npc_booty_call_date[$boy] = daystart:
 				'"As long as those clothes are coming off in the next 10 seconds," he says, leering at your ass as he steps aside to let you in.'
@@ -674,7 +730,13 @@ if $ARGS[0] = 'undress':
 			'You tear each other''s clothes off, leaving a trail of discarded fabrics.'
 		end
 	end
-	gs 'sex_ev_foreplay', 'bed_start'
+	if $sex_ev['loc'] ! 'pc_home' or $home['current'] ! 'parents_home':
+		gs 'sex_ev_foreplay', 'bed_start'
+	else
+		act'Go to your bed':gs 'sex_ev_foreplay', 'bed_start'
+		
+		act'Go to Anya''s bed':$sex_ev['bed_choice'] = 'anya_bed' & sisterQW['sex_bed_count'] += 1 & sisterQW['sex_bed'] = daystart & gs 'sex_ev_foreplay', 'bed_start'
+	end
 end
 
 if $ARGS[0] = 'undress_function':
