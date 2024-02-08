@@ -410,7 +410,13 @@ if $ARGS[0] = 'work_clothes':
 end
 
 if $ARGS[0] = 'is_default':
-	is_default = prostitute['clothingwornnumber'] = clothingwornnumber and prostitute['pantywornnumber'] = pantywornnumber and prostitute['brawornnumber'] = brawornnumber and prostitute['shoewornnumber'] = shoewornnumber and prostitute['currentpursenumber'] = currentpursenumber
+	is_default = prostitute['clothingwornnumber'] = clothingwornnumber _ 
+			 and prostitute['shoewornnumber']     = shoewornnumber _ 
+			 and prostitute['currentpursenumber'] = currentpursenumber _ 
+			 and prostitute['coatwornnumber']     = coatwornnumber _ 
+			and (prostitute['bodysuitwornnumber'] = bodysuitwornnumber _ 
+			 or (prostitute['pantywornnumber']    = pantywornnumber _ 
+			 and prostitute['brawornnumber']      = brawornnumber))
 end
 
 
@@ -422,11 +428,15 @@ if $ARGS[0] = 'set_default_outfit':
 	prostitute['clothingwornnumber'] = clothingwornnumber
 
 	!!-- Underwear
-	$prostitute['pantyworntype'] = $pantyworntype
-	prostitute['pantywornnumber'] = pantywornnumber
-	$prostitute['braworntype'] = $braworntype
-	prostitute['brawornnumber'] = brawornnumber
-
+	if bodysuitwornnumber > 0:
+		$prostitute['bodysuitworntype'] = $bodysuitworntype
+		prostitute['bodysuitwornnumber'] = bodysuitwornnumber
+	else
+		$prostitute['pantyworntype'] = $pantyworntype
+		prostitute['pantywornnumber'] = pantywornnumber
+		$prostitute['braworntype'] = $braworntype
+		prostitute['brawornnumber'] = brawornnumber
+	end
 	!!-- Shoes
 	$prostitute['shoeworntype'] = $shoeworntype
 	prostitute['shoewornnumber'] = shoewornnumber
@@ -434,6 +444,10 @@ if $ARGS[0] = 'set_default_outfit':
 	!!-- Bag
 	$prostitute['currentpursetype'] = $currentpursetype
 	prostitute['currentpursenumber'] = currentpursenumber
+
+	!!-- Coat
+	$prostitute['coatworntype'] = $coatworntype
+	prostitute['coatwornnumber'] = coatwornnumber
 
 	prostitute['outfit_is_set'] = 1
 end
@@ -444,6 +458,8 @@ if $ARGS[0] = 'clearing_default_outfit':
 	prostitute['clothingwornnumber'] = 0
 
 	!!-- Underwear
+	$prostitute['bodysuitworntype'] = ''
+	prostitute['bodysuitwornnumber'] = 0
 	$prostitute['pantyworntype'] = ''
 	prostitute['pantywornnumber'] = 0
 	$prostitute['braworntype'] = ''
@@ -457,6 +473,10 @@ if $ARGS[0] = 'clearing_default_outfit':
 	$prostitute['currentpursetype'] = ''
 	prostitute['currentpursenumber'] = 0
 
+	!!-- Coat
+	$prostitute['coatworntype'] = ''
+	prostitute['coatwornnumber'] = 0
+
 	prostitute['outfit_is_set'] = 0
 end
 
@@ -465,25 +485,39 @@ if $ARGS[0] = 'change_into_prostitute_outfit':
 	!!-- Backup
 	$lastwornclothingtype['prostitute'] = $clothingworntype
 	lastwornclothingnumber['prostitute'] = clothingwornnumber
-	$lastwornpantytype['prostitute'] = $pantyworntype
-	lastwornpantynumber['prostitute'] = pantywornnumber
-	$lastwornbratype['prostitute'] = $braworntype
-	lastwornbranumber['prostitute'] = brawornnumber
+	lastwornunderwear['prostitute'] = underwear['type']
+	if bodysuitwornnumber > 0:
+		$lastwornbodysuittype['prostitute'] = $bodysuitworntype
+		lastwornbodysuitnumber['prostitute'] = bodysuitwornnumber
+	else
+		$lastwornpantytype['prostitute'] = $pantyworntype
+		lastwornpantynumber['prostitute'] = pantywornnumber
+		$lastwornbratype['prostitute'] = $braworntype
+		lastwornbranumber['prostitute'] = brawornnumber
+	end
 	$lastwornshoetype['prostitute'] = $shoeworntype
 	lastwornshoenumber['prostitute'] = shoewornnumber
 	$lastwornpursetype['prostitute'] = $currentpursetype
 	lastwornpursenumber['prostitute'] = currentpursenumber
+	$lastworncoattype['prostitute'] = $coatworntype
+	lastworncoatnumber['prostitute'] = coatwornnumber
+	
 	!!-- Clothing
 	gs 'clothing', 'wear', $prostitute['clothingworntype'], prostitute['clothingwornnumber']
 	!!-- Underwear
-	gs 'panties', 'wear', $prostitute['pantyworntype'], prostitute['pantywornnumber']
-	gs 'bras', 'wear', $prostitute['braworntype'], prostitute['brawornnumber']
+	if lastwornbodysuitnumber['prostitute'] > 0:
+		gs 'underwear_bodysuits', 'wear', $lastwornbodysuittype['prostitute'], lastwornbodysuitnumber['prostitute']
+	else
+		gs 'panties', 'wear', $prostitute['pantyworntype'], prostitute['pantywornnumber']
+		gs 'bras', 'wear', $prostitute['braworntype'], prostitute['brawornnumber']
+	end
 	!!-- Shoes
 	gs 'shoes', 'wear', $prostitute['shoeworntype'], prostitute['shoewornnumber']
 	!!-- Bag
 	gs 'purses', 'wear', $prostitute['currentpursetype'], prostitute['currentpursenumber']
-
-!	!! TODO: Check for worn out here?
+	!!-- Coat
+	gs 'coats', 'wear', $prostitute['coatworntype'], prostitute['coatwornnumber']
+	!! TODO: Check for worn out here?
 
 	!! CHeck if the change happened not at home and if yes, then store the fact of change.
 	gs 'prostitution_functions', 'work_clothes'
@@ -491,16 +525,29 @@ if $ARGS[0] = 'change_into_prostitute_outfit':
 end
 
 if $ARGS[0] = 'change_into_regular_clothes':
-	!!-- Clothing
-	gs 'clothing', 'wear', $lastwornclothingtype['prostitute'], lastwornclothingnumber['prostitute']
-	!!-- Underwear
-	gs 'panties', 'wear', $lastwornpantytype['prostitute'], lastwornpantynumber['prostitute']
-	gs 'bras', 'wear', $lastwornbratype['prostitute'], lastwornbranumber['prostitute']
-	!!-- Shoes
-	gs 'shoes', 'wear', $lastwornshoetype['prostitute'], lastwornshoenumber['prostitute']
-	gs 'purses', 'wear', $lastwornpursetype['prostitute'], lastwornpursenumber['prostitute']
-	gs 'prostitution_functions', 'work_clothes'
-	if prostitute['changed_for_work']: prostitute['changed_for_work'] = 0
+	if $lastwornclothingtype['prostitute'] = '':
+		gs 'clothing', 'wear_last_worn'
+		gs 'underwear', 'wear'
+		gs 'shoes', 'wear', 'last_worn'
+		gs 'purses', 'wear', 'last_worn'
+		gs 'coats', 'wear', 'last_worn'
+	else
+		!!-- Clothing
+		gs 'clothing', 'wear', $lastwornclothingtype['prostitute'], lastwornclothingnumber['prostitute']
+		!!-- Underwear
+		if lastwornunderwear['prostitute'] = 2:
+			gs 'underwear_bodysuits', 'wear', $lastwornbodysuittype['prostitute'], lastwornbodysuitnumber['prostitute']
+		else
+			gs 'panties', 'wear', $lastwornpantytype['prostitute'], lastwornpantynumber['prostitute']
+			gs 'bras',    'wear', $lastwornbratype['prostitute'],   lastwornbranumber['prostitute']
+		end
+		!!-- Shoes
+		gs 'shoes',  'wear', $lastwornshoetype['prostitute'],  lastwornshoenumber['prostitute']
+		gs 'purses', 'wear', $lastwornpursetype['prostitute'], lastwornpursenumber['prostitute']
+		gs 'coats',  'wear', $lastworncoattype['prostitute'],  lastworncoatnumber['prostitute']
+		gs 'prostitution_functions', 'work_clothes'
+		if prostitute['changed_for_work']: prostitute['changed_for_work'] = 0
+	end
 end
 
 !!---------- Chaging outfits in public locations ------------------------------------------------------------------------
