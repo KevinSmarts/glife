@@ -125,8 +125,7 @@ if $ARGS[0] = 'prostitute_outfit_at_home':
 	if func('homes_properties', 'is_current_home') and prostitute['active']:
 		gs 'prostitution_functions', 'work_clothes'
 		if prostitute['work_clothes']:
-			gs 'prostitution_functions', 'is_default'
-			if prostitute['outfit_is_set'] = 1 and is_default = 0:
+			if prostitute['outfit_is_set'] = 1 and func('prostitution_functions', 'is_default') = 0:
 				act 'Replace your default prostitute outfit with the current outfit':
 					gs 'prostitution_functions', 'set_default_outfit'
 					gt $loc, $loc_arg
@@ -147,7 +146,6 @@ if $ARGS[0] = 'prostitute_outfit_at_home':
 				gt $loc, $loc_arg
 			end
 		end
-		killvar 'is_default'
 	end
 end
 
@@ -410,7 +408,7 @@ if $ARGS[0] = 'work_clothes':
 end
 
 if $ARGS[0] = 'is_default':
-	is_default = prostitute['clothingwornnumber'] = clothingwornnumber _ 
+	RESULT = prostitute['clothingwornnumber'] = clothingwornnumber _ 
 			 and prostitute['shoewornnumber']     = shoewornnumber _ 
 			 and prostitute['currentpursenumber'] = currentpursenumber _ 
 			 and prostitute['coatwornnumber']     = coatwornnumber _ 
@@ -428,7 +426,9 @@ if $ARGS[0] = 'set_default_outfit':
 	prostitute['clothingwornnumber'] = clothingwornnumber
 
 	!!-- Underwear
-	if bodysuitwornnumber > 0:
+	prostitute['underweartype'] = 0
+	if underwear['type'] = 2:
+		prostitute['underweartype'] = 2
 		$prostitute['bodysuitworntype'] = $bodysuitworntype
 		prostitute['bodysuitwornnumber'] = bodysuitwornnumber
 	else
@@ -482,11 +482,16 @@ end
 
 
 if $ARGS[0] = 'change_into_prostitute_outfit':
+	!! if last outfit is sport outfit
+	gs 'wardrobe', 'is_sport'
+	gs 'wardrobe', 'back_to_regular_clothes'
+
 	!!-- Backup
 	$lastwornclothingtype['prostitute'] = $clothingworntype
 	lastwornclothingnumber['prostitute'] = clothingwornnumber
-	lastwornunderwear['prostitute'] = underwear['type']
-	if bodysuitwornnumber > 0:
+	lastwornunderwear['prostitute'] = 0
+	if underwear['type'] = 2:
+		lastwornunderwear['prostitute'] = 2
 		$lastwornbodysuittype['prostitute'] = $bodysuitworntype
 		lastwornbodysuitnumber['prostitute'] = bodysuitwornnumber
 	else
@@ -505,7 +510,7 @@ if $ARGS[0] = 'change_into_prostitute_outfit':
 	!!-- Clothing
 	gs 'clothing', 'wear', $prostitute['clothingworntype'], prostitute['clothingwornnumber']
 	!!-- Underwear
-	if lastwornbodysuitnumber['prostitute'] > 0:
+	if prostitute['underweartype'] = 2:
 		gs 'underwear_bodysuits', 'wear', $lastwornbodysuittype['prostitute'], lastwornbodysuitnumber['prostitute']
 	else
 		gs 'panties', 'wear', $prostitute['pantyworntype'], prostitute['pantywornnumber']
@@ -525,29 +530,11 @@ if $ARGS[0] = 'change_into_prostitute_outfit':
 end
 
 if $ARGS[0] = 'change_into_regular_clothes':
-	if $lastwornclothingtype['prostitute'] = '':
-		gs 'clothing', 'wear_last_worn'
-		gs 'underwear', 'wear'
-		gs 'shoes', 'wear', 'last_worn'
-		gs 'purses', 'wear', 'last_worn'
-		gs 'coats', 'wear', 'last_worn'
-	else
-		!!-- Clothing
-		gs 'clothing', 'wear', $lastwornclothingtype['prostitute'], lastwornclothingnumber['prostitute']
-		!!-- Underwear
-		if lastwornunderwear['prostitute'] = 2:
-			gs 'underwear_bodysuits', 'wear', $lastwornbodysuittype['prostitute'], lastwornbodysuitnumber['prostitute']
-		else
-			gs 'panties', 'wear', $lastwornpantytype['prostitute'], lastwornpantynumber['prostitute']
-			gs 'bras',    'wear', $lastwornbratype['prostitute'],   lastwornbranumber['prostitute']
-		end
-		!!-- Shoes
-		gs 'shoes',  'wear', $lastwornshoetype['prostitute'],  lastwornshoenumber['prostitute']
-		gs 'purses', 'wear', $lastwornpursetype['prostitute'], lastwornpursenumber['prostitute']
-		gs 'coats',  'wear', $lastworncoattype['prostitute'],  lastworncoatnumber['prostitute']
-		gs 'prostitution_functions', 'work_clothes'
-		if prostitute['changed_for_work']: prostitute['changed_for_work'] = 0
-	end
+	gs 'wardrobe', 'back_to_regular_clothes'
+
+	!! if last outfit is sport outfit
+	gs 'wardrobe', 'is_sport'
+	gs 'wardrobe', 'back_to_regular_clothes'
 end
 
 !!---------- Chaging outfits in public locations ------------------------------------------------------------------------
