@@ -347,20 +347,20 @@ end
 if $ARGS[0] = 'default_set_name':
 	*clr & cla
 	$clothing_default_page[clothing_default_page] = input('Enter new name for this set')
-	act 'Return': gt 'wardrobe', 'default<<clothing_default_page>>'
+	gt 'wardrobe', 'default<<clothing_default_page>>'
 end
 
 if $ARGS[0] = 'default_actions':
-	act 'Return':
-		gt $loc, $loc_arg
-	end
+	act 'Return': gt $loc, $loc_arg
  
 	act 'Select outfit to wear':
 		cla
+		act 'Return': gt 'wardrobe', $wardrobeDefaultPagePref
 		gs 'wardrobe', 'default_actions_wear'
 	end
 	act 'Choose another page':
 		cla
+		act 'Return': gt 'wardrobe', $wardrobeDefaultPagePref
 		gs 'wardrobe', 'default_actions_page'
 	end
 	act 'Rename this set': gs 'wardrobe', 'default_set_name'
@@ -925,29 +925,20 @@ if $ARGS[0] = 'default_sport_options':
 	if default_sport_number = 0:
 		'You have no default sports clothing set, you can set this in your wardrobe.'
 	else
-		!! checks to see if player is wearing the default sports set using default_sport_number[2]
-		default_sport_number[2] = 0
-		if $clothingworntype = $defclothingtype[default_sport_number] and clothingwornnumber = defclothingnumber[default_sport_number]: default_sport_number[2] += 1
-		if defunderwear[default_sport_number] = 2:
-			if $bodysuitworntype = $defbodysuittype[default_sport_number] and bodysuitwornnumber = defbodysuitnumber[default_sport_number]: default_sport_number[2] += 1
-		else
-			if $pantyworntype = $defpantytype[default_sport_number] and pantywornnumber = defpantynumber[default_sport_number] and $braworntype = $defbratype[default_sport_number] and brawornnumber = defbranumber[default_sport_number]: default_sport_number[2] += 1
-		end
-		if $shoeworntype = $defshoetype[default_sport_number] and shoewornnumber = defshoenumber[default_sport_number]: default_sport_number[2] += 1
-		if $currentpursetype = $defpursetype[default_sport_number] and currentpursenumber = defpursenumber[default_sport_number]: default_sport_number[2] += 1
-		if $coatworntype = $defcoattype[default_sport_number] and coatwornnumber = defcoatnumber[default_sport_number]: default_sport_number[2] += 1
-
+		gs 'wardrobe', 'is_sport'
 		!! check to see if sports outfit is worn out
-		if dyneval('RESULT = <<$defclothingtype[default_sport_number]>>_h[<<defclothingnumber[default_sport_number]>>]') = 0:
-			act '<font color="red">Put on your sports clothes - unavailable as outfit is worn out</font>':
-			end
+		if dyneval('RESULT = <<$defclothingtype[default_sport_number]>>_h[<<defclothingnumber[default_sport_number]>>]') <= 0:
+			act 'Put on your sports clothes': msg '<font color="red">Unavailable as outfit is worn out!</font>'
 		!! check to see that player is not wearing default sports outfit
 		elseif default_sport_number[2] ! 5:
-			act'Put on your sports clothes':
+			act 'Put on your sports clothes':
+				if func('prostitution_functions', 'is_default') ! 0: gs 'wardrobe', 'back_to_regular_clothes'
+				
 				$lastwornclothingtype['sport'] = $clothingworntype
 				lastwornclothingnumber['sport'] = clothingwornnumber
-				lastwornunderwear['sport'] = underwear['type']
-				if defunderwear[default_sport_number] = 2:
+				lastwornunderwear['sport'] = 0
+				if underwear['type'] = 2:
+					lastwornunderwear['sport'] = 2
 					$lastwornbodysuittype['sport'] = $bodysuitworntype
 					lastwornbodysuitnumber['sport'] = bodysuitwornnumber
 				else
@@ -966,32 +957,83 @@ if $ARGS[0] = 'default_sport_options':
 				gt $loc, $loc_arg
 			end
 		else
-			act'Put your regular clothes back on':
-				if $lastwornclothingtype['sport'] = '':
-					gs 'clothing', 'wear_last_worn'
-					gs 'underwear', 'wear'
-					gs 'shoes', 'wear', 'last_worn'
-					gs 'purses', 'wear', 'last_worn'
-					gs 'coats', 'wear', 'last_worn'
-				else
-					gs 'clothing', 'wear', $lastwornclothingtype['sport'], lastwornclothingnumber['sport']
-
-					if lastwornunderwear['sport'] = 2:
-						gs 'underwear_bodysuits', 'wear', $lastwornbodysuittype['sport'], lastwornbodysuitnumber['sport']
-					else
-						gs 'panties', 'wear', $lastwornpantytype['sport'], lastwornpantynumber['sport']
-						gs 'bras',    'wear', $lastwornbratype['sport'],   lastwornbranumber['sport']
-					end
-					gs 'shoes',  'wear', $lastwornshoetype['sport'],  lastwornshoenumber['sport']
-					gs 'purses', 'wear', $lastwornpursetype['sport'], lastwornpursenumber['sport']
-					gs 'coats',  'wear', $lastworncoattype['sport'],  lastworncoatnumber['sport']
-					gt $loc, $loc_arg
-				end
+			act 'Change into your regular clothes':
+				gs 'wardrobe', 'back_to_regular_clothes'
+				if func('prostitution_functions', 'is_default') ! 0: gs 'wardrobe', 'back_to_regular_clothes'
+				gt $loc, $loc_arg
 			end
 		end
 	end
 end
 
+if $ARGS[0] = 'is_sport':
+	!! checks to see if player is wearing the default sports set using default_sport_number[2]
+	default_sport_number[2] = 0
+	if $clothingworntype = $defclothingtype[default_sport_number] and clothingwornnumber = defclothingnumber[default_sport_number]: default_sport_number[2] += 1
+	if defunderwear[default_sport_number] = 2:
+		if $bodysuitworntype = $defbodysuittype[default_sport_number] and bodysuitwornnumber = defbodysuitnumber[default_sport_number]: default_sport_number[2] += 1
+	else
+		if $pantyworntype = $defpantytype[default_sport_number] and pantywornnumber = defpantynumber[default_sport_number] and $braworntype = $defbratype[default_sport_number] and brawornnumber = defbranumber[default_sport_number]: default_sport_number[2] += 1
+	end
+	if $shoeworntype = $defshoetype[default_sport_number] and shoewornnumber = defshoenumber[default_sport_number]: default_sport_number[2] += 1
+	if $currentpursetype = $defpursetype[default_sport_number] and currentpursenumber = defpursenumber[default_sport_number]: default_sport_number[2] += 1
+	if $coatworntype = $defcoattype[default_sport_number] and coatwornnumber = defcoatnumber[default_sport_number]: default_sport_number[2] += 1
+end
+
+if $ARGS[0] = 'back_to_regular_clothes':
+
+	!! wearing prostitute outfit
+	if func('prostitution_functions', 'is_default') ! 0:
+		if $lastwornclothingtype['prostitute'] = '':
+			gs 'clothing', 'wear_last_worn'
+			gs 'underwear', 'wear', 'wear_last_worn'
+			gs 'shoes', 'wear', 'last_worn'
+			gs 'purses', 'wear', 'last_worn'
+			gs 'coats', 'wear', 'last_worn'
+		else
+			!!-- Clothing
+			gs 'clothing', 'wear', $lastwornclothingtype['prostitute'], lastwornclothingnumber['prostitute']
+			!!-- Underwear
+			if lastwornunderwear['prostitute'] = 2:
+				gs 'underwear_bodysuits', 'wear', $lastwornbodysuittype['prostitute'], lastwornbodysuitnumber['prostitute']
+			else
+				gs 'panties', 'wear', $lastwornpantytype['prostitute'], lastwornpantynumber['prostitute']
+				gs 'bras',    'wear', $lastwornbratype['prostitute'],   lastwornbranumber['prostitute']
+			end
+			!!-- Shoes
+			gs 'shoes',  'wear', $lastwornshoetype['prostitute'],  lastwornshoenumber['prostitute']
+			gs 'purses', 'wear', $lastwornpursetype['prostitute'], lastwornpursenumber['prostitute']
+			gs 'coats',  'wear', $lastworncoattype['prostitute'],  lastworncoatnumber['prostitute']
+		end
+
+		gs 'prostitution_functions', 'work_clothes'
+		if prostitute['changed_for_work']: prostitute['changed_for_work'] = 0
+
+	!! wearing sport outfit
+	elseif default_sport_number[2] >= 5:
+		if $lastwornclothingtype['sport'] = '':
+			gs 'clothing', 'wear_last_worn'
+			gs 'underwear', 'wear', 'wear_last_worn'
+			gs 'shoes', 'wear', 'last_worn'
+			gs 'purses', 'wear', 'last_worn'
+			gs 'coats', 'wear', 'last_worn'
+		else
+			gs 'clothing', 'wear', $lastwornclothingtype['sport'], lastwornclothingnumber['sport']
+
+			if lastwornunderwear['sport'] = 2:
+				gs 'underwear_bodysuits', 'wear', $lastwornbodysuittype['sport'], lastwornbodysuitnumber['sport']
+			else
+				gs 'panties', 'wear', $lastwornpantytype['sport'], lastwornpantynumber['sport']
+				gs 'bras',    'wear', $lastwornbratype['sport'],   lastwornbranumber['sport']
+			end
+			gs 'shoes',  'wear', $lastwornshoetype['sport'],  lastwornshoenumber['sport']
+			gs 'purses', 'wear', $lastwornpursetype['sport'], lastwornpursenumber['sport']
+			gs 'coats',  'wear', $lastworncoattype['sport'],  lastworncoatnumber['sport']
+		end
+
+		default_sport_number[2] = 0
+	end
+end
 
 --- wardrobe ---------------------------------
 
