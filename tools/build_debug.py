@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# usage: txtmerge.py <input_dir> <output_file_name>
+# usage: build_debug.py <input_dir> <output_file_name>
 # does the exact opposite of txtsplit.py
 
 import os
@@ -7,7 +7,7 @@ import sys
 import io
 import xml.etree.ElementTree as ET
 
-assert len(sys.argv) == 3, "usage:\ntxtmerge.py <input_dir> <output_file_name>"
+assert len(sys.argv) == 3, "usage:\nbuild_debug.py <input_dir> <output_file_name>"
 idir = str(sys.argv[1])
 oname = str(sys.argv[2])
 
