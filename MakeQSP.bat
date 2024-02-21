@@ -69,17 +69,19 @@ if defined NOT_FOUND (
 )
 
 echo.
-echo ACTIONS: (B)uild  (R)un  (F)ull  (Q)Gen (V)alidate (E)xit
+echo ACTIONS: (B)uild  (D)ebug  (R)un  (F)ull  (Q)Gen  (V)alidate  (E)xit
 echo.
 set /p action=Choose an action:
 
 if defined QSPFILE (
 	if %action% == b goto build
+	if %action% == d goto build_debug
 	if %action% == r goto run
 	if %action% == f goto build
 	if %action% == v goto parser
 	if %action% == q goto qgen
 	if %action% == B goto build
+	if %action% == D goto build_debug
 	if %action% == R goto run
 	if %action% == F goto build
 	if %action% == V goto parser
@@ -108,6 +110,23 @@ echo.
 echo Done.
 pause
 if %action% == f ( goto run ) else ( goto menu )
+
+:build_debug
+echo.
+echo Building DEBUG ...
+
+@ECHO ON
+python tools\build_debug.py locations glife.txt
+tools\txt2gam.exe glife.txt %QSPFILE% > nul
+@ECHO OFF
+
+echo.
+if defined CP_TO ( echo Copying %QSPFILE% to "%CP_TO%" ... & copy %QSPFILE% %CP_TO% > nul )
+
+echo.
+echo Done.
+pause
+goto menu
 
 :qgen
 echo.
