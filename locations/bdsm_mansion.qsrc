@@ -1,16 +1,37 @@
 # bdsm_mansion
-if $ARGS[0] = 'Hos':
+
+!!{variables for BDSM mansion
+	bdsmclub['unlocked'] = 1 - club unlocked
+	bdsmclub['intro'] = 1 - intro interview complete
+	bdsmclub['subtraining'] - sub training counter
+	bdsmclub['domtraining'] - dom training counter
+	bdsmclub['annatraining'] = 1 - bypass train if you have been trained by Anna
+	bdsmclub['training_daystart'] = daystart - check to stop further training on same day
+	bdsmclub['payday'] = daystart - subscription paid for dom access due every 30 days
+	bdsmclub['role'] = 'sub' or 'dom' - access used and maintained during that visit as either a sub or a dom
+}
+
+if $ARGS[0] = 'taxi':
+	$loc_arg = 'start'
+	$loc = 'bdsm_mansion'
+	$location_type = 'public_outdoors'
+	$menu_loc = 'bdsm_mansion'
+	$menu_arg = 'start'
+	menu_off = 0
 	*clr & cla
-	menu_off = 1
-	minut += 10
-	lesbiday = daystart
-	BDSMClub = 1
-	gs 'drugs', 'alcohol', 'wine'
+	minut += 5
 	gs 'stat'
-	'<center><img <<$set_imgh>> src="images/locations/city/suburb/bdsm_club/hosjaika.jpg"></center>'
-	'After a few visits to your Mistress you are getting a little closer. Seeing her this evening, you catch her a little tipsy. Instead of already familiar perversions, you just sit in the kitchen and drink wine, talking about life. In conversation, the Mistress mentions a BDSM club. Sounds interesting, you and the Mistress pour glass after glass and slowly you gather details from her. Turns out, the city has an elite BDSM-club, and the missus is in it. After much persuasion, she gives you a business card – a piece of cardboard with three-dimensional logo without inscriptions, and explains how to get to the Club.'
-	act 'Leave':gt 'city_residential'
+	'<center><img <<$set_imgh>> src="images/locations/city/suburb/bdsm_club/club.jpg"></center>'
+	if hour < 16 and hour > 2:
+		bdsmclub['unlocked'] = 1
+		'The taxi brings you in a gated community outside of town and drops you off at the closed wrought iron gate. You attempt to enter the secret club but the guard tells you it is closed. You show your card and he tells you to come back after 16:00.'
+		act 'Leave':gt 'city_suburbs', 'start'
+	else
+		'The taxi brings you in a gated community outside of town and drops you off at the closed wrought iron gate. From the booth comes a guard, you show him the business card. Without saying anything, he opens the gate and points you towards the door. You walk alone a marble tiled walkway past the neatly clipped shrubs and flower beds. An other guard meets you, and leads you into the mansion through the main door.'
+		act 'Enter club':gt 'bdsm_mansion', 'intro'
+	end
 end
+
 
 if $ARGS[0] = 'start':
 	$loc_arg = 'start'
@@ -20,150 +41,105 @@ if $ARGS[0] = 'start':
 	$menu_arg = 'start'
 	menu_off = 0
 	*clr & cla
-	minut += 10
+	minut += 5
 	gs 'stat'
 	'<center><img <<$set_imgh>> src="images/locations/city/suburb/bdsm_club/club.jpg"></center>'
-	if BDSMtaxi = 1 and BDSMmeet = 0:
+	'You are standing a large mansion in the suburbs of St Petersberg.'
+	if bdsmclub['unlocked'] = 1:
+		'You know this to be a BDSM club for rich people and you have access.'
+		act 'Go to the elite settlement':gt 'city_suburbs', 'start'
 		if hour < 16 and hour > 2:
-			'The taxi brings you in a gated community outside of town and drops you off at the closed wrought iron gate. You attempt to enter the secret club but the guard tells you it is closed. You show your card and he tells you to come back after 16:00.'
+			*nl
+			'The club is closed until 16:00.'
 			act 'Leave':gt 'city_suburbs', 'start'
 		else
-			'The taxi brings you in a gated community outside of town and drops you off at the closed wrought iron gate. From the booth comes a guard, you show him the business card. Without saying anything, he opens the gate and points you in the direction. You walk to a marble tiled walkway past the neatly clipped shrubs and flower beds. An other guard meets you, and leads you into the mansion through an inconspicuous side door.'
-			act 'Enter club':gt 'bdsm_mansion', 'in'
-		end
-	elseif BDSMday = daystart and hour > 16 or hour < 2:
-		act 'Return to the club':gt 'bdsm_mansion', 'start'
-	elseif BDSMClubIn = 1:
-		if hour < 16 and hour > 2:
-			'You are standing outside the BDSM club but it is closed until 16:00.'
-			act 'Leave':gt 'city_suburbs', 'start'
-		else
-			'You are standing outside the BDSM club which is currently open.'
-			act 'Leave':gt 'city_suburbs', 'start'
-			if $BDSMrole ! '':
-				act 'Enter the club':gt 'bdsm_mansion', 'start'
-			else
-				act 'Enter the club':BDSMday = daystart & gt 'bdsm_hallway', 'foyer'
+			if bdsmclub['training_daystart'] ! daystart:
+				if bdsmclub['subtraining'] < 3:
+					act 'Get submissive training': gt 'bdsm_training', 'start'
+				end
+				if bdsmclub['domtraining'] < 1
+					if bdsmclub['payday'] + 30 > daystart:
+						act 'Get Dominant training': gt 'bdsm_training', 'dom'
+					else
+						act 'Get Dominant training (unavailable until subscription is paid)': gt 'bdsm_mansion', 'start'
+					end
+				end
+				act 'Enter the club':gt 'bdsm_hallway', 'foyer'
 			end
 		end
-	elseif BDSMmeet = 1:
-		if $BDSMrole = 's' and ($clothingworntype ! 'gm_maid' or PCloStyle2 ! 1):
-			'You are not wearing a maid uniform or suitable fetish wear and security refuse you entry.'
-		else
-			if $BDSMrole = 's':
-				gt 'bdsm_training', 'start'
-			else
-				gt 'bdsm_training', 'd_start'
-			end
-		end
-	elseif BDSMmeet < 4:
-		gt 'bdsm_training', 'start'
+		gs 'taxi'		
+	else
+		act 'Go to the elite settlement':gt 'city_suburbs', 'start'
 	end
-
-	gs 'taxi'
-	act 'Elite settlement':gt 'city_suburbs', 'start'
 end
 
-if $ARGS[0] = 'in':
+if $ARGS[0] = 'intro':
 	*clr & cla
 	menu_off = 1
-	BDSMmeet += 1
-	BDSMday = daystart
+	bdsmclub['intro'] = 1
+	bdsmclub['training_daystart'] = daystart
 	gs 'stat'
-	if BDSMmeet = 1:
+	*clr & cla
+	minut += 10
+	gs 'stat'
+	'<center><img <<$set_imgh>> src="images/locations/city/suburb/bdsm_club/1_1.jpg"></center>'
+	'You''re standing in an office, at a table in front of you sits a woman in a strict business suit. Her strict gaze as looks right through you. You show her the card, she briefly says.'
+	'"Candidate? Passport."'
+	'Your hand trembles as you reach out your passport.'
+	'The woman points you to a chair, turns to the computer and starts clicking on the keys. She nods a few times, but says nothing. Then takes the phone and speaks to someone called Vladimir Viktorovich, discussing you. "There''s candidacy, but a bit young, can you check and sort the paperwork? She hangs up, after a few minutes from the office comes a strapping man in a perfectly fitting suit and glasses with gold rim. He says, "Hello." And sits down next to you.'
+	'"What''s your name? <<$pcs_nickname>>? Fine. How old are you?"'
+	'You answer the questions.'
+	'"Tell me, are you sure you want this?"'
+	'You understand, all of the questions he is asking and why.'
+	'"Sure!" You tell him firmly.'
+	'"Well... everything here seems to be in order, there are no issues. Let''s sign some papers. A mere formality, to formally record, that you have grasped everything.'
+	'The man puts a sheet of paper on the table.'
+	'"Read aloud and sign."'
+	'You take the sheet and read "The application for voluntary informed consent" a long, binding document filled with legal terms, confirming your consent to voluntarily participate in actions of a sexual nature, which may be humiliating or degrading in nature and be accompanied by mild corporal punishment. You are not a lawyer, but you understand, this covers them if something goes wrong and takes every step to prevent that.'
+	'"I agree."'
+	'"Well," the woman puts her hands together and looks at you. Due to the nature of this club I have to carry out a visual inspection to confirm physical suitability.'
+	'"I do not know," you shrug. "What does that mean?"'
+	'"Simple you remove all your clothing and I have a good look, its a perk of the job. Besides we record this interview and it helps discourage talk about the club reaching people it should not."'
+	act 'Hesitate':
 		*clr & cla
 		minut += 10
-		$BDSMrole = ''
+		bdsmclub['intro'] = 1
 		gs 'stat'
-		'<center><img <<$set_imgh>> src="images/locations/city/suburb/bdsm_club/1_1.jpg"></center>'
-		'You''re standing in an office, at a table in front of you sits a woman in a strict business suit. Her strict gaze as looks right through you. You show her the card, she briefly says.'
-		'"Candidate? Passport."'
-		'Your hand trembles as you reach out your passport.'
-		'The woman points you to a chair, turns to the computer and starts clicking on the keys. She nods a few times, but says nothing. Then takes the phone and speaks to someone called Vladimir Viktorovich, discussing you. "There''s candidacy, but a bit young, can you check and sort the paperwork? She hangs up, after a few minutes from the office comes a strapping man in a perfectly fitting suit and glasses with gold rim. He says, "Hello." And sits down next to you.'
-		'"What''s your name? <<$pcs_nickname>>? Fine. How old are you?"'
-		'You answer the questions.'
-		'"Tell me, are you sure you want this?"'
-		'You understand, all of the questions he is asking and why.'
-		'"Sure!" You tell him firmly.'
-		'"Well... everything here seems to be in order, there are no issues. Let''s sign some papers. A mere formality, to formally record, that you have grasped everything.'
-		'The man puts a sheet of paper on the table, take a videocamera from the draw and points it at you and clicks the button.'
-		'"Read aloud and sign."'
-		'You take the sheet and read "The application for voluntary informed consent" a long, binding document filled with legal terms, confirming your consent to voluntarily participate in actions of a sexual nature, which may be humiliating or degrading in nature and be accompanied by mild corporal punishment. You are not a lawyer, but you understand, this covers them if something goes wrong and takes every step to prevent that.'
-		'"I agree."'
-		'"Well," the woman puts her hands together and looks at you. Who do you want to be? Top or bottom?'
-		'"I do not know," you shrug. "What does that mean?"'
-		'"Dominant or submissive?"'
-		act 'Submissive':
-			*clr & cla
-			minut += 10
-			$BDSMrole = 's'
-			gs 'stat'
-			'<center><img <<$set_imgh>> src="images/locations/city/suburb/bdsm_club/r<<BDSMmeet>>_2.jpg"></center>'
-			'The woman''s eyes light up. She stands up behind the desk and orders you.'
-			'"Stand up!"'
-			'You jump, than understand, why you did. The imperious voice of this Lady holds you in awe.'
-			'"No sitting lower in the presence of top. Understood?"'
-			'"Yes."'
-			'"Wrong! Try again!"'
-			'"Yes, Mistress."'
-			'The woman nods. "Undress!"'
-			'"But..."'
-			'"Undress, now! Or I''ll have security do it for you!" Mistress has her hand on the table, her finger hovering over a small red button which you have to assume will summon the security guard.'
-			'You look to the man you were just talking to, but he just stands there, expressionless. You undress.'
-			'"Sign!"'
-			'You sign the document. The man places the paper in a folder.'
-			'"Listen carefully..."'
-			'She explains to you, that the club costs 30,000 <b>₽</b> registration, a slave has free entry but must comply with any requests made of them. Failure to do so can result in your registration being revoked. If the slave is well behaved there may be additional tasks they can carry out to earn some more money.'
-			'Untrained slaves are not allowed in the Mansion, you will require training. You''ll have to report to me for that, I''m going to enjoy it.'
-			'"Come back when you are ready for training. Be clean, have an enema. You must own a maid outfit, so you will be wearing it. Everything clear?'
-			'"But... what if I don''t have a maid outfit?..." You whisper.'
-			'"Find a branch of G & M and buy one, and don''t forget to bring the 30 thousand <b>₽</b> registration fee. We are not a charitable organization. But the main thing – do not talk. We have important clients and don''t need advertising so do not tell anyone about us. Everything clear?"'
-			'"Clear... Mistress..."'
-			'As you are leaving you think, <<$OpenInnerThought>>"Where will I get the money for the down payment."<<$CloseInnerThought>>'
-			act 'Leave':gt 'bdsm_mansion', 'start'
-		end
-		gs 'willpower', 'misc', 'resist', 'hard'
-		if will_cost <= pcs_willpwr:
-			act 'Dominant (<<will_cost>> Willpower)':
-				*clr & cla
-				minut += 10
-				$BDSMrole = 'd'
-				gs 'willpower', 'misc', 'resist', 'hard'
-				gs 'willpower', 'pay', 'resist'
-				gs 'stat'
-				!'<center><img <<$set_imgh>> src="images/bdsm_club/<<$BDSMrole>><<BDSMmeet>>_2.jpg"></center>'
-				'The woman sighs disappointedly.'
-				'"Pity, we are short on subs."'
-				'"There is a registration fee of 30,000 <b>₽</b>, then there is a monthly fee of 15,000 <b>₽</b> with your first month free. You should wear nice clothing, don''t want to get mistaken for staff or a sub."'
-				'"That seems reasonable" You reply.'
-				'"If you find a submissive and come together, then they can earn you tips. Alternatively if you want to change things up then you could visit as a sub, for that there is no need to have your monthly fee paid but you must be dressed as a maid or in submissive fetish wear. You would need to do the sub training with me too." She licks her lips as she says this.'
-				act 'Thanks but not my thing':
-					'"Of course, I am simply presenting the option"'
-					gs 'bdsm_mansion', 'in2'
-				end
-				act 'We''ll see':
-					'She smiles and her hand goes to her thigh, clearly she finds being a Dom arousing.'
-					'"Any time you want sub training you just let me know."'
-					gs 'bdsm_mansion', 'in2'
-				end
+		'<center><img <<$set_imgh>> src="images/locations/city/suburb/bdsm_club/r1_2.jpg"></center>'
+		'The woman''s eyes light up. She stands up behind the desk and orders you.'
+		'"Stand up!"'
+		'You jump, than understand, why you did. The imperious voice of this Lady holds you in awe.'
+		'"Undress!"'
+		'"But..."'
+		'"Undress, now! Or I''ll have security do it for you!" She has her hand on the table, her finger hovering over a small red button which you have to assume will summon the security guard.'
+		'You look to Vladimir you were just talking to, but he just stands there, expressionless. You undress.'
+		'"Sign!"'
+		'You sign the document. The man places the paper in a folder and leaves.'
+		'"Listen carefully..."'
+			act 'Listen':
+			'<center><img <<$set_imgh>> src="images/locations/city/suburb/bdsm_club/r1_1.jpg"></center>'
+			'She explains that there are two ways to visit the club, either as a submissive where you will be subject to sexualization and humiliation, but its free. Or you can pay a monthly fee of 10,000<b>₽</b> and visit as a Dominant, in this case you will be able to sexualize and humiliate the submissives.'
+			'For each role there is something of a dress code in that subs must dress either in submissive fetishwear, as a maid or be naked. A dominant simply has to be dressed in expensive quality clothing.'
+			'There is also a required training aspect.'
+			if bdsmclub['annatraining'] = 1:
+				'You tell Mistress Electra that you have been training with Anna'
+				'"OMG! She told me to look out for you and I clean forgot. I''m so sorry, I''ll mark your training for both roles as complete."'
+				'Due to some contract law you can''t use the club today but you will be able to from tomorrow.'
+			else
+				'Before you can use the club you must either have paid your monthly subscription and I will run you through the rules for Dominants.'
+				'Or You can do my complimentary submissive training over 4 days of your choice (not Tuesdays or Thursdays) and then you can enjoy the free submissive experience.'
 			end
-		else
-			act 'Dominant (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
+			'"When you arrive at the club you must go to the dressing room and change into suitable clothing for your role, that role remains while in the club but for those wanting to experience all that we have to offer you can switch my changing into the appropriate clothing in the dressing room, but remember you cannot enter as a Dom unless your subscription is paid in advance."'
+			'"We are do here, you may leave."'
+			act 'Leave': gt 'bdsm_mansion', 'start'
 		end
 	end
 end
 
-if $ARGS[0] = 'in2':
-	'"Before you can enter the club there are rules and guidelines that even our Doms must follow, so you will have some orientation under the guidance of an experienced mistress." She points at herself, "The cost of this is covered by your registration fee. If you are satisfied, sign this document."'
-	'You sign the document. The man places the paper in a folder.'
-	'As you are leaving, you think, <<$OpenInnerThought>>"Where will I get the money for the registration fee and how can I persuade someone to come here as a sub."<<$CloseInnerThought>>'
-	act 'Leave':gt 'bdsm_mansion', 'start'
-end
-
-if $ARGS[0] = 'start':
+if $ARGS[0] = 'office':
 	*clr & cla
 	$menu_loc = 'bdsm_mansion'
-	$menu_arg = 'start'
+	$menu_arg = 'office'
 	menu_off = 0
 	gs 'stat'
 	if week = 2 or week = 4:
@@ -173,28 +149,25 @@ if $ARGS[0] = 'start':
 		'<center><img <<$set_imgh>> src="images/locations/city/suburb/bdsm_club/1_1.jpg"></center>'
 		'You enter the club and Mistress Elektra is sitting at her desk overseeing admissions.'
 	end
-	if $BDSMrole = 's' or BDSMpayDay < daystart + 30:
-		act 'Enter the club':gt 'bdsm_hallway', 'foyer'
+	act 'Return to dressing room':gt 'bdsm_dressing'
+	if money < 10000 and karta  < 10000:
+		*nl
+		'You cannot afford the 10,000 rubes required to extend your club membership.'
 	else
-		act 'Leave':gt 'bdsm_mansion', 'start'
-		if money < 10000 and karta  > 10000:
-			'You cannot afford the 10,000 rubes required to extend your club membership.'
-		else
-			if money > 10000:
-				act 'Pay 10,000 <b>₽</b> to extend your membership and enter the club':
-					BDSMpayDay = daystart
-					BDSMday = daystart
-					money -= 10000
-					gt 'bdsm_hallway', 'foyer'
-				end
+		if money > 10000:
+			act 'Pay 10,000 <b>₽</b> to extend your membership and return to the dressing room':
+				bdsmclub['payday'] = daystart
+				bdsmclub['training_daystart'] = daystart
+				money -= 10000
+				gt 'bdsm_dressing'
 			end
-			if karta > 10000:
-				act 'Pay 10,000 <b>₽</b> to extend your membership and enter the club':
-					BDSMpayDay = daystart
-					BDSMday = daystart
-					money -= 10000
-					gt 'bdsm_hallway', 'foyer'
-				end
+		end
+		if karta > 10000:
+			act 'Pay 10,000 <b>₽</b> to extend your membership and return to the dressing room':
+				bdsmclub['payday'] = daystart
+				bdsmclub['training_daystart'] = daystart
+				money -= 10000
+				gt 'bdsm_dressing'
 			end
 		end
 	end
@@ -218,8 +191,6 @@ if $ARGS[0] = 'reception':
 	act 'Go to the garage': gt 'bdsm_garden', 'garage'
 end
 
-if $ARGS[0] = 'office':
-end
 
 --- bdsm_mansion ---------------------------------
 
