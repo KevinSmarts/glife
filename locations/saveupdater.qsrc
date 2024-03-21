@@ -2624,6 +2624,47 @@ end
 
 !!------------------------------------!!Version 0.9.3.0!!-----------------------------------------------!!
 if temp_current_save_version < 00090300:
+	!!updates the exp to the new scale so you don''t go down in stat
+	gs 'stat_sklattrib'
+
+	i = 0 & x = 1
+	:rstloop
+	expadj = func('_difficulty','getexpadj')	
+	tl = 0
+	:trtrstloop
+	tltp = 0
+	:trtrstinsdlp
+!!	Note this loop is done with a flag set in the dynamic that is checked outside; this is because testing showed inconsistent results when jumping from inside the dynamic and with the whole loop in the dynamic.
+	dynamic "
+		if <<$traitattskl[tl]>> > 0 and <<$traitattskl[tl]>>[tltp + 1] = x and <<$traitattskl[tl]>>[tltp + 2] = i and <<$traitattskl[tl]>>[tltp + 3] ! 0: expadj += <<$traitattskl[tl]>>[tltp + 3]
+		if <<$traitattskl[tl]>>[tltp + 11] ! 0: insdlpflag = 1
+		"
+	if insdlpflag = 1: tltp += 10 & insdlpflag = 0 & jump 'trtrstinsdlp'
+	tl += 1
+	if tl < arrsize ('$traitattskl'): jump 'trtrstloop'
+	killvar 'tl' & killvar 'tltp' & killvar 'insdlpflag'
+
+	if x = 1:
+		$attskltmp = $att_name[i]
+	else
+		$attskltmp = $skl_name[i]
+	end
+
+	dynamic "
+		if <<$attskltmp>>_lvl > 0:
+			<<$attskltmp>>_exp -= (expadj * (<<$attskltmp>>_lvl - 1) * (<<$attskltmp>>_lvl - 1) / 180) 
+			<<$attskltmp>>_exp += (expadj *73* (<<$attskltmp>>_lvl - 1) * (<<$attskltmp>>_lvl - 1) / 2730) 
+			<<$attskltmp>>_mem = <<$attskltmp>>_exp
+		end
+	"
+	killvar 'expadj' & killvar '$attskltmp'
+	i += 1
+	if (x = 1 and i < arrsize ('$att_name')) or (x = 2 and i < arrsize ('$skl_name')): jump 'rstloop'
+	i = 0 & x += 1
+	if x < 3: jump 'rstloop'
+	killvar 'i' & killvar 'x'
+
+
 	!! Drugs variable migration
 	if NarkImmune				> 0:	drugVars['cheat_immune']			= NarkImmune			& killvar 'NarkImmune'
 	if SNarkPriton				> 0:	drugVars['city_drugden']			= SNarkPriton			& killvar 'SNarkPriton'
