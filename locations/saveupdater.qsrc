@@ -2619,6 +2619,129 @@ if temp_current_save_version < 00090202:
 	if motherQW['seen_dildos'] > 0 and motherKnowDildo = 0: motherKnowDildo = 1
 	if motherQW['seen_dildos'] = 0 and motherKnowDildo > 0: motherQW['seen_dildos'] = 1
 	if motherKnowRaped > 0: motherKnowSpravka = 1
+end
+
+
+!!------------------------------------!!Version 0.9.3.0!!-----------------------------------------------!!
+if temp_current_save_version < 00090300:
+	!!updates the exp to the new scale so you don''t go down in stat
+	gs 'stat_sklattrib'
+
+	i = 0 & x = 1
+	:rstloop
+	expadj = func('_difficulty','getexpadj')	
+	tl = 0
+	:trtrstloop
+	tltp = 0
+	:trtrstinsdlp
+!!	Note this loop is done with a flag set in the dynamic that is checked outside; this is because testing showed inconsistent results when jumping from inside the dynamic and with the whole loop in the dynamic.
+	dynamic "
+		if <<$traitattskl[tl]>> > 0 and <<$traitattskl[tl]>>[tltp + 1] = x and <<$traitattskl[tl]>>[tltp + 2] = i and <<$traitattskl[tl]>>[tltp + 3] ! 0: expadj += <<$traitattskl[tl]>>[tltp + 3]
+		if <<$traitattskl[tl]>>[tltp + 11] ! 0: insdlpflag = 1
+		"
+	if insdlpflag = 1: tltp += 10 & insdlpflag = 0 & jump 'trtrstinsdlp'
+	tl += 1
+	if tl < arrsize ('$traitattskl'): jump 'trtrstloop'
+	killvar 'tl' & killvar 'tltp' & killvar 'insdlpflag'
+
+	if x = 1:
+		$attskltmp = $att_name[i]
+	else
+		$attskltmp = $skl_name[i]
+	end
+
+	dynamic "
+		if <<$attskltmp>>_lvl > 0:
+			<<$attskltmp>>_exp -= (expadj * (<<$attskltmp>>_lvl - 1) * (<<$attskltmp>>_lvl - 1) / 180) 
+			<<$attskltmp>>_exp += (expadj *73* (<<$attskltmp>>_lvl - 1) * (<<$attskltmp>>_lvl - 1) / 2730) 
+			<<$attskltmp>>_mem = <<$attskltmp>>_exp
+		end
+	"
+	killvar 'expadj' & killvar '$attskltmp'
+	i += 1
+	if (x = 1 and i < arrsize ('$att_name')) or (x = 2 and i < arrsize ('$skl_name')): jump 'rstloop'
+	i = 0 & x += 1
+	if x < 3: jump 'rstloop'
+	killvar 'i' & killvar 'x'
+
+
+	!! Drugs variable migration
+	if NarkImmune				> 0:	drugVars['cheat_immune']			= NarkImmune			& killvar 'NarkImmune'
+	if SNarkPriton				> 0:	drugVars['city_drugden']			= SNarkPriton			& killvar 'SNarkPriton'
+	if snarkozak				> 0:	drugVars['pav_dropoff']				= snarkozak				& killvar 'snarkozak'
+
+	if siga_bum					> 0:	mc_inventory['cigarettes'] 			+= 1					& killvar 'siga_bum'
+	if smoker					> 0:	drugVars['cigarettes_used']			= smoker				& killvar 'smoker'
+	if smoke_exp				> 0:	drugVars['cigarettes_exp']			= smoke_exp				& killvar 'smoke_exp'
+	if smokerneed				> 0:	drugVars['cigarettes_need']			= smokerneed			& killvar 'smokerneed'
+	if smokeDay					> 0:	drugVars['cigarettes_day']			= smokeDay				& killvar 'smokeDay'
+	if smokeHour				> 0:	drugVars['cigarettes_hour']			= smokeHour				& killvar 'smokeHour'
+	if smokeminut				> 0:	drugVars['cigarettes_minute']		= smokeminut			& killvar 'smokeminut'
+
+	if joint					< 0:	killvar 'joint'
+	if joint					> 0:	mc_inventory['joints']				= joint					& killvar 'joint'
+	if jointhigh				> 0:	drugVars['weed_high']				= jointhigh				& killvar 'jointhigh'
+	if joint_smoked 			> 0:	drugVars['weed_used']				= joint_smoked			& killvar 'joint_smoked'
+	if joint_exp				> 0:	drugVars['weed_exp']				= joint_exp				& killvar 'joint_exp'
+	if jointday					> 0:	drugVars['weed_day']				= jointday				& killvar 'jointday'
+	if jointhour				> 0:	drugVars['weed_hour']				= jointhour				& killvar 'jointhour'
+	if jointminut				> 0:	drugVars['weed_minute']				= jointminut			& killvar 'jointminut'
+
+	if SNarkTimes['inject']		> 0:	drugVars['heroin_inject']			= SNarkTimes['inject']
+	if StrongNarkota			> 0:	drugVars['heroin_high']				= StrongNarkota			& killvar 'StrongNarkota'
+	if SNarkTimes				> 0:	drugVars['heroin_used']				= SNarkTimes			& killvar 'SNarkTimes'
+	if heroin_exp				> 0:	drugVars['heroin_exp']				= heroin_exp			& killvar 'heroin_exp'
+	if SLomka					> 0:	drugVars['heroin_need']				= SLomka				& killvar 'SLomka'
+	if narkozakday				> 0:	drugVars['heroin_day']				= narkozakday			& killvar 'narkozakday'
+	if NarkShmaraTimes			> 0:	drugVars['heroin_whore']			= NarkShmaraTimes		& killvar 'NarkShmaraTimes'
+	if SNarkvnesh				> 0:	drugVars['heroin_penalty']			= SNarkvnesh			& killvar 'SNarkvnesh'
+
+	if dur						> 0:	mc_inventory['cocaine']				= dur					& killvar 'dur'
+	if nark						> 0:	drugVars['cocaine_system']			= nark					& killvar 'nark'
+	if cocaine_count			> 0:	drugVars['cocaine_used']			= cocaine_count			& killvar 'cocaine_count'
+	if cocaine_exp				> 0:	drugVars['cocaine_exp']				= cocaine_exp			& killvar 'cocaine_exp'
+	if narkday					> 0:	drugVars['cocaine_day']				= narkday				& killvar 'narkday'
+	if narkoman					> 0:	drugVars['cocaine_addict']			= narkoman				& killvar 'narkoman'
+	if willday_cocaine			> 0:	drugVars['cocaine_willday']			= willday_cocaine		& killvar 'willday_cocaine'
+
+	if amphetamine				> 0:	mc_inventory['amphetamine']			= amphetamine			& killvar 'amphetamine'
+	if amphHigh					> 0:	drugVars['amphetamine_high']		= amphHigh				& killvar 'amphHigh'
+	if amphetamine_count		> 0:	drugVars['amphetamine_used']		= amphetamine_count		& killvar 'amphetamine_count'
+	if amphetamine_exp			> 0:	drugVars['amphetamine_exp']			= amphetamine_exp		& killvar 'amphetamine_exp'
+	if amphIntake				> 0:	drugVars['amphetamine_intake']		= amphIntake			& killvar 'amphIntake'
+	if amphWithdrawl			> 0:	drugVars['amphetamine_withdrawl']	= amphWithdrawl			& killvar 'amphWithdrawl'
+	if amphetamineBonus			> 0:	drugVars['amphetamine_bonus']		= amphetamineBonus		& killvar 'amphetamineBonus'
+
+	if mentats_have				> 0:	mc_inventory['mentats']				= mentats_have			& killvar 'mentats_have'
+	if mentats_dose				> 0:	drugVars['mentats_dose']			= mentats_dose			& killvar 'mentats_dose'
+
+	if alcohol_count			> 0:	drugVars['alcohol_used']			= alcohol_count			& killvar 'alcohol_count'
+	if alcohol_exp				> 0:	drugVars['alcohol_exp']				= alcohol_exp			& killvar 'alcohol_exp'
+
+	if aphrodisiac_have			> 0:	mc_inventory['aphrodisiac']			= aphrodisiac_have		& killvar 'aphrodisiac_have'
+	if aphrodisiac_addiction	> 0:	drugVars['aphrodisiac_addict']		= aphrodisiac_addiction	& killvar 'aphrodisiac_addiction'
+	if aphrodisiac_timer		> 0:	drugVars['aphrodisiac_timer']		= aphrodisiac_timer		& killvar 'aphrodisiac_timer'
+	if aphrodisiac_overdose		> 0:	drugVars['aphrodisiac_overdose']	= aphrodisiac_overdose	& killvar 'aphrodisiac_overdose'
+	if $aphrodisiac_msg			! '':	$drugVars['aphrodisiac_msg']		= $aphrodisiac_msg		& killvar 'aphrodisiac_msg'
+
+	if steroid_have				> 0:	mc_inventory['steroids']			= steroid_have			& killvar 'steroid_have'
+	if steroid_counter			> 0:	drugVars['steroids_used']			= steroid_counter		& killvar 'steroid_counter'
+	if steroid_dose				> 0:	drugVars['steroids_dose']			= steroid_dose			& killvar 'steroid_dose'
+
+	if bcream_have				> 0:	mc_inventory['breastcream']			= bcream_have			& killvar 'bcream_have'
+	if bcream_used				> 0:	drugVars['breastcream_dose']		= bcream_used			& killvar 'bcream_used'
+
+
+
+	! Adding the new room in gadukino to the home_name array:
+	$home_name['gadsarai'] = 'grandparents_house'
+
+	! heart-shaped butt added:
+	dynamic $npc_preferences['A14']
+	if arrpos('$npc_pref_traits', 'body_ass_heart') < 0:
+		gs 'npc_set_preference', 'A14', 'body_ass_heart', 'like'
+	end
+	killvar 'npc_pref_traits'
 
 end
 
