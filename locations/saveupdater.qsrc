@@ -2591,8 +2591,8 @@ if temp_current_save_version < 00090201:
 	killvar 'rej_sz'
 end
 
-!!------------------------------------!!Version 0.9.2.2!!-----------------------------------------------!!
 
+!!------------------------------------!!Version 0.9.2.2!!-----------------------------------------------!!
 
 if temp_current_save_version < 00090202:
 	!!updating of BDSM club variables to use array and be generally better
@@ -2623,7 +2623,49 @@ end
 
 
 !!------------------------------------!!Version 0.9.3.0!!-----------------------------------------------!!
+
 if temp_current_save_version < 00090300:
+	!!updates the exp to the new scale so you don''t go down in stat
+	gs 'stat_sklattrib'
+
+	i = 0 & x = 1
+	:rstloop
+	expadj = func('_difficulty','getexpadj')	
+	tl = 0
+	:trtrstloop
+	tltp = 0
+	:trtrstinsdlp
+!!	Note this loop is done with a flag set in the dynamic that is checked outside; this is because testing showed inconsistent results when jumping from inside the dynamic and with the whole loop in the dynamic.
+	dynamic "
+		if <<$traitattskl[tl]>> > 0 and <<$traitattskl[tl]>>[tltp + 1] = x and <<$traitattskl[tl]>>[tltp + 2] = i and <<$traitattskl[tl]>>[tltp + 3] ! 0: expadj += <<$traitattskl[tl]>>[tltp + 3]
+		if <<$traitattskl[tl]>>[tltp + 11] ! 0: insdlpflag = 1
+		"
+	if insdlpflag = 1: tltp += 10 & insdlpflag = 0 & jump 'trtrstinsdlp'
+	tl += 1
+	if tl < arrsize ('$traitattskl'): jump 'trtrstloop'
+	killvar 'tl' & killvar 'tltp' & killvar 'insdlpflag'
+
+	if x = 1:
+		$attskltmp = $att_name[i]
+	else
+		$attskltmp = $skl_name[i]
+	end
+
+	dynamic "
+		if <<$attskltmp>>_lvl > 0:
+			<<$attskltmp>>_exp -= (expadj * (<<$attskltmp>>_lvl - 1) * (<<$attskltmp>>_lvl - 1) / 180) 
+			<<$attskltmp>>_exp += (expadj *73* (<<$attskltmp>>_lvl - 1) * (<<$attskltmp>>_lvl - 1) / 2730) 
+			<<$attskltmp>>_mem = <<$attskltmp>>_exp
+		end
+	"
+	killvar 'expadj' & killvar '$attskltmp'
+	i += 1
+	if (x = 1 and i < arrsize ('$att_name')) or (x = 2 and i < arrsize ('$skl_name')): jump 'rstloop'
+	i = 0 & x += 1
+	if x < 3: jump 'rstloop'
+	killvar 'i' & killvar 'x'
+
+
 	!! Drugs variable migration
 	if NarkImmune				> 0:	drugVars['cheat_immune']			= NarkImmune			& killvar 'NarkImmune'
 	if SNarkPriton				> 0:	drugVars['city_drugden']			= SNarkPriton			& killvar 'SNarkPriton'
@@ -2702,12 +2744,74 @@ if temp_current_save_version < 00090300:
 	end
 	killvar 'npc_pref_traits'
 
-end
+	! Professional runner variable migration
+	if begsec		> 0:	runnerQW['joined_team']		= begsec		& killvar 'begsec'
+	if run_comp_day	> 0:	runnerQW['comp_day']		= run_comp_day	& killvar 'run_comp_day'
+	if kolsorev		> 0:	runnerQW['races_ran']		= kolsorev		& killvar 'kolsorev'
+	if razradbeg	> 0:	runnerQW['prof_stage']		= razradbeg		& killvar 'razradbeg'
+	if bronzebeg	> 0:	runnerQW['bronze_medals']	= bronzebeg 	& killvar 'bronzebeg'
+	if silverbeg	> 0:	runnerQW['silver_medals']	= silverbeg 	& killvar 'silverbeg'
+	if goldbeg		> 0:	runnerQW['gold_medals']		= goldbeg		& killvar 'goldbeg'
+	if razradbegK	> 0:	runnerQW['qualifiers']		= razradbegK	& killvar 'razradbegK'
+	if razradbegEB	> 0:	runnerQW['champ_bronze']	= razradbegEB	& killvar 'razradbegEB'
+	if razradbegES	> 0:	runnerQW['champ_silver']	= razradbegES	& killvar 'razradbegES'
+	if razradbegEG	> 0:	runnerQW['champ_gold']		= razradbegEG	& killvar 'razradbegEG'
 
+	if SchoolSorev	> 0:	runnerQW['pav_racetype']	= SchoolSorev	& killvar 'SchoolSorev'
+	if LocalRun		> 0:	runnerQW['pav_stage']		= LocalRun		& killvar 'LocalRun'
+	if swinbeg		> 0:	runnerQW['pav_wins1']		= swinbeg		& killvar 'swinbeg'
+	if swinbeggor	> 0:	runnerQW['pav_wins2']		= swinbeggor	& killvar 'swinbeggor'
+ 
+ 
+	!! Flash variable migration to singular array (which is killvared on site)
+	if dress_ind_bra			> 0:	killvar 'dress_ind_bra'
+	if dress_ind_tits			> 0:	killvar 'dress_ind_tits'
+	if dress_ind_panties		> 0:	killvar 'dress_ind_panties'
+	if dress_ind_pussy			> 0:	killvar 'dress_ind_pussy'
+	if dress_ind_pussy_hairy	> 0:	killvar 'dress_ind_pussy_hairy'
+	if dress_ind_pantyrear		> 0:	killvar 'dress_ind_pantyrear'
+	if dress_ind_butt			> 0:	killvar 'dress_ind_butt'
+	if dress_ind_full			> 0:	killvar 'dress_ind_full'
+	if dress_ind_full_hairy		> 0:	killvar 'dress_ind_full_hairy'
+
+	if dress_out_bra			> 0:	killvar 'dress_out_bra'
+	if dress_out_tits			> 0:	killvar 'dress_out_tits'
+	if dress_out_panties		> 0:	killvar 'dress_out_panties'
+	if dress_out_pussy			> 0:	killvar 'dress_out_pussy'
+	if dress_out_pussy_hairy	> 0:	killvar 'dress_out_pussy_hairy'
+	if dress_out_pantyrear		> 0:	killvar 'dress_out_pantyrear'
+	if dress_out_butt			> 0:	killvar 'dress_out_butt'
+	if dress_out_butt_plug		> 0:	killvar 'dress_out_butt_plug'
+	if dress_out_full			> 0:	killvar 'dress_out_full'
+	if dress_out_full_hairy		> 0:	killvar 'dress_out_full_hairy'
+
+	if pants_ind_bra			> 0:	killvar 'pants_ind_bra'
+	if pants_ind_tits			> 0:	killvar 'pants_ind_tits'
+	if pants_ind_panties		> 0:	killvar 'pants_ind_panties'
+	if pants_ind_pussy			> 0:	killvar 'pants_ind_pussy'
+	if pants_ind_pussy_hairy	> 0:	killvar 'pants_ind_pussy_hairy'
+	if pants_ind_pantyrear		> 0:	killvar 'pants_ind_pantyrear'
+	if pants_ind_butt			> 0:	killvar 'pants_ind_butt'
+	if pants_ind_full			> 0:	killvar 'pants_ind_full'
+	if pants_ind_full_hairy		> 0:	killvar 'pants_ind_full_hairy'
+
+	if pants_out_bra			> 0:	killvar 'pants_out_bra'
+	if pants_out_tits			> 0:	killvar 'pants_out_tits'
+	if pants_out_panties		> 0:	killvar 'pants_out_panties'
+	if pants_out_pussy			> 0:	killvar 'pants_out_pussy'
+	if pants_out_pussy_hairy	> 0:	killvar 'pants_out_pussy_hairy'
+	if pants_out_pantyrear		> 0:	killvar 'pants_out_pantyrear'
+	if pants_out_butt			> 0:	killvar 'pants_out_butt'
+	if pants_out_butt_plug		> 0:	killvar 'pants_out_butt_plug'
+	if pants_out_full			> 0:	killvar 'pants_out_full'
+	if pants_out_full_hairy		> 0:	killvar 'pants_out_full_hairy'
+
+
+
+end
 
 
 killvar 'temp_current_save_version'
 gs 'saveg'
 
 --- saveupdater ---------------------------------
-
