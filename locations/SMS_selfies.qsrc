@@ -1,0 +1,359 @@
+# SMS_selfies
+
+!{
+if $ARGS[0] = 'Trial':
+	gs 'SMStext_builder', 'start'
+		gs 'SMStext_builder', 'receive', 'Come on, send me a selfie'
+		gs 'SMStext_builder', 'send', 'Alright'
+		gs 'SMStext_builder', 'send_selfie', '[send selfie]', 'c|sw|u|n|b|sh|ft|fa|fp', 'SMS_selfies', 'Trial2'
+		gs 'SMStext_builder', 'add_sms', 'A144'
+	gs 'SMStext_builder', 'end'
+end
+
+
+if $ARGS[0] = 'Trial2':
+	gs 'SMStext_builder', 'start'
+		gs 'SMStext_builder', 'receive', 'Come on, send me a selfie'
+		gs 'SMStext_builder', 'send', 'Alright'
+		gs 'SMStext_builder', 'send_img', $ARGS[2]
+		if $ARGS[4] = 'clothed':
+			gs 'SMStext_builder', 'receive', 'Just a basic selfie'
+		elseif $ARGS[4] = 'bikini':
+			gs 'SMStext_builder', 'receive', 'Nice, a bikini selfie'
+		elseif $ARGS[4] = 'underwear':
+			gs 'SMStext_builder', 'receive', 'Cute underwear!'
+		elseif $ARGS[4] = 'nude':
+			gs 'SMStext_builder', 'receive', 'wow, a nudie!'
+		elseif $ARGS[4] = 'bath':
+			gs 'SMStext_builder', 'receive', 'Nice, a bath selfie'
+		elseif $ARGS[4] = 'shower':
+			gs 'SMStext_builder', 'receive', 'Nice, a shower selfie'
+		elseif $ARGS[4] = 'titflash':
+			gs 'SMStext_builder', 'receive', 'Naughty! Did someone see you flashing your tits?'
+		elseif $ARGS[4] = 'assflash':
+			gs 'SMStext_builder', 'receive', 'Naughty! Did someone see you flashing your butt?'
+		elseif $ARGS[4] = 'pussyflash':
+			gs 'SMStext_builder', 'receive', 'Naughty! Did someone see you flashing your pussy?'
+		end
+		gs 'SMStext_builder', 'show_sms', ARGS[1]
+	gs 'SMStext_builder', 'end'
+end
+}
+
+
+
+if $ARGS[0] = 'show_sms':
+	$temp_curSMS = $SMSMessage[ARGS[1]]
+	$SMSMessage[ARGS[1]] = $temp_SMS_selfietext
+	gs 'telefon', 'show_sms', ARGS[1]
+	$SMSMessage[ARGS[1]] = $temp_curSMS
+	killvar '$temp_SMS_selfietext'
+end
+
+if $ARGS[0] = 'exit':
+	gs 'telefon', 'show_sms', ARGS[1]
+end
+
+! $ARGS[1] = control string
+!  ARGS[2] = telefon['SMSid']
+! $ARGS[3] -> onward = return string
+if $ARGS[0] = 'selfie_menu':
+	gs 'phone_selfies', 'Phone_selfie_totals'
+	
+	!! Create the return string
+	$temp_return_string = ''
+	sms_s_n_args = arrsize('$ARGS')
+	sms_s_i = 3
+	:add_rest_ARGS_loop
+	if sms_s_i < sms_s_n_args:
+		$temp_return_string += '''<<$ARGS[sms_s_i]>>'', '
+		sms_s_i += 1
+		jump 'add_rest_ARGS_loop'
+	end
+	$temp_return_string = mid($temp_return_string, 1, len($temp_return_string)-2)
+
+
+	! reset temp_SMS_selftext
+	$temp_SMS_selfietext = '<table width=80%><th>Selfies</th><tr><td>'
+	temp_locationCnt = 0
+	:LocationLoop
+		$temp_SMS_selfietext += '<a href="exec: gs ''SMS_selfies'', ''showlocation'', <<temp_locationCnt>>, ''<<$ARGS[1]>>'', <<ARGS[2]>>, <<$temp_return_string>>"><<$selfieLocDesc[temp_locationCnt]>> selfies</a>'
+		$temp_SMS_selfietext += '</tr></td><tr><td>'
+		temp_locationCnt += 1
+	if temp_locationCnt < arrsize('$selfieLoc'): jump 'LocationLoop'
+
+	$temp_SMS_selfietext += '<a href="exec: gs ''SMS_selfies'', ''exit''">Exit</a></td></tr></table>'
+	gs 'SMS_selfies', 'show_sms', ARGS[3]
+
+	killvar 'temp_locationCnt'
+	killvar '$temp_return_string'
+	killvar 'sms_s_i'
+	killvar 'sms_s_n_args'
+end
+
+!  ARGS[1] = temp_locationCnt
+! $ARGS[2] = control string
+!  ARGS[3] = telefon['SMSid']
+! $ARGS[4] -> onward = return string
+if $ARGS[0] = 'showlocation':
+
+	!! Create the return string
+	$temp_return_string = ''
+	sms_s_n_args = arrsize('$ARGS')
+	sms_s_i = 4
+	:add_rest_ARGS_loop2
+	if sms_s_i < sms_s_n_args:
+		$temp_return_string += '''<<$ARGS[sms_s_i]>>'', '
+		sms_s_i += 1
+		jump 'add_rest_ARGS_loop2'
+	end
+	$temp_return_string = mid($temp_return_string, 1, len($temp_return_string)-2)
+
+	$temp_SMS_selfietext = '<table width=80%><tr><th><font color="maroon"><<$selfieLocDesc[ARGS[1]]>> selfies</font></th></tr>'
+
+	gs 'SMS_selfies', 'listretrieve', ARGS[1], $selfieLoc[ARGS[1]], $ARGS[2], ARGS[3], $temp_return_string
+
+	$temp_SMS_selfietext += '<tr><td colspan=3><a href="exec: gs ''SMS_selfies'', ''selfie_menu'', ''<<$ARGS[2]>>'', ''<<ARGS[3]>>'', <<$temp_return_string>>">Go Back</a></td></tr>'
+	$temp_SMS_selfietext += '<tr><td colspan=3><a href="exec: gs ''SMS_selfies'', ''exit''">Exit</a></td></tr></table>'
+
+	gs 'SMS_selfies', 'show_sms', ARGS[4]
+
+	killvar '$temp_return_string'
+	killvar 'sms_s_i'
+	killvar 'sms_s_n_args'
+end
+
+!  ARGS[1] = the index of the location in $selfieLoc[]
+! $ARGS[2] = the selfie location (park, home, etc)
+! $ARGS[3] = control string
+!  ARGS[4] = telefon['SMSid']
+! $ARGS[5] = return string
+if $ARGS[0] = 'listretrieve':
+	if strpos($ARGS[3], 'c')	> 0:	gs 'SMS_selfies', 'retrieve_clothed_selfies',		ARGS[1], $ARGS[2], $ARGS[5], ARGS[4]
+	if strpos($ARGS[3], 'sw')	> 0:	gs 'SMS_selfies', 'retrieve_swim_selfies',			ARGS[1], $ARGS[2], $ARGS[5], ARGS[4]
+	if strpos($ARGS[3], 'u')	> 0:	gs 'SMS_selfies', 'retrieve_underwear_selfies',		ARGS[1], $ARGS[2], $ARGS[5], ARGS[4]
+	if strpos($ARGS[3], 'n')	> 0:	gs 'SMS_selfies', 'retrieve_nude_selfies',			ARGS[1], $ARGS[2], $ARGS[5], ARGS[4]
+	if strpos($ARGS[3], 'b')	> 0:	gs 'SMS_selfies', 'retrieve_bath_selfies',			ARGS[1], $ARGS[2], $ARGS[5], ARGS[4]
+	if strpos($ARGS[3], 'sh')	> 0:	gs 'SMS_selfies', 'retrieve_shower_selfies',		ARGS[1], $ARGS[2], $ARGS[5], ARGS[4]
+	if strpos($ARGS[3], 'ft')	> 0:	gs 'SMS_selfies', 'retrieve_titflash_selfies',		ARGS[1], $ARGS[2], $ARGS[5], ARGS[4]
+	if strpos($ARGS[3], 'fa')	> 0:	gs 'SMS_selfies', 'retrieve_assflash_selfies',		ARGS[1], $ARGS[2], $ARGS[5], ARGS[4]
+	if strpos($ARGS[3], 'fp')	> 0:	gs 'SMS_selfies', 'retrieve_pussyflash_selfies',	ARGS[1], $ARGS[2], $ARGS[5], ARGS[4]
+end
+
+
+!  ARGS[1] = the index of the location in $selfieLoc[]
+! $ARGS[2] = the selfie location (park, home, etc)
+! $ARGS[3] = return string
+!  ARGS[4] = telefon['SMSid']
+if $ARGS[0] = 'retrieve_clothed_selfies':
+	!!Loop for clothed selfies, dynamics set variables as mixing them in loop instructions is bad
+	if selfieClotot[ARGS[1]] > 0:
+		$temp_SMS_selfietxt += '<tr><th colspan=3>Clothed selfies</th></tr><tr>'
+
+		temp_cnum = 1
+		temp_clocnt = 1
+		:temp_loop
+			!!setting value to unmixed variable so it can be checked in the if below
+			dynamic 'phone_locval = <<$ARGS[2]>>_closelfie[<<temp_clocnt>>]'
+			if phone_locval = 1:
+				if temp_cnum = 3: $temp_SMS_selfietext += '</tr><tr>' & temp_cnum = 0
+				temp_cnum += 1
+				$temp_SMS_selfietext += '<td width="33%">' + func('SMS_selfies_popup', 'set_selfie', $ARGS[3], ARGS[4], $ARGS[2], 'clothed', ARGS[1], temp_clocnt) + '</td>'
+			end
+			temp_clocnt += 1
+		if temp_clocnt <= selfieClotot[ARGS[1]]: jump 'temp_loop'
+		if temp_cnum ! 2: $temp_SMS_selfietext += '<td></td>'
+		$temp_SMS_selfietext += '</tr>'
+
+		killvar 'temp_clocnt'
+		killvar 'temp_cnum'
+	end
+
+elseif $ARGS[0] = 'retrieve_swim_selfies':
+	!!Loop for clothed selfies, dynamics set variables as mixing them in loop instructions is bad
+	if selfieSwimtot[ARGS[1]] > 0:
+		$temp_SMS_selfietxt += '<tr><th colspan=3>Swimwear selfies</th></tr><tr>'
+
+		temp_cnum = 0
+		temp_swicnt = 1
+		:temp_loop1
+			!!setting value to unmixed variable so it can be checked in the if below
+			dynamic 'phone_locval = <<$ARGS[2]>>_swim[<<temp_swicnt>>]'
+			if phone_locval = 1:
+				if temp_cnum = 2: $temp_SMS_selfietext += '</tr><tr>' & temp_cnum = 0
+				temp_cnum += 1
+				$temp_SMS_selfietext += '<td width="33%">' + func('SMS_selfies_popup', 'set_selfie', $ARGS[3], ARGS[4], $ARGS[2], 'bikini', ARGS[1], temp_swicnt) + '</td>'
+			end
+			temp_swicnt += 1
+		if temp_swicnt <= selfieClotot[ARGS[1]]: jump 'temp_loop1'
+		if temp_cnum ! 2: $temp_SMS_selfietext += '<td></td>'
+		$temp_SMS_selfietext += '</tr>'
+
+		killvar 'temp_swicnt'
+		killvar 'temp_cnum'
+	end
+
+elseif $ARGS[0] = 'retrieve_underwear_selfies':
+	if selfieUndtot[ARGS[1]] > 0:
+		$temp_SMS_selfietxt += '<tr><th colspan=3>Underwear selfies</th></tr><tr>'
+
+		temp_cnum = 0
+		temp_undcnt = 1
+		:temp_loop2
+			dynamic 'phone_locval = <<$ARGS[2]>>_undselfie[<<temp_undcnt>>]'
+			if phone_locval = 1:
+				if temp_cnum = 2: $temp_SMS_selfietext += '</tr><tr>' & temp_cnum = 0
+				temp_cnum += 1
+				$temp_SMS_selfietext += '<td width="33%">' + func('SMS_selfies_popup', 'set_selfie', $ARGS[3], ARGS[4], $ARGS[2], 'underwear', ARGS[1], temp_undcnt) + '</td>'
+			end
+			temp_undcnt += 1
+		if temp_undcnt <= selfieUndtot[ARGS[1]]: jump 'temp_loop2'
+
+		if temp_cnum ! 2: $temp_SMS_selfietext += '<td></td>'
+		$temp_SMS_selfietext += '</tr>'
+
+		killvar 'temp_swicnt'
+		killvar 'temp_cnum'
+	end
+
+elseif $ARGS[0] = 'retrieve_nude_selfies':
+	if selfieNudtot[ARGS[1]] > 0:
+		$temp_SMS_selfietxt += '<tr><th colspan=3>Nude selfies</th></tr><tr>'
+
+		temp_cnum = 0
+		temp_nudcnt = 1
+		:temp_loop3
+			dynamic 'phone_locval = <<$ARGS[2]>>_nudselfie[<<temp_nudcnt>>]'
+			if phone_locval = 1:
+				if temp_cnum = 2: $temp_SMS_selfietext += '</tr><tr>' & temp_cnum = 0
+				temp_cnum += 1
+				$temp_SMS_selfietext += '<td width="33%">' + func('SMS_selfies_popup', 'set_selfie', $ARGS[3], ARGS[4], $ARGS[2], 'nude', ARGS[1], temp_nudcnt) + '</td>'
+			end
+			temp_nudcnt += 1
+		if temp_nudcnt <= selfieNudtot[ARGS[1]]: jump 'temp_loop3'
+		if temp_cnum ! 2: $temp_SMS_selfietext += '<td></td>'
+		$temp_SMS_selfietext += '</tr>'
+
+		killvar 'temp_nudcnt'
+		killvar 'temp_cnum'
+	end
+
+elseif $ARGS[0] = 'retrieve_bath_selfies':
+	!!loop for bath selfies
+	if selfieBathtot[ARGS[1]] > 0:
+		$temp_SMS_selfietxt += '<tr><th colspan=3>Bath selfies</th></tr><tr>'
+
+		temp_cnum = 0
+		temp_bathcnt = 1
+		:temp_loop4
+			dynamic 'phone_locval = <<$ARGS[2]>>_bathselfie[<<temp_bathcnt>>]'
+			if phone_locval = 1:
+				if temp_cnum = 2: $temp_SMS_selfietext += '</tr><tr>' & temp_cnum = 0
+				temp_cnum += 1
+				$temp_SMS_selfietext += '<td width="33%">' + func('SMS_selfies_popup', 'set_selfie', $ARGS[3], ARGS[4], $ARGS[2], 'bath', ARGS[1], temp_bathcnt) + '</td>'
+			end
+			temp_bathcnt += 1
+		if temp_bathcnt <= selfieBathtot[ARGS[1]]: jump 'temp_loop4'
+		if temp_cnum ! 2: $temp_SMS_selfietext += '<td></td>'
+		$temp_SMS_selfietext += '</tr>'
+
+		killvar 'temp_bathcnt'
+		killvar 'temp_cnum'
+	end
+
+elseif $ARGS[0] = 'retrieve_shower_selfies':
+	!!loop for shower selfies
+	if selfieShowertot[ARGS[1]] > 0:
+		$temp_SMS_selfietxt += '<tr><th colspan=3>Shower selfies</th></tr><tr>'
+
+		temp_cnum = 0
+		temp_showercnt = 1
+		:temp_loop5
+			dynamic 'phone_locval = <<$ARGS[2]>>_showerselfie[<<temp_showercnt>>]'
+			if phone_locval = 1:
+				if temp_cnum = 2: $temp_SMS_selfietext += '</tr><tr>' & temp_cnum = 0
+				temp_cnum += 1
+				$temp_SMS_selfietext += '<td width="33%">' + func('SMS_selfies_popup', 'set_selfie', $ARGS[3], ARGS[4], $ARGS[2], 'shower', ARGS[1], temp_showercnt) + '</td>'
+			end
+			temp_showercnt += 1
+		if temp_showercnt <= selfieShowertot[ARGS[1]]: jump 'temp_loop5'
+		if temp_cnum ! 2: $temp_SMS_selfietext += '<td></td>'
+		$temp_SMS_selfietext += '</tr>'
+
+		killvar 'temp_showercnt'
+		killvar 'temp_cnum'
+	end
+
+elseif $ARGS[0] = 'retrieve_titflash_selfies':
+	!!loop for flashing tits selfies
+	if selfieTitflash[ARGS[1]] > 0:
+		$temp_SMS_selfietxt += '<tr><th colspan=3>Flashing tits selfies</th></tr><tr>'
+
+		temp_cnum = 0
+		temp_flashtitscnt = 1
+		:temp_loop6
+			dynamic 'phone_locval = <<$ARGS[2]>>_titflash[<<temp_flashtitscnt>>]'
+			if phone_locval = 1:
+				if temp_cnum = 2: $temp_SMS_selfietext += '</tr><tr>' & temp_cnum = 0
+				temp_cnum += 1
+				$temp_SMS_selfietext += '<td width="33%">' + func('SMS_selfies_popup', 'set_selfie', $ARGS[3], ARGS[4], $ARGS[2], 'titflash', ARGS[1], temp_flashtitscnt) + '</td>'
+			end
+			temp_flashtitscnt += 1
+		if temp_flashtitscnt <= selfieTitflash[ARGS[1]]: jump 'temp_loop6'
+		if temp_cnum ! 2: $temp_SMS_selfietext += '<td></td>'
+		$temp_SMS_selfietext += '</tr>'
+
+		killvar 'temp_flashtitscnt'
+		killvar 'temp_cnum'
+	end
+
+elseif $ARGS[0] = 'retrieve_assflash_selfies':
+	!!loop for flashing ass selfies
+	if selfieAssflash[ARGS[1]] > 0:
+		$temp_SMS_selfietxt += '<tr><th colspan=3>Flashing ass selfies</th></tr><tr>'
+
+		temp_cnum = 0
+		temp_flashasscnt = 1
+		:temp_loop7
+			dynamic 'phone_locval = <<$ARGS[2]>>_assflash[<<temp_flashasscnt>>]'
+			if phone_locval = 1:
+				if temp_cnum = 2: $temp_SMS_selfietext += '</tr><tr>' & temp_cnum = 0
+				temp_cnum += 1
+				$temp_SMS_selfietext += '<td width="33%">' + func('SMS_selfies_popup', 'set_selfie', $ARGS[3], ARGS[4], $ARGS[2], 'assflash', ARGS[1], temp_flashasscnt) + '</td>'
+			end
+			temp_flashasscnt += 1
+		if temp_flashasscnt <= selfieAssflash[ARGS[1]]: jump 'temp_loop7'
+		if temp_cnum ! 2: $temp_SMS_selfietext += '<td></td>'
+		$temp_SMS_selfietext += '</tr>'
+
+		killvar 'temp_flashasscnt'
+		killvar 'temp_cnum'
+	end
+
+elseif $ARGS[0] = 'retrieve_pussyflash_selfies':
+	!!loop for flashing pussy selfies
+	if selfiePussyflash[ARGS[1]] > 0:
+		$temp_SMS_selfietxt += '<tr><th colspan=3>Flashing pussy selfies</th></tr><tr>'
+
+		temp_cnum = 0
+		temp_flashpussycnt = 1
+		:temp_loop8
+			dynamic 'phone_locval = <<$ARGS[2]>>_pussyflash[<<temp_flashpussycnt>>]'
+			if phone_locval = 1:
+				if temp_cnum = 2: $temp_SMS_selfietext += '</tr><tr>' & temp_cnum = 0
+				temp_cnum += 1
+				$temp_SMS_selfietext += '<td width="33%">' + func('SMS_selfies_popup', 'set_selfie', $ARGS[3], ARGS[4], $ARGS[2], 'pussyflash', ARGS[1], temp_flashpussycnt) + '</td>'
+			end
+			temp_flashpussycnt += 1
+		if temp_flashpussycnt <= selfiePussyflash[ARGS[1]]: jump 'temp_loop8'
+		if temp_cnum ! 2: $temp_SMS_selfietext += '<td></td>'
+		$temp_SMS_selfietext += '</tr>'
+
+		killvar 'temp_flashpussycnt'
+		killvar 'temp_cnum'
+	end
+end
+
+
+
+--- SMS_selfies ---------------------------------

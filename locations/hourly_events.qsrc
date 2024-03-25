@@ -1,0 +1,381 @@
+# hourly_events
+!!===========================================================================!!
+!!                                                                           !!
+!!                            Hourly events.                                 !!
+!!                                                                           !!
+!!===========================================================================!!
+
+if pcs_nerd > 0:
+	if daystart = lastreadday:
+		!!<font color="green">You are completely healthy shine and a healthy glow.</font>
+		if pcs_mood < 90: pcs_mood += rand(5,10)
+		$mudnerd = '<font color="green">You are lost in a fantasy after reading a book.</font>'
+	elseif daystart = lastreadday + 1:
+		$mudnerd = '<font color="black">You are a little bored and want to plunge into a book.</font>'
+	elseif daystart = lastreadday + 2:
+		if pcs_mood > 50: pcs_mood -= rand(5,10)
+		$mudnerd = '<font color="red">You really want to read something.</font>'
+	elseif daystart => lastreadday + 3:
+		if pcs_mood > 10: pcs_mood -= rand(5,10)
+		$mudnerd = '<font color="red"><b>You have an incredibly strong desire to read!!!</b></font>'
+		pcs_nerd = max(0, pcs_nerd / 10 - stat['body_count'])
+	end
+end
+if pcs_nerd <= 0:
+	killvar 'pcs_nerd'
+	killvar '$mudnerd'
+end
+
+if obkvsdam > 0: obkvsdam = rand(2, 5)
+if scpopt > 1: scpopt = 0
+
+if insleep = 1:
+	pcs_energy -= (succublvl / 2)
+	pcs_hydra  -= (succublvl / 2)
+
+	pcs_stam += iif(pcs_sleep > 90, stammax/2, iif(pcs_sleep > 80, stammax/4, stammax/8))
+
+	if alko > 0: alko -= 1
+
+	pcs_willpower_feeder += willpowermax * 4
+	pcs_willpwr += pcs_willpower_feeder / 100
+	pcs_willpower_feeder = pcs_willpower_feeder mod 100
+
+else
+	pcs_energy -= succublvl
+	pcs_hydra  -= succublvl
+
+
+	if hypnoAddict > 0: dynamic $hypnoAddiction
+
+	if InSleepWake <= hour or InSleepWake[1] < daystart: pcs_sleep -= 4
+
+	if pcs_sleep <= 0 and succublvl = 0:
+		pcs_condition['lack_of_sleep'] += 2
+		if pcs_mood['slpredcheck'] = 1: pcs_mood -= 5
+		pcs_mood['slpredcheck'] = 1
+	else
+		pcs_mood['slpredcheck'] = 0
+	end
+
+
+	if pcs_energy <= 0:
+		if pcs_mood['nrgredcheck'] = 1: pcs_mood -= 5
+		pcs_mood['nrgredcheck'] = 1
+	else
+		pcs_mood['nrgredcheck'] = 0
+	end
+
+	if pcs_hydra <= 0:
+		if pcs_mood['hydredcheck'] = 1: pcs_mood -= 5
+		pcs_mood['hydredcheck'] = 1
+	else
+		pcs_mood['hydredcheck'] = 0
+	end
+
+
+	if pcs_stam <= 0:
+		pcs_mood -= rand(5,10)
+		pcs_sleep -= rand(3,6)
+	elseif pcs_stam < stammax / 5 and stammax > 50:
+		pcs_mood -= rand(2,5)
+	end
+
+	if pcs_energy > 20: pcs_stam += stammax / max(5, 110-pcs_energy)
+	pcs_willpower_feeder += willpowermax*4/3
+	pcs_willpwr += pcs_willpower_feeder/100
+	pcs_willpower_feeder = pcs_willpower_feeder mod 100
+end
+
+gs 'drugs', 'smoke', 'hourly_events'
+gs 'drugs', 'joint', 'hourly_events'
+gs 'drugs', 'heroin', 'hourly_events'
+gs 'drugs', 'cocaine', 'hourly_events'
+gs 'drugs', 'amphetamine', 'hourly_events'
+gs 'drugs', 'aphrodisiac', 'hourly_events'
+
+
+!!=======================================================!!
+!!                      !!Willpower!!                    !!
+!!=======================================================!!
+
+if pcs_willpwr > willpowermax: pcs_willpwr = willpowermax
+if pcs_mood <= 20: will_counter -= 2
+
+
+if willpowermax > 100:
+	if pcs_willpwr < 25: will_counter -= 1
+else
+	if pcs_willpwr < willpowermax/4: will_counter -= 1
+end
+
+if will_counter <= -10: 
+	willpowermax -= 1
+	will_counter = 0
+end
+
+if pcs_stam > stammax: pcs_stam = stammax
+
+
+!!=======================================================!!
+
+
+gs 'femcyc'
+
+
+if Insleep = 0 and pcs_period['period_warning'] = 0 and placebopart > 0 and LutH > 0 and knowpreg = 0:
+	pcs_period['period_warning'] = 1
+	msg'Your stomach suddenly twinges, muscles contracting so tightly that they start to cramp. It seems your period is on its way.'
+elseif pcs_period['period_warning'] = 1 and LutH_Max-LutH <= 2:
+	pcs_period['period_warning'] = 2
+	if isprok = 1:
+		msg'Your stomach twinges again. Another cramp of pain. It must mean your period is about to start. Good thing you''re already put a tampon in.'
+	elseif $location_type = 'private' and isprokp = 1:
+		msg'Your stomach twinges again. Another cramp of pain. You''re pretty sure you know what''s happening but take advantage of the privacy pull down your panties anyways to confirm; Yup. Your pad is already spotting, which must mean your period is imminent. Good thing you''re already prepared.'
+	elseif $location_type = 'private' and $pantyworntype ! 'none':
+		msg'Your stomach twinges again. Another cramp of pain. You''re pretty sure you know what''s happening but take advantage of the privacy pull down your panties anyways to confirm; Yup. Your underwear is already spotting. Your period is imminent.'
+	else
+		msg'Your stomach twinges again. Another cramp of pain. It must mean your period is about to start. You really need to get a tampon in there ASAP.'
+	end
+elseif mesec > 0:
+	period['cramp'] = 0
+end
+
+
+!! code to trigger vomitting based on morning sickness, hangovers, or just plain bad luck
+if Insleep = 0:
+	vomit['daily_check'] = 0
+
+!!if Insleep = 1:
+else
+	if vomit['daily_check'] = 0:
+		vomit['daily_check'] = 1
+
+		if alko > 4:
+			vomit['hangover'] = 1
+		
+		elseif pregchem > 600 and pregchem < 2160 and rand(1,4) = 4:
+			vomit['morning_sick'] = 1
+		
+		elseif rand(1,100) = 100: 
+			vomit['unlucky'] = 1
+		end
+	end
+end
+
+!!Mana regen
+pcs_mana += manamax / 20
+
+
+if alko > 0 and alkoblock = 0:
+	if alko >= 6:
+		if pcs_run > 0: run_deg -= 1
+		if vball_lvl >= 50: vball_deg -= 1
+		
+		if alko >= 10:
+			if pcs_stren > 10: stren_deg -= 1
+			if pcs_vital > 10: vital_deg -= 1
+			if pcs_intel > 10: intel_deg -= 1
+
+			alko -= rand (0,1)
+		end
+	end
+
+	alko -= rand (0,1)
+
+elseif alko < 0:
+	alko = 0
+end
+
+if shame > 0:
+	shame -= 1
+	pcs_mood -= 5
+end
+
+
+if $pantyworntype = 'none' and PCloPants > 0 and PCloPanties = 0 and $clothingworntype ! 'nude' and pcs_traits['commando_lvl'] < 2:
+	!! mosol += (2 - pcs_traits['commando_lvl'])
+	if pcs_traits['commando_lvl'] < 1:
+		mosol += 2
+	elseif pcs_traits['commando_lvl'] = 1:
+		mosol += 1
+	end
+	
+	if mosol >= 100: pcs_mood -= 5
+
+	if mosol >= 60 and pain['pubic'] < 80: gs 'pain', 1, 'pubic', 'ache'
+end
+
+
+if pcs_energy > 100:
+	fat += (pcs_energy - 100) / 4
+	pcs_energy = 100
+
+elseif pcs_energy <= (10 + vitalbuf / 25) and fat > (2 + vitalbuf / 25):
+	fat -= 2
+	pcs_energy += 6
+end
+
+if pcs_hydra > 200: pcs_hydra = 200
+
+if mosol > 0:
+	if $pantyworntype ! 'none' or $clothingworntype = 'nude' or PCloPanties = 1: 
+		mosol -= rand(0,1)
+	end
+end
+
+if pcs_lipbalm > 0: pcs_lipbalm -= 1
+
+if sickstage = 1: 
+	sick += 1
+	sicktimer += 1
+
+	if sicktimer >= 80:
+		sickstage = 2
+		sicktimer = 0
+	end
+end
+
+if sickstage = 2:
+	if sick > 0: sick -= 1
+	if sick <= 0: 
+		sick = 0
+		sickstage = 0
+	end
+end
+
+!!STDs which hurt mod
+if Gerpes >= 3 or Sifilis >= 21 or Triper > 2 and pcs_mood >= 15:
+	pcs_mood -= 5
+end
+
+if perkice > 0: perkice -= 1
+if frost > 0: frost -= 1
+
+if KGOLpers > 0:
+	if KGHP < KGHPMAX: KGHP += 10
+	if KGMana < KGManaMax: KGMana += 10
+end
+
+!! pain[0] = pain['total'] , pain[1] = pain['damage'] , pain[2] = pain['relief']
+i = arrsize('pain')
+:statpainloop
+if i > 0:
+	i -= 1
+	pain[i] -= rand(0,1)
+	if pain[i] < 0: pain[i] = 0
+
+	jump 'statpainloop'
+end
+
+
+!! Panty happiness gain
+if pcs_mood < 60 and $pantyworntype = 'cats': pcs_mood += 2
+if pcs_mood < 60 and $braworntype = 'cats': pcs_mood += 2
+
+
+!!Arousal adjustments
+if (PanThinness >= 5 and BraThinness >= 5) and pcs_horny < 25:
+	pcs_horny += 10
+
+elseif pcs_horny < 10 and (PanThinness >= 5 or BraThinness >= 5):
+	pcs_horny += 5
+end
+
+
+if $pantyworntype ! 'none' and clit_size >= 25 and pcs_horny < 60:
+	pcs_horny += 20
+end
+
+if insleep = 0:
+	gs 'sweat', 'add', rand(0,1)
+
+	if temper >= 20: gs 'sweat', 'add', rand(0,1)
+end
+
+! Leg and pubes hair growth
+if lashair ! 1:
+	if pcs_traits['jungle_jane'] = 0:
+		if stat['leg_hair_growth_timer'] < totminut - 1440:
+			stat['leg_hair_growth_timer'] = totminut
+			pcs_leghair += 1
+		end
+		if stat['pube_growth_timer'] < totminut - 2880:
+			stat['pube_growth_timer'] = totminut
+			pcs_pubes += 1
+		end
+		!!Pubic hair growth at 1/2 per night
+	else
+		!! if trait is active, growth speed is doubled
+		if stat['leg_hair_growth_timer'] < totminut - 720:
+			stat['leg_hair_growth_timer'] = totminut
+			pcs_leghair += 1
+		end
+		if stat['pube_growth_timer'] < totminut - 1440:
+			stat['pube_growth_timer'] = totminut
+			pcs_pubes += 1
+		end
+	end
+	gs 'body_desc', 'pube_desc_update'
+end
+
+! vovan edition, from 1.2.5
+if huntersAndreisex > 0: huntersAndreisex -= 1
+if huntersSergeisex > 0: huntersSergeisex -= 1
+if huntersIgorsex > 0:   huntersIgorsex -= 1
+if huntslutsex > 0:      huntslutsex -= 1
+if mira_go_blok > 0:     mira_go_blok -= 1
+if mira_no_home > 0:     mira_no_home -= 1
+
+gs 'traits', 'hourly'
+
+gs 'katja_procedural', 'hourly'
+
+if (hour mod 2) = 0: gs 'outdoors', 'weather'
+
+
+
+
+
+!!===========================================================================!!
+!!                                                                           !!
+!!                             ?Story triggers?                              !!
+!!                                                                           !!
+!!===========================================================================!!
+
+
+!! I do not think that this should be here, but I put it here temporaly - rachels
+!! generate SMS for nerd games
+if nerd_game['invite_day'] < daystart and week = 1 and hour >= 11 and hour <= 15:
+	if yearstart = 1 and (grupTipe = 3 or nerd_game['stage'] > 0 or rand(80,npc_rel['A152']) > 95):
+		!! hour = 15 forces SMS if it hasn''t triggered yet.
+		if rand(0, 2) = 0 or hour = 15: 
+			gs 'nerd_game_night', 'summer_invite_sms', 'Add SMS'
+		end
+
+	elseif yearstart > 1 and nerd_game['fixed_uni_day'] = 0 and (nerd_game['stage'] > 0 or rand(80,npc_rel['A152']) > 95):
+		!! hour = 15 forces SMS if it hasn''t triggered yet.
+		if rand(0, 2) = 0 or hour = 15: 
+			gs 'nerd_game_night', 'summer2_invite_sms', 'Add SMS'
+		end
+	end
+end
+
+
+!! Generate SMS for anushka''s band tour. Blame Nutluck
+if gopnikbandQW['on_tour'] = 1 and npc_rel['A144'] >= 50 and anushkaQW['tour_SMS_send'] < daystart and anushkaQW['num_tour_SMS_send'] < 11:
+	if anushkaQW['num_tour_SMS_send'] <= 9 and week = 6 and (hour = 12 or hour = 13):
+		if rand(0, 1) = 0 or hour = 13:
+			gs 'band_tour_anushka_SMS', 'start'
+		end
+
+	elseif anushkaQW['num_tour_SMS_send'] = 10 and week = 2 and (hour = 19 or hour = 20):
+		if rand(0, 1) = 0 or hour = 20:
+			gopnikbandQW['on_tour'] = 0
+			gs 'band_tour_anushka_SMS', 'start'
+		end
+	end
+end
+
+--- hourly_events ---------------------------------
+

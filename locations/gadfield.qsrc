@@ -56,7 +56,7 @@ if $ARGS[0] = 'field':
 			*clr & cla
 			menu_off = 1
 
-			if npc_rel['A60'] >= 15:
+			if npc_rel['A60'] >= 15 and npc_known['A60'] = 1:
 				npc_rel['A60'] += 1
 				'<center><img <<$set_imgh>> src="images/characters/gadukino/mira/haying_time_mira.jpg"></center>'
 				'Most of the village has shown up to help out with the hay. Mira is there too, and you both partake in the activities. You enjoy yourself, and working alongside Mira makes the day fly by. By the end of the day, you are both exhausted but smiling.'
@@ -112,6 +112,24 @@ if $ARGS[0] = 'horse':
 	end
 end
 
+killvar '$downlibrary'
+$downlibrary['read'] = {
+	*clr & cla
+	menu_off = 1
+	if blizoruk = 500 or glassqw = 1:
+		glassqw = 1
+		msg '	The text blurs across the page. It seems you have poor eyesight. Maybe you should visit an ophthalmologist?'
+		gt $loc, $loc_arg
+	end
+	if pcs_nerd > 0:
+		lastread = totminut
+		lastreadday = daystart
+		pcs_nerd += 1
+	end
+	minut += 60
+	blizoruk += 1
+}
+
 if $ARGS[0] = 'cow':
 	$loc = 'gadfield'
 	$loc_arg = 'cow'
@@ -141,7 +159,7 @@ if $ARGS[0] = 'cow':
 			gs 'exp_gain', 'hndiwrk', rand(0,3)
 			gs 'stat'
 
-			act 'Continue':gt'gadfield','cow'
+			act 'Continue':gt'gadukino'
 		end
 	end
 	if grandpaQW['chore_herd_cattle'] = 1:
@@ -263,26 +281,15 @@ if $ARGS[0] = 'cow':
 					act 'Continue':gt'gadfield','cow'
 				end
 				act 'Read a book (1:00)':
-					if blizoruk = 500 or glassqw = 1:
-						glassqw = 1
-						msg'	The text blurs across the page; it seems you have poor eyesight. Maybe you should visit an ophthalmologist.'&gt 'gadfield','cow'
-					end
-					*clr & cla
-					menu_off = 1
+					dynamic $downlibrary['read']
 					'<center><img <<$set_imgh>> src="images/locations/gadukino/village/graze_cow_book'+rand(1,2)+'.jpg"></center>'
-					minut += 60
 					if temper >= 25 and sunWeather = 1:pcs_hydra -= 6
 					if pcs_nerd > 0:
-						lastread = totminut
-						lastreadday = daystart
-						pcs_nerd += 1
-						blizoruk += 1
 						pcs_mood = 100
 						if pcs_stren > 1: stren_deg -= 1
 						if pcs_vital > 5: vital_deg -= 1
-						 'You start reading a book you brought with you. You are so engrossed in the story you forget about the time.'
+						'You start reading a book you brought with you. You are so engrossed in the story you forget about the time.'
 					else
-						blizoruk += 1
 						pcs_mood += 10
 						'While reading the book, time flies by because you are really engaged in the plot.'
 					end
@@ -327,7 +334,7 @@ end
 !MiraLoc = 5 (Mira with gop)
 !---------------------------------------------
 
-if grandpaQW['chore_herd_cattle'] = 1 and npc_rel['A60'] >= 15 and mira = 0 and sunWeather = 1 and hour >= 10 and temp = 1 and Mira_no = 0 and(npc_QW['A63'] < 13 or npc_QW['A60'] >= 10 or mirasex > 1):
+if grandpaQW['chore_herd_cattle'] = 1 and npc_rel['A60'] >= 15 and mira = 0 and sunWeather = 1 and hour >= 10 and temp = 1 and Mira_no = 0 and(npc_QW['A63'] < 13 or npc_QW['A60'] >= 10 or mirasex > 1) and npc_known['A60'] = 1:
 	*clr & cla
 	menu_off = 1
 	'<center><img <<$set_imgh>> src="images/characters/gadukino/mira/mira2.jpg"></center>'
@@ -387,22 +394,24 @@ if $ARGS[0] = 'cow2':
 				act 'Continue':gt'gadfield','cow2'
 			end
 			if temper >= 15 and sunWeather = 1 and mira = 0:
-				act 'Swim (0:15)':
-					*clr & cla
-					menu_off = 1
-					'<center><img <<$set_imgh>> src="images/locations/gadukino/village/graze_cow_river.jpg"></center>'
-					'You spend a few minutes splashing around in the river, which feels cool and refreshing.'
-					if deodorant_on = 1: gs 'sweat', 'remove_deo' & '<br>Your deodorant gets washed away in the water.'
-					minut += 15
-					cumspclnt = 4 & gs 'cum_cleanup'
-					pcs_stam -= 3
-					pcs_mood += 5
-					if willday_swim ! daystart: willday_swim = daystart & pcs_willpwr += 1
-					if pcs_stren < 30:gs 'exp_gain', 'stren', 1
-					gs 'stat'
+				if pcs_stam >= (5 * (10 - sport_clothes_exercise_bonus)) / 2:
+					act 'Swim (0:15)':
+						*clr & cla
+						menu_off = 1
+						'<center><img <<$set_imgh>> src="images/locations/gadukino/village/graze_cow_river.jpg"></center>'
+						'You spend a few minutes splashing around in the river, which feels cool and refreshing.'
+						if deodorant_on = 1: gs 'sweat', 'remove_deo' & '<br>Your deodorant gets washed away in the water.'
+						cumspclnt = 4 & gs 'cum_cleanup'
+						pcs_stam -= 3
+						pcs_mood += 5
+						if willday_swim ! daystart: willday_swim = daystart & pcs_willpwr += 1
+						gs 'exercise', 'tier1', 15, 'stren'
+						gs 'stat'
 
-					act 'Continue':gt'gadfield','cow2'
+						act 'Continue':gt'gadfield','cow2'
+					end
 				end
+
 				act 'Tan (0:30)':
 					*clr & cla
 					menu_off = 1
@@ -417,26 +426,15 @@ if $ARGS[0] = 'cow2':
 					act 'Continue':gt'gadfield','cow2'
 				end
 				act 'Read a book (1:00)':
-					if blizoruk = 500 or glassqw = 1:
-						glassqw = 1
-						msg'	The text blurs across the page; it seems you have poor eyesight. Maybe you should visit an ophthalmologist.'&gt 'gadfield','cow2'
-					end
-					*clr & cla
-					menu_off = 1
+					dynamic $downlibrary['read']
 					'<center><img <<$set_imgh>> src="images/locations/gadukino/village/graze_cow_book'+rand(1,2)+'.jpg"></center>'
-					minut += 60
 					if temper >= 25 and sunWeather = 1:pcs_hydra -= 12
 					if pcs_nerd > 0:
-						lastread = totminut
-						lastreadday = daystart
-						pcs_nerd += 1
-						blizoruk += 1
 						pcs_mood = 100
 						if pcs_stren > 1: stren_deg -= 1
 						if pcs_vital > 5: vital_deg -= 1
 						'You start reading a book you brought with you. You are so engrossed in the story you forget about the time.'
 					else
-						blizoruk += 1
 						pcs_mood += 10
 						'While reading the book, time flies by because you are really engaged in the plot.'
 					end
@@ -592,26 +590,15 @@ if $ARGS[0] = 'cow3':
 					act 'Continue':gt'gadfield','cow3'
 				end
 				act 'Read a book (1:00)':
-					*clr & cla
-					menu_off = 1
+					dynamic $downlibrary['read']
 					'<center><img <<$set_imgh>> src="images/locations/gadukino/village/graze_cow_book'+rand(1,2)+'.jpg"></center>'
-					if blizoruk = 500 or glassqw = 1:
-						glassqw = 1
-						msg'	The text blurs across the page; it seems you have poor eyesight. Maybe you should visit an ophthalmologist.'&gt 'gadfield','cow3'
-					end
-					minut += 60
 					if temper >= 25 and sunWeather = 1:pcs_hydra -= 6
 					if pcs_nerd > 0:
-						lastread = totminut
-						lastreadday = daystart
-						pcs_nerd += 1
-						blizoruk += 1
 						pcs_mood = 100
 						if pcs_stren > 1: stren_deg -= 1
 						if pcs_vital > 5: vital_deg -= 1
-						 'You start reading a book you brought with you. You are so engrossed in the story you forget about the time.'
+						'You start reading a book you brought with you. You are so engrossed in the story you forget about the time.'
 					else
-						blizoruk += 1
 						pcs_mood += 10
 						'While reading the book, time flies by because you are really engaged in the plot.'
 					end

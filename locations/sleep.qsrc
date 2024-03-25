@@ -1,58 +1,192 @@
 # sleep
 
-if $ARGS[0] = 'simple':
-!! to avoid sleeping the whole day I decide to calcululate the duration of the sleep in advance
-!! the quality of the sleep depends on many factors, so the time of sleep can be modify later, especially the part when the time of sleep is shortened
+!! Deals with the sleep cycle, advancing both time and stats during sleep.
+!!
+!! Moved here from pre_sleep
+!! Move to dream_events. Then back to sleep (this location).
+!! When busy moves back and forth to sleep_events (and can be redirected from there)
+!! When done: Move to wakeup
 
-	varsleep['time_to_full'] = (100 - pcs_sleep) * 6
-!! fully exhausted Sveta can recover in 420 minutes = 7 hours of sleep
-!! healthy Sveta can hardly sleep more then 10 hours = 600 minutes
-!! so we can add about 3 hours to time to full as a limit
-	varsleep['time_to_full'] += 150 + rand(0,60)
-
-	varsleep['time_now'] = daystart*1440 + hour * 60 + minut
-	varsleep['alarm_time_end'] = daystart*1440 + timerEnd * 60 + timerEndM
-	if varsleep['time_now'] >= varsleep['alarm_time_end']: varsleep['alarm_time_end'] += 1440
-	varsleep['alarm_time'] = daystart*1440 + timer * 60 + timerM
-	if varsleep['time_now'] >= varsleep['alarm_time']: varsleep['alarm_time'] += 1440
-	if budilnikOn = 1: 
-		varsleep['minutes to wakeup'] = min(varsleep['time_to_full'], varsleep['alarm_time'] - varsleep['time_now'])
-		varsleep['minutes to wakeup end'] = min(varsleep['time_to_full'], varsleep['alarm_time_end'] - varsleep['time_now'])
-	else 
-		varsleep['minutes to wakeup'] = varsleep['time_to_full']
-		varsleep['minutes to wakeup end'] = varsleep['time_to_full']
-	end
-
-	InSleep = 1
-	:loopson_sleep
-	minut += 1
-	stime += 1
-	if recuperation = 0:pcs_health += 5
-	
-	if stime >= 60:
-		stime = 0
-		pcs_sleep += 15
-		gs 'stat'
-	end
-	
-	varsleep['minutes to wakeup'] -= 1
-	varsleep['minutes to wakeup end'] -= 1
-
-	if alarm_holiday = 1 and kanikuli > 0:
-	!! use weekend time alarm
-		varsleep['alarm_time'] = daystart*1440 + timerEnd * 60 + timerEndM
-		if varsleep['minutes to wakeup end'] > 0:jump 'loopson_sleep'
-	elseif week > 5:
-	!! use weeken time alarm 
-		varsleep['alarm_time'] = daystart*1440 + timerEnd * 60 + timerEndM
-		if varsleep['minutes to wakeup end'] > 0:jump 'loopson_sleep'
-	else 
-		varsleep['alarm_time'] = daystart*1440 + timer * 60 + timerM
-		if varsleep['minutes to wakeup'] > 0:jump 'loopson_sleep'
-	end
-	varsleep['time_now'] = daystart*1440 + hour * 60 + minut
-	InSleep = 0
-	gs'stat'
+if $ARGS[0] = 'full':
+	msg 'gt ''sleep'', ''full'' is depricated! If you did not load an old save, please report this bug. You can continue playing without worry.'
+	gt 'pre_sleep', 'start'
 end
+
+if $ARGS[0] = 'sleep':
+	msg 'gt ''sleep'', ''sleep'' is depricated! If you did not load an old save, please report this bug. You can continue playing without worry.'
+	gt 'pre_sleep', 'prepare_sleep'
+end
+
+if $ARGS[0] = 'dream':
+	msg 'gt ''sleep'', ''dream'' is depricated! If you did not load an old save, please report this bug. You can continue playing without worry.'
+	gt 'sleep', 'start'
+end
+
+if $ARGS[0] = 'wake':
+	msg 'gt ''sleep'', ''wake'' is depricated! If you did not load an old save, please report this bug. You can continue playing without worry.'
+	gt 'wakeup', 'start'
+end
+
+if $ARGS[0] = 'end':
+	msg 'gt ''sleep'', ''end'' is depricated! If you did not load an old save, please report this bug. You can continue playing without worry.'
+	gt 'bed_get_out', 'start'
+end
+
+if $ARGS[0] = '':
+	msg 'gt ''sleep'', is depricated! If you did not load an old save, please report this bug. You can continue playing without worry.'
+	gt 'pre_sleep', 'start'
+	
+end
+
+
+
+
+if $ARGS[0] = 'start':
+	menu_off = 1
+	gt 'dream_events', 'start'
+end
+
+if $ARGS[0] = 'post_dream':
+	menu_off = 1
+	!! to avoid sleeping the whole day I decide to calcululate the duration of the sleep in advance
+	!! the quality of the sleep depends on many factors, so the time of sleep can be modify later, especially the part when the time of sleep is shortened
+	sleepVars['time_to_full'] = (100 - pcs_sleep) * 5
+	!! fully exhausted Sveta can recover in 500 minutes = 8 hours of sleep
+	!! healthy Sveta can hardly sleep more then 10 hours = 600 minutes
+	!! so we can add about 2 hours to time to full as a limit
+	sleepVars['time_to_full'] += 60 + rand(0, 90)
+
+	xgt 'sleep', 'sleep_handler'
+end
+
+if $ARGS[0] = 'sleep_handler':
+	menu_off = 1
+	gs 'sleep', 'calc_minutes_to_wakeup'
+
+	if sleepVars['minutes_to_wakeup'] > 0:
+		xgt 'sleep', 'sleep_loop'
+	else
+		killvar 'sleep_loop_loop'
+		xgt 'sleep', 'post_sleep'
+	end
+end
+
+if $ARGS[0] = 'calc_minutes_to_wakeup':
+	sleepVars['time_now'] = daystart * 1440 + hour * 60 + minut
+
+	if alarmVars['alarmOn'] = 1 and sleepVars['slept_in'] = 0:
+		if (hour < alarmVars['timerEndH'] and ((alarmVars['alarm_holiday'] = 1 and kanikuli ! 0) or (week = 6 or week = 7))) or (hour => alarmVars['timerEndH'] and ((alarmVars['alarm_holiday'] = 1 and func('sleep', 'is_tomorrow_school_vacation') ! 0) or (week = 5 or week = 6))):
+		!! use weekend time alarm
+			sleepVars['alarm_time'] = daystart * 1440 + alarmVars['timerEndH'] * 60 + alarmVars['timerEndM']
+		else
+			sleepVars['alarm_time'] = daystart * 1440 + alarmVars['timerH'] * 60 + alarmVars['timerM']
+		end
+		if sleepVars['time_now'] > sleepVars['alarm_time']: sleepVars['alarm_time'] += 1440
+
+		sleepVars['minutes_to_wakeup'] = min(sleepVars['time_to_full'], sleepVars['alarm_time'] - sleepVars['time_now'])
+	else
+		sleepVars['minutes_to_wakeup'] = sleepVars['time_to_full']
+	end
+end
+
+if $ARGS[0] = 'is_tomorrow_school_vacation':
+	result = 0
+	if mid($start_type, 1, 2) = 'sg':
+		if (month = 12 and day = 31) or (month = 1 and day <= 14):
+			!! Winter Break
+			result = 2
+		elseif month = 3 and (day >= 19 and day <= 25):
+			!! Spring Break
+			result = 3
+		elseif (month = 5 and day = 31) or month = 6 or month = 7 or (month = 8 and day <= 30):
+			!! Summer Break
+			result = 4
+		elseif month = 11 and (day >= 3 and day <= 10):
+			!! Autumn Break
+			result = 1
+		end
+	end
+end
+
+
+if $ARGS[0] = 'sleep_loop':
+	menu_off = 1
+	:sleep_loop_loop
+		minut += 1
+		sleepVars['stime'] += 1
+		sleepVars['time_now'] += 1
+		sleepVars['minutes_to_wakeup'] -= 1
+		sleepVars['time_to_full'] -= 1
+
+		if recuperation = 0: pcs_health += 5
+
+		if vibratorIN = 1:
+			sleepVars['vtime'] += 1
+			if sleepVars['vtime'] >= 5:
+				pcs_horny += 1
+				sleepVars['vtime'] = 0
+			end
+		end
+
+		if sleepVars['stime'] mod 5 = 0: pcs_sleep += 1
+
+		if sleepVars['stime'] >= 60:
+			sleepVars['stime'] = 0
+
+			if pcs_sleep >= 100 or succublvl > 0:
+				pcs_condition['lack_of_sleep'] = 0
+			elseif pcs_condition['lack_of_sleep'] > 0:
+				pcs_condition['lack_of_sleep'] -= 1
+			end
+
+			gs 'stat'
+		end
+
+		if minut = 60: gs 'stat'
+
+		gs 'sleep', 'mod_sleeptriggers'
+
+		if sleepVars['stime'] mod 5 = 0:
+			gs 'sleep_events', 'start'
+		end
+
+	if sleepVars['minutes_to_wakeup'] > 0: jump 'sleep_loop_loop'
+
+	xgt 'sleep', 'post_sleep'
+end
+
+if $ARGS[0] = 'mod_sleeptriggers':
+	!! This location is here to allow mods to hook into the system.
+	!! Check for: if $ARGS[0] = 'pre_sleep' and $ARGS[1] = 'mod_sleeptriggers'
+	!!
+	!! This is NOT for events!!
+	
+	gs 'LOCA', 'sleep', 'mod_sleeptriggers'
+end
+
+
+if $ARGS[0] = 'post_sleep':
+	menu_off = 1
+	if succublvl < 0:
+		skinDailyPenalty -= 1
+	else
+		if pcs_condition['lack_of_sleep'] >= 10:
+		!!Worsening of skin quality if you do not sleep enough.
+			skinDailyPenalty += 2
+		elseif pcs_condition['lack_of_sleep'] >= 2:
+			skinDailyPenalty += 1
+		elseif pcs_condition['lack_of_sleep'] > 0:
+			skinDailyPenalty += 0
+		else
+			skinDailyPenalty -= 1
+		end
+	end
+	gs 'stat'
+
+	xgt 'wakeup', 'start'
+end
+
+
+
 
 --- sleep ---------------------------------

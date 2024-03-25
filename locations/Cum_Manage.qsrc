@@ -15,7 +15,7 @@
 !!	cumarrppt : Sperm Potential Potency (max sperm delivery)
 !!	cumarrcpt : Sperm Current Potency	(current amount of sperm)
 !!	cumarrdel : Sperm "Delivery" (method of *VAGINAL ONLY* acquisition)
-!!	cumarrcon :	Contraception typ used
+!!	cumarrcon :	Contraception type used
 !!	cumarrage : Sperm age in hours
 !!	cumarrkno : Did you know/realize who did it?
 !!	cumarrcnt : Unique identifier of the exact which time the MC has had this sperm incident occur.
@@ -106,15 +106,19 @@ if $ARGS[0] = '':
 	stat['cum_count'] += 1
 	condom_break = 0
 
+!!{ no STDs from NPC you know }
+	if (mid($boy,1,1) = 'A' or mid($boy,1,1) = 'B') and isnum(mid($boy,2,1)) ! 0: cumnostd = 1
+	cumnostd = min(1, max(cumnostd, sexpartkno))
+
 !!{	Here we define our important variables.}
 	dick = npc_dick[$boy]
 	if sexvolume <= 0: sexvolume = 40
 	if sexspecpot = 0: sexspecpot = npc_spermpot[$boy]
 	if sexspecpot = 0: sexspecpot = sexvolume * rand(250, 300)
 	if sexspecpot < 0: sexspecpot = 0
-	if vibratorIN = 1 and spafinloc = 0 and replace_vib = 0: vibratorIN = 0
-
-	if analplugIN = 1 and spafinloc = 3 and replace_analplug = 0: analplugIN = 0
+	if vibratorIN = 1 and spafinloc = 0: vibratorIN = 0
+	if isprok = 1 and spafinloc = 0: isprok = 0
+	if analplugIN = 1 and spafinloc = 3: analplugIN = 0
 
 !!{	Set the cum array temp to the current size of the cum array to add a new entry to the end of file. Then checks to see if you are on the pill. If you are and there is no contraception used, it flags this as a "done with pill" act, which means a pregnancy will be a pill failure.}
 
@@ -234,6 +238,7 @@ if $ARGS[0] = '':
 						cumsumvag += sexvolume
 						condom_break = 1
 						stat['broken_condoms'] += 1
+						stat['last_broken_condom'] = daystart
 
 						sparridt[sparrtemp] = cumarrkno[cumarrtemp]
 						sparrslc[sparrtemp] = 0
@@ -329,6 +334,7 @@ if $ARGS[0] = '':
 
 	!! creampie vaginal statistics:
 			if spafinloc = 0:
+				stat['last_creampie'] = daystart
 				!!STD checks
 				if cumnostd = 0: gs 'dinSex', 'std_trigger'
 				!! safe creampie (if cycle > 3 or on pill or succubus):
@@ -509,8 +515,8 @@ if $ARGS[0] = 'cumgather':
 			$part = 'unknown'
 		end
 
-		if salfetka > 0:
-			salfetka -= 1
+		if mc_inventory['makeup_wipes'] > 0:
+			mc_inventory['makeup_wipes'] -= 1
 			minut += 5
 			'You use a wipe to clean the sperm from your <<$part>>.'
 			gs 'cum_cleanup', 'cleanloc', cloc
@@ -523,7 +529,7 @@ if $ARGS[0] = 'cumeater_icon':
 	*nl
 	j = 0
 	:cumeater_icon_jump
-	if cumloc[j] > 0 and j ! 12: gs 'cum_manage', 'cumeater', j
+	if cumloc[j] > 0 and j <> 12 and ((j <> 0 and j <> 3) or FUNC('Cum_Manage', 'check_innards', j) = 1 or cheatKlisma = 0): gs 'cum_manage', 'cumeater', j
 	if j < 17: j += 1 & jump 'cumeater_icon_jump'
 end
 
@@ -533,12 +539,13 @@ if $ARGS[0] = 'cumeater':
 
 	if i ! -1 and i < arrsize('sparrloc'):
 		cumloc[12] = 1
+		spafinloc = 12 & sexvolume = sparrvol[i] & sexunaware = 0 & sexspecpot = -1 & cumarrnam = sparrnam[i] & cumarrcpt = sparrppt[i] & cumarrkno = sparridt[i] & cumarrage = sparrage[i] & cumnostd = 1 & gs 'Cum_Manage'
 		pcs_breath = 0
 		$part = ''
 
 		if cloc = 13:
 			gs 'cum_cleanup', 'cleanloc', cloc
-			'You carefully lick the sperm residue from both hands, enjoying the tart taste of semen.'
+			'You carefully lick the sperm residue from your hands, enjoying the tart taste.'
 		else
 			if cloc = 0:
 				$part = 'pussy'
@@ -575,12 +582,16 @@ if $ARGS[0] = 'cumeater':
 			end
 
 			if rand(0, 1) = 0:
-				'You collect a handful of sperm from your <<$part>> in your hand and lick it all up, enjoying the tart taste of semen.'
+				'You collect a handful of sperm from your <<$part>> in your hand and lick it up, enjoying the tart taste.'
 			else
-				'You collect the sperm from your <<$part>> with your fingers and lick them, enjoying the tart taste of semen.'
+				'You collect the sperm from your <<$part>> with your fingers and lick them, enjoying the tart taste.'
 			end
 
-			gs 'cum_cleanup', 'cleanloc', cloc
+			if FUNC('Cum_Manage', 'check_innards', cloc) = 1 and cheatKlisma = 1:
+				cumspclnt = 15 & gs 'cum_cleanup'
+			elseif (cloc <> 0 and cloc <> 3) or cheatKlisma = 0:
+				gs 'cum_cleanup', 'cleanloc', cloc
+			end
 		end
 
 		minut += 2
@@ -675,6 +686,9 @@ if $ARGS[0] = 'cum_stat_display':
 	$stat_cum_text = ''
 	stat_visible_cum = 0
 	stat_cumloc_check = 0
+	cumsumbod = 0
+	cumsumvag = 0
+	cumsumass = 0
 
 	i = 0
 	:cumlocloop
@@ -682,71 +696,87 @@ if $ARGS[0] = 'cum_stat_display':
 			$icon_txtloc = 'your pussy'
 			$txtloc = 'your <a href="exec:view''images/pc/body/cum/creampie/cumpussy'+rand(1,14)+'.jpg''">pussy</a>'
 		elseif i = 1:
+			$txtloc_adj = 'all over '
 			$icon_txtloc = 'your labia'
 			$txtloc = 'your <a href="exec:view''images/pc/body/cum/cumpussy/cumpus'+rand(1,4)+'.jpg''">labia</a>'
-		elseif i = 2:
+		elseif i = 2 and PCloPanties > 0:
+			$txtloc_adj = 'across '
 			$txtloc = 'the front of your panties'
 			$icon_txtloc = $txtloc
 		elseif i = 3:
+			$txtloc_adj = 'across '
 			$icon_txtloc = 'your ass'
 			$txtloc = 'your <a href="exec:view''images/pc/body/cum/cumanal/cumanal'+rand(1,11)+'.jpg''">ass</a>'
 		elseif i = 4:
+			$txtloc_adj = 'all over '
 			$icon_txtloc = 'your butt'
 			$txtloc = 'your <a href="exec:view''images/pc/body/cum/cumass/cumass'+rand(1,6)+'.jpg''">butt</a>'
-		elseif i = 5:
+		elseif i = 5 and PCloPanties > 0:
+			$txtloc_adj = 'painting '
 			$txtloc = 'the back of your panties'
 			$icon_txtloc = $txtloc
-		elseif i = 6:
+		elseif i = 6 and PCloPants > 0:
+			$txtloc_adj = 'on '
 			$icon_txtloc = 'your clothes near your groin'
 			$txtloc = 'your <a href="exec:view''images/pc/body/cum/cumclothes/'+rand(1,3)+'.jpg''">clothes near your groin</a>'
-		elseif i = 7:
+		elseif i = 7 and $clothingworntype <> 'nude':
+			$txtloc_adj = 'on '
 			$icon_txtloc = 'your clothes'
 			$txtloc = 'your <a href="exec:view''images/pc/body/cum/cumclothes/cumclothes'+rand(1,21)+'.jpg''">clothes</a>'
 		elseif i = 8:
+			$txtloc_adj = 'down '
 			$txtloc = 'your back'
 			$icon_txtloc = $txtloc
 		elseif i = 9:
+			$txtloc_adj = 'on '
 			$txtloc = 'your legs'
 			$icon_txtloc = $txtloc
 		elseif i = 10:
+			$txtloc_adj = 'on '
 			$txtloc = 'your arms'
 			$icon_txtloc = $txtloc
 		elseif i = 11:
 			if pcs_haircol = 0:
 				$cum_face_image = 'brown/'
-				$cum_face_image += rand(1, 31)
+				$cum_face_image += rand(1,31)
 			elseif pcs_haircol = 1:
 				$cum_face_image = 'black/'
-				$cum_face_image += rand(1, 23)
+				$cum_face_image += rand(1,23)
 			elseif pcs_haircol = 2:
 				$cum_face_image = 'red/'
-				$cum_face_image += rand(1, 19)
+				$cum_face_image += rand(1,19)
 			elseif pcs_haircol = 3:
 				$cum_face_image = 'blonde/'
-				$cum_face_image += rand(1, 25)
+				$cum_face_image += rand(1,25)
 			elseif pcs_haircol > 3:
 				$cum_face_image = 'custom/'
-				$cum_face_image += rand(1, 20)
+				$cum_face_image += rand(1,20)
 			end
+			$txtloc_adj = 'across '
 			$icon_txtloc = 'your face'
 			$txtloc = 'your <a href="exec:view''images/pc/body/cum/cumface/<<$cum_face_image>>.jpg''">face</a>'
 			killvar 'cum_face_image'
 		elseif i = 13:
+			$txtloc_adj = 'over '
 			$txtloc = 'your hands'
 			$icon_txtloc = $txtloc
 		elseif i = 14:
-			$icon_txtloc = 'your stomach'
-			$txtloc = 'your <a href="exec:view''images/pc/body/cum/cumbelly/cumbelly'+rand(1,12)+'.jpg''">stomach</a>'
+			$txtloc_adj = 'across '
+			$icon_txtloc = 'across your stomach'
+			$txtloc = 'across your <a href="exec:view''images/pc/body/cum/cumbelly/cumbelly'+rand(1,12)+'.jpg''">stomach</a>'
 		elseif i = 15:
-			$icon_txtloc = 'your breasts'
+			$txtloc_adj = 'on '
+			$icon_txtloc = 'on your breasts'
 			$txtloc = 'your <a href="exec:view''images/pc/body/cum/cumtits/cumtits'+rand(1,19)+'.jpg''">breasts</a>'
 		elseif i = 16:
+			$txtloc_adj = 'in '
 			$icon_txtloc = 'your hair'
 			$txtloc = 'your hair</a>'
 		elseif i = 17:
 			$txtloc = 'in your vagina in a slipped condom'
 			$icon_txtloc = $txtloc
 		else
+			$txtloc_adj = 'on '
 			$icon_txtloc = 'the gusset of your panties'
 			$txtloc = 'the gusset of your panties</a>'
 		end
@@ -775,12 +805,15 @@ if $ARGS[0] = 'cum_stat_display':
 
 				!! if sperm age stage is 4, it means inside the body
 				if j = 4:
-					if (vibratorIN = 1 and i = 0) or (analplugin = 1 and i = 3):
+					cumsumbod += cumvolume['<<i>>:<<j>>']
+					cumsumvag += iif(i=0,cumvolume['<<i>>:<<j>>'],0)
+					cumsumass += iif(i=3,cumvolume['<<i>>:<<j>>'],0)
+					if ((vibratorIN = 1 or isprok = 1) and i = 0) or (analplugin = 1 and i = 3):
 						$txtproxy = 'being plugged in '
-					elseif i = 0 and cumvolume['<<i>>:<<j>>'] < pcs_vag*5:
-						$txtproxy = 'staying inside of '
-					elseif i = 3 and pcs_ass <= 25:
-						$txtproxy = 'staying inside of '
+					elseif i = 0 and cumvolume['<<i>>:<<j>>'] < FUNC('Cum_Manage', 'check_innards', 0, 1):
+						$txtproxy = 'staying inside '
+					elseif i = 3 and cumvolume['<<i>>:<<j>>'] < FUNC('Cum_Manage', 'check_innards', 3, 1):
+						$txtproxy = 'staying inside '
 					else
 						if cumvolume['<<i>>:<<j>>'] > 250:
 							$txtproxy = 'gushing out of '
@@ -789,7 +822,7 @@ if $ARGS[0] = 'cum_stat_display':
 						elseif cumvolume['<<i>>:<<j>>'] >= 40:
 							$txtproxy = 'seeping out of '
 						else
-							$txtproxy = 'staying inside of '
+							$txtproxy = 'staying inside '
 						end
 					end
 				elseif j >= 5:
@@ -803,6 +836,7 @@ if $ARGS[0] = 'cum_stat_display':
 					end
 					if cumcondslip_deep > (vagina / 2): $txtproxy += 'deep '
 				elseif j < 4 and j > 0:
+					cumsumbod += cumvolume['<<i>>:<<j>>']
 					!!amount setting
 					if cumvolume['<<i>>:<<j>>'] > 160:
 						!! 10 ml, about two load, flowing
@@ -812,7 +846,7 @@ if $ARGS[0] = 'cum_stat_display':
 						$txtproxy = 'covering '
 					else
 						!! residue amount, no leakage
-						$txtproxy = 'spattering '
+						$txtproxy = 'spattered '
 					end
 					if j = 1:
 						$txtproxy += 'wetly '
@@ -820,6 +854,9 @@ if $ARGS[0] = 'cum_stat_display':
 						$txtproxy += 'dryly '
 					else
 						$txtproxy += 'powderly '
+					end
+					if cumvolume['<<i>>:<<j>>'] < 40:
+						$txtproxy += $txtloc_adj
 					end
 				end
 
@@ -832,7 +869,11 @@ if $ARGS[0] = 'cum_stat_display':
 					if cumcount['<<i>>:<<j>>'] = knownguy['<<i>>:<<j>>']:
 					!! everyone is known (one or more)
 						if knownguy['<<i>>:<<j>>'] = 1:
-							$txtperson = $npc_usedname[$cumowner['<<i>>:<<j>>:0']] + ' '
+							if $npc_usedname[$cumowner['<<i>>:<<j>>:0']] = 'stranger':
+								$txtperson = $npc_firstname[$cumowner['<<i>>:<<j>>:0']] + ' '
+							else
+								$txtperson = $npc_usedname[$cumowner['<<i>>:<<j>>:0']] + ' '
+							end
 						else
 							kmax = 0
 							:nullocator1
@@ -843,7 +884,11 @@ if $ARGS[0] = 'cum_stat_display':
 								$txtperson += $npc_usedname[$cumowner['<<i>>:<<j>>:<<k>>']]
 							if k < kmax-1:$txtperson += ', ' & k += 1 & jump 'knownloop'
 							k += 1
-							$txtperson += ' and ' + $npc_usedname[$cumowner['<<i>>:<<j>>:<<k>>']] + ' '
+							if $npc_usedname[$cumowner['<<i>>:<<j>>:<<k>>']] = 'stranger':
+								$txtperson += ' and ' + $npc_firstname[$cumowner['<<i>>:<<j>>:<<k>>']] + ' '
+							else
+								$txtperson += ' and ' + $npc_usedname[$cumowner['<<i>>:<<j>>:<<k>>']] + ' '
+							end
 						end
 					elseif knownguy['<<i>>:<<j>>'] = 0:
 					!! no one is known (one or more)
@@ -855,7 +900,11 @@ if $ARGS[0] = 'cum_stat_display':
 					else
 					!! there are known and unknown guys in the mix
 						if knownguy['<<i>>:<<j>>'] = 1:
-							$txtperson = $npc_usedname[$cumowner['<<i>>:<<j>>:0']] + ' and some guy'
+							if $npc_usedname[$cumowner['<<i>>:<<j>>:<<k>>']] = 'stranger':
+								$txtperson = $npc_firstname[$cumowner['<<i>>:<<j>>:0']] + ' and some guy'
+							else
+								$txtperson = $npc_usedname[$cumowner['<<i>>:<<j>>:0']] + ' and some guy'
+							end
 						else
 							kmax = 0
 							:nullocator2
@@ -863,7 +912,11 @@ if $ARGS[0] = 'cum_stat_display':
 							kmax -= 1
 							k = 0
 							:mixloop
-								$txtperson += $npc_usedname[$cumowner['<<i>>:<<j>>:<<k>>']] + ', '
+								if $npc_usedname[$cumowner['<<i>>:<<j>>:<<k>>']] = 'stranger':
+									$txtperson += $npc_firstname[$cumowner['<<i>>:<<j>>:<<k>>']] + ', '
+								else
+									$txtperson += $npc_usedname[$cumowner['<<i>>:<<j>>:<<k>>']] + ', '
+								end
 							if k < kmax: k += 1 & jump 'mixloop'
 							$txtperson += 'and some guy'
 						end
@@ -875,7 +928,10 @@ if $ARGS[0] = 'cum_stat_display':
 					end
 				end
 				$icon_txtiscum = $txtiscum
-				if j <= 4 and trait['cumeater'] = 1 and $txtiscum = 'cum': $txtiscum = '<a href="exec:gs ''cum_manage'', ''cumeater'', <<i>>"><font color=#0064FF>' + $txtiscum + '</font></a>'
+				if j <= 4 and pcs_traits['cumeater'] = 1 and $txtiscum = 'cum' _ 
+				and FUNC('Cum_Manage', 'check_private', i) = 1 and ((i <> 0 and i <> 3) or FUNC('Cum_Manage', 'check_innards', i) = 1 or cheatKlisma = 0):
+					$txtiscum = '<a href="exec:gs ''cum_manage'', ''cumeater'', <<i>>"><font color=#0064FF>' + $txtiscum + '</font></a>'
+				end
 				if $txtperson ! '':
 					$txtperson = ' from ' + $txtperson
 				end
@@ -898,6 +954,14 @@ if $ARGS[0] = 'cum_stat_display':
 				end
 			end
 		if j < 7: j+=1 & jump 'ageloop'
+
+		if stat_cumloc_check = 1 and (FUNC('Cum_Manage', 'check_private', i) = 0 _ 
+		or (i <> 0 and cumsumass = 0 and cumsumvag > 0 and FUNC('Cum_Manage', 'check_innards', 0) = 0) _ 
+		or (i <> 3 and cumsumvag = 0 and cumsumass > 0 and FUNC('Cum_Manage', 'check_innards', 3) = 0) _ 
+		or (i > 3 and cumsumvag > 0 and FUNC('Cum_Manage', 'check_innards', 0) = 0 and cumsumass > 0 and FUNC('Cum_Manage', 'check_innards', 3) = 0)):
+			stat_cumloc_check = 2
+		end
+
 	if i < 18: i+=1 & jump 'cumlocloop'
 	killvar 'i'
 	killvar 'j'
@@ -923,30 +987,30 @@ if $ARGS[0] = 'cum_stat_display':
 		if cumloc[6] = 1:
 			stat_visible_cum = 1
 			if $stat_visible_cum_temp ! '': $stat_visible_cum_temp += ', '
-			$stat_visible_cum_temp += 'your clothes near your groin'
+			$stat_visible_cum_temp += 'on your clothes near your groin'
 		end
 		if cumloc[7] = 1:
 			stat_visible_cum = 1
 			if $stat_visible_cum_temp ! '': $stat_visible_cum_temp += ', '
-			$stat_visible_cum_temp += 'your clothes'
+			$stat_visible_cum_temp += 'on your clothes'
 		end
 		if cumloc[11] = 1:
 			stat_visible_cum = 1
 			if $stat_visible_cum_temp ! '': $stat_visible_cum_temp += ', '
-			$stat_visible_cum_temp += 'your face'
+			$stat_visible_cum_temp += 'on your face'
 		end
 		if cumloc[13] = 1:
 			stat_visible_cum = 1
 			if $stat_visible_cum_temp ! '': $stat_visible_cum_temp += ', '
-			$stat_visible_cum_temp += 'your hands'
+			$stat_visible_cum_temp += 'on your hands'
 		end
 		if cumloc[16] = 1:
 			stat_visible_cum = 1
 			if $stat_visible_cum_temp ! '': $stat_visible_cum_temp += ', '
-			$stat_visible_cum_temp += 'your hair'
+			$stat_visible_cum_temp += 'in your hair'
 		end
 
-		$stat_visible_cum_msg = 'People can see the cum on '+ $stat_visible_cum_temp + '.'
+		$stat_visible_cum_msg = 'People can see the cum '+ $stat_visible_cum_temp + '.'
 	end
 	cum_loc['vagina'] = cumloc[0]
 	cum_loc['labia'] = cumloc[1]
@@ -966,6 +1030,298 @@ if $ARGS[0] = 'cum_stat_display':
 	cum_loc['tits'] = cumloc[15]
 	cum_loc['hair'] = cumloc[16]
 	cum_loc['condom_in_pussy'] = cumloc[17]
+	
+	cum_vol['vagina'] = cumvol[0]
+	cum_vol['labia'] = cumvol[1]
+	cum_vol['panty_front'] = cumvol[2]
+	cum_vol['anus'] = cumvol[3]
+	cum_vol['butt'] = cumvol[4]
+	cum_vol['panty_back'] = cumvol[5]
+	cum_vol['clothes_groin'] = cumvol[6]
+	cum_vol['clothes'] = cumvol[7]
+	cum_vol['back'] = cumvol[8]
+	cum_vol['legs'] = cumvol[9]
+	cum_vol['arms'] = cumvol[10]
+	cum_vol['face'] = cumvol[11]
+	cum_vol['mouth'] = cumvol[12]
+	cum_vol['hands'] = cumvol[13]
+	cum_vol['stomach'] = cumvol[14]
+	cum_vol['tits'] = cumvol[15]
+	cum_vol['hair'] = cumvol[16]
+	cum_vol['condom_in_pussy'] = cumvol[17]
+end
+
+if $ARGS[0] = 'check_private':
+!! Checks whether the current location is private for cleaning cum in intimate places
+!! ARGS[1] - cum location (see cum_cleanup)
+!! no ARGS[1] means 0, means vagina, means you must be in a private location to interact
+!! FUNC('Cum_Manage', 'check_private') = 1
+!! FUNC('Cum_Manage', 'check_private', 7) = 1
+
+	RESULT = 0
+
+	if $location_type = 'private' or $location_type = 'private_indoors' or $location_type = 'private_shared' or $location_type = 'bathroom': RESULT = 1
+	if ARGS[1] > 5 and ARGS[1] <> 15 and ARGS[1] <> 17: RESULT = 1
+
+end
+
+if $ARGS[0] = 'check_innards':
+!! Cum overflow check inside vagina or anus
+!! ARGS[1] - 0 (vagina) or 3 (anus)
+!! ARGS[2] - return max capacity
+!! capvag - vagina max capacity
+!! capanus - anus max capacity
+!! FUNC('Cum_Manage', 'check_innards') = 1
+!! FUNC('Cum_Manage', 'check_innards', 3) = 1
+!! FUNC('Cum_Manage', 'check_innards', 0, 1) <= cumsumvag
+
+	capvag  = pcs_vag*3 - vgape*30 - min(100,pcs_horny)/10
+	capanus = pcs_ass*6 - agape*40
+	RESULT = 0
+
+	if ARGS[1] = 0:
+		if ARGS[2] > 0:
+			RESULT = capvag
+		elseif cumsumvag >= capvag and isprok = 0 and vibratorIN = 0:
+			RESULT = 1
+		end
+	elseif ARGS[1] = 3:
+		if ARGS[2] > 0:
+			RESULT = capanus
+		elseif cumsumass >= capanus and analplugin = 0:
+			RESULT = 1
+		end
+	end
+
+	killvar 'capvag'
+	killvar 'capanus'
+end
+
+if $ARGS[0] = 'cum_decay':
+!! ARGS[1] forced cum leak (sex intercourse) in values like 20-100
+
+	cumforced = ARGS[1]
+	if (menu_off = 1 or cumdectime+15 > totminut) and cumforced = 0: exit
+
+	if arrsize('sparrvol') > 0:
+		cumsumvag = 0
+		cumsumass = 0
+        killvar 'cumloc'
+        killvar 'cumvol'
+		i = 0
+
+		!!go through every location
+		:sparrvolloop
+			!!start from the freshest load
+			idx = arrsize('sparrloc')-1
+			:sparrlocloop
+				!!if the currently examined load loaction is the location of the current cycle, execute
+				if sparrloc[idx] = i and sparrvol[idx] > 0:
+					!! 0 = 'In your Vagina'
+					if i = 0:
+						!! passive absorption, succubus has its own
+						!! InSleep - increase the amount during sleep, isprok - tampon absorption
+						if succubusflag = 0:
+							cumamount = (totminut-cumdectime)/15 * max(rand(0,1), rand(sparrvol[idx]/60, sparrvol[idx]/30) + rand(0, InSleep*rand(1,3)) + isprok*rand(5,10) + rand(0, iif(pcs_hydra<30,(30-pcs_hydra)/10,0)) + rand(0, iif(pcs_horny<100,(100-pcs_horny)/20,0)))
+							sparrvol[idx] -= cumamount
+						end
+
+						if sparrvol[idx] > 0:
+							cumsumvag += sparrvol[idx]
+							!! seeping out
+							if FUNC('Cum_Manage', 'check_innards', 0) = 1 or cumforced/rand(2,3) > sparrvol[idx]:
+								cumamount = min(sparrvol[idx]*3/2, (totminut-cumdectime)/15 * max(rand(1,3), rand(sparrvol[idx]/pcs_vag, vgape*40) - InSleep*rand(2,5) + iif(pcs_horny>50, min(100,pcs_horny)/10 - 4,0)) + cumforced/rand(5,10))
+								sparrvol[idx] -= cumamount & cumsumvag -= cumamount
+								cumvol[0] -= cumamount
+
+								!! 1 = 'On your labia'
+								sexvolume = max(cumamount/10, cumamount/2 - iif(cumforced=0,isprokp*rand(10,20),0))
+								if sexvolume > 0:
+									spafinloc = 1
+									sexunaware = iif(cumforced=0,iif(rand(0,4)=1 or sparridt[idx]=-2,1,0),0)
+									sexspecpot = -1 & cumarrnam = sparrnam[idx] & cumarrcpt = 0 & cumarrkno = sparridt[idx] & cumarrage = sparrage[idx] & cumnostd = 1
+									gs 'Cum_Manage'
+									cumvol[1] += sexvolume & cumloc[1] = 1
+								end
+								if cumforced = 0:
+									!! 2 = 'On your panties over your vagina'
+									if $pantyworntype <> 'none' or PCloPanties > 0:
+										!! isprokp - sanitary pad absorption
+										if isprokp <> 1:
+											spafinloc = 2
+											sexvolume = max(1, cumamount/2)
+											sexunaware = iif(rand(0,3)=1 or sparridt[idx]=-2,1,0)
+											sexspecpot = -1 & cumarrnam = sparrnam[idx] & cumarrcpt = 0 & cumarrkno = sparridt[idx] & cumarrage = sparrage[idx] & cumnostd = 1
+											gs 'Cum_Manage'
+											cumvol[2] += sexvolume & cumloc[2] = 1
+										end
+									!! 9 = 'On your legs'
+									elseif ($clothingworntype = 'nude' or PCloSkirt > 0 or PCloDress > 0) and rand(1,10) > 6 + InSleep*2:
+										sexvolume = max(0, cumamount/4)
+										if sexvolume > 0:
+											spafinloc = 9
+											sexunaware = iif(rand(0,2)=1 or sparridt[idx]=-2,1,0)
+											sexspecpot = -1 & cumarrnam = sparrnam[idx] & cumarrcpt = 0 & cumarrkno = sparridt[idx] & cumarrage = sparrage[idx] & cumnostd = 1
+											gs 'Cum_Manage'
+											cumvol[9] += sexvolume & cumloc[9] = 1
+										end
+									end
+									!! 6 = 'On your clothes in your groin area'
+									if PCloPants > 0:
+										sexvolume = max(0, cumamount / (3 + iif($pantyworntype<>'none',12,0)))
+										if sexvolume > 0:
+											spafinloc = 6
+											sexunaware = iif(rand(0,4)=1 or sparridt[idx]=-2,1,0)
+											sexspecpot = -1 & cumarrnam = sparrnam[idx] & cumarrcpt = 0 & cumarrkno = sparridt[idx] & cumarrage = sparrage[idx] & cumnostd = 1
+											gs 'Cum_Manage'
+											cumvol[6] += sexvolume & cumloc[6] = 1
+										end
+									end
+								end
+							end
+						end
+						if sparrvol[idx] <= 0: gs 'cum_cleanup', 'cleandeposit', idx
+					!! 3 = 'In your anus'
+					elseif i = 3:
+						!! passive absorption, succubus has its own
+						if succubusflag = 0:
+							cumamount = (totminut-cumdectime)/15 * max(rand(0,2), rand(sparrvol[idx]/40, sparrvol[idx]/20) + rand(0, InSleep*rand(3,6)) + rand(0, iif(pcs_hydra<50,(50-pcs_hydra)/10,0)))
+							sparrvol[idx] -= cumamount
+						end
+
+						if sparrvol[idx] > 0:
+							cumsumass += sparrvol[idx]
+							!! seeping out
+							if FUNC('Cum_Manage', 'check_innards', 3) = 1 or cumforced/rand(2,4) > sparrvol[idx]:
+								cumamount = min(sparrvol[idx]*3/2, (totminut-cumdectime)/15 * max(rand(0,1), rand(sparrvol[idx]/(pcs_ass*3/2), agape*20) - InSleep*rand(4,8)) + cumforced/rand(7,15))
+								sparrvol[idx] -= cumamount & cumsumass -= cumamount
+								cumvol[3] -= cumamount
+
+								!! 1 = 'On your labia'
+								sexvolume = max(cumamount/10, cumamount/4 - iif(cumforced=0,isprokp*rand(10,20),0))
+								if sexvolume > 0:
+									spafinloc = 1
+									sexunaware = iif(cumforced=0,iif(rand(0,4)=1 or sparridt[idx]=-2,1,0),0)
+									sexspecpot = -1 & cumarrnam = sparrnam[idx] & cumarrcpt = sparrppt[idx]/2 & cumarrkno = sparridt[idx] & cumarrage = sparrage[idx] & cumnostd = 1
+									gs 'Cum_Manage'
+									cumvol[1] += sexvolume & cumloc[1] = 1
+								end
+								if cumforced > 0:
+									!! 4 = 'On your butt'
+									sexvolume = max(cumamount/15, cumamount/3)
+									if sexvolume > 0:
+										spafinloc = 4
+										sexvolume = max(0, cumamount/2)
+										sexunaware = 0
+										sexspecpot = -1 & cumarrnam = sparrnam[idx] & cumarrcpt = sparrppt[idx]/3 & cumarrkno = sparridt[idx] & cumarrage = sparrage[idx] & cumnostd = 1
+										gs 'Cum_Manage'
+										cumvol[4] += sexvolume & cumloc[4] = 1
+									end
+								else
+									!! 5 = 'On your panties over your butt'
+									if $pantyworntype <> 'none' or PCloPanties > 0:
+										!! isprokp - sanitary pad absorption
+										if isprokp <> 1:
+											spafinloc = 5
+											sexvolume = max(1, cumamount/3)
+											sexunaware = iif(rand(0,3)=1 or sparridt[idx]=-2,1,0)
+											sexspecpot = -1 & cumarrnam = sparrnam[idx] & cumarrcpt = sparrppt[idx]/3 & cumarrkno = sparridt[idx] & cumarrage = sparrage[idx] & cumnostd = 1
+											gs 'Cum_Manage'
+											cumvol[5] += sexvolume & cumloc[5] = 1
+										end
+									!! 9 = 'On your legs'
+									elseif ($clothingworntype = 'nude' or PCloSkirt > 0 or PCloDress > 0) and rand(1,10) > 4 + InSleep*3:
+										sexvolume = max(0, cumamount/5)
+										if sexvolume > 0:
+											spafinloc = 9
+											sexunaware = iif(rand(0,2)=1 or sparridt[idx]=-2,1,0)
+											sexspecpot = -1 & cumarrnam = sparrnam[idx] & cumarrcpt = sparrppt[idx]/4 & cumarrkno = sparridt[idx] & cumarrage = sparrage[idx] & cumnostd = 1
+											gs 'Cum_Manage'
+											cumvol[9] += sexvolume & cumloc[9] = 1
+										end
+									end
+									!! 6 = 'On your clothes in your groin area'
+									if PCloPants > 0:
+										sexvolume = max(0, cumamount / (4 + iif($pantyworntype<>'none',16,0)))
+										if sexvolume > 0:
+											spafinloc = 6
+											sexunaware = iif(rand(0,4)=1 or sparridt[idx]=-2,1,0)
+											sexspecpot = -1 & cumarrnam = sparrnam[idx] & cumarrcpt = sparrppt[idx]/3 & cumarrkno = sparridt[idx] & cumarrage = sparrage[idx] & cumnostd = 1
+											gs 'Cum_Manage'
+											cumvol[6] += sexvolume & cumloc[6] = 1
+										end
+									end
+								end
+							end
+						end
+						if sparrvol[idx] <= 0: gs 'cum_cleanup', 'cleandeposit', idx
+					!! 1 = 'On your labia'  4 = 'On your butt'
+					elseif (i = 1 and sparrvol[idx]*((totminut-cumdectime)/15) > rand(2,5)) _ 
+						or (i = 4 and sparrvol[idx]*((totminut-cumdectime)/15) > rand(4,8)):
+						if $pantyworntype <> 'none' or PCloPanties > 0:
+							!! 2 = 'On your panties over your vagina'  5 = 'On your panties over your butt'
+							sexvolume = rand(sparrvol[idx]/2, sparrvol[idx]) - iif(i=1,isprokp*rand(15,30),0)
+							if sexvolume > 0:
+								sparrvol[idx] -= sexvolume
+								spafinloc = iif(i=1,2,5)
+								sexunaware = 1
+								sexspecpot = -1 & cumarrnam = sparrnam[idx] & cumarrcpt = sparrppt[idx] & cumarrkno = sparridt[idx] & cumarrage = sparrage[idx] & cumnostd = 0
+								gs 'Cum_Manage'
+								cumvol[iif(i=1,2,5)] += sexvolume & cumloc[iif(i=1,2,5)] = 1
+							end
+						!! 6 = 'On your clothes in your groin area'
+						elseif PCloPants > 0:
+							sexvolume = rand(sparrvol[idx]/2, sparrvol[idx])
+							if sexvolume > 0:
+								spafinloc = 6
+								sexunaware = iif(rand(0,4)=1 or sparridt[idx]=-2,1,0)
+								sexspecpot = -1 & cumarrnam = sparrnam[idx] & cumarrcpt = sparrppt[idx]/3 & cumarrkno = sparridt[idx] & cumarrage = sparrage[idx] & cumnostd = 1
+								gs 'Cum_Manage'
+								cumvol[6] += sexvolume & cumloc[6] = 1
+							end
+						end
+						if sparrvol[idx] <= 0: gs 'cum_cleanup', 'cleandeposit', idx
+					!! 17 = 'In a condom in your vagina'
+					elseif i = 17 and sparrvol[idx] > rand(10,15):
+						!! 0 = 'In your Vagina'
+						sexvolume = min(sparrvol[idx]/3, (totminut-cumdectime)/15 * max(0, cumamount/5 - isprokp*rand(2,5)) + cumforced/rand(5,10))
+						if sexvolume > 0:
+							!! condom in vagina is summed in cumsumvag and Cum_Manage call will added more, so subtract here
+							cumsumvag -= sexvolume
+							sparrvol[idx] -= sexvolume
+							spafinloc = 0
+							sexunaware = 1
+							sexspecpot = -1 & cumarrnam = sparrnam[idx] & cumarrcpt = sparrppt[idx] & cumarrkno = sparridt[idx] & cumarrage = sparrage[idx] & cumnostd = 0
+							gs 'Cum_Manage'
+							cumvol[17] -= sexvolume & cumvol[0] += sexvolume & cumloc[0] = 1
+						end
+					!! 12 = 'Inside your mouth'
+					elseif i <> 12 and sparrvol[idx] > rand(0,3):
+						!! dry out
+						!! 1: in this hour
+						!! 2: in four hours
+						!! 3: at least five hours ago
+						if rand(min(-1+InSleep, sparrvol[idx]/-5), sparrage[idx] + (totminut-cumdectime)/30) >= 1:
+							!! 5 and 7 = not clothes
+							if i <> 6 and i <> 7: pcs_sweat += rand(0, max(1,sparrvol[idx]/10))
+							gs 'cum_cleanup', 'cleandeposit', idx
+						end
+					end
+					if sparrvol[idx] > 0: cumloc[i] = 1 & cumvol[inx] += sparrvol[idx] else cumloc[i] = 0 & cumvol[inx] = 0
+				end
+				!! reset just in case
+				sexvolume = 0 & cumnostd = 0 & cumarrkno = 0
+			if idx > 0:idx -= 1 & jump 'sparrlocloop'
+		if i < 18:i += 1 & jump 'sparrvolloop'
+		killvar 'i'
+		killvar 'idx'
+		killvar 'cumamount'
+		if cumsumvag <= 0: cumsumvag = 0 & cum_vol['vagina'] = 0 & cumvol[0] = 0 & cum_loc['vagina'] = 0 & cumloc[0] = 0
+		if cumsumass <= 0: cumsumass = 0 & cum_vol['anus'] = 0   & cumvol[3] = 0 & cum_loc['anus'] = 0   & cumloc[3] = 0
+		if cumsumbod < 0: cumsumbod = 0
+	end
+	killvar 'cumforced'
+	cumdectime = totminut
 end
 
 --- Cum_Manage ---------------------------------

@@ -1,0 +1,71 @@
+# sleep_simple
+
+if $ARGS[0] = 'simple':
+!! to avoid sleeping the whole day I decide to calculate the duration of the sleep in advance
+!! the quality of the sleep depends on many factors, so the time of sleep can be modify later, especially the part when the time of sleep is shortened
+
+	sleepVars['time_to_full'] = (100 - pcs_sleep) * 5
+!! fully exhausted Sveta can recover in 500 minutes = 8 hours of sleep
+!! healthy Sveta can hardly sleep more then 10 hours = 600 minutes
+!! so we can add about 2 hours to time to full as a limit
+	sleepVars['time_to_full'] += 60 + rand(0, 90)
+
+
+	gs 'sleep', 'calc_minutes_to_wakeup'
+
+	InSleep = 1
+	:sleep_simple_loop
+		minut += 1
+		sleepVars['stime'] += 1
+		sleepVars['time_now'] += 1
+		sleepVars['minutes_to_wakeup'] -= 1
+		sleepVars['time_to_full'] -= 1
+
+		if recuperation = 0: pcs_health += 5
+
+		if sleepVars['stime'] mod 5 = 0: pcs_sleep += 1
+		if sleepVars['stime'] >= 60: sleepVars['stime'] = 0
+		if minut = 60: gs 'stat'
+
+		gs 'sleep_simple', 'mod_sleeptriggers'
+	if sleepVars['minutes_to_wakeup'] > 0: jump 'sleep_simple_loop'
+
+	sleepVars['time_now'] = daystart * 1440 + hour * 60 + minut
+	InSleep = 0
+	gs 'stat'
+end
+
+if $ARGS[0] = 'mod_sleeptriggers':
+	!! This location is here to allow mods to hook into the system.
+	!! Check for: if $ARGS[0] = 'sleep_simple' and $ARGS[1] = 'mod_sleeptriggers'
+	!!
+	!! This is NOT for events!!
+	gs 'LOCA', 'sleep_simple', 'mod_sleeptriggers'
+end
+
+if $ARGS[0] = 'nap_bed':
+	act 'Take a nap (1:00)':
+		menu_off = 1
+		cla
+		if pcs_sleep < 10:
+			gs 'shortgs', 'autosave'
+			gt 'pre_sleep', 'prepare_sleep'
+		elseif pcs_sleep <= 90:
+			InSleep = 1
+			pcs_sleep += 10
+			pcs_health += 5
+			minut += 60
+			gs 'stat'
+			*nl
+			'You sleep about an hour.'
+		else
+			minut += 5
+			gs 'stat'
+			*nl
+			'You are not tired enough to sleep, even for a short nap.'
+		end
+		act 'Get up': InSleep = 0 & gt 'bed_get_out', 'start'
+	end
+end
+
+--- sleep_simple ---------------------------------

@@ -1,0 +1,226 @@
+# wakeup_events
+$sleep_loc = 'wakeup_events'
+menu_off = 1
+
+!! wakeup events trigger during when waking up
+!!
+!! Moved here from wakeup
+!! When done: Move to bed2
+
+	!!=====================================!!
+	!!                                     !!
+	!!          Event handlers             !!
+	!!                                     !!
+	!!=====================================!!
+
+
+if $ARGS[0] = 'start' or $ARGS[0] = '':
+	menu_off = 1
+	killvar '$sleep_events'
+	killvar '$sleep_events_priority'
+
+	if sleepVars['events_active'] = 1:
+		sleepVars['events_done'] = 0
+
+		if mid($start_type, 1, 2) = 'sg' and locat['Fam_inGad'] = 0 and motherQW['bathroom_dildos'] > 0 and MarishaQW["marisha_sleepover"] = 0:
+			$sleep_events[] = 'gs ''wakeup_events'', ''mother_sextalk'' '
+		end
+
+		if $experimentQW['trial_active'] ! '':
+			$sleep_events_priority[] = 'gs ''wakeup_events'', ''experimental_trials'' '
+		end
+
+		if vomit['hangover'] = 1  or vomit['unlucky'] = 1 or vomit['morning_sick'] = 1:
+			$sleep_events[] = 'gs ''wakeup_events'', ''vomiting_check'' '
+		end
+
+		if MarishaQW['marisha_sleepover'] = 1: $sleep_events_priority[] = 'gs ''wakeup_events'', ''marisha_ev_morning'' '
+		if $start_type[1] = 'tg' and daystart < 10:
+			$sleep_events_priority[] = 'gs ''wakeup_events'', ''trans_early_shocked'' '
+		elseif $start_type[1] = 'tg' and daystart < 30:
+			$sleep_events_priority[] = 'gs ''wakeup_events'', ''trans_little_shocked'' '
+		end
+
+
+		if mid($start_type, 1, 2) = 'sg' and sleepVars['slept_in'] = 1 and kanikuli = 0 and SchoolAtestat = 0 and SchoolBlock = 0 and week < 6 and suspended['on'] ! 1:
+			if (hour = 7 or hour = 8):
+				$sleep_events_priority[] = 'gs ''wakeup_events'', ''sg_go_school'' '
+			elseif hour >= 9 and hour < 14:
+				$sleep_events_priority[] = 'gs ''wakeup_events'', ''sg_slept_in'' '
+			end
+			
+		end
+
+		xgt 'wakeup_events', 'mod_sleepevents'
+	end
+	
+	xgt 'wakeup_events', 'continue'
+end
+
+if $ARGS[0] = 'mod_sleepevents':
+	!! This location is here to allow mods to hook into the system.
+	!! Either check for: if $sleep_loc = 'wakeup_events' and $ARGS[0] = 'mod_sleepevents'
+	!!
+	!! You can add events as: $sleep_events[] = 'gs ''mod_loc'' ''mod_args0'' '
+	!! A random event will be chosen from amongst the added ones.
+	!! If an event MUST trigger (due to quest timing), add it tp $sleep_events_priority[] = 'gs ''mod_loc'' ''mod_args0'' '
+	!!
+	!! If the event does not break the sleep cycle (merely interupts it) it needs to end with gs 'wakeup_events', 'event_end'
+	!! If the event removed Sveta from her location (aka her sleep is cut short and/or she leaves her bed), you must call gs 'wakeup_events', 'exit'
+	!!
+	!! This is to cleanup all necessary variables.
+	!!
+	!! DO NOT DIRECTLY GOTO/GOSUB OUTOF THIS LOCATION. ALWAYS ADD IT TO THE QUEUEs!!!!
+	!! IT WILL ALMOST CERTIANLY END BADLY WHEN MORE THAN 1 MOD IS INVOLVED.
+
+	xgt 'wakeup_events', 'event_handler'
+end
+
+
+if $ARGS[0] = 'event_handler':
+	if sleepVars['events_done'] < 10:
+		if arrsize('$sleep_events_priority') > 0:
+			xgt 'wakeup_events', 'event_handler2', 'priority'
+		elseif arrsize('$sleep_events') > 0:
+			xgt 'wakeup_events', 'event_handler2'
+		end
+	end
+
+	gs 'wakeup_events', 'continue'
+end
+
+if $ARGS[0] = 'event_handler2':
+	sleepVars['events_done'] += 1
+
+	if $ARGS[1] = 'priority':
+		temp_slev_id = rand(0, arrsize('$sleep_events_priority')-1)
+		$temp_sleep_event_chosen = $sleep_events_priority[temp_slev_id]
+		killvar '$sleep_events_priority', temp_slev_id
+	else
+		temp_slev_id = rand(0, arrsize('$sleep_events')-1)
+		$temp_sleep_event_chosen = $sleep_events[temp_slev_id]
+		killvar '$sleep_events', temp_slev_id
+	end
+
+	killvar 'temp_slev_id'
+	dynamic $temp_sleep_event_chosen
+
+	gs 'wakeup_events', 'event_end'
+end
+
+
+if $ARGS[0] = 'event_end':
+	killvar '$temp_sleep_event_chosen'
+
+	if arrsize('$sleep_events_priority') > 0:
+		gt 'wakeup_events', 'event_handler2', 'priority'
+	end
+
+	xgt 'wakeup_events', 'event_handler'
+end
+
+
+if $ARGS[0] = 'exit':
+	sleepVars['events_done'] = 0
+	killvar '$sleep_loc'
+	killvar '$sleep_events'
+	killvar '$sleep_events_priority'
+	killvar 'temp_slev_id'
+	killvar '$temp_sleep_event_chosen'
+end
+
+if $ARGS[0] = 'continue':
+	sleepVars['events_done'] = 0
+	killvar '$sleep_loc'
+	killvar '$sleep_events'
+	killvar '$sleep_events_priority'
+	killvar 'temp_slev_id'
+	killvar '$temp_sleep_event_chosen'
+
+	xgt 'wakeup', 'get_out'
+end
+
+
+
+
+	!!=====================================!!
+	!!                                     !!
+	!!              Events                 !!
+	!!                                     !!
+	!!=====================================!!
+
+
+if $ARGS[0] = 'mother_sextalk':
+	gt 'mother_sextalk', 'dildo_wakeup1'
+end
+
+if $ARGS[0] = 'experimental_trials':
+	xgt 'city_experimental_trials_events'
+end
+
+
+if $ARGS[0] = 'vomiting_check':
+	!! if not one of these locations, event will not fire
+	if $loc = func('homes_properties_attr', 'get_property_attribute', '$bedroom') and (func('homes_properties', 'is_at_a_home')):
+		gs 'wakeup_events', 'exit'
+		gs 'home_activity', 'vomiting_images'
+		gt 'home_activity', 'morning_vomit'
+	else
+		vomit['morning_sick'] = 0
+		vomit['hangover'] = 0
+		vomit['unlucky'] = 0
+	end
+
+	gs 'wakeup_events', 'event_end'
+end
+
+
+
+
+if $ARGS[0] = 'marisha_ev_morning':
+	'<center><img src="images/characters/pavlovsk/resident/marisha/marisha.jpg"></center>'
+	'You wake up feeling relaxed then look over to see Marisha already up. She gives you a smile and says, "Thanks for everything <<$pcs_firstname>>. See you later." She then leaves as you continue getting up.'
+	MarishaQW['marisha_sleepover'] = 0
+	gs 'wakeup_events', 'event_end'
+end
+
+if $ARGS[0] = 'trans_early_shocked':
+	'The first thing you think as you wake up is, "Damn! It''s is not a dream, I really am a woman now."'
+	gs 'wakeup_events', 'event_end'
+end
+
+if $ARGS[0] = 'trans_little_shocked':
+	'Looking at your female body, you are still a little surprised it''s actually you.'
+	gs 'wakeup_events', 'event_end'
+end
+
+if $ARGS[0] = 'sg_go_school':
+	pcs_mood -= 10
+	gs 'stat'
+	msg '<center>Damn it''s <<func(''alarmclock'', ''alarm_display'', hour, minut)>>, you''ve slept too long! You need to hurry or you''re going to be late for school!</center>'
+	
+	gs 'wakeup_events', 'event_end'
+end
+
+if $ARGS[0] = 'sg_slept_in':
+	if schoolprogul > 2 and schoolPredupr = 2:
+		pcs_mood -= 35
+		gs 'stat'
+		msg '<center>Damn it''s <<func(''alarmclock'', ''alarm_display'', hour, minut)>>. It''s too late to go to school now!<br><<$npc_nickname[''A29'']>> will be furious. I don''t know what she might do...</center>'
+	elseif schoolprogul > 2 and schoolPredupr = 1:
+		pcs_mood -= 30
+		gs 'stat'
+		msg '<center>Damn it''s <<func(''alarmclock'', ''alarm_display'', hour, minut)>>. It''s too late to go to school now!<br><<$npc_nickname[''A29'']>> will be very angry if I miss another day of school.</center>'
+	elseif schoolprogul > 2 and schoolPredupr = 0:
+		pcs_mood -= 25
+		gs 'stat'
+		msg '<center>Damn it''s <<func(''alarmclock'', ''alarm_display'', hour, minut)>>. It''s too late to go to school now!<br><<$npc_nickname[''A29'']>> will be angry to find out I missed a day of school.</center>'
+	else
+		pcs_mood -= 20
+		gs 'stat'
+		msg '<center>Damn it''s <<func(''alarmclock'', ''alarm_display'', hour, minut)>>. It''s too late to go to school now!<br><<$npc_nickname[''A29'']>> will be very upset if I''m not at school every day.</center>'
+	end
+	gs 'wakeup_events', 'event_end'
+end
+
+--- wakeup_events ---------------------------------

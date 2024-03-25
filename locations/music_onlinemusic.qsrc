@@ -20,28 +20,28 @@ if $ARGS[0] = 'live_stream':
 		!! TODO: Separate scenes by instrument used, not used
 		ml_streamtime = 60
 		gs 'music_onlinemusic', 'streaming_stats'
-		if komp = 1 and webcamera = 1 and $location_type = 'private':
+		if mc_inventory['tech_computer'] = 1 and mc_inventory['tech_webcam'] = 1 and $location_type = 'private':
 			'<center><img <<$set_imgh>> src="images/pc/activities/music/gomixer_hero.jpg"/></center>'
 			'You set up your webcamera and start the streaming app on your computer. After settling down comfortably, you start to stream.'			
-			'Your fans tipped you <<ml_superchats>> rubels for your performance.'
+			'Your fans tipped you <<ml_superchats>> <b>₽</b> for your performance.'
 		else		
 			'<center><img <<$set_imgh>> src="images/pc/activities/music/gomixer_hero.jpg"/></center>'
 			'You set up your phone on a little tri-pod and log into your account. After settling down comfortably, you start to stream.'			
-			'Your fans tipped you <<ml_superchats>> rubels for your performance.'
+			'Your fans tipped you <<ml_superchats>> <b>₽</b> for your performance.'
 		end	
 	else
 		!! How many minutes did the stream last.
-		ml_streaming = rand(1,60)
+		ml_streamtime = rand(1,60)
 		gs 'music_onlinemusic', 'streaming_stats'
 		!! TODO: Interruption events and such will come here
 	end
 	
 	if bankAccount = 0:			
 		*nl
-		'You have earned <b><<ml_streaming[''unclaimed_earnings'']>></b> rubels so far, but you need to open a bank account before you can receive the money.'
+		'You have earned <b><<ml_streaming[''unclaimed_earnings'']>></b> <b>₽</b> so far, but you need to open a bank account before you can receive the money.'
 	else		
 		*nl
-		'You have <b><<ml_streaming[''unclaimed_earnings'']>></b> rubels on your account.'
+		'You have <b><<ml_streaming[''unclaimed_earnings'']>></b> <b>₽</b> on your account.'
 
 		act 'Stop the stream and transfer the money to your bank account':				
 			karta += ml_streaming['unclaimed_earnings']
@@ -65,7 +65,7 @@ if $ARGS[0] = 'record_song':
 	!!	TODO: Write a scene. It should describe that a song is recorded and then edited properly before uploading it to the net.
 		'<center><img <<$set_imgh>> src="images/pc/activities/music/phonerecording.jpg"/></center>'
 		'You set up your phone and settle down comfortably to record a song. After several tries you finally end up with a version you are content with and upload it to your account.'
-		'As you don''t have a computer you can''t really do much with the songs quality. But then you have seen quite a few people work with only with their phones. Like Ling Ling.'
+	!!	'As you don''t have a computer you can''t really do much with the songs quality. But then you have seen quite a few people work with only with their phones. Like Ling Ling.'
 	end
 
 	gs 'music_onlinemusic', 'recording_stats'
@@ -86,10 +86,15 @@ if $ARGS[0] = 'record_song':
 			gs 'willpower', 'skill', 'self', $diff
 
 			will_cost = (will_cost * 2) - (pcs_perform)
-			if will_cost <= pcs_willpwr:
-				act 'Upload music (<<will_cost>> Willpower)': gt 'music_onlinemusic', 'uploadmusic', 'recording'
-			else	
-				act 'Upload music (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
+			if will_cost > 0:
+				if will_cost <= pcs_willpwr:
+					gs 'willpower', 'pay', 'self'
+					act 'Upload music (<<will_cost>> Willpower)': gt 'music_onlinemusic', 'uploadmusic', 'recording'
+				else	
+					act 'Upload music (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
+				end
+			else
+				act 'Upload music': gt 'music_onlinemusic', 'uploadmusic', 'recording'
 			end
 		else
 			act 'Upload music': gt 'music_onlinemusic', 'uploadmusic', 'recording'
@@ -142,10 +147,15 @@ if $ARGS[0] = 'edit_song':
 			gs 'willpower', 'skill', 'self', $diff
 
 			will_cost = (will_cost * 2) - (pcs_perform)
-			if will_cost <= pcs_willpwr:
-				act 'Upload music (<<will_cost>> Willpower)': gt 'music_onlinemusic', 'uploadmusic'
-			else	
-				act 'Upload music (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
+			if will_cost > 0:
+				if will_cost <= pcs_willpwr:
+					gs 'willpower', 'pay', 'self'
+					act 'Upload music (<<will_cost>> Willpower)': gt 'music_onlinemusic', 'uploadmusic'
+				else	
+					act 'Upload music (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
+				end
+			else
+				act 'Upload music': gt 'music_onlinemusic', 'uploadmusic'
 			end
 		else 
 			act 'Upload music': gt 'music_onlinemusic', 'uploadmusic'
@@ -226,9 +236,9 @@ if $ARGS[0] = 'deleting':
 	j = -1
 	
 	:deletemusic
-		if (ml_onlinesong_uploaded = 1) or (ml_onlinesong_uploaded = 0 and ml_onlinesong_skilllevel > ml_threshold_skilllevel):
+		if (ml_onlinesong_uploaded[i] = 1) or (ml_onlinesong_uploaded[i] = 0 and ml_onlinesong_skilllevel[i] > ml_threshold_skilllevel):
 			j += 1
-			ml_tempsong_freshness[j] = ml_onlinesong_sfreshness[i]
+			ml_tempsong_freshness[j] = ml_onlinesong_freshness[i]
 			ml_tempsong_lastcalcday[j] = ml_onlinesong_lastcalcday[i]
 			ml_tempsong_hotcat[j] = ml_onlinesong_hotcat[i]
 			ml_tempsong_skilllevel[j] = ml_onlinesong_skilllevel[i]
@@ -248,6 +258,7 @@ if $ARGS[0] = 'deleting':
 	killvar 'i'
 
 	ml_onlinesongcount = 0
+	ml_uploadablemusic = 0
 
 	if j >= 0:
 		:looprebuildsongs
@@ -256,6 +267,7 @@ if $ARGS[0] = 'deleting':
 			ml_onlinesong_lastcalcday[ml_onlinesongcount] = ml_tempsong_lastcalcday[ml_onlinesongcount]
 			ml_onlinesong_skilllevel[ml_onlinesongcount] = ml_tempsong_skilllevel[ml_onlinesongcount]
 			ml_onlinesong_uploaded[ml_onlinesongcount] = ml_tempsong_uploaded[ml_onlinesongcount]
+			if (ml_onlinesong_uploaded[ml_onlinesongcount] = 0): ml_uploadablemusic += 1
 			ml_onlinesongcount += 1
 		if ml_onlinesongcount <= j: jump 'looprebuildsongs'
 	end

@@ -1,0 +1,217 @@
+# SMStext_builder
+
+!	How to use SMStext_builder:
+!	
+!	Start with:
+!		gs 'SMStext_builder', 'start'
+!	Then add your content through "send" and "receive":
+!		gs 'SMStext_builder', 'send', [$text]
+!		gs 'SMStext_builder', 'receive', [$text]
+!		...
+!		...
+!	You can send/receive an image using "send_img" and "receive_img". Optionally, you can add an alt-name to the image in case it does not load
+!		gs 'SMStext_builder', 'send_img', [$img_path], ([$img_name])
+!		gs 'SMStext_builder', 'receive_img', [$img_path], ([$img_name])
+!
+!	If you want Sveta to reply to this (and thus the player potentially having a choice):
+!		gs 'SMStext_builder', 'add_reply', [$text], [$file_name], [$file_args0], [$file_args1], ...
+!		gs 'SMStext_builder', 'add_reply', [$text], [$file_name], [$file_args0], [$file_args1], ...
+!	
+!	If you want Sveta to choose a selfie to send, use:
+!		gs 'SMStext_builder', 'send_selfie', [$text], [$file_name], [$file_args0], [$file_args1]
+!		Where the file_name and args are where the text chain continues.
+!	
+!	Finally, if this is a new sms-chain, use:
+!		gs 'SMStext_builder', 'add_sms', [$npc_code]
+!	
+!	If you are updating an ongoing sms-chain (usually in reponse to a choice made in the replies), use:
+!		gs 'SMStext_builder', 'show_sms', ARGS[{n}]
+!				where {n} is one more than the number of args you passed to the choice.
+!				So if you are used:
+!					gs 'SMStext_builder', 'add_reply', [$text], [$file_name], [$file_args0], [$file_args1].
+!				Then you would pass ARGS[2] (since you used $ARGS[0] and $ARGS[1]):
+!				gs 'SMStext_builder', 'add_sms', ARGS[2]
+!	
+!	Finally after the player has made a choice, everything but the replies are stored.
+!	If you want to reset the text (but not the end images), use gs 'SMStext_builder', 'reset'
+!	Starting fresh or having done your final update (even if you never updated it anyway)
+!	End it with:
+!		gs 'SMStext_builder', 'end'
+
+
+
+
+if $ARGS[0] = 'start':
+	$temp_SMStext = ''
+
+elseif $ARGS[0] = 'end':
+	killvar '$temp_SMStext'
+	killvar '$temp_SMSreplies'
+	killvar '$temp_SMSimgs'
+	killvar 'stb_i'
+	killvar 'stb_maxi'
+	killvar '$temp_SMS_reset_flag'
+	killvar '$temp_SMSRepliestext'
+end
+
+if $ARGS[0] = 'reset':
+	$temp_SMS_reset_flag = 1
+end
+
+if $ARGS[0] = 'send':
+	temp_text_width = max(10, 90 - 2 * len($ARGS[1]))
+	$temp_SMStext += '<table width=80%><tr><td width=<<temp_text_width>>%></td><td collspan=2 bgcolor=pink style="padding-top:5pt; padding-bottom:5pt; padding-left:10pt; padding-right:3pt"><font color=black>'
+	$temp_SMStext += $ARGS[1]
+	$temp_SMStext += '</font></td></tr></table>'
+	killvar 'temp_text_width'
+
+elseif $ARGS[0] = 'send_img':
+	$temp_SMStext += '<table width=80%><tr><td width=10%></td><td collspan=2 bgcolor=pink align=center style="white-space:pre-wrap">'
+	if $ARGS[2] = '': $ARGS[2] = $ARGS[1]
+	$temp_SMStext += '<br><img src="<<$ARGS[1]>>" alt="<<$ARGS[2]>>" style="horizontal-align:center; max-height:90%; max-width:90%"><br><br>'
+	$temp_SMStext += '</td></tr></table>'
+
+
+elseif $ARGS[0] = 'receive':
+	temp_text_width = max(10, 90 - 2 * len($ARGS[1]))
+	$temp_SMStext += '<table width=80%><tr><td collspan=2 bgcolor="#D4CEF9" style="padding-top:5pt; padding-bottom:5pt; padding-left:10pt; padding-right:3pt"><font color=black>'
+	$temp_SMStext += $ARGS[1]
+	$temp_SMStext += '</font></td><td width=<<temp_text_width>>%></td></tr></table>'
+	killvar 'temp_text_width'
+
+elseif $ARGS[0] = 'receive_img':
+	$temp_SMStext += '<table width=80%><tr><td collspan=2 bgcolor="#D4CEF9" align=center style="white-space:pre-wrap">'
+	if $ARGS[2] = '': $ARGS[2] = $ARGS[1]
+	$temp_SMStext += '<br><img src="<<$ARGS[1]>>" alt="<<$ARGS[2]>>" style="horizontal-align:center; max-height:90%; max-width:90%"><br><br>'
+	$temp_SMStext += '</td><td width=10%></td></tr></table>'
+end
+
+
+!	How to use 'add_reply':
+!		gs 'SMStext_builder', 'add_reply', $reply_text, $file_loc, $file_arg1, $file_arg2, $file_args2, ...
+!		gs 'SMStext_builder', 'add_reply', 'Hello', 'band_tour_anushka_SMS', 'week1', 'choice_a'
+if $ARGS[0] = 'add_reply':
+	$temp_reply_str = '[Reply] <a href="exec: gs '
+
+	stb_n_args = arrsize('$ARGS')
+	stb_i = 2
+	:SMS_build_reply_loop
+	if stb_i < stb_n_args:
+		$temp_reply_str += '''<<$ARGS[stb_i]>>'', '
+		stb_i += 1
+		jump 'SMS_build_reply_loop'
+	end
+
+	$temp_reply_str += 'telefon[''SMSid'']">' + $ARGS[1] + '</a>'
+	$temp_SMSreplies[] = $temp_reply_str
+
+	killvar 'temp_reply_str'
+	killvar 'stb_i'
+	killvar 'stb_n_args'
+
+elseif $ARGS[0] = 'private_set_replies':
+	$temp_SMSRepliestext += '<table>'
+
+	stb_maxi = arrsize('temp_SMSreplies')
+	stb_i = 0
+	:SMS_reply_loop
+		$temp_SMSRepliestext += '<tr><td>' + $temp_SMSreplies[stb_i] + '</td></tr>'
+		stb_i += 1
+	if stb_i < stb_maxi: jump 'SMS_reply_loop'
+	$temp_SMSRepliestext += '</table>'
+
+	killvar '$temp_SMSreplies'
+	killvar 'stb_i'
+	killvar 'stb_maxi'
+end
+
+
+if $ARGS[0] = 'add_end_img':
+	if $temp_imgs[0] = '':
+		$temp_SMSimgs[0] = $ARGS[1]
+	elseif $temp_imgs[1] = '':
+		$temp_SMSimgs[1] = $ARGS[1]
+	elseif $temp_imgs[2] = '':
+		$temp_SMSimgs[2] = $ARGS[1]
+	elseif $temp_imgs[3] = '':
+		$temp_SMSimgs[3] = $ARGS[1]
+	end
+end
+
+if $ARGS[0] = 'private_set_end_img':
+	stb_i = 0
+	:stb_psei_loop
+	if stb_i < arrsize('temp_SMSimgs'):
+		if $SMSPicture1[ARGS[1]] = '':
+			$SMSPicture1[ARGS[1]] = $temp_SMSimgs[stb_i]
+		elseif $SMSPicture2[ARGS[1]] = '':
+			$SMSPicture2[ARGS[1]] = $temp_SMSimgs[stb_i]
+		elseif $SMSPicture3[ARGS[1]] = '':
+			$SMSPicture3[ARGS[1]] = $temp_SMSimgs[stb_i]
+		elseif $SMSPicture4[ARGS[1]] = '':
+			$SMSPicture4[ARGS[1]] = $temp_SMSimgs[stb_i]
+		end
+		stb_i += 1
+	end
+	killvar 'stb_i'
+	killvar '$temp_SMSimgs'
+end
+
+if $ARGS[0] = 'add_sms':
+	if arrsize('temp_SMSreplies') > 0: 
+		gs 'SMStext_builder', 'private_set_replies'
+	else
+		$temp_SMSRepliestext = ''
+	end
+	gs 'telefon', 'add_sms', $ARGS[1], $temp_SMStext, $temp_SMSRepliestext, $temp_SMSimgs[0], $temp_SMSimgs[1], $temp_SMSimgs[2], $temp_SMSimgs[3]
+	
+	killvar '$temp_SMSRepliestext'
+
+elseif $ARGS[0] = 'show_sms':
+	if arrsize('temp_SMSreplies') > 0:
+		gs 'SMStext_builder', 'private_set_replies'
+	else
+		killvar '$temp_SMSRepliestext'
+	end
+	if arrsize('temp_SMSimgs') > 0: gs 'SMStext_builder', 'private_set_end_img', ARGS[1]
+	if temp_SMS_reset_flag = 1: $SMSMessage[ARGS[1]] = ''
+
+	$SMSMessage[ARGS[1]] += $temp_SMStext
+	$SMSReplies[ARGS[1]] = $temp_SMSRepliestext
+	gs 'telefon', 'show_sms', ARGS[1]
+
+	killvar 'temp_SMS_reset_flag'
+	killvar '$temp_SMStext'
+	killvar '$temp_SMSRepliestext'
+end
+
+! $ARGS[1] = displayed text
+! $ARGS[2] = control string = 'c|sw|u|n|b|sh|ft|fa|fp'
+!		c: clothed | sw: swim | u: underwear
+!		n: nude | b: bath | sh: shower
+!		ft: flash tits | fa: flash ass | fp: flash pussy
+! $ARGS[3] -> onward = the return location.
+! gs 'SMStext_builder', 'send_selfie', 'Send a sexy selfie', 'c|b|ft', 'band_tour_anushka_SMS', 'Week8', 'Choice_a'
+if $ARGS[0] = 'send_selfie':
+	$temp_reply_str = '[Selfie] <a href="exec: gs ''SMS_selfies'', ''selfie_menu'', ''<<lcase($ARGS[2])>>'', telefon[''SMSid'']'
+
+	stb_n_args = arrsize('$ARGS')
+	stb_i = 3
+	:SMS_build_send_selfie_loop
+	if stb_i < stb_n_args:
+		$temp_reply_str += ', ''<<$ARGS[stb_i]>>'''
+		stb_i += 1
+		jump 'SMS_build_send_selfie_loop'
+	end
+
+	$temp_reply_str += '"><<$ARGS[1]>></a>'
+	$temp_SMSreplies[] = $temp_reply_str
+
+	killvar 'temp_reply_str'
+	killvar 'stb_i'
+	killvar 'stb_n_args'
+end
+
+
+
+--- SMStext_builder ---------------------------------

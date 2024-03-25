@@ -1,0 +1,313 @@
+# komp_assbook
+
+if $ARGS[0] = 'main' or $ARGS[0] = '':
+	gs 'stat'
+	$subs = $access['subscription']
+
+	act 'Close Assbook': gt 'komp', 'browse'
+
+	'<center><b>Assbook</b></center>'
+	if subscription[$subs] < 1:
+		'<center><img <<$set_imgh>> src="images/pc/items/accessories/computer/eror.jpg"></center>'
+		'You have no internet access, ' + iif(access['metered'], ' you have to buy more minutes.', ' maybe you forgot to pay the internet bill?')
+		act '<B>Close the browser</B>': gt 'komp','start'
+	else
+		'<center><img <<$set_imgh>> src="images/system/image_needed.png"></center>'
+		'You''re currently on Russia''s biggest social network site, "Assbook". Almost everyone has an account here'
+		*nl
+		if $assbook['account_name'] = '':
+			'Click here to log in or <a href="exec:gt ''komp_assbook'', ''signup'' ">sign up</a>'
+		else
+			'Click here to <a href="exec:gt ''komp_assbook'', ''login'' ">log in</a> or signup'
+			act 'Go to your page': gt 'komp_assbook', 'login'
+		end
+		
+		act 'Browse assbook (0:20)': gt 'komp_assbook', 'browse'
+		act 'Look through your friends'' feeds': gt 'komp_assbook', 'friends'
+		
+		if shantfoto > 0: act 'Find the girl you took photos of in the park': gt 'komp_assbook', 'blackmail'
+		act 'Read more about Assbook': gt 'komp_assbook', 'mission_statements'
+	end
+end
+
+
+if $ARGS[0] = 'signup':
+	'<center><b>Assbook</b></center>'
+	'<center><img <<$set_imgh>> src="images/system/image_needed.png"></center>'
+	'You consider which name you''d like to register under.'
+	$assbook['account_name'] = input('Which name would you like to use? (Leave blank for <<$pcs_nickname>>)')
+	if $assbook['account_name'] = '': $assbook['account_name'] = '<<$pcs_nickname>>'
+	'You fill in your personal details and within a few moments you''ve created an account. You can even upload photos to your own page.'
+	minut += 5
+	elektro += 1
+	gs 'internet_mobile', 'use_internet', $subs, 5
+	act 'Go back to the main page': gt 'komp_assbook', 'main'
+end
+
+if $ARGS[0] = 'browse':
+	minut += 20
+	elektro += 2
+	gs 'internet_mobile', 'use_internet', $subs, 20
+	gs 'stat'
+
+	'You spend some time browsing social media'
+
+	act 'Keep browsing assbook (0:20)': gt 'komp_assbook', 'browse'
+	act 'Go back to the main page': gt 'komp_assbook', 'main'
+end
+
+if $ARGS[0] = 'friends':
+	'You don''t know the account names of your friends :('
+	
+	'<font color="red">This content is WIP.</font>'
+	
+	act 'Go back to the main page': gt 'komp_assbook', 'main'
+end
+
+
+
+
+
+if $ARGS[0] = 'login':
+	'<center><img <<$set_imgh>> src="images/system/image_needed.png"></center>'
+	
+	'<font color="red">This content is WIP.</font>'
+	*nl
+	'<a href="exec: gt ''komp_assbook'', ''upload_photo''">Upload a new photo</a>'
+	*nl
+	'Uploaded photos:'
+	gs 'phone_selfies', 'Phone_selfie_totals'
+
+	temp_locationCnt = 0
+	:LocationLoop
+		gs 'komp_assbook', 'showlocation', temp_locationCnt
+		temp_locationCnt += 1
+	if temp_locationCnt < arrsize('$selfieLoc'): jump'LocationLoop'
+	
+	act 'Go back to the main page': gt 'komp_assbook', 'main'
+end
+
+
+if $ARGS[0] = 'showlocation':
+	!'<center><h4><font color="maroon"><<$selfieLocDesc[ARGS[1]]>> selfies</font></h4></center>'
+	*nl
+	gs 'komp_assbook', 'listretrieve', ARGS[1], $selfieLoc[ARGS[1]]
+end
+
+
+if $ARGS[0] = 'listretrieve':
+	gs 'komp_assbook', 'retrieve_clothed_selfies',		ARGS[1], $ARGS[2]
+	gs 'komp_assbook', 'retrieve_swim_selfies',			ARGS[1], $ARGS[2]
+end
+
+!!  ARGS[1] is the index of the location in $selfieLoc[]
+!! $ARGS[2] is the selfie location
+if $ARGS[0] = 'retrieve_clothed_selfies':
+	!!Loop for clothed selfies, dynamics set variables as mixing them in loop instructions is bad
+	if selfieClotot[ARGS[1]] > 0:
+		!'<center><b>Clothed selfies</b></center>'
+		*nl
+		temp_clocnt = 1
+		:temp_loop
+			!!setting value to unmixed variable so it can be checked in the if below
+			dynamic 'assbook_locval = assbook_<<$ARGS[2]>>_clothed[<<temp_clocnt>>]'
+			if assbook_locval = 1: *p func('phone_selfies_popup', 'set_selfie', $ARGS[2], 'clothed', ARGS[1], temp_clocnt)
+			temp_clocnt += 1
+		if temp_clocnt <= selfieClotot[ARGS[1]]: jump 'temp_loop'
+	end
+end
+
+if $ARGS[0] = 'retrieve_swim_selfies':
+	if selfieSwimtot[ARGS[1]] > 0:
+		!'<center><b>Swimwear selfies</b></center>'
+		*nl
+		temp_clocnt = 1
+		:temp_loop1
+			!!setting value to unmixed variable so it can be checked in the if below
+			dynamic 'assbook_locval = assbook_<<$ARGS[2]>>_bikini[<<temp_clocnt>>]'
+			if assbook_locval = 1: *p func('phone_selfies_popup', 'set_selfie', $ARGS[2], 'bikini', ARGS[1], temp_clocnt)
+			temp_clocnt += 1
+		if temp_clocnt <= selfieSwimtot[ARGS[1]]: jump 'temp_loop1'
+	end
+end
+
+
+if $ARGS[0] = 'upload_photo':
+	menu_off = 1
+	temp_suppress_other_selfies = 1
+	$temp_ssh_ret_loc = 'komp_assbook'
+	$temp_ssh_ret_arg = 'upload_photo2'
+
+
+	gs 'phone_selfies', 'Phone_selfie_totals'
+
+	temp_locationCnt = 0
+	:LocationLoop
+		gs 'komp_assbook', 'showlocation2', temp_locationCnt
+		temp_locationCnt += 1
+	if temp_locationCnt < arrsize('$selfieLoc'): jump'LocationLoop'
+
+
+	act 'Go back to your page':
+		menu_off = 0
+		killvar 'temp_suppress_other_selfies'
+		killvar '$temp_ssh_ret_loc'
+		killvar '$temp_ssh_ret_arg'
+
+		minut += 1
+		gs 'internet_mobile', 'use_internet', $subs, 1
+
+		gt 'komp_assbook', 'login'
+	end
+end
+
+if $ARGS[0] = 'upload_photo2':
+	dynamic 'assbook_<<$ARGS[2]>>_<<$ARGS[3]>>[<<ARGS[5]>>] = 1'
+	menu_off = 0
+	killvar 'temp_suppress_other_selfies'
+	killvar '$temp_ssh_ret_loc'
+	killvar '$temp_ssh_ret_arg'
+
+	minut += 5
+	elektro += 1
+	gs 'internet_mobile', 'use_internet', $subs, 5
+
+	gt 'komp_assbook', 'login'
+end
+
+
+if $ARGS[0] = 'showlocation2':
+	'<center><h4><font color="maroon"><<$selfieLocDesc[ARGS[1]]>> selfies</font></h4></center>'
+	*nl
+	gs 'komp_assbook', 'listretrieve2', ARGS[1], $selfieLoc[ARGS[1]]
+end
+
+
+if $ARGS[0] = 'listretrieve2':
+	gs 'komp_assbook', 'upload_clothed_selfies',		ARGS[1], $ARGS[2]
+	gs 'komp_assbook', 'upload_swim_selfies',			ARGS[1], $ARGS[2]
+end
+
+
+!!  ARGS[1] is the index of the location in $selfieLoc[]
+!! $ARGS[2] is the selfie location
+if $ARGS[0] = 'upload_clothed_selfies':
+	!!Loop for clothed selfies, dynamics set variables as mixing them in loop instructions is bad
+	if selfieClotot[ARGS[1]] > 0:
+		!'<center><b>Clothed selfies</b></center>'
+		*nl
+		temp_clocnt = 1
+		:temp_loop
+			!!setting value to unmixed variable so it can be checked in the if below
+			dynamic 'assbook_locval = assbook_<<$ARGS[2]>>_clothed[<<temp_clocnt>>]'
+			dynamic 'phone_locval = <<$ARGS[2]>>_closelfie[<<temp_clocnt>>]'
+			if assbook_locval = 0 and phone_locval = 1: *p func('phone_selfies_popup', 'set_selfie', $ARGS[2], 'clothed', ARGS[1], temp_clocnt)
+			temp_clocnt += 1
+		if temp_clocnt <= selfieClotot[ARGS[1]]: jump 'temp_loop'
+	end
+end
+
+if $ARGS[0] = 'upload_swim_selfies':
+	if selfieSwimtot[ARGS[1]] > 0:
+		!'<center><b>Swimwear selfies</b></center>'
+		*nl
+		temp_clocnt = 1
+		:temp_loop1
+			!!setting value to unmixed variable so it can be checked in the if below
+			dynamic 'assbook_locval = assbook_<<$ARGS[2]>>_bikini[<<temp_clocnt>>]'
+			dynamic 'phone_locval = <<$ARGS[2]>>_swim[<<temp_clocnt>>]'
+			if assbook_locval = 0 and phone_locval = 1: *p func('phone_selfies_popup', 'set_selfie', $ARGS[2], 'bikini', ARGS[1], temp_clocnt)
+			temp_clocnt += 1
+		if temp_clocnt <= selfieSwimtot[ARGS[1]]: jump 'temp_loop1'
+	end
+end
+
+
+
+if $ARGS[0] = 'mission_statements':
+	'Introducing Assbook: Where Connections Speak Louder than Words!'
+	'Dive into the vibrant and dynamic world of Assbook, your passport to a digital realm filled with the rich tapestry of Russian culture, diverse communities, and unparalleled social interactions. Here''s why Assbook is the social media platform you''ve been waiting for:'
+	*nl
+	'<b>Cultural Richness:</b>'
+	'Assbook isn''t just a social media site; it''s a celebration of Russian culture. Immerse yourself in a community that cherishes the arts, history, and the unique traditions that make Russia a tapestry of diversity. From captivating stories to stunning visuals, Assbook is your window into the soul of this extraordinary nation.'
+	*nl
+	'<b>Connect with a Purpose:</b>'
+	'Unlike other social media platforms, Assbook is designed to foster meaningful connections. Engage in discussions that matter, share experiences, and find like-minded individuals who appreciate the depth of human interaction. From intellectual debates to heartfelt conversations, Assbook encourages connections that go beyond the surface.'
+	*nl
+	'<b>Visual Storytelling:</b>'
+	'Capture and share your life''s moments through Assbook''s visually immersive experience. Whether it''s breathtaking landscapes, artistic expressions, or snapshots of everyday life, let your images tell the story. With an emphasis on visual storytelling, Assbook transforms your feed into a canvas of emotions, sparking connections through the power of imagery.'
+	*nl
+	'<b>Privacy and Security:</b>'
+	'Your online safety is our top priority. Assbook employs state-of-the-art security measures to ensure that your personal information remains private. Enjoy a worry-free social experience, knowing that your data is in safe hands.'
+	*nl
+	'<b>Community-driven Features:</b>'
+	'Assbook is constantly evolving based on user feedback. Have a suggestion or a feature you''d love to see? Our community-driven approach means that your voice matters. Shape the platform to suit your needs and make Assbook your own.'
+	*nl
+	'<b>Exclusive Events and Groups:</b>'
+	'Discover and participate in exclusive events and groups tailored to your interests. From cultural meet-ups to niche communities, Assbook provides a platform for you to connect with people who share your passions.'
+	*nl
+	'<b>Assbook for Business:</b>'
+	'Entrepreneurs and businesses, take note! Assbook offers a unique platform for networking, brand promotion, and reaching your target audience. Leverage the power of the Assbook community to elevate your brand and connect with potential customers.'
+	*nl
+	'Join the Assbook revolution today and experience social media in a way that transcends the ordinary. Embrace the beauty of Russian culture, forge lasting connections, and make Assbook your digital home!'
+
+	act 'Go back to the main page': gt 'komp_assbook', 'main'
+end
+
+
+if $ARGS[0] = 'blackmail':
+	gs 'stat'
+
+	'<center><img <<$set_imgh>> src="images/pc/items/accessories/computer/komp.jpg"></center>'
+	'You''re currently on Russia''s biggest social network site, "Assbook". Almost everyone has an account here, probably including the girl you took that photo of the other day!'
+	'"Maybe if I can find her, I can blackmail her", you think to yourself. "This photo is very raunchy, after all... I bet she would hate to see it published if she''s important!"'
+	'You can''t help but rub your pussy every now and then while you look at it. You''ll probably keep a copy of this for yourself, either way!'
+
+	act 'Try to find out who she is (1:00)':
+		cla
+		minut += 60
+		elektro += 6
+		gs 'internet_mobile', 'use_internet', $subs, 60
+		fotsearchrand = rand(0,10)
+
+		if fotsearchrand <= 7:
+			'Despite your best efforts, you don''t manage to find the girl this time.'
+
+			act 'Go back to the "Assbook" main page': gt 'komp_assbook', 'main'
+		end
+
+		if fotsearchrand > 7:
+			shantfoto -= 1
+			'Despite your best efforts, you don''t manage to... wait, that''s her! You found her!'
+			gerofotorand = rand(0,100)
+
+			if gerofotorand > 30:
+				'Your dreams of making a fortune are quickly shattered when you check out her profile. Cheap clothes, few friends, lives in a poor district of the city... this girl is not worth blackmailing.'
+
+				act 'Go back to the "Assbook" main page': gt 'komp_assbook', 'main'
+			end
+
+			if gerofotorand >= 5 and gerofotorand <= 30:
+				shantsr += 1
+				'When you click through her profile, you estimate she''s an unknown middle-class girl. Still, she has a lot of friends and the outfits she''s wearing in her photos look stylish... she has money to spend.'
+				'"Why not make her spend some of it on me?" you laugh to yourself, and begin to write a private message.'
+				'You send her a copy of the photo with the private message and tell her to transfer a very modest amount of 5,000 <b>₽</b> to your bank account. If she doesn''t want that photo to be sent to her entire friends list (which you secured before sending the message), the money needs to be on your bank account within 48 hours.'
+
+				act 'Go back to the "Assbook" main page': gt 'komp_assbook', 'main'
+			end
+
+			if gerofotorand < 5:
+				shantbog += 1
+				'You can barely believe it when you read her profile, this girl is a celebrity! It would be a major scandal if this photo got published!'
+				'You send her a copy of the photo with a private message, telling her to transfer 30,000 <b>₽</b> to your bank account. If she doesn''t want that photo to be sent to the press, the money needs to be on your bank account within 48 hours.'
+
+				act 'Go back to the "Assbook" main page': gt 'komp_assbook', 'main'
+			end
+		end
+	end
+
+	act 'Go back to the "Assbook" main page': gt 'komp_assbook', 'main'
+end
+
+
+--- komp_assbook ---------------------------------

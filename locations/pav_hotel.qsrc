@@ -1,6 +1,7 @@
 # pav_hotel
 
 CLOSE ALL
+$region = 'pav'
 $loc_arg = $ARGS[0]
 $loc = $CURLOC
 $menu_loc = 'pav_hotel'
@@ -15,7 +16,7 @@ gs'stat'
 if $ARGS[0] = 'skip_resepevent': jump 'skipresepevent'
 
 if hour = 0 and hotresepQW_day ! daystart and (hotresepQW < 3 or (hotresepQW = 3 and rand(1,10) = 10)):
-	if hotelRoom['pav_hotel'] = 0:
+	if hotelRoom['pav_hotel'] = 0 and therapistQW['hotel_key'] ! 3:
 		*clr
 		'When you want to enter the hotel you notice the doors are closed.'
 		'You try knocking on the door but nobody comes to open them.'
@@ -35,7 +36,7 @@ if hour = 0 and hotresepQW_day ! daystart and (hotresepQW < 3 or (hotresepQW = 3
 		elseif resepseen = 0:
 			'This is strange, you think to yourself. The lobby is supposed to be open 24/7.'
 		elseif resepseen = 1:
-			'"Damn it, I guess if I am going to catch <<$receptionName>> in the act, I need to find another way to enter the lobby at midnight."'
+			'"Damn it, I guess if I am going to catch Elisabet in the act, I need to find another way to enter the lobby at midnight."'
 			if hotresepQW < 2: hotresepQW = 2
 			gs 'exp_gain', 'observ', 3
 		end
@@ -52,7 +53,7 @@ if hour = 0 and hotresepQW_day ! daystart and (hotresepQW < 3 or (hotresepQW = 3
 				'You find the door closed, and you realise that the receptionist and the manager are probably fooling around again. You carefully open the door with your key, and enter as quietly as you can.'
 				'Moving to the corner carefully, you sneak a glimpse.'
 			end
-			'You spy <<$receptionName>>. Yep, you nod, she''s already showing herself off to the cameras.'
+			'You spy Elisabet. Yep, you nod, she''s already showing herself off to the cameras.'
 			'<center><img <<$set_imgh>> src="images/locations/pavlovsk/hotel/sex/resep_event1.jpg"></center>'
 			'She flashes her breasts beneath a devilish smile.'
 			'She flaps her skirt up and down, and there''s her shaved vagina, now-you-see-it, now-you-don''t.'
@@ -100,9 +101,15 @@ if hour = 0 and hotresepQW_day ! daystart and (hotresepQW < 3 or (hotresepQW = 3
 						'You have seen enough and quietly go back to your room'
 
 						act 'Continue':
-							if hotelroom = 1:gt'hotelroom','normal'
-							if hotelroom = 2:gt'hotelroom','better'
-							if hotelroom = 3:gt'hotelroom','best'
+							if therapistQW['hotel_key'] = 3:
+								gt 'HotelRoom', 'therapist'
+							elseif hotelRoom['pav_hotel'] = 1:
+								gt'hotelroom','normal'
+							elseif hotelRoom['pav_hotel'] = 2:
+								gt'hotelroom','better'
+							elseif hotelRoom['pav_hotel'] = 3:
+								gt'hotelroom','best'
+							end
 						end
 					end
 				end
@@ -130,9 +137,27 @@ else
 	if pavHotelMaid = 0:
 		'As you enter the Pavlovsk hotel you''re always surprised by how fancy it looks on the inside, given the shabby exterior. You can approach the <a href="exec:minut += 1 & gt ''pav_hotelReception''">reception desk</a> of the hotel where a cute brunette is currently manning the desk, she gives you a friendly nod when you get into her sight range.'
 	else
-		'As you enter the Pavlovsk hotel you''re always surprised by how fancy it looks on the inside, given the shabby exterior. You can approach the <a href="exec:minut += 1 & gt ''pav_hotelReception''">reception desk</a> of the hotel where <<$receptionName>> is currently manning the desk, she gives you a friendly nod when you get into her sight range.'
+		'As you enter the Pavlovsk hotel you''re always surprised by how fancy it looks on the inside, given the shabby exterior. You can approach the <a href="exec:minut += 1 & gt ''pav_hotelReception''">reception desk</a> of the hotel where Elisabet is currently manning the desk, she gives you a friendly nod when you get into her sight range.'
 	end
 end
+
+if therapistQW['hotel_key'] = 2 and week = 6 and hour > 19 and pcs_traits['commando_lvl'] = 3 and therapistQW['hotel_day'] ! daystart and therapistQW['escaped'] = 0:
+	therapistQW['hotel_day'] = daystart
+	gs 'willpower', 'misc', 'resist', 'medium'
+
+	act 'Visit the therapist': gt 'therapist_hotel', 'start'
+
+	if pcs_willpwr < will_cost:
+		act 'Don''t visit the therapist (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
+	else
+		act 'Don''t visit the therapist':
+			gs 'willpower', 'pay', 'medium'
+			gt 'pav_hotel'
+		end
+	end
+	exit
+end
+
 
 if hour >= 12 and hour < 20 and proshotelopen = 1: '<a href="exec:gt ''pav_hotel'',''Pavlin''">Pavlin</a> is sitting in the lobby looking around for fresh prey.'
 
@@ -152,9 +177,10 @@ if maidqw >= 1 and hour >= 16 and hour < 17:
 		gs'stat'
 		if pavHotelMaid = 0:
 			pavHotelMaid = 1
-			'You report in for work at the front desk. The brunette manning the desk quickly makes sure no customers will need her for a minute. "Come with me, I''ll show you to the locker room." She says as she stands up and walks into a room behind the desk. "I didn''t catch your name last time. I''m <<$receptionName>>." She says as she opens a wardrobe and pulls out a maid uniform. "My name is <<$pcs_nickname>>." You tell her as you watch her closely. "This should be about your size. If it doesn''t fit just grab another from here. We have a few different sizes." She gives you a friendly smile: "You need to wear it while you work, company policy. You can put your own clothes in a locker for safekeeping. I have to get back to the desk now before I''m missed, good luck today!"'
+			'You report in for work at the front desk. The brunette manning the desk quickly makes sure no customers will need her for a minute. "Come with me, I''ll show you to the locker room." She says as she stands up and walks into a room behind the desk. "I didn''t catch your name last time. I''m Elisabet." She says as she opens a wardrobe and pulls out a maid uniform. "My name is <<$pcs_nickname>>." You tell her as you watch her closely. "This should be about your size. If it doesn''t fit just grab another from here. We have a few different sizes." She gives you a friendly smile: "You need to wear it while you work, company policy. You can put your own clothes in a locker for safekeeping. I have to get back to the desk now before I''m missed, good luck today!"'
 		else
-			'You report in for work at the front desk. <<$receptionName>> smiles and tells you: "Go and get changed <<$pcs_nickname>>. I''ll put your name on the worksheet for you."'
+			'You report in for work at the front desk.'
+			'"Go and get changed <<$pcs_nickname>>," Elisabet smiles. "I''ll put your name on the worksheet for today."'
 		end
 		act'Change into the maid costume':
 			*clr & cla
@@ -162,7 +188,7 @@ if maidqw >= 1 and hour >= 16 and hour < 17:
 			if pcs_inhib < 30: inhib_exp += 1
 			'<center><img <<$set_imgh>> src="images/locations/pavlovsk/hotel/maid.cloth'+rand(0,5)+'.jpg"></center>'
 			'You sit down in the locker room and look at the maid uniform. You run your hands over the delicate fabric while you think: "Hmm, it''s a bit skimpy. I bet that''s why the hotel manager thinks this is important, the guests probably love seeing the maids like this!"'
-			'You quickly take off your own clothes, and put the maid uniform on as instructed. After a few quick poses in the mirror you''re convinced: the manager is a pervert! Then again, it does look cute on you. All you have to is clean and prepare rooms for guests... why not look good while you do?'
+			'You quickly take off your own clothes, and put the maid uniform on as instructed. After a few quick poses in the mirror you''re convinced: the manager is a pervert! Then again, it does look cute on you. All you have to do, is clean and prepare rooms for guests... why not look good while you do it?'
 			act'Get to work':workmaid += 1 & gt'pav_hotelWork','maid'
 		end
 	end
@@ -171,8 +197,7 @@ end
 if maidqw >= 1 and hour >= 15 and hour < 16:
 	act'Wait in the lobby until you can start your maid job':
 		*clr & cla
-		hour = 16
-		minut = 0
+		minut += 60-minut
 		gs'stat'
 		gt 'pav_hotel'
 	end
@@ -186,11 +211,16 @@ if hour = 20 and IgorevnaBDSM >= 5 and IgorevnaBDSM < 9 and week < 3 and AnnaQW[
 	act 'Look for Anna':AnnaQW['daystart'] = daystart & gt 'hotel_anna', 'meeting'
 end
 
-if hotelRoom['pav_hotel'] > 0:
+if hotelRoom['pav_hotel'] > 0 or therapistQW['hotel_key'] = 3:
 	act 'Go to your room':
 		$hotel = 'pav_hotel'
-		if hotelRoom['pav_hotel'] = 1:gt'hotelroom','normal'
-		if hotelRoom['pav_hotel'] = 2:gt'hotelroom','better'
+		if therapistQW['hotel_key'] = 3:
+			gt 'HotelRoom', 'therapist'
+		elseif hotelRoom['pav_hotel'] = 1:
+			gt 'HotelRoom', 'normal'
+		elseif hotelRoom['pav_hotel'] = 2:
+			gt 'HotelRoom', 'better'
+		end
 	end
 end
 
@@ -199,6 +229,8 @@ act 'Kill some time in the hotel lobby':
 	hotwait = 1
 	gt 'pav_hotel'
 end
+
+gs 'booty_call', 'hotel_links'
 
 if $ARGS[0] = 'Pavlin' :
 	*clr & cla
@@ -212,7 +244,8 @@ if $ARGS[0] = 'Pavlin' :
 	if npc_rel['A217']>=40 and npc_rel['A217']<60:'You and <<$npc_nickname[''A217'']>> have a normal relationship.'
 	if npc_rel['A217']>=60 and npc_rel['A217']<80:'You and <<$npc_nickname[''A217'']>> have a good relationship.'
 	if npc_rel['A217']>=80:'You and <<$npc_nickname[''A217'']>> have a great relationship.'
-	act 'Move away':gt'pav_hotel','skip_resepevent'
+	act 'Move away': gt'pav_hotel','skip_resepevent'
+	if proshotelday ! daystart: act 'Perform your duty':gt 'pav_hotelReception', 'pavgenpros'
 	if firstfemalecust = 1:
 		if pavprosnofemales = 1:
 			act 'Start taking female customers':
@@ -1077,7 +1110,7 @@ if $ARGS[0] = 'PregBDSM' :
 												'When you wake up, hours later, the nurse hands you some pain killers and tells you that you are being discharged from the hospital.'
 												*nl
 												'You slowly get dressed and leave the building. As you head back out into the streets you feel numb; hollowed out inside like a long dead tree stump. You''re utterly broken as you wander the streets aimlessly, hoping for a way to move on from all this.'
-												painkiller += 10
+												mc_inventory['painkillers'] += 10
 												pcs_childtrauma += 8
 												Surgeryday = daystart
 												pcs_health = 50

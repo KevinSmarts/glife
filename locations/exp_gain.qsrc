@@ -1,20 +1,65 @@
 # exp_gain
 !2022/08/07
 
-!gosup that exp gain is run through to be able to modify exp gain by conditions of the player character
+! gosub that exp gain is run through to be able to modify exp gain by conditions of the player character
 
-!Modify exp gain if Sveta does not get enough sleep.
+! use: gs 'exp_gain', 'skill', exp
+! example: gs 'exp_gain', 'photoskl', rand(1,2)
+! example: gs 'exp_gain', $ARGS[2], rand(3,5)
+
 if ARGS[1] > 0:
-	if pcs_condition['lack_of_sleep'] >= 20:
-		dynamic "<<$ARGS[0]>>_exp += <<ARGS[1]>>/4"
-	elseif pcs_condition['lack_of_sleep'] >= 10:
-		dynamic "<<$ARGS[0]>>_exp += <<ARGS[1]>>/2"
-	elseif pcs_condition['lack_of_sleep'] >= 5:
-		dynamic "<<$ARGS[0]>>_exp += (<<ARGS[1]>>*3)/4"
-	elseif pcs_condition['lack_of_sleep'] >= 2 and ARGS[1] > 1:
-		dynamic "<<$ARGS[0]>>_exp += (<<ARGS[1]>>*9)/10"
+!!	Prevents EXP gain for stren_plus if its 50 or higher and Sveta ISNT using steroids
+	if $ARGS[0] = 'stren_plus' and stren_plus_lvl >= 50 and drugVars['steroids_dose'] = 0:
+		exit
+	end
+
+!!	Traits:
+!!	- New Again
+	if pcs_traits['new_again'] > 0: ARGS[1] *= 2
+
+!!	Stats:
+!!	- Exhaustion (lack of sleep and stamina)
+	if pcs_stam <= 0:
+		if pcs_condition['lack_of_sleep'] >= 20:
+			ARGS[1] /= 8
+		elseif pcs_condition['lack_of_sleep'] >= 10:
+			ARGS[1] /= 4
+		elseif pcs_condition['lack_of_sleep'] >= 5:
+			ARGS[1] = ARGS[1] * 3 / 8
+		elseif pcs_condition['lack_of_sleep'] >= 2:
+			ARGS[1] = ARGS[1] * 9 / 20
+		else
+			ARGS[1] /= 2
+		end
+	elseif pcs_stam < stammax / 5:
+		if pcs_condition['lack_of_sleep'] >= 20:
+			ARGS[1] = ARGS[1] * 3 / 16
+		elseif pcs_condition['lack_of_sleep'] >= 10:
+			ARGS[1] = ARGS[1] * 3 / 8
+		elseif pcs_condition['lack_of_sleep'] >= 5:
+			ARGS[1] = ARGS[1] * 9 / 16
+		elseif pcs_condition['lack_of_sleep'] >= 2 and ARGS[1] > 1:
+			ARGS[1] = ARGS[1] * 27 / 40
+		elseif ARGS[1] > 1:
+			ARGS[1] = ARGS[1] * 3 / 4
+		end
 	else
+		if pcs_condition['lack_of_sleep'] >= 20:
+			ARGS[1] /= 4
+		elseif pcs_condition['lack_of_sleep'] >= 10:
+			ARGS[1] /= 2
+		elseif pcs_condition['lack_of_sleep'] >= 5:
+			ARGS[1] = ARGS[1] * 3 / 4
+		elseif pcs_condition['lack_of_sleep'] >= 2 and ARGS[1] > 1:
+			ARGS[1] = ARGS[1] * 9 / 10
+		end
+	end
+
+!!	EXP Assignment. If at max just extends the period before degeneration of the stat starts.
+	if dyneval('RESULT = <<$ARGS[0]>>_lvl ') < dyneval('RESULT = 100 + <<$ARGS[0]>>_muta'):
 		dynamic "<<$ARGS[0]>>_exp += <<ARGS[1]>>"
+	else
+		dynamic "<<$ARGS[0]>>_deg = 2 + <<$ARGS[0]>>_muta"
 	end
 end
 

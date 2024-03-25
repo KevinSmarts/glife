@@ -1,8 +1,9 @@
 # pav_train_hall
 
 if $ARGS[0] = '':
-	$loc_arg = ''
+	$region = 'pav'
 	$loc = 'pav_train_hall'
+	$loc_arg = ''
 	$menu_loc = 'pav_train_hall'
 	$menu_arg = ''
 	menu_off = 0
@@ -54,22 +55,23 @@ if $ARGS[0] = '':
 		*nl
 	end
 
-	act 'Walk to the Market (0:03)':minut += 3 & gt 'pav_market'
-	act 'Walk to the Commercial area (0:10)':minut += 10 & gt 'pav_commercial'
-	act 'Walk to the Residential area (0:15)':minut += 15 & gt 'pav_residential'
-	act 'Walk to the Industrial region (0:15)':minut += 15 & gt 'pav_industrial'
-	act 'Walk to the Five Eight estate (0:15)':minut += 15 & gt 'pav_complex', 'start'
-	act 'Walk to the highway (0:15)':minut += 15 & nroad = 20 & gt 'road'
-	act 'Walk to Pushkin (0:15)':minut += 15 & nroad = 19 & gt 'liam'
+	act 'Walk to the bus station (0:02)': minut += 2 & gt 'bus', 'pavstation'
+	act 'Walk to the Market (0:03)': minut += 3 & gt 'pav_market'
+	act 'Walk to the Commercial area (0:10)': minut += 10 & gt 'pav_commercial'
+	act 'Walk to the Residential area (0:15)': minut += 15 & gt 'pav_residential'
+	act 'Walk to the Industrial region (0:15)': minut += 15 & gt 'pav_industrial'
+	act 'Walk to the Five Eight estate (0:15)': minut += 15 & gt 'pav_complex', 'start'
+	act 'Walk to the highway (0:15)': minut += 15 & nroad = 20 & gt 'road'
+	act 'Walk to Pushkin (0:15)': minut += 15 & nroad = 19 & gt 'pushkin'
 
-	if Trainpass_day > daystart:
-		'You have <<Trainpass_day - daystart>> days left on your train pass.'
+	if transportVars['trainpass_day'] > daystart:
+		func('transport_functions', 'display_trainpass_time')
 		act 'Go to the platforms': gt 'pav_train_hall', 'platform'
 	else
 		act 'Go to the ticket office': gt 'pav_train_hall', 'ticket'
 	end
 
-	if snarkozak = 1 and narkozakday ! day and money >= 1500: act 'Find the drug dealer':gs 'events', 'snarkozaka'
+	if drugVars['pav_dropoff'] = 1 and drugVars['heroin_day'] ! daystart and money >= 1500: act 'Find the drug dealer':gs 'events', 'pav_drug_dropoff'
 
 	if vokzalVork >= 1:
 		if cleZalDay ! daystart or cleMTDay ! daystart or cleWTDay ! daystart:
@@ -153,21 +155,73 @@ if $ARGS[0] = 'platform':
 	*nl
 	'Because Pavlovsk is a place that attracts a fair amount of tourists, the station can be quite busy at times. The busiest times on the platforms are between 11:00 and 11:30, and between 18:00 and 18:30 when the long-distance trains are ready for boarding.'
 	*nl
+	gs 'transport_functions', 'set_train_wait_time', 'pavlovsk'
+	'The next train in the direction of St. Petersburg city center ' + iif(transportVars['train_wait_center'] = 0, 'is leaving now!', 'leaves in <<transportVars[''train_wait_center'']>> minutes.')
+	*nl
 	if week >= 6 and hour >= 9 and hour <= 10:'You notice <a href="exec:gt ''gschool_socialchg1'', ''tBella''">Bella</a> standing at the train station platform, looking at the time table.'
 
-	act 'Enter the station building': gt'pav_train_hall'
+	act 'Enter the station building': gt 'pav_train_hall'
+	if transportVars['buspass_day'] > daystart: act 'Walk to the bus platfrom (0:02)': minut += 2 & gt 'bus', 'pavstation_busses'
 
-	if Trainpass_day > daystart:
+	act 'Look at the train schedule':
+		*clr & cla
+		gs 'transport_functions', 'display_train_schedule', 'pc'
+		act 'Stop looking at the schedule': gt 'pav_train_hall', 'platform'
+	end
 
-		act 'Take the train to the village of Gadukino': gt 'pav_train_hall', 'village'
-
-		act 'Take the train to the communal village': gt 'pav_train_hall', 'communal'
-
-		act 'Take the train to city industrial area': gt 'pav_train_hall', 'ind'
-
-		act 'Take the train to city center': gt 'pav_train_hall', 'centre'
+	if transportVars['trainpass_day'] > daystart:
+		act 'Take the train to the village of Gadukino (<<func(''transport_functions'', ''display_train_timecost'', ''pavlovsk'', ''gadukino'', ''center'')>>)':	gt 'train', 'pavlovsk_gadukino'
+		act 'Take the train to the communal village (<<func(''transport_functions'', ''display_train_timecost'', ''pavlovsk'', ''communal'', ''center'')>>)':	gt 'train', 'pavlovsk_communal'
+		act 'Take the train to the city industrial area (<<func(''transport_functions'', ''display_train_timecost'', ''pavlovsk'', ''ind'', ''center'')>>)':	gt 'train', 'pavlovsk_ind'
+		act 'Take the train to the city center (<<func(''transport_functions'', ''display_train_timecost'', ''pavlovsk'', ''center'', ''center'')>>)':			gt 'train', 'pavlovsk_center'
 	end
 end
+
+
+
+if $ARGS[0] = 'ticket':
+	$menu_loc = 'pav_train_hall'
+	$menu_arg = 'ticket'
+	menu_off = 0
+	*clr & cla
+	gs 'stat'
+	'<center><h2>Ticket office</h2></center>'
+	'<center><img <<$set_imgh>> src="images/locations/pavlovsk/trainstation/ticketoffice.jpg"></center>'
+
+	*nl
+	gs 'transport_functions', 'set_train_wait_time', 'pavlovsk'
+	'The next train in the direction of St. Petersburg city center ' + iif(transportVars['train_wait_center'] = 0, 'is leaving now!', 'leaves in <<transportVars[''train_wait_center'']>> minutes.')
+
+	act 'Leave the ticket office':minut += 1 & gt 'pav_train_hall'
+
+	act 'Look at the train schedule':
+		*clr & cla
+		gs 'transport_functions', 'display_train_schedule', 'pc'
+		act 'Stop looking at the schedule': gt 'pav_train_hall', 'ticket'
+	end
+
+	if money >= 50:
+		act 'Buy a ticket':
+			cla
+			gs 'pav_train_hall', 'buy_ticket'
+		end
+	end
+
+	gs 'transport_functions', 'buy_train_pass'
+end
+
+if $ARGS[0] = 'buy_ticket':
+	$menu_loc = 'pav_train_hall'
+	$menu_arg = 'buy_ticket'
+	menu_off = 0
+
+	act 'Leave the ticket office':minut += 1 & gt 'pav_train_hall'
+
+	gs 'transport_functions', 'buy_train_ticket', 'pavlovsk', 'pc'
+end
+
+
+
 
 if $ARGS[0] = 'work':
 	menu_off = 1
@@ -179,6 +233,7 @@ if $ARGS[0] = 'work':
 			cls
 			cleZalDay = daystart
 			gs 'exercise', 'tier1', 60, 'stren', 'vital'
+			gs 'exp_gain', 'cleaning', rand(0,2)
 			pcs_mood -= 6
 			gs 'stat'
 			'<center><img <<$set_imgh>> src="images/locations/city/residential/office/clener1.jpg"></center>'
@@ -193,6 +248,7 @@ if $ARGS[0] = 'work':
 			cls
 			cleMTDay = daystart
 			gs 'exercise', 'tier1', 30, 'stren', 'vital'
+			gs 'exp_gain', 'cleaning', rand(0,2)
 			pcs_mood -= 6
 			gs 'stat'
 			'<center><img <<$set_imgh>> src="images/locations/city/residential/office/clener1.jpg"></center>'
@@ -209,6 +265,7 @@ if $ARGS[0] = 'work':
 			cls
 			cleWTDay = daystart
 			gs 'exercise', 'tier1', 30, 'stren', 'vital'
+			gs 'exp_gain', 'cleaning', rand(0,2)
 			pcs_mood -= 6
 			gs 'stat'
 			'<center><img <<$set_imgh>> src="images/locations/city/residential/office/clener1.jpg"></center>'
@@ -219,148 +276,6 @@ if $ARGS[0] = 'work':
 		end
 	end
 	act 'Return': gt 'pav_train_hall'
-end
-
-if $ARGS[0] = 'ticket':
-	$menu_loc = 'pav_train_hall'
-	$menu_arg = 'ticket'
-	menu_off = 0
-	*clr & cla
-	gs 'stat'
-	'<center><h2>Ticket office</h2></center>'
-	'<center><img <<$set_imgh>> src="images/locations/pavlovsk/trainstation/ticketoffice.jpg"></center>'
-
-	act 'Leave the ticket office':minut += 1 & gt 'pav_train_hall'
-
-	if money >= 50:
-		act 'Buy a ticket':
-			cla
-			gs 'pav_train_hall', 'buy_ticket'
-		end
-	end
-
-	if money >= 1500 and Trainpass_day <= daystart:
-		act 'Buy a weekly pass (7 days - 1500 <b>₽</b>) ':
-			cla
-			money -= 1500
-			Trainpass_day = daystart + 7
-			act 'Return': gt 'pav_train_hall'
-		end
-	end
-
-	if money >= 5500 and Trainpass_day <= daystart:
-		act 'Buy a monthly pass (30day - 5500 <b>₽</b>)':
-			cla
-			money -= 5500
-			Trainpass_day = daystart + 30
-			act 'Return': gt 'pav_train_hall'
-		end
-	end
-end
-
-if $ARGS[0] = 'buy_ticket':
-	$menu_loc = 'pav_train_hall'
-	$menu_arg = 'buy_ticket'
-	menu_off = 0
-
-	act 'Leave the ticket office':minut += 1 & gt 'pav_train_hall'
-
-	if money >= 75:
-		act 'Buy a ticket to the village of Gadukino (75 <b>₽</b>)':
-			money -= 75
-			gt 'pav_train_hall', 'village'
-		end
-	end
-
-	if money >= 100:
-		act 'Buy a ticket to the communal village (100 <b>₽</b>)':
-			money -= 100
-			gt 'pav_train_hall', 'communal'
-		end
-	end
-
-	if money >= 125:
-		act 'Buy a ticket to city industrial area (125 <b>₽</b>)':
-			money -= 125
-			gt 'pav_train_hall', 'ind'
-		end
-	end
-
-	if money >= 150:
-		act 'Buy a ticket to city center (150 <b>₽</b>)':
-			money -= 150
-			if rand(0,10) = 0: gt 'train', 'weed'
-			gt 'pav_train_hall', 'centre'
-		end
-	end
-end
-
-if $ARGS[0] = 'village':
-	$loc = 'train'
-	$loc_arg = 'village'
-	menu_off = 1
-	minut += 15
-	if rand(1, 100) <= 10: gt 'train_incidental', 'events'
-	if rand(1, 100) < 20: gt 'train', 'events'
-	gs 'stat'
-	'<center><img <<$set_imgh>> src="images/locations/shared/train/gadplat.jpg" ></center>'
-	'After 15 minutes, the train stops at the small station near the village of Gadukino.'
-	act 'Get off the train':
-		if rand(1, 100) <= 5: gt 'train_incidental', 'end'
-		gt 'train', 'village'
-	end
-end
-
-if $ARGS[0] = 'communal':
-	$loc = 'train'
-	$loc_arg = 'communal'
-	menu_off = 1
-	minut += 25
-	if rand(1, 100) <= 10: gt 'train_incidental', 'events'
-	if rand(1, 100) <= 20: gt 'train', 'events'
-	gs 'stat'
-	'<center><img <<$set_imgh>> src="images/locations/shared/train/oldplat.jpg" ></center>'
-	'After 20 minutes you arrive at an old railway platform near the communal village.'
-	act 'Get off the train':
-		if rand(1, 100) <= 5: gt 'train_incidental', 'end'
-		gt 'train', 'communal'
-	end
-end
-
-if $ARGS[0] = 'ind':
-	$loc = 'city_industrial_train'
-	$loc_arg = 'platform'
-	menu_off = 1
-	minut += 35
-	if rand(1, 100) < 15: gt 'train', 'private'
-	if rand(1, 100) < 30: gt 'train', 'Gopnik'
-	if rand(1, 100) <= 10: gt 'train_incidental', 'events'
-	if rand(1, 100) <= 20: gt 'train', 'events'
-	gs 'stat'
-	'<center><img <<$set_imgh>> src="images/locations/shared/train/indusplat.jpg" ></center>'
-	'After 35 minutes, the train stops at the St. Petersburg city industrial area station.'
-	act 'Get off the train':
-		if rand(1, 100) <= 5: gt 'train_incidental', 'end'
-		gt 'city_industrial_train', 'inside'
-	end
-end
-
-if $ARGS[0] = 'centre':
-	$loc = 'city_train'
-	$loc_arg = 'start'
-	menu_off = 1
-	minut += 40
-	if rand(1, 100) < 15: gt 'train', 'private'
-	if rand(1, 100) < 30: gt 'train', 'Gopnik'
-	if rand(1, 100) <= 10: gt 'train_incidental', 'events'
-	if rand(1, 100) <= 20: gt 'train', 'events'
-	gs 'stat'
-	'<center><img <<$set_imgh>> src="images/locations/shared/train/cityplat.jpg" ></center>'
-	'After 40 minutes, the train stops at the St. Petersburg city center station. The large office blocks and shopping centers fill your view.'
-	act 'Get off the train':
-		if rand(1, 100) <= 5: gt 'train_incidental', 'end'
-		gt 'city_train', 'start'
-	end
 end
 
 if $ARGS[0] = 'toilet':

@@ -1,0 +1,133 @@
+# bed_get_out_events
+menu_off = 1
+
+!! wakeup events trigger during when waking up
+!!
+!! Moved here from wakeup
+!! When done: Move to bed2
+
+	!!=====================================!!
+	!!                                     !!
+	!!          Event handlers             !!
+	!!                                     !!
+	!!=====================================!!
+
+
+if $ARGS[0] = 'start' or $ARGS[0] = '':
+	menu_off = 1
+	killvar '$sleep_events'
+	killvar '$sleep_events_priority'
+
+	if sleepVars['events_active'] = 1:
+		sleepVars['events_done'] = 0
+		
+		if vomit['morning_sick'] = 1 or vomit['hangover'] = 1 or vomit['unlucky'] = 1:
+			$sleep_events[] = 'gs ''bed_get_out_events'', ''vomit'' '
+		end
+
+		xgt 'bed_get_out_events', 'mod_sleepevents'
+	end
+	
+	xgt 'bed_get_out_events', 'continue'
+end
+
+if $ARGS[0] = 'mod_sleepevents':
+	!! This location is here to allow mods to hook into the system.
+	!! Either check for: if $ARGS[0] = 'bed_get_out_events' and $ARGS[1] = 'mod_sleepevents'
+	!!
+	!! You can add events as: $sleep_events[] = 'gs ''mod_loc'' ''mod_args0'' '
+	!! A random event will be chosen from amongst the added ones.
+	!! If an event MUST trigger (due to quest timing), add it tp $sleep_events_priority[] = 'gs ''mod_loc'' ''mod_args0'' '
+	!!
+	!! If the event does not break the sleep cycle (merely interupts it) it needs to end with gs 'bed_get_out_events', 'event_end'
+	!! If the event removed Sveta from her location (aka her sleep is cut short and/or she leaves her bed), you must call gs 'bed_get_out_events', 'exit'
+	!!
+	!! This is to cleanup all necessary variables.
+	!!
+	!! DO NOT DIRECTLY GOTO/GOSUB OUTOF THIS LOCATION. ALWAYS ADD IT TO THE QUEUEs!!!!
+	!! IT WILL ALMOST CERTIANLY END BADLY WHEN MORE THAN 1 MOD IS INVOLVED.
+
+	gs 'LOCA', 'bed_get_out_events', 'mod_sleepevents'
+	xgt 'bed_get_out_events', 'event_handler'
+end
+
+
+if $ARGS[0] = 'event_handler':
+	if sleepVars['events_done'] < 1:
+		if arrsize('$sleep_events_priority') > 0:
+			xgt 'bed_get_out_events', 'event_handler2', 'priority'
+		elseif arrsize('$sleep_events') > 0:
+			xgt 'bed_get_out_events', 'event_handler2'
+		end
+	end
+
+	gs 'bed_get_out_events', 'continue'
+end
+
+if $ARGS[0] = 'event_handler2':
+	sleepVars['events_done'] += 1
+
+	if $ARGS[1] = 'priority':
+		temp_slev_id = rand(0, arrsize('$sleep_events_priority')-1)
+		$temp_sleep_event_chosen = $sleep_events_priority[temp_slev_id]
+		killvar '$sleep_events_priority', temp_slev_id
+	else
+		temp_slev_id = rand(0, arrsize('$sleep_events')-1)
+		$temp_sleep_event_chosen = $sleep_events[temp_slev_id]
+		killvar '$sleep_events', temp_slev_id
+	end
+
+	killvar 'temp_slev_id'
+	dynamic $temp_sleep_event_chosen
+
+	gs 'bed_get_out_events', 'event_end'
+end
+
+
+if $ARGS[0] = 'event_end':
+	killvar '$temp_sleep_event_chosen'
+
+!!	if arrsize('$sleep_events_priority') > 0:
+!!		xgt 'bed_get_out_events', 'event_handler2', 'priority'
+!!	end
+
+	xgt 'bed_get_out_events', 'event_handler'
+end
+
+
+if $ARGS[0] = 'exit':
+	sleepVars['events_done'] = 0
+	killvar '$sleep_events'
+	killvar '$sleep_events_priority'
+	killvar 'temp_slev_id'
+	killvar '$temp_sleep_event_chosen'
+end
+
+if $ARGS[0] = 'continue':
+	sleepVars['events_done'] = 0
+	killvar '$sleep_events'
+	killvar '$sleep_events_priority'
+	killvar 'temp_slev_id'
+	killvar '$temp_sleep_event_chosen'
+
+	xgt 'bed_get_out', 'end'
+end
+
+
+
+
+	!!=====================================!!
+	!!                                     !!
+	!!              Events                 !!
+	!!                                     !!
+	!!=====================================!!
+
+
+if $ARGS[0] = 'vomit':
+	gs 'bed_get_out_events', 'exit'
+	gt 'home_activity', 'vomiting_exit'
+end
+
+
+
+--- bed_get_out_events ---------------------------------

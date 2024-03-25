@@ -1,0 +1,148 @@
+# item_cart
+
+if $ARGS[0] = 'shoppping_aisle':
+	gs 'item_stock_db', 'cleanup'
+	
+    $curr_aisle = $ARGS[1]
+	gs 'item_stock_db', $ARGS[1]
+
+	!! Page Header
+	'<center><table border=5 cellspacing=0 cellpadding=5 bgcolor='+$bcolor+'><TD>&nbsp;<font size="+2"><b><<$shop_title>></b></font>&nbsp;</TD></table></center>'
+
+	!! Table Headers
+	*p '<center><table border=5 cellspacing=0 cellpadding=5 bgcolor='+$bcolor+' width="80%"><TR><TH>Item</TH><TH>You own</TH><TH>Units/pack</TH><TH>Cost in <b>₽</b></TH><TH colspan="2" width="12%">Remove 10/1</TH><TH width="8%">In cart</TH><TH colspan="2" width="12%">Add 1/10</TH></TR>'
+
+	!! Table Rows
+	$icon_selector = iif(theme['is_dark'] = 0, '_b', '_w')
+	icon_height = fsize * 15 / 10
+	i = 1
+	:loopshopping_cart
+		!! if item is uninitialized (has blank name) - skip it
+		if $item_curr_aisle['<<i>>'] = '': i += 1 & jump 'loopshopping_cart'
+
+		$temp_bcolor = func('themes', 'alt_color', $temp_bcolor)
+		$item_line = '<TR bgcolor='+$temp_bcolor+'>'
+		$item_line += '<TD align="left"><<$item_curr_aisle[''<<i>>'']>></TD>'
+		$cart_tmp = $var_curr_aisle['<<i>>']
+		$item_line += '<TD><<mc_inventory[''<<$cart_tmp>>'']>></TD>'
+		$item_line += '<TD><<quantity_curr_aisle[''<<i>>'']>></TD>'
+		$item_line += '<TD><<cost_curr_aisle[''<<i>>'']>></TD>'
+		if cart_curr_quantity['<<i>>'] > 0:
+			$item_line += '<TD valign="center" align="center" width="6%"><a href="exec:gt ''item_cart'', ''remove'', <<i>>, 10"><img src="images/system/ui/less<<$icon_selector>>.png" height="<<icon_height>>"></a></TD>'
+			$item_line += '<TD valign="center" align="center" width="6%"><a href="exec:gt ''item_cart'', ''remove'', <<i>>, 1"><img src="images/system/ui/less<<$icon_selector>>.png" height="<<icon_height>>"></a></TD>'
+		else
+			$item_line += '<TD></TD><TD></TD>'
+		end
+		$item_line += '<TD align="center"><<cart_curr_quantity[''<<i>>'']>></TD>'
+		if max_curr_aisle['<<i>>'] > cart_curr_quantity['<<i>>'] + mc_inventory['<<$cart_tmp>>'] or max_curr_aisle['<<i>>'] = 0:
+			$item_line += '<TD valign="center" align="center" width="6%"><a href="exec:gt ''item_cart'', ''add'', <<i>>, 1"><img src="images/system/ui/more<<$icon_selector>>.png" height="<<icon_height>>"></a></TD>'
+			$item_line += '<TD valign="center" align="center" width="6%"><a href="exec:gt ''item_cart'', ''add'', <<i>>, 10"><img src="images/system/ui/more<<$icon_selector>>.png" height="<<icon_height>>"></a></TD>'
+		else
+			$item_line += '<TD align="center" colspan="2" width="6%">Max</TD>'
+		end
+		$item_line += '</TR>'
+		*p $item_line
+		i += 1
+	if i <= item_idx:jump 'loopshopping_cart'
+	'</table></center>'
+	
+	killvar '$temp_bcolor' & killvar '$icon_selector' & killvar 'icon_height'
+
+	!! Checkout
+	gs 'item_cart', 'cart_total'
+end
+
+if $ARGS[0] = 'remove':
+	ARGS[2] = min(cart_curr_quantity['<<ARGS[1]>>'], ARGS[2])
+
+	cart_tally -= cost_curr_aisle['<<ARGS[1]>>'] * ARGS[2]
+	cart_curr_quantity['<<ARGS[1]>>'] -= ARGS[2]
+
+	gt $loc_s, $args_s
+end
+
+if $ARGS[0] = 'add':
+	ARGS[2] = iif(max_curr_aisle['<<ARGS[1]>>'] ! 0, min(max_curr_aisle['<<ARGS[1]>>'] - (cart_curr_quantity['<<ARGS[1]>>'] + mc_inventory[$var_curr_aisle['<<ARGS[1]>>']]), ARGS[2]), ARGS[2])
+
+	cart_tally += cost_curr_aisle['<<ARGS[1]>>'] * ARGS[2]
+	cart_curr_quantity['<<ARGS[1]>>'] += ARGS[2]
+
+	if $event_curr_aisle['<<ARGS[1]>>'] ! '': dynamic "<<$event_curr_aisle['<<ARGS[1]>>']>>"
+	gt $loc_s, $args_s
+end
+
+if $ARGS[0] = 'simple_add':
+	cart_tally += cost_curr_aisle['<<ARGS[1]>>'] * max(1, ARGS[2])
+	cart_curr_quantity['<<ARGS[1]>>'] += 1 * max(1, ARGS[2])
+end
+
+if $ARGS[0] = 'cart_total':
+	'<center><table border=5 cellspacing=0 cellpadding=5 bgcolor='+$bcolor+'><TD>&nbsp;<b>Total cost of items in cart: <<cart_tally>>₽</b>&nbsp;</TD></table></center>'
+
+	*p '<center><table border=5 cellspacing=0 cellpadding=5 bgcolor='+$bcolor+'><TR>'
+	$item_line[2] = ''
+	if cart_tally > 0:
+		if cart_tally > karta + bankDebtLimit and cart_tally > money:
+			$item_line[2] = '<TD>&nbsp;You cannot afford this&nbsp;</TD>'
+		else
+			if cart_tally <= money:
+				$item_line[2] = '<TD>&nbsp;<a href="exec:gt ''item_cart'', ''cash'', <<i>>">Buy (cash)</a>&nbsp;</TD>'
+			else
+				$item_line[2] = '<TD>&nbsp;Not enough cash&nbsp;</TD>'
+			end
+			if cart_tally <= karta + bankDebtLimit:
+				$item_line[2] += '<TD>&nbsp;<a href="exec:gt ''item_cart'', ''card'', <<i>>">Buy (card)</a>&nbsp;</TD>'
+			else
+				$item_line[2] += '<TD>&nbsp;Not enough on card&nbsp;</TD>'
+			end
+		end
+	end
+	$item_line[2] += '<TD>&nbsp;<a href="exec:gt ''item_cart'', ''cancel''">cancel</a>&nbsp;</TD>'
+	$item_line[2] += '</TR></table></center>'
+	*p $item_line[2]
+end
+
+if $ARGS[0] = 'cash':
+	i = 1
+	:loopshopping_cash
+		$cart_tmp1 = $var_curr_aisle['<<i>>']
+		dynamic 'cart_quantity = quantity_curr_aisle[''<<i>>''] * cart_curr_quantity[''<<i>>'']'
+		dynamic 'mc_inventory[''<<$cart_tmp1>>''] += cart_quantity'
+		i += 1
+	if i <= item_idx:jump 'loopshopping_cash'
+	money -= cart_tally
+	gs 'item_cart', 'shopping_var_clear'
+	gt $loc_s, $args_s
+end
+
+if $ARGS[0] = 'card':
+	i = 1
+	:loopshopping_card
+		$cart_tmp1 = $var_curr_aisle['<<i>>']
+		dynamic 'cart_quantity = quantity_curr_aisle[''<<i>>''] * cart_curr_quantity[''<<i>>'']'
+		dynamic 'mc_inventory[''<<$cart_tmp1>>''] += cart_quantity'
+		i += 1
+	if i <= item_idx:jump 'loopshopping_card'
+	karta -= cart_tally
+	gs 'item_cart', 'shopping_var_clear'
+	gt $loc_s, $args_s
+end
+
+if $ARGS[0] = 'cancel':
+	gs 'item_cart', 'shopping_var_clear'
+	gt $loc_s, $args_s
+end
+
+if $ARGS[0] = 'shopping_var_clear':
+    !! clean up all transient variables/arrays.
+    killvar 'cart_tally'
+    killvar 'cart_curr_quantity'
+	killvar 'cart_quantity'
+	killvar '$cart_tmp'
+	killvar '$cart_tmp1'
+	gs 'item_stock_db', 'cleanup'
+end
+
+
+--- item_cart ---------------------------------
+

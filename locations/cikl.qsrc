@@ -17,6 +17,9 @@ end
 
 !!----------------------------------------------------------------------------
 !! Time calculations
+!! day = day in this month
+!! week = day in the week. 1 == Monday
+!! hour = Full hour in this day
 
 day += 1
 week += 1
@@ -37,7 +40,7 @@ if day > monthsEnd[month]:
 		end
 	end
 
-	!!MJ: Dont think that one is needed. But it was in the original loop.
+	!!MJ: Don''t think that one is needed. But it was in the original loop.
 	if month < 1: month = 1
 
 	$month = $monthName[month]
@@ -54,7 +57,7 @@ if day > monthsEnd[month]:
 
 end
 
-!!MJ: Dont think that one is needed. But it was here already.
+!!MJ: Don''t think that one is needed. But it was here already.
 if day <= 0:day = 1
 
 ciklNewWeek = 0
@@ -74,6 +77,9 @@ gs 'daystart'
 
 gs 'yearstart'
 
+gs 'emp_functions', 'evt_day_suffix'
+$stat_day_suffix = $date_suffix
+killvar '$date_suffix'
 !!----------------------------------------------------------------------------
 
 !!Fame call to update all the fame variables
@@ -90,6 +96,7 @@ end
 
 !! set the time when the SMS will be send
 gs 'booty_call', 'scheduler'
+booty_call_time['daystart'] = daystart
 
 
 !!------------------------------------------------------------------------------------------------------------
@@ -106,12 +113,18 @@ end
 if week = 7 and masseuse['schedule_update'] ! daystart: gs 'masseuse_schedule','schedule_reset'
 
 !!modelling check
-if model_week ! (daystart - week) / 7:model_job_week = 0
+if model_week ! (daystart - week) / 7 and model['status'] > 0: model_job_week = 0
 
 !!acting strings to set available jobs
 if casting = 1:
 	acting_string1 = rand(10000000,199999999)
 	acting_string2 = rand(10000000,199999999)
+end
+
+!! terminate tour gide job when its off season
+if emp_job_status[1] = 1 and month < 6 and month > 8:
+	if work = 1: work = 0
+	emp_job_status[1]  = 4
 end
 
 dynamic $hypnoDaychange
@@ -254,15 +267,15 @@ bimbo_flag = 0
 !!------------------------------------------------------------------------------------------------------------
 
 if orgasm_anal > orgasm_anal[1]:
-	if traits['buttslut_lvl'] > 0: traits['buttslut_exp'] += orgasm_anal - orgasm_anal[1]
+	if pcs_traits['buttslut_lvl'] > 0: pcs_traits['buttslut_exp'] += orgasm_anal - orgasm_anal[1]
 else
-	if traits['buttslut_exp'] > 1: traits['buttslut_exp'] -= 1
+	if pcs_traits['buttslut_exp'] > 1: pcs_traits['buttslut_exp'] -= 1
 end
 orgasm_anal[1] = orgasm_anal
-if orgasm_anal > 10 and traits['buttslut_lvl'] = 0: traits['buttslut_lvl'] = 1
-if traits['buttslut_exp'] >= 15 and traits['buttslut_lvl'] = 1: traits['buttslut_lvl'] = 2 & traits['buttslut_exp'] = 0
-if traits['buttslut_exp'] >= 50 and traits['buttslut_lvl'] = 2: traits['buttslut_lvl'] = 3
-if traits['buttslut_exp'] <= 0 and traits['buttslut_lvl'] = 3: traits['buttslut_lvl'] = 2 & traits['buttslut_exp'] = 0
+if orgasm_anal > 10 and pcs_traits['buttslut_lvl'] = 0: pcs_traits['buttslut_lvl'] = 1
+if pcs_traits['buttslut_exp'] >= 15 and pcs_traits['buttslut_lvl'] = 1: pcs_traits['buttslut_lvl'] = 2 & pcs_traits['buttslut_exp'] = 0
+if pcs_traits['buttslut_exp'] >= 50 and pcs_traits['buttslut_lvl'] = 2: pcs_traits['buttslut_lvl'] = 3
+if pcs_traits['buttslut_exp'] <= 0 and pcs_traits['buttslut_lvl'] = 3: pcs_traits['buttslut_lvl'] = 2 & pcs_traits['buttslut_exp'] = 0
 
 !!------------------------------------------------------------------------------------------------------------
 !!	Exhibitionism
@@ -320,6 +333,15 @@ end
 
 exhibition_outdoors = 0
 
+
+!!------------------------------------------------------------------------------------------------------------
+!!	Everything is new again
+!!------------------------------------------------------------------------------------------------------------
+
+!!Trait ''Everything is new again'', gained from the sg_tg start
+!! starts at 84 and decreases by 1 every day, when reaches 0 the trait will get disabled
+if pcs_traits['new_again'] > 0: pcs_traits['new_again'] -= 1
+
 !!------------------------------------------------------------------------------------------------------------
 !!	Succubus Level & hunger calcs
 !!------------------------------------------------------------------------------------------------------------
@@ -332,10 +354,6 @@ if defcurly = 1:
 	if straight = 0: curly = 2147483647
 end
 
-! WD: Added daily reduction of braids for Maruda Hair Mod
-if hbraids > 0: hbraids -= 1
-
-
 gs 'sweat', 'add', 2
 
 if pcs_tan > 0: pcs_tan -= 1
@@ -343,20 +361,7 @@ if pcs_tan > 0: pcs_tan -= 1
 if prezikmsg = 2: prezikmsg = 3
 
 
-gs 'fertility', 'birth_control'
-
-if birth_control['think_safe'] ! 1:
-	stat['safe_day'] = 0
-	stat['probably_safe_day'] = 0
-	stat['dangerous_day'] = 0
-	if cycle > 3:
-		stat['safe_day'] = 1
-	elseif cycle = 0 or cycle = 3:
-		stat['probably_safe_day'] = 1
-	else
-		stat['dangerous_day'] = 1
-	end
-end
+gs 'fertility', 'daily_update'
 
 
 !!------------------------------------------------------------------------------------------------------------
@@ -415,15 +420,24 @@ else
 	isprok_lastday = 0
 end
 
-if Enable_autotampon = 0 and isprok = 1: isprok = 0 & 'You threw away your used tampon.'
-if Enable_autotampon = 0 and isprokp = 1:isprokp = 0 & 'You threw away your used sanitary pad.'
+if Enable_auto_tampons =  0 and isprok = 1: isprok = 0 & 'You threw away your used tampon.'
+if Enable_auto_tampons =  0 and isprokp = 1:isprokp = 0 & 'You threw away your used sanitary pad.'
+
+if lactation['nipgrowth'] > 0:
+	tmp = rand(0,2)
+	pcs_nips -= tmp
+	lactation['nipgrowth'] -= tmp
+	killvar 'tmp'
+elseif lactation['nipgrowth'] < 0:
+	lactation['nipgrowth'] = 0
+end
 
 if preg = 1:
 	pregtime = pregchem / 24
 
 	if pregtimes = 0:pregtimes = 1
 
-elseif preg = 2 and pregminut < totminut:
+	elseif preg = 2 and pregminut < totminut:
 	if Enable_nogameover = 0 :
 		cla
 		*clr
@@ -546,14 +560,6 @@ gs 'traits', 'overnight'
 !! Clothing wear and tear
 gs 'starenie'
 
-!!cocaine reduction
-if nark > 60:
-	nark = 60
-elseif nark > 30:
-	nark -= 3
-elseif nark > 0:
-	nark -= 1
-end
 
 if pregchem > 240:fat += 1
 
@@ -561,43 +567,43 @@ if pregchem > 240:fat += 1
 !!	Pain
 !!------------------------------------------------------------------------------------------------------------
 
-if pain['head'] > 0:pain['head'] -= rand(1,3)
-if pain['hair'] > 0:pain['hair'] -= rand(1,3)
-if pain['ears'] > 0:pain['ears'] -= rand(1,3)
-if pain['eyebrows'] > 0:pain['eyebrows'] -= rand(1,3)
-if pain['eyes'] > 0:pain['eyes'] -= rand(1,3)
-if pain['cheeks'] > 0:pain['cheeks'] -= rand(1,3)
-if pain['nose'] > 0:pain['nose'] -= rand(1,3)
-if pain['mouth'] > 0:pain['mouth'] -= rand(1,3)
-if pain['lips'] > 0:pain['lips'] -= rand(1,3)
-if pain['tongue'] > 0:pain['tongue'] -= rand(1,3)
-if pain['throat'] > 0:pain['throat'] -= rand(1,3)
-if pain['neck'] > 0:pain['neck'] -= rand(1,3)
-if pain['back'] > 0:pain['back'] -= rand(1,3)
-if pain['asscheeks'] > 0:pain['asscheeks'] -= rand(1,3)
-if pain['asshole'] > 0:pain['asshole'] -= rand(1,3)
-if pain['hips'] > 0:pain['hips'] -= rand(1,3)
-if pain['thighs'] > 0:pain['thighs'] -= rand(1,3)
-if pain['legL'] > 0:pain['legL'] -= rand(1,3)
-if pain['legR'] > 0:pain['legR'] -= rand(1,3)
-if pain['feet'] > 0:pain['feet'] -= rand(1,3)
-if pain['toes'] > 0:pain['toes'] -= rand(1,3)
-if pain['shoulders'] > 0:pain['shoulders'] -= rand(1,3)
-if pain['armL'] > 0:pain['armL'] -= rand(1,3)
-if pain['armR'] > 0:pain['armR'] -= rand(1,3)
-if pain['hands'] > 0:pain['hands'] -= rand(1,3)
-if pain['fingers'] > 0:pain['fingers'] -= rand(1,3)
-if pain['chest'] > 0:pain['chest'] -= rand(1,3)
-if pain['breasts'] > 0:pain['breasts'] -= rand(1,3)
-if pain['nipples'] > 0:pain['nipples'] -= rand(1,3)
-if pain['ribs'] > 0:pain['ribs'] -= rand(1,3)
-if pain['tummy'] > 0:pain['tummy'] -= rand(1,3)
-if pain['pubic'] > 0:pain['pubic'] -= rand(1,3)
-if pain['vaginal'] > 0:pain['vaginal'] -= rand(1,3)
-if pain['labia'] > 0:pain['labia'] -= rand(1,3)
-if pain['clitoris'] > 0:pain['clitoris'] -= rand(1,3)
-if pain['urethra'] > 0:pain['urethra'] -= rand(1,3)
-if pain['cervix'] > 0:pain['cervix'] -= rand(1,3)
+if pain['head'] > 0:     pain['head']      -= max(rand(1,3), rand(pain['head']      /2))
+if pain['hair'] > 0:     pain['hair']      -= max(rand(1,3), rand(pain['hair']      /2))
+if pain['ears'] > 0:     pain['ears']      -= max(rand(1,3), rand(pain['ears']      /2))
+if pain['eyebrows'] > 0: pain['eyebrows']  -= max(rand(1,3), rand(pain['eyebrows']  /2))
+if pain['eyes'] > 0:     pain['eyes']      -= max(rand(1,3), rand(pain['eyes']      /2))
+if pain['cheeks'] > 0:   pain['cheeks']    -= max(rand(1,3), rand(pain['cheeks']    /2))
+if pain['nose'] > 0:     pain['nose']      -= max(rand(1,3), rand(pain['nose']      /2))
+if pain['mouth'] > 0:    pain['mouth']     -= max(rand(1,3), rand(pain['mouth']     /2))
+if pain['lips'] > 0:     pain['lips']      -= max(rand(1,3), rand(pain['lips']      /2))
+if pain['tongue'] > 0:   pain['tongue']    -= max(rand(1,3), rand(pain['tongue']    /2))
+if pain['throat'] > 0:   pain['throat']    -= max(rand(1,3), rand(pain['throat']    /2))
+if pain['neck'] > 0:     pain['neck']      -= max(rand(1,3), rand(pain['neck']      /2))
+if pain['back'] > 0:     pain['back']      -= max(rand(1,3), rand(pain['back']      /2))
+if pain['asscheeks'] > 0:pain['asscheeks'] -= max(rand(1,3), rand(pain['asscheeks'] /2))
+if pain['asshole'] > 0:  pain['asshole']   -= max(rand(1,3), rand(pain['asshole']   /2))
+if pain['hips'] > 0:     pain['hips']      -= max(rand(1,3), rand(pain['hips']      /2))
+if pain['thighs'] > 0:   pain['thighs']    -= max(rand(1,3), rand(pain['thighs']    /2))
+if pain['legL'] > 0:     pain['legL']      -= max(rand(1,3), rand(pain['legL']      /2))
+if pain['legR'] > 0:     pain['legR']      -= max(rand(1,3), rand(pain['legR']      /2))
+if pain['feet'] > 0:     pain['feet']      -= max(rand(1,3), rand(pain['feet']      /2))
+if pain['toes'] > 0:     pain['toes']      -= max(rand(1,3), rand(pain['toes']      /2))
+if pain['shoulders'] > 0:pain['shoulders'] -= max(rand(1,3), rand(pain['shoulders'] /2))
+if pain['armL'] > 0:     pain['armL']      -= max(rand(1,3), rand(pain['armL']      /2))
+if pain['armR'] > 0:     pain['armR']      -= max(rand(1,3), rand(pain['armR']      /2))
+if pain['hands'] > 0:    pain['hands']     -= max(rand(1,3), rand(pain['hands']     /2))
+if pain['fingers'] > 0:  pain['fingers']   -= max(rand(1,3), rand(pain['fingers']   /2))
+if pain['chest'] > 0:    pain['chest']     -= max(rand(1,3), rand(pain['chest']     /2))
+if pain['breasts'] > 0:  pain['breasts']   -= max(rand(1,3), rand(pain['breasts']   /2))
+if pain['nipples'] > 0:  pain['nipples']   -= max(rand(1,3), rand(pain['nipples']   /2))
+if pain['ribs'] > 0:     pain['ribs']      -= max(rand(1,3), rand(pain['ribs']      /2))
+if pain['tummy'] > 0:    pain['tummy']     -= max(rand(1,3), rand(pain['tummy']     /2))
+if pain['pubic'] > 0:    pain['pubic']     -= max(rand(1,3), rand(pain['pubic']     /2))
+if pain['vaginal'] > 0:  pain['vaginal']   -= max(rand(1,3), rand(pain['vaginal']   /2))
+if pain['labia'] > 0:    pain['labia']     -= max(rand(1,3), rand(pain['labia']     /2))
+if pain['clitoris'] > 0: pain['clitoris']  -= max(rand(1,3), rand(pain['clitoris']  /2))
+if pain['urethra'] > 0:  pain['urethra']   -= max(rand(1,3), rand(pain['urethra']   /2))
+if pain['cervix'] > 0:   pain['cervix']    -= max(rand(1,3), rand(pain['cervix']    /2))
 
 if painpub = 2:
 	if painpubday + 5 < daystart:
@@ -632,12 +638,20 @@ killvar 'npc_rel_daily'
 !!Resetting the counters for npc reactions after certain time periods have passed.
 gs 'npc_reactions', 'cikl'
 
+!! Setting the day for nerd game nights
+gs 'nerd_game_night', 'cikl'
+
 !!Keeping Christina hating Sveta
 gs 'Zvereva_events', 'cikl'
 
+!!Albina hates gopniks while at school
+if SchoolAtestat = 0 and grupTipe = 4 and AlbinaQW['Friends'] ! 2 and npc_rel['A23'] > 20:
+	gs 'npc_relationship', 'set', 'A23', 20
+end
+
 !!if Vitek''s ex he never forgives her
 if kotovLoveQW = -1:
-	gs 'npc_relationship', 'set', 'A9', '0'
+	gs 'npc_relationship', 'set', 'A9', 0
 end
 
 !!Updating Katja''s variables.
@@ -652,18 +666,20 @@ dmishaevent = 0
 
 if Gspravka <= 0 and GspravkaT = 1:GspravkaT = 0 & Gspravka = 0
 if GspravkaT = 1:Gspravka -= 1
-if BurgerQW['IlyQW']  = 2 and BurgerQW['IlyQWPoliceDayCount'] = 30:BurgerQW['IlyQW']  = 3
-if BurgerQW['IlyQW']  = 2 and BurgerQW['IlyQWPoliceDayCount'] > 0 and BurgerQW['IlyQWPoliceDayCount'] < 30:BurgerQW['IvanQWPoliceDayCount'] += 1
 
-!!remove degradation for inhibition
+if BurgerQW['IlyQW'] = 2 and BurgerQW['IlyQWPoliceDayCount'] > 0 and BurgerQW['IlyQWPoliceDayCount'] < 30: 
+	BurgerQW['IlyQWPoliceDayCount'] += 1
+elseif BurgerQW['IlyQW'] = 2 and BurgerQW['IlyQWPoliceDayCount'] = 30: 
+	BurgerQW['IlyQW']  = 3
+end
+
+!!Remove degradation for inhibition
 inhib_flr = inhib_lvl
 
 gs 'stat_sklattrib', 'daycall'
 
 !Update body measurements and base appearnce
 gs 'body', 'DailyUpdate'
-gs 'AppearanceSystem', 'UpdateBaseAppearnce'
-gs 'body_desc'
 
 
 if husband > 0 and husbandrink ! 11:husbandrink = rand(0, 10)
@@ -699,7 +715,12 @@ if shantbog > 0:
 end
 
 petersexday = 0
-klismaday1 = 0
+if cheatKlisma = 0:
+	klismaday = daystart
+	klismaday1 = 1
+else
+	klismaday1 = 0
+end
 
 !!ugly duckling start becoming a swan
 if uglyduck_flag = 1 and hotcat >= 5:
@@ -734,10 +755,10 @@ killvar 'pcs_drank'
 !!2 - agreed to go to the party
 !!3 - Missed the party
 
-!!suspension ends
+!!Suspension ends
 if suspended['day'] = daystart:	suspended['on'] = 0
 
-if mid($start_type,1,2) = 'sg':
+if mid($start_type, 1, 2) = 'sg':
 !!Party refresh if you didn''t see sis
 	if week = 1 and sisboyparty ! 2:
 		if sisterQW['party'] = -1: sisterQW['party'] = 0
@@ -783,11 +804,12 @@ if mid($start_type,1,2) = 'sg':
 			end
 		elseif month = 5:
 			if year = 2017:
-				if day = 25:
+				if day = 26:
 					kanikuli = 6
 					SchoolAtestat = -1
+					lernHome = 0
 					$holyday = '<b>Your graduation is today. Be there by 8:00.</b>'
-				elseif day = 24:
+				elseif day = 25:
 					$holyday = '<b>Your graduation is tomorrow. Be there by 8:00.</b>'
 				elseif day >= 19:
 					$holyday = '<b>Your graduation is in <<26-day>> days.</b>'
@@ -841,7 +863,7 @@ if mid($start_type,1,2) = 'sg':
 				:hotcat_calc_jump
 				i += 1
 				
-				if hotcat_rating['A<<i>>'] = 0: jump 'hotcat_calc_jump'
+				if hotcat_rating['A<<i>>'] = 0 and i < 145: jump 'hotcat_calc_jump'
 				
 				switch_rand = rand(1,100)
 				
@@ -867,6 +889,7 @@ if mid($start_type,1,2) = 'sg':
 			if late = 1: late = 0
 			
 		end	
+		
 
 		!!Social grup changes
 		
@@ -966,40 +989,36 @@ if natholi = 1:
 	$holyday += $natholi
 end
 
+
+!! Anushka''s band is on tour from Thursday 01-06 until Saturday 19-08. Blame Nutluck
+if year = 2017 and ( month = 6 or month = 7 or (month = 8 and day < 19) ):
+	gopnikbandQW['on_tour'] = 1
+else
+	gopnikbandQW['on_tour'] = 0
+end
+
+
+
 !!------------------------------------------------------------------------------------------------------------------------
-!!Setting the weeks in the university semester and makeing sure that the gades are calculated at the right times
+!!Setting the weeks in the university semester and making sure that the gades are calculated at the right times
 
 gs 'uni_lessons', 'cikl'
 
 !!------------------------------------------------------------------------------------------------------------------------
 
 !!resetting moisturizer so it can be used in the morning regardless
-item_moisturizer_time = totminut
+moisturiser_time = totminut
+!!same with chaffing cream
+mosal_time = totminut
 
-if bcream_used >= 1:
-	bcream_used = 0
-	temp = rand(0,max(nbsize-genbsize+5,5)) / max(nbsize-genbsize,1)
-	if temp > 0: temp = 1
-	nbsize += temp
-	if temp > 0:'Feels like your breasts have grown slightly.'
-end
-if steroid_dose >= 1:
-	if lashair < 1:
-		pcs_pubes += steroid_dose
-		pcs_leghair += steroid_dose
-	end
-	steroid_dose = 0
-end
-if aphrodisiac_overdose = 1:aphrodisiac_overdose = 0
-if aphrodisiac_timer ! 0:aphrodisiac_timer	= 0
+!!resetting last_pee to counteract time cheat
+!!also, the first thing you do in the morning is visiting your porcelain friend, no?
+killvar 'last_pee'
 
-if mentats_dose = 1:
-	mentats_dose = 0
-elseif mentats_dose > 1:
-	pain['head'] += 20 * mentats_dose
-	mentats_dose = 0
-end
-
+!!Drugs reduction
+gs 'drugs', 'cocaine', 'cikl'
+gs 'drugs', 'mentats', 'cikl'
+gs 'drugs', 'aphrodisiac', 'cikl'
 
 gs 'gaddvor','cikl'
 
@@ -1021,7 +1040,7 @@ if blizoruk < 0: blizoruk = 0
 
 
 !!------------------------------------------------------------------------------------------------------------------------
-!!C and b array cleaning 
+!!C and B array cleaning 
 
 if InSleep = 1: gs 'npc','cleanarrays'
 
@@ -1035,6 +1054,7 @@ if InSleep = 1: gs 'npc','cleanarrays'
 if therapistWantsSlave > 0:
 	annaclean1 = rand(23,26)
 end
+killvar 'therapistFuckedPussyScene'
 
 !!------------------------------------------------------------------------------------------------------------
 
@@ -1121,17 +1141,16 @@ if ml_onlinesongcount > 0:
 !!      this so every song counts only every 7 days and only for a limited number of weeks 
 		if ml_onlinesong_freshness[i] > 0:		
 			j += 1
-			ml_tempsong_freshness[j] = ml_onlinesong_sfreshness[i]
+			ml_tempsong_freshness[j] = ml_onlinesong_freshness[i]
 			ml_tempsong_lastcalcday[j] = ml_onlinesong_lastcalcday[i]
 			ml_tempsong_hotcat[j] = ml_onlinesong_hotcat[i]
 			ml_tempsong_skilllevel[j] = ml_onlinesong_skilllevel[i]
 			ml_tempsong_uploaded[j] = ml_onlinesong_uploaded[i]
-			*nl
-			if ml_tempsong_lastcalcday[j] <= (daystart - 7) and ml_tempsong_uploaded = 1:
-            	gs 'fame', 'city', 'music', rand(0, ml_tempsong_freshness[j]/100)
-            	ml_tempsong_freshness[j] -= 10
-            	ml_tempsong_lastcalcday[j] = daystart
 
+			if ml_tempsong_lastcalcday[j] <= (daystart - 7) and ml_tempsong_uploaded = 1:
+				gs 'fame', 'city', 'music', rand(0, ml_tempsong_freshness[j]/100)
+				ml_tempsong_freshness[j] -= 10
+				ml_tempsong_lastcalcday[j] = daystart
 			end
 		end
 		i += 1
@@ -1173,7 +1192,7 @@ if ml_performance['set_lastpracticeday'] ! (daystart-1): repertoire_quality -= 2
 
 !! Check if people will start to seek Sveta randomly for services, based on her reputation
 gs 'prostitution_functions', 'check_for_wlife'
-if prostitute['blocked'] = 0: gs 'prostitution_functions', 'set_pavlovsk_prostitute'
+gs 'prostitution_functions', 'update_prostitution_locations'
 prostitute['earnings_day'] = 0
 prostitute['customer_day'] = 0
 
@@ -1181,6 +1200,163 @@ prostitute['customer_day'] = 0
 
 !! Moves time for the rented properties
 gs 'homes_properties', 'progress_property_rent_time'
+
+!!------------- Check for Daily Events for event generator, sets evt_chk variable  ------------------------------------------
+gs 'emp_functions', 'evt_day_chk'
+
+
+
+!!----------------------------------------------------------------------
+!!---------------------------- WEEKLY RESET ----------------------------
+!!----------------------------------------------------------------------
+if week = 1:
+	!! Reset used car dealership offers 
+	killvar 'used_car'
+
+	!! Reset therapist schedule
+	killvar 'therapist_weekly_block'
+end
+
+!!------------- Advance book loan debt  ------------------------------------------
+if $lib_book_loaned ! '': lib_debt += 50
+
+
+!!------------- Preliminary npc_uni_eduTipe  ------------------------------------------
+!! 
+!!npc_uni_eduType = '', 'professor', 'teaching_studies', 'business_studies', 'science_studies', 'fashion_studies'
+!!                  'nursing_studies', 'psychology_studies', 'programming_studies', 'other_studies'
+!!
+!!Will eventually need to be moved to the npcstatic and npcstaticdefault files for eternal uni npcs
+!!To specific event checks for pav_uni npcs
+!!And to the various starts.
+
+!!This should be migrated to npcstaticx and eventually schedule
+if set_npc_uni_eduType = 0:
+	set_npc_uni_eduType = 1
+
+	npc_uni_active['A77']  = 1
+	npc_uni_active['A82']  = 1
+	npc_uni_active['A83']  = 1
+	npc_uni_active['A84']  = 1
+	npc_uni_active['A209'] = 1
+	npc_uni_active['A220'] = 1
+	npc_uni_active['A242'] = 1
+	npc_uni_active['A243'] = 1
+	npc_uni_active['A244'] = 1
+	npc_uni_active['A245'] = 1
+	npc_uni_active['A246'] = 1
+	npc_uni_active['A247'] = 1
+end
+
+
+!! This should eventually be migrated to schedule
+if set_pav_npc_uni_active = 0 and yearstart = 2 and month >= 8 and day >= 28:
+	set_pav_npc_uni_active = 1
+
+	npc_uni_active['A1']   = 1
+	npc_uni_active['A2']   = 1
+	npc_uni_active['A4']   = 1
+	npc_uni_active['A7']   = 1
+
+	npc_uni_active['A12']  = 1
+	npc_uni_active['A13']  = 1
+	npc_uni_active['A14']  = 1
+	npc_uni_active['A15']  = 1
+	npc_uni_active['A16']  = 1
+	npc_uni_active['A17']  = 1
+	npc_uni_active['A18']  = 1
+	npc_uni_active['A19']  = 1
+	npc_uni_active['A22']  = 1
+	npc_uni_active['A23']  = 1
+	npc_uni_active['A25']  = 1
+
+	npc_uni_active['A139'] = 1
+	npc_uni_active['A140'] = 1
+	npc_uni_active['A142'] = 1
+	npc_uni_active['A144'] = 1
+	npc_uni_active['A146'] = 1
+	npc_uni_active['A147'] = 1
+	npc_uni_active['A149'] = 1
+	npc_uni_active['A152'] = 1
+	npc_uni_active['A153'] = 1
+	npc_uni_active['A155'] = 1
+	npc_uni_active['A159'] = 1
+	npc_uni_active['A165'] = 1
+
+end
+
+!!------------- Advance will counter  ------------------------------------------
+if will_counter >= 20: will_counter -= 20 & willpowermax += 1
+
+
+!!-----------------webcam follower loss due to inactivity ------------------------------------------
+if camwhore = 1:
+    if cam_daystart < daystart:
+        engagementFactor = 1 + (CamBonus / 100)
+        popularityFactor = webpopular / 1000
+
+        if regviewReset < 3:
+            if regview >= 500:
+                FollowersLost = rand(regview / (100 * engagementFactor), regview / (50 * engagementFactor)) + popularityFactor
+            else
+                FollowersLost = rand(1, 3) + popularityFactor
+            end
+            cam_daystart = daystart + max(1, 3 - (CamBonus / 50))
+        else
+            if regview >= 300:
+                FollowersLost = rand(regview / (80 * engagementFactor), regview / (40 * engagementFactor)) + popularityFactor
+            else
+                FollowersLost = rand(2, 6) + popularityFactor
+            end
+            cam_daystart = daystart + max(1, 2 - (CamBonus / 50))
+        end
+        regviewReset += 1
+        FollowersLost = func('shortgs', 'clamp', FollowersLost, 0, regview)
+        totFollowersLost += FollowersLost
+        regview -= FollowersLost
+        killvar 'FollowersLost'
+    end
+end
+
+
+
+!!---------------Keeping track of missing court appearances-----------------------------
+if arrsize('policeQW_courthearing_dates') > 0 and daystart > policeQW_courthearing_dates[0]:
+	policeQW['missed_court_dates'] += 1
+	policeQW['tot_court_dates_missed'] += 1
+	
+	!! Might need code to throw a message with 'You''ve missed your court hearing or something'
+
+	policeQW_courtletter_dates[] = daystart + rand(3, 6)
+	$policeQW_courtletter_subjects[] = 'missed_court_<<$policeQW_courthearing_subjects[0]>>'
+
+	killvar 'policeQW_courthearing_dates', 0
+	killvar 'policeQW_courthearing_subjects', 0
+end
+
+if policeQW['fine_deadline'] > 0:
+	if daystart > policeQW['fine_deadline'] - 8:
+		policeQW_courtletter_dates[] = daystart
+		$policeQW_courtletter_subjects[] = 'fine'
+
+	elseif daystart > policeQW['fine_deadline']:
+		policeQW['missed_fine_deadlines'] += 1
+		policeQW['tot_fines_deadlines_missed'] += 1
+
+		!! Might need code to throw a message with 'you''ve failed to pay your fine on time.'
+
+		policeQW_courtletter_dates[] = daystart + rand(3, 6)
+		$policeQW_courtletter_subjects[] = 'missed_fine'
+	end
+end
+
+
+if arrsize('policeQW_courtletter_dates') > 1:
+	gs 'shortgs', 'coupled_array_sort', 'policeQW_courtletter_dates', '$policeQW_courtletter_subjects'
+end
+if arrsize('policeQW_courthearing_dates') > 1:
+	gs 'shortgs', 'coupled_array_sort', 'policeQW_courthearing_dates', '$policeQW_courthearing_subjects'
+end
 
 --- cikl ---------------------------------
 

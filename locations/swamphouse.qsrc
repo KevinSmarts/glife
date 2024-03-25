@@ -150,7 +150,7 @@ if $ARGS[0] = 'start' or $ARGS[0] = '':
 			minut += 10
 			if swamp_enema = 0:
 				swamp_enema = 1
-				klisma = 1
+				mc_inventory['enema_kit'] = 1
 				gs 'stat'
 				'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/enema.jpg"></center>'
 				'Your search for your clothes but only find an enema syringe... "What is this doing here?" you wonder.'
@@ -324,7 +324,7 @@ if $ARGS[0] = 'start' or $ARGS[0] = '':
 		if temp_sh = 1:
 			'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/hanterstable.jpg"></center>'
 			'You enter the hut and notice the plastered hunters.'
-			'"Oh, look who''s showed up. Sveta, join us for a drink!" they invite you in.'
+			'"Oh, look who''s showed up. <<$pcs_nickname>>, join us for a drink!" they invite you in.'
 
 			act 'Join them at the table': gs 'swamphouse', 'hunterstable'
 			act 'Politely decline': hunter_refuse = 1 & gt 'swamphouse', 'start'
@@ -530,7 +530,7 @@ if $ARGS[0] = 'washstand':
 
 	'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/washstand.jpg"></center>'
 	*nl
-	'An old washstand. You can use the basin to clean yourself, if necessary. There is also an old polished but rusty metal mirror resting on the basin, which you can use to ' +iif(pcs_hairbsh = 0,'<a href="exec:gt ''mirror'',''brush''">brush</a>','brush') + ' your hair.'
+	'An old washstand. You can use the basin to clean yourself, if necessary. There is also an old polished but rusty metal mirror resting on the basin, which you can use to ' +iif(pcs_hairbsh < 1,'<a href="exec:gt ''mirror'',''brush''">brush</a>','brush') + ' your hair.'
 
 	if bucket > 0:
 		!use current by illume
@@ -552,7 +552,7 @@ if $ARGS[0] = 'tub':
 	*nl
 	'An old tub that you can use to bathe yourself. It''s a lot warmer than using the spring! You just need to warm some water and get undressed first.'
 	*nl
-	'If you are desperate enough, you find a handful of well-used '+iif(stanok < 1,'<a href="exec: stanok += 5 & gt ''swamphouse'', ''tub''">razors</a>','razors')+' on a shelf that you can use to shave with. '+iif(stanok > 0, '<a href="exec:gs ''din_van'', ''shave_options''">Shave Options</a>','')+''
+	if lashair ! 1: 'If you are desperate enough, you find a handful of well-used '+iif(mc_inventory['razor'] < 1,'<a href="exec: mc_inventory[''razor''] +=  5 & gt ''swamphouse'', ''tub''">razors</a>','razors')+' on a shelf that you can use to shave with. '+iif(mc_inventory['razor'] > 0, '<a href="exec:gs ''din_van'', ''shave_options''">Shave Options</a>','')+''
 	dynamic $brit
 	if swamp_enema = 1:*nl & 'You find an enema syringe on the shelf.'
 	if $clothingworntype = 'nude' and klismaday ! daystart and swamp_enema = 1 and hunters_inside = 0:
@@ -563,7 +563,7 @@ if $ARGS[0] = 'tub':
 		act 'Bathe in the tub (0:30)':
 			cla
 			*clr
-			noShampoo = 1
+			noshampoo = 1
 			dynamic $showerdin
 			face_write = 0
 			body_write = 0
@@ -590,6 +590,24 @@ if $ARGS[0] = 'clothes_read_magazines':
 end
 
 if $ARGS[0] = 'stackmagazines':
+	killvar '$downlibrary'
+	$downlibrary['read'] = {
+		*clr & cla
+		menu_off = 1
+		if blizoruk = 500 or glassqw = 1:
+			glassqw = 1
+			msg '	The text blurs across the page. It seems you have poor eyesight. Maybe you should visit an ophthalmologist?'
+			gt 'swamphouse', 'stackmagazines'
+		end
+		if pcs_nerd > 0:
+			lastread = totminut
+			lastreadday = daystart
+			pcs_nerd += 1
+		end
+		minut += 60
+		blizoruk += 1
+	}
+
 	cla
 	*clr
 	menu_off = 1
@@ -601,18 +619,9 @@ if $ARGS[0] = 'stackmagazines':
 	'A stack of all kinds of magazines, there''s even one with "interesting" pictures.'
 
 	act 'Read the scientific journal (1:00)':
-		if blizoruk = 500 or glassqw = 1: glassqw = 1 & msg 'The text blurs across the page. It seems that your eyesight is actually pretty poor. Maybe you should head to the city and visit an ophthalmologist.' & gt 'swamphouse', 'stackmagazines'
-		cla
-		*clr
-		if pcs_nerd > 0:
-			lastread = totminut
-			lastreadday = daystart
-			pcs_nerd += 10
-		end
+		dynamic $downlibrary['read']
 		gs 'exp_gain', 'intel', 4
-		blizoruk+=1
 		pcs_mood += 10
-		minut += 60
 		gs 'stat'
 
 		gs 'swamphouse', 'clothes_read_magazines'
@@ -621,18 +630,9 @@ if $ARGS[0] = 'stackmagazines':
 		act 'Continue': gs 'swamphouse', 'stackmagazines'
 	end
 	act 'Read the literary magazine (1:00)':
-		if blizoruk = 500 or glassqw = 1: glassqw = 1 & msg 'The text blurs across the page. It seems that your eyesight is actually pretty poor. Maybe you should head to the city and visit an ophthalmologist.' & gt 'swamphouse', 'stackmagazines'
-		cla
-		*clr
-		if pcs_nerd > 0:
-			lastread = totminut
-			lastreadday = daystart
-			pcs_nerd += 10
-		end
+		dynamic $downlibrary['read']
 		gs 'exp_gain', 'intel', 4
-		blizoruk+=1
 		pcs_mood += 10
-		minut += 60
 		gs 'stat'
 
 		gs 'swamphouse', 'clothes_read_magazines'
@@ -641,18 +641,9 @@ if $ARGS[0] = 'stackmagazines':
 		act 'Continue': gs 'swamphouse', 'stackmagazines'
 	end
 	act 'Read the entertainment magazine (1:00)':
-		if blizoruk = 500 or glassqw = 1: glassqw = 1 & msg 'The text blurs across the page. It seems that your eyesight is actually pretty poor. Maybe you should head to the city and visit an ophthalmologist.' & gt 'swamphouse', 'stackmagazines'
-		cla
-		*clr
-		if pcs_nerd > 0:
-			lastread = totminut
-			lastreadday = daystart
-			pcs_nerd += 10
-		end
+		dynamic $downlibrary['read']
 		gs 'exp_gain', 'sprt', 4
-		blizoruk+=1
 		pcs_mood += 10
-		minut += 60
 		gs 'stat'
 
 		gs 'swamphouse', 'clothes_read_magazines'
@@ -661,10 +652,14 @@ if $ARGS[0] = 'stackmagazines':
 		act 'Continue': gs 'swamphouse', 'stackmagazines'
 	end
 	act 'Read the porn magazine (1:00)':
-		if blizoruk = 500 or glassqw = 1: glassqw = 1 & msg 'The text blurs across the page. It seems that your eyesight is actually pretty poor. Maybe you should head to the city and visit an ophthalmologist.' & gt 'swamphouse', 'stackmagazines'
-		cla
-		*clr
-		blizoruk+=1
+		*clr & cla
+		menu_off = 1
+		if blizoruk = 500 or glassqw = 1:
+			glassqw = 1
+			msg '	The text blurs across the page, it seems you have poor eyesight. Probably from all the porn. Maybe you should visit an ophthalmologist?'
+			gt 'swamphouse', 'stackmagazines'
+		end
+		blizoruk += 1
 		pcs_mood += 10
 		gs 'stat'
 
@@ -881,7 +876,6 @@ if $ARGS[0] = 'hunterstable':
 		act 'Drink vodka (0:15)':
 			*clr & cla
 			gs 'drugs', 'alcohol', 'vodka', 1
-			gs 'stat'
 
 			'<center><img <<$set_imgh>> src="images/locations/pavlovsk/resident/apartment/shulginhome/kuh/vodka'+rand(0,2)+'.jpg"></center>'
 			*nl
@@ -892,7 +886,6 @@ if $ARGS[0] = 'hunterstable':
 		act 'Drink beer (0:15)':
 			*clr & cla
 			gs 'drugs', 'alcohol', 'beer', 1
-			gs 'stat'
 
 			'<center><img <<$set_imgh>> src="images/locations/pavlovsk/resident/apartment/shulginhome/kuh/beer2.jpg"></center>'
 			*nl
@@ -940,16 +933,11 @@ if $ARGS[0] = 'hunterstable':
 				act 'Agree':
 					*clr & cla
 					minut += 15
-					smoker += 1
-					smokeHour = hour
-					smokeDay = day
-					smokeminut = minut+5
-					smokeNeed = 0
-					pcs_mood += 100
-					if huntersKnowSlut = 0:huntersAndreiQw += 1
-					if huntersKnowSlut = 0:huntersIgorQw += 1
-					if huntersKnowSlut = 0:huntersSergeiQw += 1
-					gs 'stat'
+
+					if huntersKnowSlut = 0: huntersAndreiQw += 1
+					if huntersKnowSlut = 0: huntersIgorQw += 1
+					if huntersKnowSlut = 0: huntersSergeiQw += 1
+					gs 'drugs', 'smoke', 1
 
 					'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/hantersmoker2.jpg"></center>'
 					*nl
@@ -970,14 +958,8 @@ if $ARGS[0] = 'hunterstable':
 					act 'Agree':
 						*clr & cla
 						minut += 15
-						smoker += 1
-						smokeHour = hour
-						smokeDay = day
-						smokeminut = minut+5
-						smokeNeed = 0
-						pcs_mood += 100
 						huntersAndreiQw += 1
-						gs 'stat'
+						gs 'drugs', 'smoke', 1
 
 						'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/hantersmoker2.jpg"></center>'
 						*nl
@@ -991,14 +973,8 @@ if $ARGS[0] = 'hunterstable':
 						act 'Agree':
 							*clr & cla
 							minut += 15
-							smoker += 1
-							smokeHour = hour
-							smokeDay = day
-							smokeminut = minut+5
-							smokeNeed = 0
-							pcs_mood += 100
 							huntersAndreiQw += 1
-							gs 'stat'
+							gs 'drugs', 'smoke', 1
 
 							'<center><img <<$set_imgh>> src="images/characters/shared/headshots_main/big172.jpg"></center>'
 							*nl
@@ -1089,7 +1065,7 @@ if $ARGS[0] = 'hunterstable':
 
 						'<center><img <<$set_imgh>> src="images/characters/shared/headshots_main/big172.jpg"></center>'
 						*nl
-						'You go outside for a smoke, with Andrei following you, immediately saying, "To hell with the cigarette, Sveta, I need to relieve some stress."'
+						'You go outside for a smoke, with Andrei following you, immediately saying, "To hell with the cigarette, <<$pcs_nickname>>, I need to relieve some stress."'
 
 						act 'Go': gs 'swamphouse', 'huntersmokBJ'
 					end
@@ -1106,19 +1082,12 @@ if $ARGS[0] = 'hunterstable':
 				act 'Agree':
 					*clr & cla
 					minut += 15
-					smoker += 1
-					smokeHour = hour
-					smokeDay = day
-					smokeminut = minut+5
-					smokeNeed = 0
-					pcs_mood += 100
 					if huntersKnowSlut = 0:huntersSergeiQw += 1
-					gs 'stat'
+					gs 'drugs', 'smoke', 1
 
 					'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/hantersmoker2.jpg"></center>'
 					*nl
 					'You follow Sergei outside. He gives you a cigarette, and the two of you continue with your conversation.'
-
 
 					act 'Return to the table': gs 'swamphouse', 'hunterstable'
 				end
@@ -1134,14 +1103,8 @@ if $ARGS[0] = 'hunterstable':
 				act 'Agree':
 					*clr & cla
 					minut += 15
-					smoker += 1
-					smokeHour = hour
-					smokeDay = day
-					smokeminut = minut+5
-					smokeNeed = 0
-					pcs_mood += 100
 					if huntersKnowSlut = 0:huntersIgorQw += 1
-					gs 'stat'
+					gs 'drugs', 'smoke', 1
 
 					'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/hantersmoker2.jpg"></center>'
 					*nl

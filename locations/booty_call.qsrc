@@ -3,49 +3,133 @@ if $ARGS[0] = 'scheduler':
 	!! clear SMS
 	!! clear schedule
 	killvar 'booty_call_time'
+	killvar 'npc_booty_call'
+	killvar 'npc_booty_call_time'
 	i = 0
-	:booty_call_time_sched_loop
-	if i < ARRSIZE('$FuckBuddy'):
-		if (((rand(1,10) <= npc_sexdrive[$FuckBuddy[i]]) and (rand(1,npc_rel[$FuckBuddy[i]]) > 0)) or npc_booty_call[$FuckBuddy[i]] = daystart) and npc_no_booty_call[$FuckBuddy[i]] ! daystart and npc_big_fight[$FuckBuddy[i]] < daystart - 7:
-			if npc_start_free_time[$FuckBuddy[i]] = 0: 
-				$boy = $FuckBuddy[i]
-				gs 'saveupdater', 'npc_stat_update'
+	gs 'booty_call', 'scheduler2'
+end
+
+if $ARGS[0] = 'scheduler2':
+	if i <= arrsize('$fuckbuddy'):
+		gs 'booty_call', 'npc_stat_update'
+!!		if (rand(1,10) <= npc_sexdrive[$FuckBuddy[i]] or npc_booty_call[$FuckBuddy[i]] = daystart) and npc_rel[$FuckBuddy[i]] > 0 and npc_no_booty_call[$FuckBuddy[i]] ! daystart and npc_big_fight[$FuckBuddy[i]] < daystart - 7:
+
+!!		temporary removal of npc_rel requirement until boy initiated breakups can occur
+
+!!		if (rand(1,10) <= npc_sexdrive[$FuckBuddy[i]] or npc_booty_call[$FuckBuddy[i]] = daystart) and npc_no_booty_call[$FuckBuddy[i]] ! daystart and (npc_big_fight[$FuckBuddy[i]] < daystart - 7 and daystart > 7):
+		if $npc_rel_type[$FuckBuddy[i]] = 'sugar_daddy':
+			if npc_sugar_daddy_timer[$FuckBuddy[i]] - (npc_rel[$FuckBuddy[i]] / 10) > daystart:
+				npc_no_booty_call[$FuckBuddy[i]] = daystart
+				
+			elseif (npc_booty_call_date[$FuckBuddy[i]] = daystart or rand(1,10) <= npc_sexdrive[$FuckBuddy[i]] or rand(1,100) <= npc_rel[$FuckBuddy[i]]) and npc_no_booty_call[$FuckBuddy[i]] ! daystart:
+				sugar_daddy_call[$FuckBuddy[i]] = 1
+				gs 'booty_call', 'scheduler3'
+			else
+				npc_no_booty_call[$FuckBuddy[i]] = daystart
 			end
-			if npc_booty_call[$FuckBuddy[i]] = daystart:
-				npc_booty_call_time[$FuckBuddy[i]] = hour * 60
-			elseif week = npc_day_off[$FuckBuddy[i]]:
-				booty_call_time[$FuckBuddy[i]] = 600 + rand(0,720)
-			elseif week ! npc_day_off[$FuckBuddy[i]]:
-				booty_call_time[$FuckBuddy[i]] = rand((npc_start_free_time[$FuckBuddy[i]] * 60), (npc_end_free_time[$FuckBuddy[i]] - 1) * 60)
+		else
+			if (npc_booty_call_date[$FuckBuddy[i]] = daystart or rand(1,10) <= npc_sexdrive[$FuckBuddy[i]] or rand(1,100) <= npc_rel[$FuckBuddy[i]]) and npc_no_booty_call[$FuckBuddy[i]] ! daystart:
+				gs 'booty_call', 'scheduler3'
+			else
+				npc_no_booty_call[$FuckBuddy[i]] = daystart
+			end
+		end
+		i += 1
+		gs 'booty_call', 'scheduler2'
+	end
+end
+
+
+if $ARGS[0] = 'scheduler3':
+	if npc_booty_call[$FuckBuddy[i]] = daystart:
+		booty_call_time[$FuckBuddy[i]] = ((npc_booty_call_time[$FuckBuddy[i]] * 60) + rand(0,180))
+	elseif week = npc_day_off[$FuckBuddy[i]]:
+		booty_call_time[$FuckBuddy[i]] = (600 + rand(0,720))
+	elseif week ! npc_day_off[$FuckBuddy[i]]:
+		booty_call_time[$FuckBuddy[i]] = (rand(npc_start_free_time[$FuckBuddy[i]],(npc_end_free_time[$FuckBuddy[i]] - 1)) * 60) + rand(0,180)
+	else
+		booty_call_time[$FuckBuddy[i]] = 2000
+	end
+end
+
+!!	if npc_start_free_time[$FuckBuddy[i]] = 0 or npc_day_off[$FuckBuddy[i]] = 0 or npc_end_free_time[$FuckBuddy[i]] = 0: 
+!!		$boy = $FuckBuddy[i]
+		
+!!	end
+
+!!		if ((rand(1,10) <= npc_sexdrive[$FuckBuddy[i]] or npc_booty_call[$FuckBuddy[i]] = daystart) and (rand(1,npc_rel[$FuckBuddy[i]]) > 0)) and npc_no_booty_call[$FuckBuddy[i]] ! daystart and npc_big_fight[$FuckBuddy[i]] < daystart - 7:
+
 !!			elseif week < 6:
 !!				booty_call_time[$FuckBuddy[i]] = 900 + rand(0,210)
 !!			else
 !!				booty_call_time[$FuckBuddy[i]] = 600 + rand(0,720)
-			end
-		else
-			booty_call_time[$FuckBuddy[i]] = 2000
-		end
-		i += 1
-		jump 'booty_call_time_sched_loop'
+
+if $ARGS[0] = 'set_booty_call_date':
+	sex_ev['set_date'] = 1
+	if sex_ev['invite_today'] = 1 or hour < 5:
+		npc_booty_call_date[$boy] = daystart
+	elseif sex_ev['invite_tomorrow'] = 1:
+		npc_booty_call_date[$boy] = daystart + 1
+	end
+	if npc_booty_call_time[$boy] = 0:
+		npc_booty_call_time[$boy] = npc_start_free_time[$boy]
+	end
+	if $npc_rel_type[$boy] = 'sugar_daddy': sugar_daddy_call[$boy] = 1
+end
+
+if $ARGS[0] = 'block_booty_calls':
+	if sex_ev['invite_today'] = 1:
+		npc_booty_call_date[$boy] = 0
+		npc_no_booty_call[$boy] = daystart
+		npc_booty_call_time[$boy] = 0
+	elseif sex_ev['invite_tomorrow'] = 1:
+		npc_no_booty_call[$boy] = daystart + 1
 	end
 end
 
 if $ARGS[0] = 'SMS raiser':
 	i = 0
 	:booty_call_sms_raiser_loop
-	if i < ARRSIZE('$FuckBuddy'):
-		if booty_call_time[$FuckBuddy[i]] < hour*60+minut:
-			gs 'booty_call_sms', 'start',$FuckBuddy[i]
-			gs 'booty_call_sms', 'Add SMS', $FuckBuddy[i]
-			booty_call_time[$FuckBuddy[i]] = 2000
-			!! this is a bit superfluous, but it makes the code run fater.
-			booty_call_time['A0'] = daystart
+	if i < arrsize('$FuckBuddy'):
+		if booty_call_time[$FuckBuddy[i]] < ((hour * 60) + minut) and npc_no_booty_call[$FuckBuddy[i]] ! daystart and npc_last_booty_call[$FuckBuddy[i]] ! daystart:
+			gs 'booty_call_sms', 'start', $FuckBuddy[i]
+			booty_call_time[$FuckBuddy[i]] = 2399
+			!! this is a bit superfluous, but it makes the code run faster.
+			booty_call_invite[$FuckBuddy[i]] = daystart
 		end
 		i += 1
 		jump 'booty_call_sms_raiser_loop'
 	end
 end
 
+if $ARGS[0] = 'home_links':
+	i=0
+	*nl
+	:loopBC_homes
+	if (npc_residence[$Fuckbuddy[i]] = 1 and $loc = 'pav_residential') or (npc_residence[$Fuckbuddy[i]] = 3 and $loc = 'city_residential')or (npc_residence[$Fuckbuddy[i]] = 4 and $loc = 'city_center'):
+		dynamic(' ''<a href="exec: minut += 2 & gt ''''sex_ev_start'''',''''initiate_pre'''',''''<<$Fuckbuddy[i]>>'''' "><<$npc_firstname[$Fuckbuddy[i]]>>''''s</a> apartment is nearby.'' ')
+		!! ''''
+	end
+	!!		dynamic(' ''<a href="exec: minut += 2 & gt ''''sex_ev_start'''',''''fb_npc_home_start'''',''''<<$Fuckbuddy[i]>>'''' "><<$npc_firstname[$Fuckbuddy[i]]>>''''s</a> apartment is nearby.'' ')
+
+	i +=1
+	if i < arrsize('$Fuckbuddy') : jump 'loopBC_homes'
+end
+
+if $ARGS[0] = 'hotel_links':
+	i=0
+	*nl
+	:loopBC_hotel
+	if $booty_call_hotel[$Fuckbuddy[i]] = $region and booty_call_invite[$FuckBuddy[i]] = daystart:
+		dynamic(' ''<a href="exec: minut += 2 & gt ''''sex_ev_start'''',''''initiate_pre'''',''''<<$Fuckbuddy[i]>>'''' "><<$npc_firstname[$Fuckbuddy[i]]>></a> booked a hotel room to meet you in.'' ')
+		!! ''''
+	end
+	
+	i +=1
+	if i < arrsize('$Fuckbuddy') : jump 'loopBC_hotel'
+end
+
+!! booty_call_invite['B0']
 
 if $ARGS[0] = 'text':
 	!! boy code?
@@ -324,5 +408,67 @@ if $ARGS[0] = 'get_invited':
 
 
 end
+
+!! ------------ NPC Stat Updater ------------------------
+
+if $ARGS[0] = 'npc_stat_update':
+	if npc_start_free_time[$FuckBuddy[i]] = 0 or npc_day_off[$FuckBuddy[i]] = 0:
+		if npc_finance[$FuckBuddy[i]] = 0:
+			if rand(1,3) = 1:
+				npc_start_free_time[$FuckBuddy[i]] = 9
+				npc_end_free_time[$FuckBuddy[i]] = 12
+			elseif rand(1,2) = 1:
+				npc_start_free_time[$FuckBuddy[i]] = 16
+				npc_end_free_time[$FuckBuddy[i]] = 20
+			else
+				npc_start_free_time[$FuckBuddy[i]] = 20
+				npc_end_free_time[$FuckBuddy[i]] = 23
+			end
+		elseif npc_finance[$FuckBuddy[i]] = 1:
+			if rand(1,2) = 1:
+				npc_start_free_time[$FuckBuddy[i]] = 9
+				npc_end_free_time[$FuckBuddy[i]] = 12
+			else
+				npc_start_free_time[$FuckBuddy[i]] = 20
+				npc_end_free_time[$FuckBuddy[i]] = 23
+			end
+		elseif npc_finance[$FuckBuddy[i]] = 2:
+			if rand(1,2) = 1:
+				npc_start_free_time[$npclastgenerated] = 8
+				npc_end_free_time[$npclastgenerated] = 12
+				
+				npc_work_start[$npclastgenerated] = 13
+				npc_work_end[$npclastgenerated] = 21
+			else
+				npc_start_free_time[$npclastgenerated] = 18
+				npc_end_free_time[$npclastgenerated] = 22
+				
+				npc_work_start[$npclastgenerated] = 9
+				npc_work_end[$npclastgenerated] = 17
+			end
+			npc_apt_type[$FuckBuddy[i]] = 5
+			!!npc_apt_type[$npclastgenerated] = rand(5,6)
+			!! apt_type 6 is disabled until pictures are added
+			npc_occupation[$FuckBuddy[i]] = rand(14,18)
+			npc_car[$FuckBuddy[i]] = rand(0,1)
+		end
+		npc_day_off[$FuckBuddy[i]] = rand(1,7)
+	end
+end
+
+!! ------------ Legacy Backup ------------------------
+
+if $ARGS[0] = 'draw':
+	! this routine should invoke a the booty call sms from random friend in $lover list
+	! but I cannnot randomize the time because the probability is 100 % now
+	! I suppose that the routine will be modified later to take in account the lovers preferences
+	if booty_call['A0'] ! daystart :
+		$lover_drawn = $fuckbuddy[rand(0,arrsize('$fuckbuddy')-1)]
+		gs 'booty_call_sms', 'start',$lover_drawn
+!		gs 'booty_call_sms', 'Add SMS', $lover_drawn
+		booty_call['A0'] = daystart
+	end
+end
+
 
 --- booty_call ---------------------------------

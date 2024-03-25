@@ -4,6 +4,11 @@
 !! You can also set their approx. home location
 !! All data produced is random so if you need a specific value you will have to overwrite it
 
+!! npcgen_lastrun is a flag to help track whether npcgeneratec or npcpreservec has been run last
+!! npcgeneratec is 1
+!! npcpreservec is 2
+npcgen_lastrun = 1
+
 !! sets sex, 0 male, 1 female, 2 female herm, 3 male herm
 npctempgsex = ARGS[0]
 
@@ -20,15 +25,18 @@ npctempgage = ARGS[2]
 !! 4 - St. Petersburg City Center
 temp_location = ARGS[3]
 
+
+dont_know_npc_name = ARGS[4]
+
 !! For example
-!! gs 'npcgeneratec', 0, 'stranger', rand(18,45)
-!! Which would generate a male named stranger between ages of 18 and 45
+!! gs 'npcgeneratec', 0, 'stranger', rand(18,45), 3, 1
+!! Which would generate a male named stranger between ages of 18 and 45 who lives in the St. Petersburg Residential Area who will be remembered as ''stranger''
 
 
 if temp_location = 0:
-	if $region = 'city_center' or $region = 'city' or $region = 'city' or $region = 'city_island' or $region = 'city_lake' or $region = 'city_park':
+	if $region = 'city':
 		temp_location = rand(3,4)
-	elseif $region = 'pav' or $region = 'pav_park' or $region = 'pav':
+	elseif $region = 'pav':
 		temp_location = 1
 	end
 end
@@ -110,7 +118,8 @@ elseif npctempgsex = 1:
 	npc_dick[$npclastgenerated] = rand(0,1)
 	$npc_notes[$npclastgenerated] = 'A female.'
 	!!0 - 60  curve around 22,5 (C/D cups)
-	npc_bust[$npclastgenerated] = rand(0,15) + rand(0,15) + rand(0,15) & if rand(1,10) = 1: npc_bust[$npclastgenerated] += rand(0,15)
+	npc_bust[$npclastgenerated] = rand(0, 15) + rand(0, 15) + rand(0, 15)
+	if rand(1, 10) = 1: npc_bust[$npclastgenerated] += rand(0, 15)
 elseif npctempgsex = 2:
 	! {HermFemale}
 	gs 'npcrnamefile', 'rusFemale'
@@ -137,9 +146,11 @@ end
 !!	$npc_dick_desc is set here
 !!	this variable is to set a shorthand method of checking dick size without looking for specific numbers
 !!	it is organized by length and then ascending girth
+!!	$npc_dick_class is a fast way of determining size by category
 
 !! short dicks
 if npc_dick[$npclastgenerated] < 9:
+	$npc_dick_class[$npclastgenerated] = 'short'
 	if $npc_thdick[$npclastgenerated] = 'skinny' or $npc_thdick[$npclastgenerated] = 'slim':
 	
 		$npc_dick_desc[$npclastgenerated] = 'tiny'
@@ -155,7 +166,8 @@ if npc_dick[$npclastgenerated] < 9:
 	end
 	
 !! average length dicks
-elseif npc_dick[$npclastgenerated] < 20:
+elseif npc_dick[$npclastgenerated] < 15:	
+	$npc_dick_class[$npclastgenerated] = 'average'
 	if $npc_thdick[$npclastgenerated] = 'skinny' or $npc_thdick[$npclastgenerated] = 'slim':
 	
 		$npc_dick_desc[$npclastgenerated] = 'skinny'
@@ -170,7 +182,8 @@ elseif npc_dick[$npclastgenerated] < 20:
 		
 	end
 !! long dicks
-elseif npc_dick[$npclastgenerated] < 31:
+elseif npc_dick[$npclastgenerated] < 20:
+	$npc_dick_class[$npclastgenerated] = 'big'
 	if $npc_thdick[$npclastgenerated] = 'skinny' or $npc_thdick[$npclastgenerated] = 'slim':
 	
 		$npc_dick_desc[$npclastgenerated] = 'long'
@@ -184,6 +197,7 @@ elseif npc_dick[$npclastgenerated] < 31:
 	end
 !! extremely long dicks
 else
+	$npc_dick_class[$npclastgenerated] = 'extra_big'
 	if $npc_thdick[$npclastgenerated] = 'skinny' or $npc_thdick[$npclastgenerated] = 'slim':
 	
 		$npc_dick_desc[$npclastgenerated] = 'lengthy'
@@ -203,7 +217,11 @@ gs 'npcrnamefile', 'rusSur'
 $npc_firstname[$npclastgenerated] = $npctempgn[1]
 $npc_nickname[$npclastgenerated] = $npctempgn[2]
 $npc_lastname[$npclastgenerated] = $npctempgn[3]
-$npc_usedname[$npclastgenerated] = $npctempgn[0]
+if dont_know_npc_name = 0 or $npctempgn[0] = '':
+	$npc_usedname[$npclastgenerated] = $npctempgn[1]
+else
+	$npc_usedname[$npclastgenerated] = $npctempgn[0]
+end
 npc_intel[$npclastgenerated] = rand(1,npctempc2)
 
 !! set them to sober
@@ -238,11 +256,19 @@ npc_outfit[$npclastgenerated] = 0
 
 !! Unspecified dad and <<$npc_nickname[''A29'']>>.
 if npctempgsex = 1 or npctempgsex = 2:
-   !! A female face
-   $npc_pic[$npclastgenerated] = 'icon_bf' + rand(31, 60) + '.png'
+	!! A female face
+	:girldetailsloop
+		lover_picrand[$npclastgenerated] =  rand(31, 60)
+	if lover_picrand[$npclastgenerated] = lover_picture[0] or lover_picrand[$npclastgenerated] = lover_picture[1] or lover_picrand[$npclastgenerated] = lover_picture[2]: jump 'girldetailsloop'
+
+	$npc_pic[$npclastgenerated] = 'icon_bf' + lover_picrand[$npclastgenerated] + '.png'
 else
-   !! A male face
-   $npc_pic[$npclastgenerated] = 'icon_bf' + rand(1, 30) + '.png'
+	!! A male face
+	:boydetailsloop
+		lover_picrand[$npclastgenerated] =  rand(1, 30)
+	if lover_picrand[$npclastgenerated] = lover_picture[0] or lover_picrand[$npclastgenerated] = lover_picture[1] or lover_picrand[$npclastgenerated] = lover_picture[2]: jump 'boydetailsloop'
+
+	$npc_pic[$npclastgenerated] = 'icon_bf' + lover_picrand[$npclastgenerated] + '.png'
 end
 
 !! STDs set to 0. For characters with a STD, you need to gs npcgenext rstd
@@ -283,16 +309,20 @@ $npc_dna[$npclastgenerated] = func('DNA','create')
 !!	occupation set, list below
 
 	npc_residence[$npclastgenerated] = temp_location
-
-	if temp_location = 1:
+	if npc_residence[$npclastgenerated] = 1:
+		npc_finance[$npclastgenerated] = rand(0,1)
+		$npc_residence[$npclastgenerated] = 'pav_res'
+	elseif npc_residence[$npclastgenerated] = 2:
 		npc_finance[$npclastgenerated] = 0
-	elseif temp_location = 2:
-		npc_finance[$npclastgenerated] = 0
-	elseif temp_location = 3:
+		$npc_residence[$npclastgenerated] = 'student_dorms'
+	elseif npc_residence[$npclastgenerated] = 2:
 		npc_finance[$npclastgenerated] = rand(1,2)
-	elseif temp_location = 4:
+		$npc_residence[$npclastgenerated] = 'city_res'
+	elseif npc_residence[$npclastgenerated] = 2:
 		npc_finance[$npclastgenerated] = 2
+		$npc_residence[$npclastgenerated] = 'city_center'
 	end
+
 	
 	if npc_finance[$npclastgenerated] = 0:
 		if npc_residence[$npclastgenerated] ! 1 and npc_residence[$npclastgenerated] ! 4 and npctempgage < 22:
@@ -306,14 +336,24 @@ $npc_dna[$npclastgenerated] = func('DNA','create')
 		end
 		npc_occupation[$npclastgenerated] = rand(1,7)
 		if rand(1,3) = 1:
-			npc_start_free_time[$npclastgenerated] = 9
+			npc_start_free_time[$npclastgenerated] = 8
 			npc_end_free_time[$npclastgenerated] = 12
+			
+			npc_work_start[$npclastgenerated] = 13
+			npc_work_end[$npclastgenerated] = 21
+			
 		elseif rand(1,2) = 1:
-			npc_start_free_time[$npclastgenerated] = 16
+			npc_start_free_time[$npclastgenerated] = 15
 			npc_end_free_time[$npclastgenerated] = 20
+			
+			npc_work_start[$npclastgenerated] = 6
+			npc_work_end[$npclastgenerated] = 14
 		else
-			npc_start_free_time[$npclastgenerated] = 20
-			npc_end_free_time[$npclastgenerated] = 23
+			npc_start_free_time[$npclastgenerated] = 18
+			npc_end_free_time[$npclastgenerated] = 22
+			
+			npc_work_start[$npclastgenerated] = 9
+			npc_work_end[$npclastgenerated] = 17
 		end
 		npc_day_off[$npclastgenerated] = rand(1,7)
 	elseif npc_finance[$npclastgenerated] = 1:
@@ -321,21 +361,44 @@ $npc_dna[$npclastgenerated] = func('DNA','create')
 		npc_occupation[$npclastgenerated] = rand(7,15)
 		
 		if rand(1,2) = 1:
-			npc_start_free_time[$npclastgenerated] = 9
+			npc_start_free_time[$npclastgenerated] = 8
 			npc_end_free_time[$npclastgenerated] = 12
+			
+			npc_work_start[$npclastgenerated] = 13
+			npc_work_end[$npclastgenerated] = 21
 		else
-			npc_start_free_time[$npclastgenerated] = 20
-			npc_end_free_time[$npclastgenerated] = 23
+			npc_start_free_time[$npclastgenerated] = 18
+			npc_end_free_time[$npclastgenerated] = 22
+			
+			npc_work_start[$npclastgenerated] = 9
+			npc_work_end[$npclastgenerated] = 17
 		end
 		
-		npc_car[$npclastgenerated] = rand(-3,1)
+		if npc_car[$npclastgenerated] = 0: npc_car[$npclastgenerated] = rand(-3,1)
 	elseif npc_finance[$npclastgenerated] = 2:
+		if rand(1,2) = 1:
+			npc_start_free_time[$npclastgenerated] = 8
+			npc_end_free_time[$npclastgenerated] = 12
+			
+			npc_work_start[$npclastgenerated] = 13
+			npc_work_end[$npclastgenerated] = 21
+		else
+			npc_start_free_time[$npclastgenerated] = 18
+			npc_end_free_time[$npclastgenerated] = 22
+			
+			npc_work_start[$npclastgenerated] = 9
+			npc_work_end[$npclastgenerated] = 17
+		end
 		npc_apt_type[$npclastgenerated] = 5
 		!!npc_apt_type[$npclastgenerated] = rand(5,6)
 		!! apt_type 6 is disabled until pictures are added
 		npc_occupation[$npclastgenerated] = rand(14,18)
 		npc_car[$npclastgenerated] = rand(0,1)
 	end
+	
+	!! failsafe until possibility of roommates is sorted out
+	if npc_apt_type[$npclastgenerated] = 4: npc_apt_type[$npclastgenerated] = 5
+	
 	npc_day_off[$npclastgenerated] = rand(1,7)
 	
 	
@@ -440,6 +503,7 @@ $npc_dna[$npclastgenerated] = func('DNA','create')
 		$npc_occupation[$npclastgenerated] = 'fast_food'
 	elseif npc_occupation[$npclastgenerated] = 6: 
 		$npc_occupation[$npclastgenerated] = 'taxi_driver'
+		npc_car[$npclastgenerated] = 1
 	elseif npc_occupation[$npclastgenerated] = 7: 
 		$npc_occupation[$npclastgenerated] = 'masseuse'
 	elseif npc_occupation[$npclastgenerated] = 8: 
@@ -455,74 +519,46 @@ $npc_dna[$npclastgenerated] = func('DNA','create')
 	elseif npc_occupation[$npclastgenerated] = 13: 
 		$npc_occupation[$npclastgenerated] = 'waiter'
 	elseif npc_occupation[$npclastgenerated] = 14: 
-		$npc_occupation[$npclastgenerated] = 'personal trainer'
+		$npc_occupation[$npclastgenerated] = 'personal_trainer'
 	elseif npc_occupation[$npclastgenerated] = 15: 
 		$npc_occupation[$npclastgenerated] = 'programmer'
 	elseif npc_occupation[$npclastgenerated] = 16: 
-		$npc_occupation[$npclastgenerated] = 'businessman'
+		npc_criminal[$npclastgenerated] = 1
+		!! npc_criminal_open determines whether or not they will hide their criminality from the player
+		npc_criminal_open[$npclastgenerated] = rand(0,1)
+		if rand(1,4) = 1:
+			$npc_occupation[$npclastgenerated] = 'pimp'
+		elseif rand(1,3) = 1:
+			$npc_occupation[$npclastgenerated] = 'drug_dealer'
+		elseif rand(1,2) = 1:
+			$npc_occupation[$npclastgenerated] = 'enforcer'
+		else
+			$npc_occupation[$npclastgenerated] = 'thief'
+		end
 	elseif npc_occupation[$npclastgenerated] = 17: 
-		$npc_occupation[$npclastgenerated] = 'lawyer'
+		$npc_occupation[$npclastgenerated] = 'businessman'
 	elseif npc_occupation[$npclastgenerated] = 18: 
-		$npc_occupation[$npclastgenerated] = 'investment banker'
+		$npc_occupation[$npclastgenerated] = 'lawyer'
+	elseif npc_occupation[$npclastgenerated] = 19: 
+		$npc_occupation[$npclastgenerated] = 'investment_banker'
 	end
 
-!!	type of homour
-	npc_humor[$npclastgenerated] = rand(0,3)
 	
-!! Preferred sexual position
-	npc_fav_pos[$npclastgenerated] = rand(1,7)
-	
-	if npc_fav_pos[$npclastgenerated] = 1:
-		$npc_fav_pos[$npclastgenerated] = 'missionary'
-	elseif npc_fav_pos[$npclastgenerated] = 2:
-		$npc_fav_pos[$npclastgenerated] = 'doggy'
-	elseif npc_fav_pos[$npclastgenerated] = 3:
-		$npc_fav_pos[$npclastgenerated] = 'cowgirl'
-	elseif npc_fav_pos[$npclastgenerated] = 4:
-		$npc_fav_pos[$npclastgenerated] = 'blowjob'
-	elseif npc_fav_pos[$npclastgenerated] = 5:
-		$npc_fav_pos[$npclastgenerated] = 'titjob'
-	elseif npc_fav_pos[$npclastgenerated] = 6:
-		$npc_fav_pos[$npclastgenerated] = '69'
-	elseif npc_fav_pos[$npclastgenerated] = 7:
-		$npc_fav_pos[$npclastgenerated] = 'anal'
-	end
-	
-	!! npc_sex_speed determines whether they like it slow, steady, or fast and will cause them to select that speed more frequently
-	!! 1 is slow, 2 is steady, 3 is fast/rough
-	npc_sex_speed[$npclastgenerated] = rand(1,3)
+!! ------------------------- lifestyle and personality choices ----------------------------------
 
-!! Preferred cumming location
-!!	0 = no preference
-	npc_cum_pref[$npclastgenerated] = rand(0,5)
-	
-	if npc_cum_pref[$npclastgenerated] = 1:
-		$npc_cum_pref[$npclastgenerated] = 'creampie'
-	elseif npc_cum_pref[$npclastgenerated] = 2:
-		$npc_cum_pref[$npclastgenerated] = 'mouth'
-	elseif npc_cum_pref[$npclastgenerated] = 3:
-		$npc_cum_pref[$npclastgenerated] = 'facial'
-	elseif npc_cum_pref[$npclastgenerated] = 4:
-		$npc_cum_pref[$npclastgenerated] = 'tits'
-	elseif npc_cum_pref[$npclastgenerated] = 5:
-		$npc_cum_pref[$npclastgenerated] = 'pullout'
-	end
-	
 
-!!	npc_tit_pref determines an npcs preference for breast size
-!!	if npc_tit_pref = 0: they don''t care
-!!	if npc_tit_pref = 1: they like small tits (A or smaller)
-!!	if npc_tit_pref = 2: they like medium sized tits (B to C)
-!!	if npc_tit_pref = 3: they like busty girls (D to E)
-!!	if npc_tit_pref = 4: they like big fat titties (F+)
-	npc_tit_pref[$npclastgenerated] = rand(0,4)
-	
-!!	npc_bush_pref determines an npcs preference for the player''s shaving habits
-!!	if npc_bush_pref = 0: they don''t care
-!!	if npc_bush_pref = 1: they prefer it cleanshaven
-!!	if npc_bush_pref = 2: they like it trimmed or cleanshaven
-!!	if npc_bush_pref = 3: they like it bushy
-	npc_bush_pref[$npclastgenerated] = rand(0,3)
+!!	type of humour
+!!	1 - childish
+!!	2 - perverted
+!!	3 - intellectual/clever
+	npc_humor[$npclastgenerated] = rand(1, 3)
+	if npc_humor[$npclastgenerated] = 1:
+		$npc_humor[$npclastgenerated] = 'childish'
+	elseif npc_humor[$npclastgenerated] = 2:
+		$npc_humor[$npclastgenerated] = 'perverted'
+	elseif npc_humor[$npclastgenerated] = 3:
+		$npc_humor[$npclastgenerated] = 'intellectual'
+	end
 
 !! 	if npc_smoker > 0: they smoke cigarettes
 	npc_smoker[$npclastgenerated] = rand(0,2)
@@ -536,10 +572,15 @@ $npc_dna[$npclastgenerated] = func('DNA','create')
 !! we will skip addit for now, have a variable just for smoking
 !!	npc_addit[$npclastgenerated] = rand(0,1)
 
-!!	if npc_doors = 0: they have no preference on indoor or outdoor
-!!	if npc_doors = 1: they like outdoor activities
-!!	if npc_doors = 2: they like indoor activities
-	npc_doors[$npclastgenerated] = rand(0,2)
+	npc_door_pref[$npclastgenerated] = rand(0,2)
+	if npc_door_pref[$npclastgenerated] = 1:
+		!! they like going out for things and doing things outside
+		$npc_door_pref[$npclastgenerated] = 'outdoor'
+	elseif npc_door_pref[$npclastgenerated] = 2: 
+		!! they like more quiet activities and staying at home
+		$npc_door_pref[$npclastgenerated] = 'indoor'
+	end
+	
 	
 !!	npc_goal is what they want out of a relationship
 !!	1 = just sex 
@@ -548,28 +589,29 @@ $npc_dna[$npclastgenerated] = func('DNA','create')
 	npc_goal[$npclastgenerated] = rand(1,3)
 
 !!	npc_fidelity is how they will behave in a relationship
-!!	1-3 = will cheat on you 
-!!	4-6 = will cheat on others with you
-!!		4 = cheats on them with you for the first time
+!!	1-3 = will cheat on you and others with no guilt
+!!	5-6 = will cheat on others with you
 !!		5 = has been cheating and feels guilty
-!!		6 = is a serial cheater with no guilt
+!!		6 = cheats on them with you for the first time
 !!	7 = is fine with open relationship
 !!	8-10 = will be faithful
 	if npc_fidelity[$npclastgenerated] >= 8:
 		$npc_fidelity[$npclastgenerated] = 'faithful'
 	elseif npc_fidelity[$npclastgenerated] = 7:
 		$npc_fidelity[$npclastgenerated] = 'open'
-	elseif npc_fidelity[$npclastgenerated] >= 4:
+	elseif npc_fidelity[$npclastgenerated] >= 5:
 		$npc_fidelity[$npclastgenerated] = 'seduced'
 	elseif npc_fidelity[$npclastgenerated] >= 1:
 		$npc_fidelity[$npclastgenerated] = 'cheater'
 	end
 
-!!	4 = is a serial cheater with no guilt
-!!	5 = has been cheating and feels guilty
-!!	6 = cheats on them with you for the first time
-
-	if npc_fidelity[$npclastgenerated] >= 4 and npc_fidelity[$npclastgenerated] <= 6: npc_girlfriend[$npclastgenerated] = rand(0,1)
+	if npc_fidelity[$npclastgenerated] <= 5:
+		if npctempgage >= 26 and rand(1,2) = 1 and npc_finance[$npclastgenerated] = 2:
+			npc_wife[$npclastgenerated] = rand(0,1)
+		else
+			npc_girlfriend[$npclastgenerated] = rand(0,1)
+		end
+	end
 
 !! initialise lover length in days
 	npc_lover_days[$npclastgenerated] = 0
@@ -599,54 +641,296 @@ $npc_dna[$npclastgenerated] = func('DNA','create')
 	end
 	
 	
-	!! if npc_argumentative = 1:, they will get into more arguments with you about things
+	!! npc_gentle = 1: npc is likely to have a soft emotional and physical touch outside of sex
+	!! npc_rough = 1: npc is likely to have a rough/aggressive emotional and physical touch outside of sex
+	if rand(0,2) > 0:
+		if rand(0,1) = 1:
+			npc_gentle[$npclastgenerated] = 1
+			npc_rough[$npclastgenerated] = 0
+		else
+			npc_gentle[$npclastgenerated] = 0
+			npc_rough[$npclastgenerated] = 1
+		end
+	end
+	!! npc_diligent = 1: npc is more methodical, doesn''t like to skip steps, and usually plays it safe
+	!! npc_risktaker = 1: npc is more likely to take risks, such as never using a condom
+	if rand(0,2) > 0:
+		if rand(0,1) = 1:
+			npc_diligent[$npclastgenerated] = 0
+			npc_risktaker[$npclastgenerated] = 1
+		else
+			npc_diligent[$npclastgenerated] = 1
+			npc_risktaker[$npclastgenerated] = 0
+		end
+	end
+	
+	if rand(0,2) > 0:
+		if rand(1,3) + npc_diligent[$npclastgenerated] > 2:
+			npc_neat[$npclastgenerated] = 1
+			npc_messy[$npclastgenerated] = 0
+		else
+			npc_messy[$npclastgenerated] = 1
+			npc_neat[$npclastgenerated] = 0
+		end
+	end
+	
+	!! if npc_argumentative = 1: they will get into more arguments with you about things
 	!! it is also harder to persuade them
 	npc_argumentative[$npclastgenerated] = rand(0,2)
+	
+	!! if npc_assertive = 1: they will know what they want
+	!! if npc_assertive = -1: they will often ask what the player wants
+	!! it is also harder to persuade them
+	npc_assertive[$npclastgenerated] = rand(-1,1)
 	
 	!! how easy or difficult it is to persuade them into doing something
 	npc_willpwr[$npclastgenerated] = rand(1,50)
 	npc_willpwr[$npclastgenerated] += npc_argumentative[$npclastgenerated] * 10
 	
+	!! if npc_arrogant = 1: they will act arrogantly
+	npc_arrogant[$npclastgenerated] = rand(-1,1)
+	
 	!! if npc_competitive = 1: they are overly competitive in contests against you or others
 	npc_competitive[$npclastgenerated] = rand(-1,1)
+	
 	
 	!! if npc_insecure = 1: they are insecure in their masculinity and won''t respond well to teasing
 	npc_insecure[$npclastgenerated] = rand(-1,1)
 	
-	if rand(0,1) = 1:
-!!		if npc_condom_conscious = 1: they will use condoms but can be talked out of it
-!!		if npc_condom_conscious = 2: they will always insist on using condoms unless you are in a committed relationship 
-		npc_condom_conscious[$npclastgenerated] = rand(-2,2)
-	else
-!!		if npc_no_condoms = 1: they have a preference for skipping condoms but can be talked into using one
-!!		if npc_no_condoms = 2: they will never use a condom no matter what
-		npc_no_condoms[$npclastgenerated] = rand(-2,2)
-	end
+	!! if npc_gymrat = 1: they like working out
+	npc_gymrat[$npclastgenerated] = rand(-1,1)
+	
+	!! if npc_abusive = 1: the npc will be abusive
+	npc_abusive[$npclastgenerated] = rand(-3,1)
+	
 	
 	!! if npc_caretaker = 1: they will frequently show love through acts of service
 	!! example: making you breakfast in bed
 	if npc_selfish[$npclastgenerated] ! 1: npc_caretaker[$npclastgenerated] = rand(-3,1)
 	
-	!! npc_childfree determines that they never want to have kids and will react poorly to pregnancy related topics
-	npc_childfree[$npclastgenerated] = rand(-3,1)
+!! ------------------------- sex related preferences ----------------------------------
+
+!!	if rand(0,1) >= 1 and npc_risktaker[$npclastgenerated] ! 1:
+	if rand(0,1) >= 1:
+!!		if npc_condom_conscious = 1: they will use condoms but can be talked out of it
+!!		if npc_condom_conscious = 2: they will always insist on using condoms unless you are in a committed relationship and/or trying for a baby
+		if npc_diligent[$npclastgenerated] = 1:
+			npc_condom_conscious[$npclastgenerated] = rand(-1,2)
+		else
+			npc_condom_conscious[$npclastgenerated] = rand(-2,2)
+		end
+!!	elseif npc_diligent[$npclastgenerated] ! 1:
+	else
+!!		if npc_no_condoms = 1: they have a preference for skipping condoms but can be talked into using one
+!!		if npc_no_condoms = 2: they will never use a condom no matter what
+		if npc_risktaker[$npclastgenerated] = 1:
+			npc_no_condoms[$npclastgenerated] = rand(-1,2)
+		else
+			npc_no_condoms[$npclastgenerated] = rand(-2,2)
+		end
+	end
+
+!! Preferred sexual position
+	npc_fav_pos[$npclastgenerated] = rand(1,7)
 	
-	!! if npc_abusive = 1: the npc will be abusive
-	npc_abusive[$npclastgenerated] = rand(-3,1)
+	if npc_fav_pos[$npclastgenerated] = 1:
+		$npc_fav_pos[$npclastgenerated] = 'miss'
+	elseif npc_fav_pos[$npclastgenerated] = 2:
+		$npc_fav_pos[$npclastgenerated] = 'doggy'
+	elseif npc_fav_pos[$npclastgenerated] = 3:
+		$npc_fav_pos[$npclastgenerated] = 'cowgirl'
+	elseif npc_fav_pos[$npclastgenerated] = 4:
+		$npc_fav_pos[$npclastgenerated] = 'blowjob'
+	elseif npc_fav_pos[$npclastgenerated] = 5:
+		$npc_fav_pos[$npclastgenerated] = 'titjob'
+	elseif npc_fav_pos[$npclastgenerated] = 6:
+		$npc_fav_pos[$npclastgenerated] = '69'
+	elseif npc_fav_pos[$npclastgenerated] = 7:
+		$npc_fav_pos[$npclastgenerated] = 'anal'
+	end
 	
+	!! npc_sex_speed determines whether they like it slow, steady, or fast and will cause them to select that speed more frequently
+	!! 1 is slow, 2 is steady, 3 is fast/rough
+	npc_sex_speed[$npclastgenerated] = rand(1,3)
+	if npc_sex_speed[$npclastgenerated] = 1 and rand(1,3) = 1:
+		!! npc has a tendency to be overly gentle and cautious
+		npc_gentle_lover[$npclastgenerated] = 1
+	elseif rand(1,3) = 1:
+		!! npc prefers sex with dirty talk and perverted acts
+		!! example: using spit instead of lube
+		npc_dirty_lover[$npclastgenerated] = 1
+	elseif rand(1,3) = 1:
+		!! npc prefers romantic and sensual sex
+		npc_sensual_lover[$npclastgenerated] = 1
+	end
+
+!! Preferred cumming location
+!!	0 = no preference
+	npc_cum_pref[$npclastgenerated] = rand(0,5)
+	
+	if npc_cum_pref[$npclastgenerated] = 1:
+		$npc_cum_pref[$npclastgenerated] = 'creampie'
+	elseif npc_cum_pref[$npclastgenerated] = 2:
+		$npc_cum_pref[$npclastgenerated] = 'mouth'
+	elseif npc_cum_pref[$npclastgenerated] = 3:
+		$npc_cum_pref[$npclastgenerated] = 'facial'
+	elseif npc_cum_pref[$npclastgenerated] = 4:
+		$npc_cum_pref[$npclastgenerated] = 'tits'
+	elseif npc_cum_pref[$npclastgenerated] = 5:
+		$npc_cum_pref[$npclastgenerated] = 'pullout'
+	end
+	
+	if rand(1,5) = 1:
+		npc_bukakke_fetish[$npclastgenerated] = 1
+	elseif rand(1,3) = 1 and npc_cum_pref[$npclastgenerated] ! 3:
+		npc_dislikes_facials[$npclastgenerated] = 1
+	end
+	
+	
+!!	npc_tit_pref determines an npcs preference for breast size
+!!	if npc_tit_pref = 0: they don''t care
+!!	if npc_tit_pref = 1: they like small tits (A or smaller)
+!!	if npc_tit_pref = 2: they like medium sized tits (B to C)
+!!	if npc_tit_pref = 3: they like busty girls (D to E)
+!!	if npc_tit_pref = 4: they like oversized breasts (F+)
+	npc_tit_pref[$npclastgenerated] = rand(0,4)
+	
+!!	npc_bush_pref determines an npcs preference for the player''s shaving habits
+!!	if npc_bush_pref = 0: they don''t care
+!!	if npc_bush_pref = 1: they prefer it cleanshaven
+!!	if npc_bush_pref = 2: they like it trimmed or cleanshaven
+!!	if npc_bush_pref = 3: they like it bushy
+	npc_bush_pref[$npclastgenerated] = rand(0,3)
+	
+!! $npc_fav_body_part
+	if rand(1,4) = 1:
+		$npc_fav_body_part[$npclastgenerated] = 'pussy'
+	elseif rand(1,3) = 1:
+		$npc_fav_body_part[$npclastgenerated] = 'tits'
+	elseif rand(1,2) = 2:
+		$npc_fav_body_part[$npclastgenerated] = 'ass'
+	else
+		$npc_fav_body_part[$npclastgenerated] = 'thighs'
+	end
+	
+
 	!! if npc_sexdrive determines how likely the npc will be to engage in sexual behavior and how many times they can orgasm in a single sexual encounter
-	npc_sexdrive[$npclastgenerated] = rand(1,10)
+	if rand(1,10) <= 4:
+		npc_sexdrive[$npclastgenerated] = rand(3,5)
+	elseif rand(1,10) <= 3:
+		npc_sexdrive[$npclastgenerated] = rand(1,3)
+!!	elseif rand(1,10) <= 3:
+!!		npc_sexdrive[$npclastgenerated] = rand(1,10)
+!!	elseif rand(1,10) <= 2:
+!!		npc_sexdrive[$npclastgenerated] = rand(7,10)
+	else
+		!!failsafe
+		npc_sexdrive[$npclastgenerated] = rand(1,10)
+	end
+	
+	!! if npc_sex_stamina determines how long they can last in bed without cumming
+	
+	if rand(1,10) <= 4:
+		npc_sex_stamina[$npclastgenerated] = rand(3,5)
+	elseif rand(1,10) <= 3:
+		npc_sex_stamina[$npclastgenerated] = rand(1,3)
+!!	elseif rand(1,10) <= 3:
+!!		npc_sex_stamina[$npclastgenerated] = rand(1,10)
+!!	elseif rand(1,10) <= 2:
+!!		npc_sex_stamina[$npclastgenerated] = rand(7,10)
+	else
+		!!failsafe
+		npc_sex_stamina[$npclastgenerated] = rand(1,10)
+	end
+
+	!! npc_spanker determines whether or not they''re into spanking during sex
+	if rand(1,3) = 1: npc_sex_spanker[$npclastgenerated] = 1
+	
+	!! npc_childfree determines that they never want to have kids and will react poorly to pregnancy related topics
+	if rand(1,5) = 1: npc_childfree[$npclastgenerated] = 1
 	
 	!! if npc_pussyeater = 1: they have a fetish for eating pussy
-	npc_pussyeater[$npclastgenerated] = rand(-2,1)
+	!! if npc_pussyeater = -1: they refuse to eat pussy
+	if rand(1,3) = 1: npc_pussyeater[$npclastgenerated] = 1
 	
 	!! if npc_cuddler = 1: the npc likes to cuddle
-	npc_cuddler[$npclastgenerated] = rand(-1,1)
+	if rand(1,3) = 1: npc_cuddler[$npclastgenerated] = 1
 	
 	!! if npc_cum_cannon = 1: the npc ejaculates particularly large loads
-	npc_cum_cannon[$npclastgenerated] = rand(-3,1)
+	if rand(1,5) = 1: npc_cum_cannon[$npclastgenerated] = 1
+	
+	!! if npc_sex_filmer = 1: the npc likes to make sex videos
+	if rand(1,5) = 1: npc_sex_filmer[$npclastgenerated] = 1
 	
 	!! if npc_two_pump = 1: the npc will always cum immediately in the first penetration act of sex
-	npc_two_pump[$npclastgenerated] = rand(-5,1)
+	if rand(1,6) = 1: npc_two_pump[$npclastgenerated] = 1
+	
+!! ------------------------- date preferences ----------------------------------
+	!! favorite kind of date
+	if $npc_door_pref[$npclastgenerated] = 'indoor' and rand(1,3) < 3:
+		if rand(1,5) = 1:
+			$npc_fav_date[$npclastgenerated] = 'takeout_date'
+		elseif rand(1,4) = 1:
+			$npc_fav_date[$npclastgenerated] = 'coffee_date'
+		elseif rand(1,3) = 1:
+			$npc_fav_date[$npclastgenerated] = 'casual_meal'
+		elseif rand(1,2) = 1:
+			$npc_fav_date[$npclastgenerated] = 'netflix_chill'
+		elseif rand(1,1) = 1:
+			$npc_fav_date[$npclastgenerated] = 'movie_date'
+		end
+	elseif $npc_door_pref[$npclastgenerated] = 'outdoor' and rand(1,3) < 3:
+		if rand(1,6) = 1:
+			$npc_fav_date[$npclastgenerated] = 'picnic_date'
+		elseif rand(1,5) = 1:
+			$npc_fav_date[$npclastgenerated] = 'beach_date'
+		elseif rand(1,4) = 1:
+			$npc_fav_date[$npclastgenerated] = 'casual_meal'
+		elseif rand(1,3) = 1:
+			$npc_fav_date[$npclastgenerated] = 'fancy_meal'
+		elseif rand(1,2) = 1:
+			$npc_fav_date[$npclastgenerated] = 'amusement_park'
+		elseif rand(1,1) = 1:
+			$npc_fav_date[$npclastgenerated] = 'shopping_date'
+		end
+	else
+		if rand(1,4) = 1:
+			$npc_fav_date[$npclastgenerated] = 'picnic_date'
+		elseif rand(1,4) = 1:
+			$npc_fav_date[$npclastgenerated] = 'beach_date'
+		elseif rand(1,3) = 1:
+			$npc_fav_date[$npclastgenerated] = 'shopping_date'
+		elseif rand(1,2) = 1:
+			$npc_fav_date[$npclastgenerated] = 'fancy_meal'
+		elseif rand(1,1) = 1:
+			$npc_fav_date[$npclastgenerated] = 'amusement_park'
+		elseif rand(1,4) = 1:
+			$npc_fav_date[$npclastgenerated] = 'takeout_date'
+		elseif rand(1,3) = 1:
+			$npc_fav_date[$npclastgenerated] = 'casual_meal'
+		elseif rand(1,2) = 1:
+			$npc_fav_date[$npclastgenerated] = 'netflix_chill'
+		elseif rand(1,1) = 1:
+			$npc_fav_date[$npclastgenerated] = 'movie_date'
+		end
+	end
+	
+	!! npc_fav_genre determines what kind of media they like to consume
+	if rand(1,10) > 7:
+		$npc_fav_genre[$npclastgenerated] = 'action'
+	elseif rand(1,7) > 4:
+		$npc_fav_genre[$npclastgenerated] = 'horror'
+	elseif rand(1,5) > 2:
+		if rand(1,10) < npc_sexdrive[$npclastgenerated]:
+			$npc_fav_genre[$npclastgenerated] = 'raunchy_comedy'
+		else
+			$npc_fav_genre[$npclastgenerated] = 'comedy'
+		end
+	elseif rand(1,2) = 1:
+		$npc_fav_genre[$npclastgenerated] = 'drama'
+	else
+		$npc_fav_genre[$npclastgenerated] = 'romance'
+	end
 
 !! Variable clean up
 killvar '$npctempgn'

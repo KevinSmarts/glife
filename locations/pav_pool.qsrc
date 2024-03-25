@@ -1,0 +1,565 @@
+# pav_pool
+
+!! 2023/09/13
+!! Based on the Mod Swimlessons by Darcanlos
+!! Rewritten by Vengeance
+!! Code updated by Anjuna
+
+
+$loc = 'pav_pool'
+
+if $ARGS[0] = 'building' or $ARGS[0] = '':
+	$loc_arg = 'building'
+	$location_type = 'public_outdoors'
+	minut += 4
+	if hour >= 8 and hour <= 20:
+		gs 'stat'
+		'<center><img <<$set_imgh>> src="images/locations/pavlovsk/community/swim/entrance.jpg"></center>'
+		'Pavlovsk''s public swimming pool is rather dated, but still serves it''s purpose quite well.'
+		'The entrance fee is 100 <b>₽</b> for the full day, but students get a discount and it only costs you 60 <b>₽</b>.'
+		if SchoolAtestat = 0:
+			pav_swimpool['entrancefee'] = 60
+		else
+			pav_swimpool['entrancefee'] = 100
+		end
+		
+		if pav_swimpool['entrancepaid'] = daystart:
+			'<b>You''ve already paid the fee, so you can enter.</b>'
+			act 'Enter': gt 'pav_pool', 'entrance'
+		else
+			if money < pav_swimpool['entrancefee']:
+				act 'Pay and enter': '<br><font color="red">You don''t have enough money to pay for entrance!</font>'
+			else
+				act 'Pay and enter':
+					money -= pav_swimpool['entrancefee']
+					pav_swimpool['entrancepaid'] = daystart
+					gs 'stat'
+					gt 'pav_pool', 'entrance'
+				end
+			end
+		end
+		act 'Leave': gt 'pav_residential'
+	else
+		gs 'stat'
+		'<center><img <<$set_imgh>> src="images/locations/pavlovsk/community/swim/entrance.jpg"></center>'
+		'The swimming pool is currently closed. Opening hours are from 08:00 to 21:00.'
+		act 'Leave': gt 'pav_residential'
+	end
+end
+
+if $ARGS[0] = 'entrance':
+	minut += 2
+	$loc_arg = 'entrance'
+	$location_type = 'public_indoors'
+	gs 'stat'
+	'<center><img <<$set_imgh>> src="images/locations/pavlovsk/community/swim/entrance.jpg"></center>'
+	'You''re currently inside the entrance to the swimming pool.'
+	'From here you can access the <a href="exec:minut += 1 & gt ''pav_pool'', ''lockerfemale''">girls locker room</a>, visit the <a href="exec:minut += 1 & gt ''pav_pool'', ''cafeteria''">cafeteria</a> or browse the pool''s <a href="exec:minut += 1 & gt ''pav_pool'', ''store''">store</a>.'
+	*nl
+	'There is a sign by the store''s entrance that reads: "If closed, I''m working in the pool. Be back soon." It seems like the store clerk is also the janitor.'
+
+	act 'Leave': gt 'pav_pool', 'building'
+end
+
+if $ARGS[0] = 'store':
+	!! Outside of the first visit. Clerk has an 80% chance of being away in the busy times and a 30% in the down times.
+	minut += 1
+	$loc_arg = 'store'
+	$location_type = 'public_indoors'
+
+	if pav_swimpool['storeclerkvisit'] > 0 and (( (hour >= 8 and hour <= 10) or hour >= 17) and rand(1, 10) <= 8) or rand(1, 10) <= 3:
+		gs 'stat'
+		'<center><img <<$set_imgh>> src="images/locations/pavlovsk/community/swim/store.jpg"></center>'
+		'The store is closed right now. The clerk must be doing janitor work somewhere.'
+		act 'Leave': gt 'pav_pool', 'entrance'
+	else
+		gs 'stat'
+		'<center><h3Pool Store</h3></center>'
+		'<center><img <<$set_imgh>> src="images/locations/pavlovsk/community/swim/store.jpg"></center>'
+		'The store is small and barely has anything on display, but they might have some swimwear available. There is a divider if you wish to try anything on, but it doesn''t seem to offer much privacy.'
+
+		!!Buy one specific swimsuit
+		act 'Ask for swimwear':
+			if scandalicious_bikinis[46] = 1:
+				*clr & cla
+				minut += 1
+				gs 'stat'
+				'<center><h3>Pool Store</h3></center>'
+				'<center><img <<$set_imgh>> src="images/locations/pavlovsk/community/swim/storeclerk.jpg"></center>'
+				'You already own a bikini which looks similar to the one they have on sale here.'
+				act 'Continue': gt 'pav_pool', 'store'
+			else
+				gt 'pav_pool_events', 'store_simsuit_buy'
+			end
+		end
+		act 'Leave': gt 'pav_pool', 'entrance'
+	end
+end
+
+if $ARGS[0] = 'lockerfemale':
+	!! Clothing change events
+	!!-------------------------------------------------------------------!!
+	
+	$loc = 'pav_pool'
+	$loc_arg = 'lockerfemale'
+	$location_type = 'private'
+
+	if $temp_curclothes = 'nude':
+		killvar '$temp_curclothes'
+
+		if PCloswimwear = 1:
+			!! Locker events nude -> swimwear
+			gt 'pav_pool_events', 'locker_nude_to_swim'
+
+		elseif $clothingworntype ! 'nude' or $pantyworntype ! 'none':
+			!! Locker events nude -> normal clothing
+			gt 'pav_pool_events', 'locker_nude_to_clothed'
+		end
+
+	elseif $temp_curclothes = 'swimwear':
+		killvar '$temp_curclothes'
+
+		if $clothingworntype = 'nude' and $pantyworntype = 'none':
+			!! Locker events swim -> nude
+			gt 'pav_pool_events', 'locker_swim_to_nude'
+		elseif PCloswimwear ! 1:
+			!! Locker events swim -> clothing
+			gt 'pav_pool_events', 'locker_swim_to_clothed'
+		end
+
+	elseif $temp_curclothes = 'norm':
+		killvar '$temp_curclothes'
+
+		if $clothingworntype = 'nude' and $pantyworntype = 'none':
+			!! Locker events clothing -> nude
+			gt 'pav_pool_events', 'locker_clothed_to_nude'
+		elseif PCloswimwear = 1:
+			!! Locker events clothing -> swim
+			gt 'pav_pool_events', 'locker_clothed_to_swim'
+		end
+	end
+	!!-------------------------------------------------------------------!!
+
+
+	!!ARGS[1] = 1 prevents this event from triggering repeatedly
+	if rand(1,10) = 1 and $clothingworntype = 'nude' and $pantyworntype = 'none' and ARGS[1] = 0:
+		gt 'pav_pool_events', 'naked_locker'
+	end
+
+	minut += 1
+	gs 'stat'
+	'<center><img <<$set_imgh>> src="images/locations/pavlovsk/community/swim/lockers.jpg"></center>'
+	'The changing rooms are old and murky. They are uncomfortable, cramped and you always feel compelled to leave as quickly as possible. The small windows on one side don''t make you feel any better.'
+	'From here you can access the <a href="exec:minut += 1 & gt ''pav_pool'', ''showerfemale''">showers</a> or go to the <a href="exec:minut += 1 & gt ''pav_pool'', ''mirror''">mirrors</a> area, highly contested in busy times. You can also access the pool, but only if you''re wearing swimwear.'
+
+	if func('changingroom','count_swim_item') > 0 or $clothingworntype = 'nude':
+		act 'Change your clothes':
+			!!Remember current clothes for clothing change events
+			if $clothingworntype = 'nude' and $pantyworntype = 'none':
+				$temp_curclothes = 'nude'
+			elseif PCloswimwear = 1:
+				$temp_curclothes = 'swimwear'
+			else
+				$temp_curclothes = 'norm'
+			end
+
+			$loc = 'pav_pool'
+			$loc_arg = 'lockerfemale'
+
+			!!Ignore Inhibition through willpower
+			gt 'changingroom', 'view_swim_list', 1
+		end
+	else
+		*nl
+		'You should buy some swimwear if you intend on spending time at the pool.'
+		*nl
+	end
+	
+!!	act 'Go to the mirrors':
+!!		gt 'pav_pool', 'mirror'
+!!	end
+
+	if (pcs_makeup = 1 or cosmetic_tattoo > 0) and PCloswimwear = 1:
+		act 'Enter the pool area': gs 'shoes', 'strip' & gt 'pav_pool', 'pool'
+	else
+		*nl
+		if PCloswimwear = 0: 'You need to put some swimwear on first if you want to go in the pool.'
+		if pcs_makeup <> 1 and cosmetic_tattoo = 0: 'You need to wash your make-up off first if you want to go in the pool.'
+		*nl
+	end
+
+	if $clothingworntype <> 'nude': act 'Strip all clothing': gs 'clothing', 'strip_all' & gt 'pav_pool', 'lockerfemale'
+
+	act 'Leave':
+		if PCloswimwear = 1 or $clothingworntype = 'nude':
+			cla
+			'You need to get dressed first!'
+			act 'Return': gt 'pav_pool', 'lockerfemale'
+		else
+			minut += 3
+			gs 'stat'
+			gt 'pav_pool', 'entrance'
+		end
+	end
+
+end
+
+if $ARGS[0] = 'showerfemale':
+	$loc_arg = 'showerfemale'
+	$location_type = 'private'
+	menu_off = 1
+	minut += 1
+	gs 'stat'
+	'<center><img <<$set_imgh>> src="images/locations/pavlovsk/community/swim/showergirl.jpg"></center>'
+	'The showers have seen better days. Thankfully, the water from the shower is very warm and feels great on your skin.'
+	
+	if $clothingworntype ! 'nude':
+		'You need to strip before you can shower.'
+	else
+		act 'Take a shower':
+			*clr & cla
+			minut += 15
+			dynamic $showerdin
+			gs 'stat'
+			'<center><img <<$set_imgh>> src="images/locations/pavlovsk/school/gym/shower/watch.jpg"></center>'
+			if hour >= 8 and hour < 10:
+				'Almost nobody comes here this early in the morning, so you have the shower to yourself.'
+			elseif hour >= 10 and hour < 12:
+				'The pool is rather busy at this time, mostly with families with children and a few older people. An older woman is showering right now, but it''s otherwise quiet.'
+			elseif hour >= 12 and hour < 18:
+				'The pool and showers are crowded and you have to wait for someone else to finish first.'
+			elseif hour >= 18 and hour < 20:
+				'Not many people visit the pool this late in the evening, with only a handful of adults coming for an after work swim. You have the shower to yourself.'
+			elseif hour >= 20 and hour < 21:
+				'It''s rather late and the pool will be closing soon. You think you''re among the last people in the building, so you''re alone and can enjoy the shower all to yourself.'
+			end
+
+			if deodorant_on = 1: gs 'sweat', 'remove_deo' & '<br>Your deodorant gets washed away in the shower.'
+
+			if rand(1,3) = 1 and hour >= 18 and hour < 21:
+				act 'Finish': gt 'pav_pool_events', 'shower_late'
+			else
+				act 'Finish': gt 'pav_pool', 'showerfemale'
+			end
+		end
+	end
+
+	act 'Go back to the changing room': gt 'pav_pool', 'lockerfemale'
+end
+
+if $ARGS[0] = 'mirror':
+	!! ARGS[1] = 1 prevents the same event from triggering repeatedly.
+	$loc_arg = 'mirror'
+	$location_type = 'private'
+	if rand(1,10) = 1 and $clothingworntype = 'nude' and $pantyworntype = 'none' and ARGS[1] = 0:
+		gt 'pav_pool_events', 'naked_mirror'
+	end
+	minut += 1
+	gs 'stat'
+	$locM = 'pav_pool'
+	$locM_arg = 'mirror'
+	'<center><img <<$set_imgh>> src="images/locations/pavlovsk/community/swim/mirrorsink.jpg"></center>'
+	'The area where the <a href="exec:minut += 1 & gt ''mirror'', ''start''">mirrors</a> are is just as murky as the rest of the changing room. It''s almost like the owners don''t care about the dilapidated appearance.'
+	if $clothingworntype = 'nude':
+		*nl
+		'You are completely naked.'
+	end
+
+	act 'Go back to the changing room': gt 'pav_pool', 'lockerfemale'
+	if cumloc[11] = 1 or cumloc[12] or cumloc[16] = 1:
+		act 'Clean the cum from your face':
+			*clr & cla
+			menu_off = 1
+			minut += 5
+			pcs_makeup = 1
+			cumspclnt = 9
+			gs 'cum_cleanup'
+			cumspclnt = 13
+			gs 'cum_cleanup'
+			if pcs_sweat > 19: pcs_sweat -= 5
+			gs 'stat' 
+			'<center><img <<$set_imgh>> src="images/locations/pavlovsk/community/swim/washface.jpg"></center>'
+			'You carefully wash the cum from your face at the sink.'
+			act 'Finish': gt 'pav_pool', 'mirror'
+		end
+	end
+	if pcs_makeup >= 2:
+		act 'Wash your make-up off':
+			*clr & cla
+			minut += 5
+			pcs_makeup = 1
+			if pcs_sweat > 19: pcs_sweat -= 5
+			gs 'stat' 
+			'<center><img <<$set_imgh>> src="images/locations/pavlovsk/community/swim/washface.jpg"></center>'
+			'You carefully wash away your make-up at the sink.'
+			act 'Finish': gt 'pav_pool', 'mirror'
+		end
+	end
+end	
+
+if $ARGS[0]= 'cafeteria':
+	*clr & cla
+	$loc_arg = 'cafetaria'
+	$location_type = 'public_indoors'
+	minut += 1
+	'<center><img <<$set_imgh>> src="images/locations/pavlovsk/community/swim/cafeteria<<rand(1,2)>>.jpg"></center>'
+	'The cafeteria doesn''t have a lot on the menu and only offers some basic snacks.'
+	'Two girls are currently ordering from the cashier.'
+
+	act 'Order':
+		*clr & cla
+		minut += 1
+		'<center><img <<$set_imgh>> src="images/locations/pavlovsk/community/swim/cafeteriaturn.jpg"></center>'
+		'It''s finally your turn and you sit on one of the stools while you order.'
+
+		if money < 100:
+			'You don''t have enough money to buy a snack.'
+			act 'Return': gt 'pav_pool', 'cafeteria'
+		else
+			act 'Buy a snack (100 <b>₽</b>) (0:05)':
+				*clr & cla
+				gs 'stat'
+				minut += 5
+				money -= 100
+				pcs_health += 10
+				pcs_mood += 20
+				fat += 6
+				pcs_energy += 20
+				if pcs_hydra >= 100:
+					pcs_hydra += 10
+				else
+					pcs_hydra += 20
+				end
+				cumspclnt = 2
+				gs 'cum_cleanup'
+				pcs_breath = 0
+				gs 'food', 'aftermeal'
+				'<center><img <<$set_imgh>> src="images/shared/food/food.jpg"></center>'
+				'You enjoy a small tasty, but somewhat fattening, snack.'
+				gs 'stat'
+				act 'Return': gt 'pav_pool', 'cafeteria'
+			end
+		end
+
+		act 'Drink some water (0:05)':
+			*clr & cla
+			frost = 1
+			if alko > 0: alko -= 1
+			minut += 5
+			pcs_health += 10
+			pcs_energy += 4
+			if pcs_hydra >= 100:
+				pcs_hydra += 25
+			else
+				pcs_hydra += 50
+			end
+			cumspclnt = 2
+			gs 'cum_cleanup'
+			pcs_breath = 0
+			gs 'beverage', 'afterdrink'
+			gs 'stat'
+			'<center><img <<$set_imgh>> src="images/locations/shared/brothel/barorderwater.jpg"></center>'
+			'You enjoy a glass of water.'
+			act 'Return': gt 'pav_pool', 'cafeteria'
+		end
+		act 'Leave': gt 'pav_pool', 'entrance'
+	end
+
+	act 'Leave': gt 'pav_pool', 'entrance'
+end
+
+if $ARGS[0] = 'pool':
+	*clr & cla
+	$loc_arg = 'pool'
+	$location_type = 'public_indoors'
+	minut += 1
+	gs 'stat'
+	
+	if hour >= 8 and hour < 10:
+		'<center><img <<$set_imgh>> src="images/locations/pavlovsk/community/swim/pool1.jpg"></center>'
+		'The pool is almost empty this early in the morning. You can enjoy it almost all to yourself.'
+	elseif hour >= 10 and hour < 12:
+		'<center><img <<$set_imgh>> src="images/locations/pavlovsk/community/swim/pool2.jpg"></center>'
+		'The pool is mostly used by families with children and older people at this time.'
+	elseif hour >= 12 and hour < 18:
+		'<center><img <<$set_imgh>> src="images/locations/pavlovsk/community/swim/pool3.jpg"></center>'
+		'The pool is crowded with all kinds of people. This won''t be a relaxing swim...'
+	elseif hour >= 18 and hour < 20:
+		'<center><img <<$set_imgh>> src="images/locations/pavlovsk/community/swim/pool4.jpg"></center>'
+		'Not many visit the pool this late in the evening, with only a few adults coming for an after work swim.'
+	elseif hour >= 20 and hour < 21:
+		'<center><img <<$set_imgh>> src="images/locations/pavlovsk/community/swim/pool5.jpg"></center>'
+		'It''s rather late and the pool will be closing soon, so you''re mostly alone and can enjoy the pool all to yourself.'
+	end
+
+	'The pool is rather old, but still has a certain charm to it. The wall to wall windows allow for a nice atmosphere during the day and there is an upper balcony where people often watch from above.'
+	'From here you can access the <a href="exec:minut += 1 & gt ''pav_pool'', ''lockerfemale''">female locker room</a>.'
+	if hour >= 8 and hour < 21:
+		act 'Climb into the pool':
+			*clr & cla
+			minut += 1
+			gs 'stat'
+			'<center><img <<$set_imgh>> src="images/locations/pavlovsk/community/swim/ladder<<rand(1,2)>>.jpg"></center>'
+			'You slowly climb down the ladder into the pool, probing the temperature as you go down.'
+			act 'Continue': gt 'pav_pool', 'poolwater'
+		end
+		
+		act 'Dive into the water':
+			*clr & cla
+			minut += 1
+			gs 'stat'
+			'<center><img <<$set_imgh>> src="images/locations/pavlovsk/community/swim/diving.jpg"></center>'
+
+			if pcs_agil < 45:
+				'You climb up to the top of the diving board and try to jump elegantly into the water, but the landing is anything but that...'
+
+				if PCloOnePiece = 0:
+					temp_rand = rand(1,100)
+					if temp_rand < 20:
+						act 'Continue':
+							*clr & cla
+							'<center><img <<$set_imgh>> src="images/locations/pavlovsk/community/swim/bareass.jpg"></center>'
+							'As you enter the water, your bikini bottom slides down your legs and leaves your ass exposed. Thankfully, nobody seems to notice and you quickly pull it up before anyone sees you.'
+							act 'Continue': gt 'pav_pool', 'poolwater'
+						end
+					elseif temp_rand => 20 and temp_rand < 40:
+						act 'Continue':
+							*clr & cla
+							'<center><img <<$set_imgh>> src="images/locations/pavlovsk/community/swim/toploosen.jpg"></center>'
+							'As you enter the water, the knot of your bikini top loosens and your breasts pop out. Thankfully, nobody seems to notice and you quickly tie it back on before anyone sees you.'
+							act 'Continue': gt 'pav_pool', 'poolwater'
+						end
+					elseif temp_rand => 40 and temp_rand < 50:
+						act 'Continue':
+							*clr & cla
+							'<center><img <<$set_imgh>> src="images/locations/pavlovsk/community/swim/losttop.jpg"></center>'
+							'You dive into the pool and pop your head out of the water thinking that you still need to improve on your diving when you hear some boys giggling and looking at you. It''s then that you realize your bikini top is gone!'
+							'You cover your breasts and frantically look for your bikini top. Thankfully, you spot it floating nearby, grab it and quickly put it back on. The boys smile at you and leave.'
+							pcs_mood -= 3
+							act 'Continue': gt 'pav_pool', 'poolwater'
+						end
+					elseif temp_rand => 50 and temp_rand < 60:
+						act 'Continue':
+							*clr & cla
+							'<center><img <<$set_imgh>> src="images/locations/pavlovsk/community/swim/bottomlost2.jpg"></center>'
+							'You dive into the pool and pop your head out of the water thinking that you still need to improve your diving when you feel the water tickling your bare pussy and realize that your bikini bottom is gone!'
+							'You cover your groin and frantically look for your bikini bottom. Thankfully, you spot it floating nearby, grab it and quickly slide it back on before anyone notices.'
+							pcs_mood -= 3
+							act 'Continue': gt 'pav_pool', 'poolwater'
+						end
+					end
+				end
+			elseif pcs_agil >= 45 and pcs_agil <= 70:
+				'You climb up to the top of the diving board and jump, but end up painfully bellyflopping into the water. You need to practice being more agile.'
+			else
+				'You climb up to the top of the diving board and make a very elegant jump, sliding into the water without causing a single ripple.'
+			end
+			act 'Continue': gt 'pav_pool', 'poolwater' 
+		end
+
+		act 'Sit with your feet in the water': gt 'pav_pool_events', 'feetwater' 
+	end
+end
+
+if $ARGS[0]= 'poolwater':
+	minut += 1
+	$loc_arg = 'poolwater'
+	$location_type = 'public_indoors'
+	pcs_hairbsh = 0
+	cumspclnt = 10
+	gs 'cum_cleanup'
+	gs 'stat'
+	'<center><img <<$set_imgh>> src="images/locations/pavlovsk/community/swim/inwater.jpg"></center>'
+	'You are in the water. It feels very relaxing.'
+	
+	if hour >= 8 and hour < 10:
+		'The pool is almost empty this early in the morning, so you have it almost all to yourself.'
+	elseif hour >= 10 and hour < 12:
+		'The pool mostly contains families with children and older people swimming.'
+	elseif hour >= 12 and hour < 18: 
+		'The pool is crowded with all kinds of people. It''s difficult to move around and exercising will be impossible.'
+	elseif hour >= 18 and hour < 20: 
+		'Not many visit the pool this late in the evening, with only a few adults in the water.'
+	elseif hour >= 20 and hour < 21: 
+		'It''s rather late and the pool will be closing soon. You are among the last people in the building, so you can enjoy the pool all to yourself.'
+	end
+
+	if hour >= 10 and hour < 18:
+		'It''s rather busy, but you can try to do a bit of swimming or dive for a bit of fun. You could also just try to relax at the edge of the pool or right here in the water.'
+	else
+		'The pool is almost empty, so you''re free to do a bit of relaxed swimming, exercise with a more powerful swim or dive for a bit of fun. You could also just relax at the edge of the pool or right here in the water.'
+	end
+
+	if hour >= 8 and hour < 21:
+		act 'Relaxed swim': gt 'pav_pool_events', 'relaxedswim' 
+
+		if hour < 12 or hour >= 18:
+			act 'Exercise': gt 'pav_pool_events', 'exerciseswim'
+		end
+
+		act 'Dive': gt 'pav_pool_events', 'dive' 
+		act 'Relax at the edge of the pool': gt 'pav_pool_events', 'edgepool'
+		act 'Relax in the water': gt 'pav_pool_events', 'relaxedwater'
+	end
+
+	act 'Exit pool': gt 'pav_pool', 'exitpool'
+end
+
+if $ARGS[0]= 'exitpool':
+	minut += 1
+	$loc_arg = 'exitpool'
+	gs 'stat'
+	temp_rand = rand(1,15)
+	if temp_rand <= 4 and PCloOnePiece = 0 and hour >= 10 and hour < 18:
+		'<center><img <<$set_imgh>> src="images/locations/pavlovsk/community/swim/exitloosebra.jpg"></center>'
+		'As you exit the pool, you don''t notice that your top has loosened and your breasts are almost on full display for all to see.'
+
+		act 'Continue':
+			*clr & cla
+			'<center><img <<$set_imgh>> src="images/locations/pavlovsk/community/swim/losttop.jpg"></center>'
+			'You finally notice when your top falls off and your breasts are fully exposed. You cover them as best as you can, but a group of boys have already seen you and seem to be enjoying the show.'
+			'"Oh, come on! We already saw them, let us see some more!"'
+			'You pick up your bikini top, trying not to show anything else and run towards the locker rooms to put it back on.'
+			pcs_mood -= 5
+			act 'Continue': gt 'pav_pool', 'lockerfemale'
+		end
+
+	elseif temp_rand = 5 and PCloOnePiece = 0 and hour >= 10 and hour < 18:
+		'<center><img <<$set_imgh>> src="images/locations/pavlovsk/community/swim/exitloosebra.jpg"></center>'
+		'As you exit the pool, you don''t notice that your bikini top has loosened and your breasts are almost on full display for all to see.'
+
+		act 'Continue':
+			*clr & cla
+			'<center><img <<$set_imgh>> src="images/locations/pavlovsk/community/swim/bratkid.jpg"></center>'
+			'You finally notice when your top falls off and your breasts are completely exposed. You cover them as best as you can and turn around to look for your top just in time to see a boy pick it up with a devious smile.'
+			'"If you want it back, come and get it!" He then jumps in the water and swims off.'
+
+			act 'Run to the locker room':
+				cla
+				'Blushing in embarrassment, you run to the locker room. Once there you strip naked. You can get rid of this bottom since it''s useless now.'
+				dynamic $clothingworntype + '[<<clothingwornnumber>>] = 0'
+				gs 'clothing', 'strip'
+				act 'Continue': gt 'pav_pool', 'lockerfemale'
+			end
+			
+			act 'Jump into the water after him':
+				pav_swimpool['boystole'] = 1
+				pav_swimpool['toplost'] = 1
+				*clr & cla
+				'<center><img <<$set_imgh>> src="images/locations/pavlovsk/community/swim/losttop.jpg"></center>'
+				'You jump bravely into the water after him. He swims off towards the other side of the pool and you attempt to follow, but the pool is full and many notice your lewdness. You suddenly realize, stop and cover yourself as a number of people stare at you.'
+				'You could try to reach the edge of the pool, but you would have to get very close to other people. You could also wait and hope that the pool empties a little without calling attention to yourself.'
+				act 'Wait': gt 'pav_pool_events', 'watertoplost'
+				act 'Try to reach the edge': gt 'pav_pool_events', 'tryreachedgenotop'
+			end
+		end
+	else
+		'<center><img <<$set_imgh>> src="images/locations/pavlovsk/community/swim/ladder<<rand(1,2)>>.jpg"></center>'
+		'You climb out of the pool.'
+		act 'Continue': gt 'pav_pool', 'pool'
+	end
+end
+
+
+
+--- pav_pool ---------------------------------
