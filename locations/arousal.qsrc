@@ -211,47 +211,59 @@ if $ARGS[0] ! 'end' and $ARGS[0] ! 'checks' and $ARGS[0] ! 'count' and $ARGS[0] 
 		!! ARGS[3] length of inserted object
 		!! ARGS[4] grange of inserted object
 		!! ARGS[5] skill (0-2) aka silavag
-		!! ARGS[6] stimulation time
-		grdif = 0
-		ltdif = 0
+		killvar 'grdif'
+		killvar 'ltdif'
 		!! cap pain to vitality
 		if ARGS[2] < max_sex_pain:
-			!! length and girth abilities of hole are not also separated
-			!! but I suppose that they are related although it is not propable
-			!! we can estimate difference in girth and length
-			grdif = (ARGS[4] - ARGS[0])/2
-			ltdif = (ARGS[3] - ARGS[0])/4
-			!! painful intercourse
-			if pain_coeff > rand(0,2):
-				grdif += rand(pain_coeff/2, pain_coeff)
-				ltdif += rand(pain_coeff/2, pain_coeff)
-			end
-			!! in pain, compensated with lube
-			if ARGS[2] > 0:
-				if ARGS[2] > rand(ARGS[1]/2, ARGS[1]): grdif += rand(ARGS[2] / max(1,ARGS[1]/2), ARGS[2] / max(1,ARGS[1]/4))
-				if ARGS[2] > rand(ARGS[1]/2, ARGS[1]): ltdif += rand(ARGS[2] / max(1,ARGS[1]/2), ARGS[2] / max(1,ARGS[1]/4))
-			end
-			!! lube can compensate the difference a bit, or make it worse if there is no lube at all
-			if ARGS[1] > 0:
-				grdif -= rand(ARGS[1]/2, ARGS[1])
-				ltdif -= rand(ARGS[1]/4, ARGS[1]/2)
-			else
-				grdif += max(1, rand(grdif/4, grdif/2)) / max(1,ARGS[5]+1)
-				ltdif += max(1, rand(ltdif/6, ltdif/4)) / max(1,ARGS[5]+1)
-			end
-			!! when skilled, it does not harm PC
-			if ARGS[5] > 0 and ltdif > 0: ltdif /= max(1,ARGS[5]+1)
-			!! if there is any discomfort, check intercourse duration, compensated by skill
-			if stim_time > 1:
-				if grdif > rand(stim_time): grdif += rand(stim_time / (max(1,ARGS[5])*5), stim_time / (max(1,ARGS[5])*3))
-				if ltdif > rand(stim_time): ltdif += rand(stim_time / (max(1,ARGS[5])*5), stim_time / (max(1,ARGS[5])*3))
-			end
+			killvar 'i'
+			:stim_time_loop
+			if stim_time > i:
+				!! length and girth abilities of hole are not also separated
+				!! but I suppose that they are related although it is not propable
+				!! we can estimate difference in girth and length
+				grdif[i] = (ARGS[4] - ARGS[0])/2
+				ltdif[i] = (ARGS[3] - ARGS[0])/4
+				!! painful intercourse
+				if pain_coeff > rand(0,2):
+					grdif[i] += rand(pain_coeff/2, pain_coeff)
+					ltdif[i] += rand(pain_coeff/2, pain_coeff)
+				end
+				!! in pain, compensated with lube
+				if ARGS[2] > 0:
+					if ARGS[2] > rand(ARGS[1]/2, ARGS[1]): grdif[i] += rand(ARGS[2] / max(1,ARGS[1]/2), ARGS[2] / max(1,ARGS[1]/4))
+					if ARGS[2] > rand(ARGS[1]/2, ARGS[1]): ltdif[i] += rand(ARGS[2] / max(1,ARGS[1]/2), ARGS[2] / max(1,ARGS[1]/4))
+				end
+				!! lube can compensate the difference a bit, or make it worse if there is no lube at all
+				if ARGS[1] > 0:
+					grdif[i] -= rand(ARGS[1]/2, ARGS[1])
+					ltdif[i] -= rand(ARGS[1]/4, ARGS[1]/2)
+				else
+					grdif[i] += max(1, rand(grdif[i]/4, grdif[i]/2)) / max(1,ARGS[5]+1)
+					ltdif[i] += max(1, rand(ltdif[i]/6, ltdif[i]/4)) / max(1,ARGS[5]+1)
+				end
+				!! when skilled, length does not harm PC
+				if ARGS[5] > 0 and ltdif[i] > 0: ltdif[i] /= max(1,ARGS[5]+1)
 
-			!! min\max
-			grdif = max(0, grdif / max(1, (ARGS[0]/6)))
-			ltdif = max(0, ltdif / max(1, (ARGS[0]/6)))
+				!! min\max
+				grdif[i] = max(0, grdif[i] / max(1, (ARGS[0]/6)))
+				ltdif[i] = max(0, ltdif[i] / max(1, (ARGS[0]/6)))
+
+				i += 1+ARGS[5]
+				jump 'stim_time_loop'
+			end
 		end
-		!{ 'hole size <<ARGS[0]>>; length: <<ARGS[3]>>; grange: <<ARGS[4]>>; hole slippery: <<ARGS[1]>>; current pain: <<ARGS[2]>>; stim_time: <<stim_time>>; skill: <<ARGS[5]>>; grdif: <<grdif>>; ltdif: <<ltdif>>' }
+
+        i = arrsize('ltdif')
+        :stim_time_loop2
+        if i > 1:
+            i -= 1
+			grdif += grdif[i]
+			ltdif += ltdif[i]
+            jump 'stim_time_loop2'
+        end
+
+		!{'hole size <<ARGS[0]>>; length: <<ARGS[3]>>; grange: <<ARGS[4]>>; hole slippery: <<ARGS[1]>>; current pain: <<ARGS[2]>>; stim_time: <<stim_time>>; skill: <<ARGS[5]>>; grdif: <<grdif>>; ltdif: <<ltdif>>'}
+
 	}
 	$in_vag = {
 		if arousal_overcall = 0:
