@@ -9,6 +9,8 @@ if $ARGS[0] = 'start':
 	$location_type = 'indoors'
 	$menu_loc = 'city_clinic'
 	$menu_arg = 'start'
+	killvar 'temp_small_mbottle_ids'
+	killvar 'temp_medium_mbottle_ids'
 	menu_off = 0
 	*clr & cla
 	hosprand = rand(0, 10)
@@ -1668,13 +1670,9 @@ if $ARGS[0] = 'milk_bank':
 		'<br>----------------------------------------'
 		if lact_ev['poli_totalmilkdonation_count'] > 0:
 			'Total breast milk donation statistics'
-			if lact_ev['poli_totalmilkdonated'] < 100:
-				'Donated milk volume in liter: <<lact_ev[''poli_totalmilkdonated'']/1000>>.0<<lact_ev[''poli_totalmilkdonated''] mod 1000>>l'
-			else
-				'Donated milk volume in liter: <<lact_ev[''poli_totalmilkdonated'']/1000>>.<<lact_ev[''poli_totalmilkdonated''] mod 1000>>l'
-			end
+			'Donated milk volume in liter: <<lact_ev[''poli_totalmilkdonated'']/1000>>.<<$mid(1000 + (lact_ev[''poli_totalmilkdonated''] mod 1000), 2, 3)>>l'
 			'Donation count: <<lact_ev[''poli_totalmilkdonation_count'']>>'
-			'Average milk volume per donation in ml: <<lact_ev[''poli_totalmilkdonated'']/lact_ev[''poli_totalmilkdonation_count'']>>'
+			'Average milk volume per donation in ml: <<lact_ev[''poli_totalmilkdonated'']/lact_ev[''poli_totalmilkdonation_count'']>>.<<$mid(100 + ((100 * lact_ev[''poli_totalmilkdonated''] / lact_ev[''poli_totalmilkdonation_count'']) mod 100), 2, 2)>>'
 			'Paid money: <<((lact_ev[''poli_totalmilkdonated'']/50)*100)>><b>₽</b>'
 			'<br>----------------------------------------'
 		end
@@ -1706,6 +1704,101 @@ if $ARGS[0] = 'milk_bank':
 			end
 		end
 	end
+
+	vmb_i = 0
+	:vmbloop
+	if vmb_i <= temp_var:
+		if mbarrloca[vmb_i] = 2 or mbarrloca[vmb_i] = 1:
+			gs 'lact_bp', 'update_mbottle', vmb_i
+			if $mbarrstat[vmb_i] = 'fresh' or $mbarrstat[vmb_i] = 'normal':
+				if mbarrfill[vmb_i] > 0:
+					if mbarrfill[vmb_i] <= 1500:
+						temp_small_mbottle_ids[] = vmb_i
+					else
+						temp_medium_mbottle_ids[] = vmb_i
+					end
+				end
+			end
+		end
+		vmb_i += 1
+		jump 'vmbloop'
+	end
+	killvar 'vmb_i'
+
+	if arrsize('temp_small_mbottle_ids') > 0:
+		act 'Donate a small bottle of milk':
+			*clr & cla
+			minut += 5
+			temp_pay = func('city_clinic', 'donate_milk_bottle', 'small')
+			money += temp_pay
+			gs 'stat'
+
+			!! IMAGE
+			!! TEXT
+			'You donated a small milk bottle and got paid <<temp_pay>> ₽.'
+
+			killvar 'temp_pay'
+			act 'Leave': minut += 5 & gt 'city_clinic', 'milk_donation_room'
+		end
+	end
+	if arrsize('temp_small_mbottle_ids') > 4:
+		act 'Donate 5 small bottles of milk':
+			*clr & cla
+			minut += 10
+			temp_pay = func('city_clinic', 'donate_milk_bottle', 'small')
+			temp_pay += func('city_clinic', 'donate_milk_bottle', 'small')
+			temp_pay += func('city_clinic', 'donate_milk_bottle', 'small')
+			temp_pay += func('city_clinic', 'donate_milk_bottle', 'small')
+			temp_pay += func('city_clinic', 'donate_milk_bottle', 'small')
+			money += temp_pay
+			gs 'stat'
+
+			!! IMAGE
+			!! TEXT
+			'You donated 5 small milk bottles and got paid <<temp_pay>> ₽.'
+
+			killvar 'temp_pay'
+			act 'Leave': minut += 5 & gt 'city_clinic', 'milk_donation_room'
+		end
+	end
+	if arrsize('temp_medium_mbottle_ids') > 0:
+		act 'Donate a medium bottle of milk':
+			*clr & cla
+			minut += 5
+			temp_pay = func('city_clinic', 'donate_milk_bottle', 'medium')
+			money += temp_pay
+			gs 'stat'
+
+			!! IMAGE
+			!! TEXT
+			'You donated a medium milk bottle and got paid <<temp_pay>> ₽.'
+
+			killvar 'temp_pay'
+			act 'Leave': minut += 5 & gt 'city_clinic', 'milk_donation_room'
+		end
+	end
+	if arrsize('temp_medium_mbottle_ids') > 4:
+		act 'Donate 5 medium bottles of milk':
+			*clr & cla
+			minut += 10
+			temp_pay = func('city_clinic', 'donate_milk_bottle', 'medium')
+			temp_pay += func('city_clinic', 'donate_milk_bottle', 'medium')
+			temp_pay += func('city_clinic', 'donate_milk_bottle', 'medium')
+			temp_pay += func('city_clinic', 'donate_milk_bottle', 'medium')
+			temp_pay += func('city_clinic', 'donate_milk_bottle', 'medium')
+			money += temp_pay
+			gs 'stat'
+
+			!! IMAGE
+			!! TEXT
+			'You donated 5 medium milk bottles and got paid <<temp_pay>> ₽.'
+
+			killvar 'temp_pay'
+			act 'Leave': minut += 5 & gt 'city_clinic', 'milk_donation_room'
+		end
+	end
+
+
 	act 'Leave': gt 'city_clinic','start'
 end
 
@@ -1798,6 +1891,34 @@ if $ARGS[0] = 'milk_donation':
 		act 'Leave': minut += 5 & gt 'city_clinic', 'milk_donation_room'
 	end
 end
+
+if $ARGS[0] = 'donate_milk_bottle':
+	if $ARGS[1] = 'small':
+		temp_id = temp_small_mbottle_ids[0]
+	else
+		temp_id = temp_medium_mbottle_ids[0]
+	end
+
+	!! CHANGE PAY HERE
+	temp_pay = mbarrfill[temp_id] / 10			& !! Base pay = 1 rbl / ml for fresh milk
+	if $mbarrstat[temp_id] = 'normal': temp_pay = temp_pay / 2		& !! And 0.5 rbl / ml for normal milk
+	!!	if $mbarrtemp[temp_id] = 'hot' / 'warm' / 'lukewarm' / 'cold' / 'frozen':
+
+
+	gs 'lact_bp', 'empty_milk_bottle', temp_id
+	RESULT = temp_pay
+
+	killvar 'temp_pay'
+	killvar 'temp_id'
+
+	if $ARGS[1] = 'small':
+		killvar 'temp_small_mbottle_ids', 0
+	else
+		killvar 'temp_medium_mbottle_ids', 0
+	end
+end
+
+
 
 --- city_clinic ---------------------------------
 
