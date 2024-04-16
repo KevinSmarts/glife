@@ -3,7 +3,7 @@
 if $ARGS[0] = 'init_check':
 	if blackmailQW['day'] ! 0: exit
 	if ($ARGS[2] = 'inside' or $ARGS[2] = 'indoors'):
-		if strpos($loc, 'church') < 0: exit
+		if strpos($loc, 'church') <= 0: exit
 	end
 
 
@@ -25,7 +25,7 @@ if $ARGS[0] = 'init_check':
 		temp_prob_chance -= 100
 	end
 
-	if rand(0, temp_prob_chance) >= 5: exit
+	if rand(0, temp_prob_chance) >= 5: killvar 'temp_prob_chance' & exit
 	killvar 'temp_prob_chance'
 
 	gs 'blackmailer', 'init_blackmail', $ARGS[1]
@@ -50,14 +50,16 @@ if $ARGS[0] = 'init_blackmail':
 	$blackmailQW['init_flashimage'] = $flash_image
 	$blackmailQW['init_flashloc'] = $loc
 	$blackmailQW['init_flashloc_arg'] = $loc_arg
+	$blackmailQW['init_flashregion'] = $region
+	blackmailQW['total_material'] = 1
 
-	if strpos($loc, 'park') > -1:
+	if strpos($loc, 'park') > 0:
 		$blackmailQW['init_flashloc_desc'] = 'in a park'
 		'A flash of light briefly brightens the surrounding trees and you see a shadow darting between the trees. The light of the camera flash prickling on your exposed skin.'
-	elseif strpos($loc, 'church') > -1:
-		$blackmailQW['init_flashloc_desc'] = 'in a park'
+	elseif strpos($loc, 'church') > 0:
+		$blackmailQW['init_flashloc_desc'] = 'in a church'
 		'The flash of a camera illuminates the inside of the church, but the source eludes you.'
-	elseif strpos($loc, 'zaprF') > -1:
+	elseif strpos($loc, 'zaprF') > 0:
 		$blackmailQW['init_flashloc_desc'] = 'while washing cars'
 		'You briefly think a car turned on their headlights, before you realise it was the flash of a camera, the source of which already gone.'
 	else
@@ -69,6 +71,34 @@ if $ARGS[0] = 'init_blackmail':
 		gs 'arousal', 'end'
 	end
 end
+
+
+
+
+	!!=============================================!!
+	!!                                             !!
+	!!                    CIKL                     !!
+	!!                                             !!
+	!!=============================================!!
+
+
+if $ARGS[0] = 'cikl':
+	if blackmailQW['stage'] = 3 and blackmailQW['smsday'] = 0:
+		blackmailQW['smsday'] = blackmailQW['dreamday'] + 3
+		gs 'telefon', 'Blackmailer', 'icon_na', 1
+		gs 'telefon', 'SetSMSSchedule', "", "0", "gs 'blackmailer', 'Add_SMS1'", "daystart > blackmailQW['smsday'] and (hour >= 14 and hour <= 19 and rand(0, 100) = 0 or hour = 19 and minut >= 22 or hour = 20)"
+	elseif daystart = blackmailQW['smsday'] and blackmailQW['next_payment'] > 0:
+		gs 'telefon', 'SetSMSSchedule', "", "0", "gs 'blackmailer', 'Add_SMS1_reminder'", "(hour >= 14 and hour <= 19 and rand(0, 100) = 0 or hour = 19 and minut >= 22 or hour = 20)"
+	elseif daystart > blackmailQW['smsday'] and blackmailQW['next_payment'] > 0:
+		gs 'telefon', 'SetSMSSchedule', "", "0", "gs 'blackmailer', 'Add_SMS_failure'", "(hour >= 14 and hour <= 19 and rand(0, 100) = 0 or hour = 19 and minut >= 22 or hour = 20)"
+
+	!Currently repeating content
+	elseif blackmailQW['stage'] = 5 and blackmailQW['smsday'] = 0:
+		blackmailQW['smsday'] = daystart + rand(0, 13) + 6
+		gs 'telefon', 'SetSMSSchedule', "", "0", "gs 'blackmailer', 'Add_SMS_repeat'", "daystart > blackmailQW['smsday'] and (hour >= 14 and hour <= 19 and rand(0, 100) = 0 or hour = 19 and minut >= 22 or hour = 20)"
+	end
+end
+
 
 
 
@@ -99,7 +129,7 @@ end
 if $ARGS[0] = 'photo_dream1':
 	if blackmailQW['stage'] = 1: blackmailQW['stage'] = 2
 	blackmailQW['dreamday'] = daystart + 3
-	if strpos('panty_pantyrear_bra', $blackmailQW['init_flashaction']):
+	if strpos('panty_pantyrear_bra', $blackmailQW['init_flashaction']) > 0:
 		gs 'arousal', 'flashlite', -5
 	else
 		gs 'arousal', 'flash', -5
@@ -117,7 +147,12 @@ if $ARGS[0] = 'photo_dream1':
 	gs 'dream_events', 'event_end'
 
 elseif $ARGS[0] = 'photo_dream2':
-	if blackmailQW['stage'] = 2: blackmailQW['stage'] = 3
+	if blackmailQW['stage'] = 2:
+		blackmailQW['stage'] = 3
+		blackmailQW['smsday'] = daystart + 6
+		gs 'telefon', 'Blackmailer', 'icon_na', 1
+		gs 'telefon', 'SetSMSSchedule', "", "0", "gs 'blackmailer', 'Add_SMS1'", "daystart > blackmailQW['smsday'] and (hour >= 14 and hour <= 19 and rand(0, 100) = 0 or hour = 19 and minut >= 22 or hour = 20)"
+	end
 	blackmailQW['dreamday'] = daystart + 3
 	gs 'arousal', 'flash', -5
 	gs 'arousal', 'end'
@@ -210,6 +245,231 @@ elseif $ARGS[0] = 'photo_dream2':
 			end
 		end
 	end
+end
+
+
+
+
+	!!=============================================!!
+	!!                                             !!
+	!!                     SMS                     !!
+	!!                                             !!
+	!!=============================================!!
+
+
+if $ARGS[0] = 'Add_SMS1':
+	gs 'telefon', 'ClearSMSSchedule', 'Blackmailer'
+	blackmailQW['stage'] = 4
+	blackmailQW['smsday'] = daystart + 2
+	blackmailQW['next_payment'] = rand(50, 100) * 10
+
+	$SMSTree['0'] = '"Hello <<pcs_firstname>>!"'
+
+		if motherKnowWhore = 0 and npc_rel['A29'] > 0:
+			$SMSTree['1'] = '"If you don''t want your mother to see this image you will do exactly as I say"'
+		elseif $start_type['loc'] = 'sg' and gruptipe ! 5:
+			$SMSTree['1'] = '"If you don''t want your friends to see this image you will do exactly as I say"'
+		else
+			$SMSTree['1'] = '"If you don''t want the world to see this image you will do exactly as I say"'
+		end
+
+				$SMSTree['2'] = '"Leave <<blackmailQW[''next_payment'']>> <b>₽</b> beneath the fourth park bench, I know you know which one."'
+					$SMSTree['3'] = '"You have three days"'
+
+	gs 'SMStext_builder', 'start'
+		gs 'SMStext_builder', 'receive', $SMSTree['0']
+		gs 'SMSText_builder', 'receive_img', $blackmailQW['init_flashimage'] + '.jpg'
+		gs 'SMStext_builder', 'receive', $SMSTree['1']
+		gs 'SMStext_builder', 'receive', $SMSTree['2']
+		gs 'SMStext_builder', 'receive', $SMSTree['3']
+		gs 'SMStext_builder', 'send', 'Blackmailer'
+	gs 'SMStext_builder', 'end'
+	killvar '$SMSTree'
+end
+
+if $ARGS[0] = 'Add_SMS1_reminder':
+	gs 'telefon', 'ClearSMSSchedule', 'Blackmailer'
+
+	$SMSTree['0'] = '"Don''t forget, if you don''t leave <<blackmailQW[''next_payment'']>> <b>₽</b> beneath the fourth park bench, you will regret it"'
+
+	gs 'SMStext_builder', 'start'
+		gs 'SMStext_builder', 'receive', $SMSTree['0']
+		gs 'SMSText_builder', 'receive_img', $blackmailQW['init_flashimage'] + '.jpg'
+		gs 'SMStext_builder', 'send', 'Blackmailer'
+	gs 'SMStext_builder', 'end'
+	killvar '$SMSTree'
+end
+
+if $ARGS[0] = 'Add_SMS_failure':
+	gs 'telefon', 'ClearSMSSchedule', 'Blackmailer'
+	blackmailQW['stage'] = -1
+
+	$SMSTree['0'] = '"Guess you like it when people know you''re a whore."'
+		$SMSTree['1'] = '"or you didn''t think I''d go through with it"'
+			$SMSTree['2'] = '"we''ll see"'
+
+	gs 'SMStext_builder', 'start'
+		gs 'SMStext_builder', 'receive', $SMSTree['0']
+		gs 'SMStext_builder', 'receive', $SMSTree['1']
+		gs 'SMStext_builder', 'receive', $SMSTree['2']
+		gs 'SMStext_builder', 'send', 'Blackmailer'
+	gs 'SMStext_builder', 'end'
+
+	if blackmailQW['stage'] < 5:
+		if blackmailQW['init_flashregion'] = 'city':
+			fame['city_sex'] += 2 * blackmailQW['total_material']
+		elseif blackmailQW['init_flashregion'] = 'gad':
+			fame['gad_sex'] += 10 * blackmailQW['total_material']
+		else
+			fame['pav_sex'] += 5 * blackmailQW['total_material']
+		end
+	end
+end
+
+
+if $ARGS[0] = 'Add_SMS_repeat':
+	gs 'telefon', 'ClearSMSSchedule', 'Blackmailer'
+	blackmailQW['stage'] = blackmailQW['stage'] * 10 + 1
+	blackmailQW['smsday'] = daystart + 2
+	blackmailQW['next_payment'] = rand(50, 100) * 10
+
+	$SMSTree['0'] = '"You know what we want"'
+
+		if motherKnowWhore = 0 and npc_rel['A29'] > 0:
+			$SMSTree['1'] = '"If you don''t want your mother to see this image you will do exactly as I say"'
+		elseif $start_type['loc'] = 'sg' and gruptipe ! 5:
+			$SMSTree['1'] = '"If you don''t want your friends to see this image you will do exactly as I say"'
+		else
+			$SMSTree['1'] = '"If you don''t want the world to see this image you will do exactly as I say"'
+		end
+
+				$SMSTree['2'] = '"Leave <<blackmailQW[''next_payment'']>> <b>₽</b> beneath the fourth park bench, I know you know which one."'
+					$SMSTree['3'] = '"You have three days"'
+
+	gs 'SMStext_builder', 'start'
+		gs 'SMStext_builder', 'receive', $SMSTree['0']
+		gs 'SMSText_builder', 'receive_img', $blackmailQW['init_flashimage'] + '.jpg'
+		gs 'SMStext_builder', 'receive', $SMSTree['1']
+		gs 'SMStext_builder', 'receive', $SMSTree['2']
+		gs 'SMStext_builder', 'receive', $SMSTree['3']
+		gs 'SMStext_builder', 'send', 'Blackmailer'
+	gs 'SMStext_builder', 'end'
+	killvar '$SMSTree'
+end
+
+
+
+	!!=============================================!!
+	!!                                             !!
+	!!                    PARK                     !!
+	!!                                             !!
+	!!=============================================!!
+
+if $ARGS[0] = 'set_park_act':
+	if blackmailQW['next_payment'] > 0:
+		act 'Walk to the fourth bench to pay your blackmailer':
+			minut += 3
+			if blackmailQW['stage'] = 4:
+				gt 'blackmailer', 'park1'
+			else
+				gt 'blackmailer', 'park_repeat'
+			end
+		end
+	end
+end
+
+
+if $ARGS[0] = 'park1':
+	menu_off = 1
+	gs 'stat'
+
+	'<center><img src="images/locations/shared/park/bench_6.jpg"></center>'
+	'You spot the bench that your blackmailer is talking about, and take a seat at the edge of it.'
+
+	if money < blackmailQW['next_payment']:
+		act 'Hide the money (<font color="red"><<blackmailQW[''next_payment'']>> <b>₽</b></font>)': '<br><font color="red">You don''t have enough money to do that.</font>'
+	else
+		act 'Hide the money (<<blackmailQW[''next_payment'']>> <b>₽</b>)':
+			*clr & cla
+			money -= blackmailQW['next_payment']
+			blackmailQW['total_payment'] += blackmailQW['next_payment']
+			blackmailQW['next_payment'] = 0
+			blackmailQW['stage'] = 5
+			blackmailQW['smsday'] = 0
+
+			minut += 1
+			gs 'stat'
+
+			act 'Quickly walk away': gt $loc, $loc_arg
+		end
+	end
+
+	act 'Walk away': gt $loc, $loc_arg
+end
+
+
+
+
+	!!=============================================!!
+	!!                                             !!
+	!!                  REPEATING                  !!
+	!!                                             !!
+	!!=============================================!!
+
+if $ARGS[0] = 'Add_SMS_repeat':
+	gs 'telefon', 'ClearSMSSchedule', 'Blackmailer'
+	blackmailQW['smsday'] = daystart + 2
+	blackmailQW['next_payment'] = rand(50, 100) * 10
+
+	$SMSTree['0'] = '"You know what we want"'
+
+		if motherKnowWhore = 0 and npc_rel['A29'] > 0:
+			$SMSTree['1'] = '"If you don''t want your mother to see this image you will do exactly as I say"'
+		elseif $start_type['loc'] = 'sg' and gruptipe ! 5:
+			$SMSTree['1'] = '"If you don''t want your friends to see this image you will do exactly as I say"'
+		else
+			$SMSTree['1'] = '"If you don''t want the world to see this image you will do exactly as I say"'
+		end
+
+				$SMSTree['2'] = '"Leave <<blackmailQW[''next_payment'']>> <b>₽</b> beneath the fourth park bench, I know you know which one."'
+					$SMSTree['3'] = '"You have three days"'
+
+	gs 'SMStext_builder', 'start'
+		gs 'SMStext_builder', 'receive', $SMSTree['0']
+		gs 'SMSText_builder', 'receive_img', $blackmailQW['init_flashimage'] + '.jpg'
+		gs 'SMStext_builder', 'receive', $SMSTree['1']
+		gs 'SMStext_builder', 'receive', $SMSTree['2']
+		gs 'SMStext_builder', 'receive', $SMSTree['3']
+		gs 'SMStext_builder', 'send', 'Blackmailer'
+	gs 'SMStext_builder', 'end'
+	killvar '$SMSTree'
+end
+
+
+if $ARGS[0] = 'park_repeat':
+	menu_off = 1
+	gs 'stat'
+
+	'<center><img src="images/locations/shared/park/bench_6.jpg"></center>'
+	'You walk to the familiar bench and take a seat at the edge of it.'
+
+	if money < blackmailQW['next_payment']:
+		act 'Hide the money (<font color="red"><<blackmailQW[''next_payment'']>> <b>₽</b></font>)': '<br><font color="red">You don''t have enough money to do that.</font>'
+	else
+		act 'Hide the money (<<blackmailQW[''next_payment'']>> <b>₽</b>)':
+			*clr & cla
+			money -= blackmailQW['next_payment']
+			blackmailQW['total_payment'] += blackmailQW['next_payment']
+			blackmailQW['next_payment'] = 0
+
+			minut += 1
+			gs 'stat'
+
+			act 'Quickly walk away': gt $loc, $loc_arg
+		end
+	end
+
+	act 'Walk away': gt $loc, $loc_arg
 end
 
 
