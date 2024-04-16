@@ -128,7 +128,7 @@ if $ARGS[0] = 'view_milk_bottles':
 		jump 'vmbloop'
 	end
 	if milkedvolume > 0:
-		'<br><a href="exec:gt''lact_bp'',''empty_milk_bottles''">Pour the milk into the sink</a>'
+		'<br><a href="exec:gt''lact_bp'',''empty_all_milk_bottles''">Pour the milk into the sink</a>'
 	end
 	act 'Back':gt 'lact_bp', 'bp_milking'
 end
@@ -145,30 +145,31 @@ if $ARGS[0] = 'drink_milk_bottles':
 	pcs_hydra += mbarrfill[ARGS[1]] / iif(pcs_hydra>=100,200,100)
 	minut += max(1,(mbarrfill[ARGS[1]]/1000) + 3)
 	act 'Finish':
-		mbarrfill[ARGS[1]] = 0
-		mbarrmage[ARGS[1]] = 0
-		mbarrcool[ARGS[1]] = 0
-		$mbarrstat[ARGS[1]] = 'none'
-		$mbarrtemp[ARGS[1]] = 'none'
+		gs 'lact_bp', 'empty_milk_bottle', ARGS[1]
 		gs 'stat'
 		menu_off = 0 & gs 'lact_bp', 'view_milk_bottles', 1
 	end
 end
 
+if $ARGS[0] = 'empty_milk_bottle':
+	mbarrfill[ARGS[1]] = 0
+	mbarrmage[ARGS[1]] = 0
+	mbarrcool[ARGS[1]] = 0
+	$mbarrstat[ARGS[1]] = 'none'
+	$mbarrtemp[ARGS[1]] = 'none'
+end
+
+
 !! empty bottle function
-if $ARGS[0] = 'empty_milk_bottles':
-	!! use gt 'lact_bp', 'empty_milk_bottles'
+if $ARGS[0] = 'empty_all_milk_bottles':
+	!! use gt 'lact_bp', 'empty_all_milk_bottles'
 	*clr
 	cla
 	temp_var = (mc_inventory['bottle_m'] + mc_inventory['bottle_s']) - 1
 	emb_i = 0
 	:emb_loop
 	if emb_i <= temp_var:
-		mbarrfill[emb_i] = 0
-		mbarrmage[emb_i] = 0
-		mbarrcool[emb_i] = 0
-		$mbarrstat[emb_i] = 'none'
-		$mbarrtemp[emb_i] = 'none'
+		gs 'lact_bp', 'empty_milk_bottle', emb_i
 		emb_i += 1
 		jump 'emb_loop'
 	end
@@ -239,7 +240,7 @@ if $ARGS[0] = 'update_mbottle':
 	!! mbarrmage: timestamp the milk was pumped.
 	!! mbarrcool: Is the milk cooled? 0 = no, 1 = normal cooler, 2 = deep freezer
 	!! $mbarrstat: State of the milk: fresh, normal, old, rancid
-	!! $mbarrtemp: Temperature of the milk: hot, warm, normal temparture, cold, frozen
+	!! $mbarrtemp: Temperature of the milk: hot, warm, lukewarm, cold, frozen
 	!! mbarrloca: Location of the bottle.
 	if mbarrfill[ARGS[1]] > 0:
 		if mbarrfill[ARGS[1]] > mbarrtype[ARGS[1]]: mbarrfill[ARGS[1]] = mbarrtype[ARGS[1]]
@@ -249,13 +250,13 @@ if $ARGS[0] = 'update_mbottle':
 				$mbarrtemp[ARGS[1]] = 'warm'
 				$mbarrstat[ARGS[1]] = 'fresh'
 			elseif (mbarrmage[ARGS[1]] + 60) < func('lact_bp','time_stamp') and (mbarrmage[ARGS[1]] + 360) >= func('lact_bp','time_stamp'):
-				$mbarrtemp[ARGS[1]] =  'normal temparture'
+				$mbarrtemp[ARGS[1]] =  'lukewarm'
 				$mbarrstat[ARGS[1]] = 'normal'
 			elseif (mbarrmage[ARGS[1]] + 360) < func('lact_bp','time_stamp') and (mbarrmage[ARGS[1]] + 1440) >= func('lact_bp','time_stamp'):
-				$mbarrtemp[ARGS[1]] = 'normal temparture'
+				$mbarrtemp[ARGS[1]] = 'lukewarm'
 				$mbarrstat[ARGS[1]] = 'old'
 			else
-				$mbarrtemp[ARGS[1]] = 'normal temparture'
+				$mbarrtemp[ARGS[1]] = 'lukewarm'
 				$mbarrstat[ARGS[1]] = 'rancid'
 			end
 		elseif mbarrcool[ARGS[1]] = 1:
@@ -291,10 +292,7 @@ if $ARGS[0] = 'update_mbottle':
 			$mbarrstat[ARGS[1]] = 'fresh'
 		end
 	else
-		$mbarrtemp[ARGS[1]] = 'none'
-		$mbarrstat[ARGS[1]] = 'none'
-		mbarrmage[ARGS[1]] = 0
-		mbarrfill[ARGS[1]] = 0
+		gs 'lact_bp', 'empty_milk_bottle', ARGS[1]
 	end
 end
 
@@ -751,11 +749,7 @@ if $ARGS[0] = 'reg_bottle_count':
 			reg_bottles_count += 1
 			rbc_index = (reg_bottlem_count + reg_bottles_count) - 1
 			mbarrtype[rbc_index] = 1500
-			mbarrfill[rbc_index] = 0
-			mbarrmage[rbc_index] = 0
-			mbarrcool[rbc_index] = 0
-			$mbarrstat[rbc_index] = 'none'
-			$mbarrtemp[rbc_index] = 'none'
+			gs 'lact_bp', 'empty_milk_bottle', rbc_index
 			mbarrloca[rbc_index] = 1
 			jump 'rbc_loop'
 		end
@@ -763,11 +757,7 @@ if $ARGS[0] = 'reg_bottle_count':
 			reg_bottlem_count += 1
 			rbc_index = (reg_bottlem_count + reg_bottles_count) - 1
 			mbarrtype[rbc_index] = 2500
-			mbarrfill[rbc_index] = 0
-			mbarrmage[rbc_index] = 0
-			mbarrcool[rbc_index] = 0
-			$mbarrstat[rbc_index] = 'none'
-			$mbarrtemp[rbc_index] = 'none'
+			gs 'lact_bp', 'empty_milk_bottle', rbc_index
 			mbarrloca[rbc_index] = 1
 			jump 'rbc_loop'
 		end
@@ -1034,9 +1024,9 @@ if $ARGS[0] = 'milking':
 			'<br>You feel a bit thirsty after pumping.'
 			energytomilkpump = 0
 		end
-		if bcream_used = 1:
+		if drugVars['breastcream_dose'] = 1:
 			pcs_nips += rand(0,2)
-			!!	bcream_used = 0
+			!!	drugVars['breastcream_dose'] = 0
 		end
 		minut += pumptime
 	elseif lactation['active'] > 0 and pain['nipples'] < 60 and lactation['pc_aware'] <= 0:
@@ -1081,9 +1071,9 @@ if $ARGS[0] = 'milking':
 		if lactation['prolactinlvl'] > 100:
 			'After finishing, your breasts feel weirdly engorged.'
 		end
-		if bcream_used = 1:
+		if drugVars['breastcream_dose'] = 1:
 			pcs_nips += rand(0,2)
-			bcream_used = 0
+			drugVars['breastcream_dose'] = 0
 		end
 		minut += pumptime
 	else

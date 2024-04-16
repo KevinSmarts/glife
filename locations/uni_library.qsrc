@@ -1,5 +1,5 @@
 # uni_library
-
+!!march 18 2024
 !!This is the file containing the university library
 
 killvar '$downlibrary'
@@ -42,6 +42,10 @@ if $ARGS[0] = 'start' or $ARGS[0] = '':
 		'You see '+iif(katjaQW['know_katja_uni'] = 0 and ($start_type['loc'] ! 'sg' and $start_type['magic'] = 'tg'), 'a cute redheaded girl', '<a href="exec:gt ''katja_uni'', ''library''">Katja</a>')+' sitting at one of the desks with a laptop and a pile of books.'
 	end
 	
+	if locat['A144'] = 12:
+		'You see your former classmate <a href="exec:gt ''uni_library'', ''anushka''">Anushka</a> sitting at one of the tables studying some books.'
+	end
+	
 	!!if locat['albina'] = 6:
 		!!'You see '+iif(AlbinaQW['know_albina_uni'] = 0 and ($start_type['loc'] ! 'sg' and $start_type['magic'] = 'tg'), 'an attractive looking brunette', '<a href="exec:gt ''albina_uni'', ''library''">Albina</a>')+' searching the shelves for books.'
 	!!end
@@ -52,6 +56,10 @@ if $ARGS[0] = 'start' or $ARGS[0] = '':
 		else
 			'You see a pretty ebony <a href="exec:gt ''uni_library'', ''kendra''">girl</a> sitting at one of the tables studying some books.'
 		end
+	end
+	
+	if yearstart > 1 and week <= 5 and hour >= 15 and hour < 17:
+		'You see your former classmate <a href="exec:gt ''uni_library'', ''artem''">Artem</a> sitting at one of the tables studying some books.'
 	end
 	
 	if $start_type['loc'] = 'sg' and yearstart > 1 and week > 5 and hour >= 12 and hour < 14:
@@ -188,16 +196,16 @@ if $ARGS[0] = 'studying_exam':
 		study_mod -= 20
 		'You''re feeling a little tipsy, but feel like your studying is going great. However, when you look at your notes afterwards, you notice that a lot of them make no sense.'
 	end
-	if mentats_dose >= 1: study_mod += 30
+	if drugVars['mentats_dose'] >= 1: study_mod += 30
 	If pcs_mood < 50:
 		study_mod -= 20
 		'You''re in a bad mood and it clearly affects your studying.'
 	end
-	if StrongNarkota > 0 or jointhigh > 0:
+	if drugVars['heroin_high'] > 0 or drugVars['weed_high'] > 0:
 		study_mod -= 40
 		'You''re stoned, which makes it hard to concentrate on studying.'
 	end
-	if amphHigh > 0: study_mod += 20
+	if drugVars['amphetamine_high'] > 0: study_mod += 20
 	if pcs_energy < 5:
 		study_mod -= 20
 		'You''re extremely hungry and it''s hard to think about anything other than food.'
@@ -343,7 +351,7 @@ if $ARGS[0] = 'read':
 	cla
 	act 'Read a book on science (1:00)':
 		dynamic $downlibrary['read']
-		gs 'exp_gain', 'intel', rand(3,6) + (mentats_dose - rand(0,mentats_dose))
+		gs 'exp_gain', 'intel', rand(3,6) + rand(0, drugVars['mentats_dose'])
 		grupvalue[3] += 1
 		gs 'stat'
 		'<center><img <<$set_imgh>> src="images/pc/items/accessories/books/science1.jpg"></center>'
@@ -441,20 +449,27 @@ if $ARGS[0] = 'loan':
 			if lib_debt <= 0: lib_debt = 0
 			gt 'uni_library', 'start'
 		end
-
-		act 'Go back': gt 'uni_library', 'start'
 	end
 
 	if lib_debt > 0:
 		'You owe an outstanding debt of <<lib_debt>> <b>₽</b> to the library.'
-		if pcs_money >= lib_debt:
-			act 'Pay your debt':
-				pcs_money -= lib_debt
-				lib_debt = 0
-				gt 'uni_library', 'Pay_debt'			
-			end
+		if money < lib_debt and karta < lib_debt:
+			'You don''t have enough money to pay your debt!'
 		else
-			act '<font color="red">Pay your debt</font>': '<br><font color="red">You don''t have enough money to pay your debt.</font>'
+			if money >= lib_debt:
+				act 'Pay your debt (cash)':
+					money -= lib_debt
+					lib_debt = 0
+					gt 'uni_library', 'loan'
+				end
+			end
+			if karta >= lib_debt:
+				act 'Pay your debt (card)':
+					karta -= lib_debt
+					lib_debt = 0
+					gt 'uni_library', 'loan'
+				end
+			end
 		end
 	end
 
@@ -519,9 +534,9 @@ if $ARGS[0] = 'loan':
 			'"You need to return it within 2 weeks. Every day that you''re late incurs a 50 <b>₽</b> fine."'
 			act 'Continue': gt 'uni_library'
 		end}
-		
-		act 'Go back': gt 'uni_library', 'start'
 	end
+
+	act 'Go back': gt 'uni_library', 'start'
 end
 
 if $ARGS[0] = 'kendra':
@@ -586,6 +601,56 @@ if $ARGS[0] = 'kendra':
 				gt 'uni_library', 'start'
 			end
 		end
+	end
+end
+
+if $ARGS[0] = 'artem':
+	*clr & cla
+	menu_off = 1
+	gs 'npc_relationship', 'modify', 'A2', 'like'
+	gs 'exp_gain', 'chrsm', rand(1,2)
+	minut += 5
+	'<center><img <<$set_imgh>> src="images/characters/shared/headshots_main/big2.jpg"></center>'
+	'You walk over to his table.'
+	if npc_rel['A2'] >= 50:
+		artemQW['knows_dorm_room_number'] = 1
+		minut += 10
+		'You sit next to Artem. The two of you talk about your classes, fellow students, roommates, and just life in general for awhile. Finally he says. "I don''t mean to be rude but I really need to finish this, but why don''t you come to my dorm room sometime and we can hangout then. I am on the second floor in room 209." You tell him you will, then say your goodbyes and leave him to study.'
+	elseif npc_rel['A2'] <= 20:
+		'You sit next to Artem when he looks over at you. "I''m busy and need to study, so please go sit somewhere else." You sigh and get up and move away.'
+	else
+		minut += 5
+		'You sit next to Artem. You try and have a conversation with him, but mostly you talk as he tries to study. Finally after a bit he says. "Look sorry but I really need to study this, maybe we can talk at the cafe sometime or something. But if you don''t mind." He indicates his book, you get the hint and leave him alone.'
+	end
+	act 'Leave Artem be':
+		minut += 2
+		gt 'uni_library', 'start'
+	end
+end
+
+if $ARGS[0] = 'anushka':
+	*clr & cla
+	menu_off = 1
+	gs 'npc_relationship', 'modify', 'A144', 'like'
+	gs 'exp_gain', 'chrsm', rand(1,2)
+	minut += 5
+	'<center><img <<$set_imgh>> src="images/characters/shared/headshots_main/big144.jpg"></center>'
+	'You walk over to her table.'
+	if npc_rel['A144'] >= 60:
+		anushkaCityQW['first_visit'] = 1
+		minut += 5
+		gs 'stat'
+		'<center><img <<$set_imgh>> src="images/characters/shared/headshots_main/big144.jpg"></center>'
+		'You exchange greetings as you sit. Anushka seems really intent on her studies, at first she is polite and tries to respond but after a few minutes she mostly stops responding and just listening until she finally says. "I don''t mean to be rude but can you politely fuck off." She says in a teasing tone and a smile on her face. "But in all seriousness I really do need to get this done, this is one of the few times I have to be in the library. If you want to hang out, you can stop by the Coffee Hole sometimes or come by the boys'' and my apartment if you want." She tells you where the apartment she shares with the boys from the band is. With that, you get the hint and leave her alone.'
+	elseif npc_rel['A144'] <= 20:
+		'You sit next to Anushka when she looks over at you. "Go the fuck away, can''t you see I''m busy." You sigh and get up and move away.'
+	else
+		minut += 5
+		'You sit next to Anushka. You try and have a conversation with her, but mostly you talk as she tries to study. Finally after a bit he says. "Look I don''t have time to hang out, I got to get this studying done now while I have some free time, why don''t you stop by the Coffee Hole sometime if you want to talk, I sometimes have free time then." You get the hint and leave her alone.'
+	end
+	act 'Leave Anushka be':
+		minut += 2
+		gt 'uni_library', 'start'
 	end
 end
 

@@ -1,26 +1,36 @@
 # bedrPar
+!! Date refactored: 31st March, 2024
+!! Author: Myles
+!!
+!! Version: .01 - initial refactoring
+!! 
+!! Desc: {MC} and sisters family bedroom links to family flat corridor
 
-*clr & cla
-fromoutside = iif($loc = 'bedrPar',0,1)
-menu_off = 0
-minut += 1
-!!day check so mom doesn''t think you have been out all night if you get up very early 
-motherworry[1] = daystart
-gs 'shortgs', 'setloc', 'bedrPar', $ARGS[0]
-$location_type = 'private'
-$locclass = 'bedr'
-gs 'themes', 'indoors'
-gs 'stat'
-gs 'family_schedule'
-!! ballet career
-gs 'core_library', 'init'
 
-!! This is runs only once, just to make sure that Sveta can sing from the start, does not have to wait a whole day for `cikl` to run.
-if ml_performance['max_perform_minutes'] = 0: ml_performance['max_perform_minutes'] = pcs_instrmusic + pcs_vokal
+!! Set up default image paths for npc and location:
+!! Start location initialisation
+!! Set location header - img path is set in init
+!! Paths are not set due to content structure
 
-if $ARGS[0] = '' or $ARGS[0] = 'start':
+
+!! Begin location content
+if $ARGS[0] = '' or $ARGS[0] = 'start':	
+	!! Call in location default actions
+	gs 'home_family_init', 'init'
+	!! Set location vars:
+	fromoutside = iif($loc = 'bedrPar',0,1)
+	
+	!!day check so mom doesn''t think you have been out all night if you get up very early 
+	motherworry[1] = daystart
+	!! This is runs only once, just to make sure that Sveta can sing from the start, does not have to wait a whole day for `cikl` to run.
+	if ml_performance['max_perform_minutes'] = 0: ml_performance['max_perform_minutes'] = pcs_instrmusic + pcs_vokal
+
+	!! Set up game location data
+	$locclass = 'bedr'
+	gs 'shortgs', 'setloc', 'bedrpar', $ARGS[0]
+	!! End location initialisation
 	if locat['Mother'] = 26 and fromoutside and func('homes_properties', 'can_live_here'):
-		'<center><img <<$set_imgh>> src="images/characters/pavlovsk/resident/mom/prost1.jpg"></center>'
+		'<center><img <<$set_imgh>> src="<<$mother_img_path>>prost1.jpg"></center>'
 		if mc_inventory['equipped_condoms'] > 0 and rand(1,3) = 1 and mom['condoms'] = 0:
 			gt 'mother', 'condom_find'
 		elseif mc_inventory['dildo_small'] + mc_inventory['dildo_normal'] + mc_inventory['dildo_big'] + mc_inventory['dildo_large'] + mc_inventory['dildo_huge'] + mc_inventory['dildo_enormous'] + mc_inventory['dildo_gigantic'] > 0 and motherQW['seen_dildos'] ! 1 and rand(1,3) = 1:
@@ -80,15 +90,19 @@ if $ARGS[0] = '' or $ARGS[0] = 'start':
 		end
 		gs 'stat'
 
-		act 'Leave': gt 'korrPar'
+		act 'Leave': minut += 1 & gt 'korrPar'
 	else
 		if func('homes_properties', 'can_live_here'):
-			'<center><h1><font color="maroon">Your bedroom</font></h1></center>'
-		else
-			'<center><h1><font color="maroon">Your old bedroom</font></h1></center>'
+			$setloc['StageTitle'] = 'Your bedroom'
+		else		
+			$setloc['StageTitle'] = 'Your old bedroom'			
 		end
+		!! Display header and banner image
 		! WD: Correct Image path ~ "images/qwest/alter/<<$loc>>.jpg"
-		'<center><img <<$set_imgh>> src="images/locations/pavlovsk/resident/apartment/home/bedrpar.jpg"></center>'
+		$setloc['StageImage'] = '<<$default_img_path>>/bedrpar.jpg'
+		gs 'core_library', 'stage_title'
+
+		!! Location default description:
 		*nl
 		if func('homes_properties', 'is_current_home'):
 			'This is the small bedroom you share with your sister, Anya. On one side of the room is a <a href="exec:gt ''wardrobe'', ''start''">wardrobe</a> where you can choose outfits and organise your clothing.'
@@ -98,6 +112,8 @@ if $ARGS[0] = '' or $ARGS[0] = 'start':
 			'This small bedroom you used to share with your sister, Anya. The furniture is old and basic.'
 		end
 		*nl
+		*nl
+		!! End default Description
 		if $ml_guitar['location'] = $loc: 'Your guitar rests on its stand next to your bed.'
 
 		if ParrotQW['Owned2'] = 1 and func('homes_properties', 'is_current_home'):
@@ -182,6 +198,8 @@ if $ARGS[0] = '' or $ARGS[0] = 'start':
 				elseif locat['Anya'] = 26 or (locat['Anya'] = 1 and locat['Anya_party_day'] >= daystart - 1):
 					if sisboypartyQW = 1: sisboypartyQW = 2
 					if sisboyparty = -1: sisboyparty = 1
+					!!'A drunken Anya is sound asleep in her bed.'
+					!! In the future should point to 'sistersleep', 'drunk_after_party' when that content is added again
 					'A drunken <a href="exec:gt ''sistersleep'', ''drunk_after_party''">Anya</a> is sound asleep in her bed.'
 				end
 			end
@@ -220,7 +238,7 @@ if $ARGS[0] = '' or $ARGS[0] = 'start':
 
 			if locat['Anya_inroom'] = 0: dynamic $palelady
 			
-			gs 'wardrobe', 'default_sport_options'
+			gs 'wardrobe', 'default_clothing_options'
 			
 			gs 'exercise', 'start'
 
@@ -309,13 +327,16 @@ end
 
 if $ARGS[0] = 'intro':
 	CLOSE ALL
+	$setloc['StageTitle'] = 'Your Bedroom'
+	$setloc['StageImage'] = 'characters/pavlovsk/resident/mom/prost4.jpg'
+	gs 'shortgs', 'setloc', 'bedrpar', 'start'
 	grandmaQW['last_month_paid'] = month
 	menu_off = 1
 	hour = 6
 	gs 'stat'
 	music_loop = 0
-	'<center><h1><font color="maroon">Your Bedroom</font></h1></center>'
-	'<center><img <<$set_imgh>> src="images/characters/pavlovsk/resident/mom/prost4.jpg"></center>'
+	!! Display the header text and banner image
+	gs 'core_library', 'stage_title'
 	'You sudenly hear a familiar voice yelling out. "<<$pcs_nickname>>, time to get up! You can''t spend the whole day laying around!"'
 	wait 1000
 	$temp_nickname = input('<center>What name do you address your mother by?<br>Mother (default), Mum, Mom, Mama, etc.</center>')
@@ -325,8 +346,8 @@ if $ARGS[0] = 'intro':
 		cla & *clr
 		minut += 2
 		gs 'stat'
-		'<center><h1><font color="maroon">Your Bedroom</font></h1></center>'
-		'<center><img <<$set_imgh>> src="images/characters/pavlovsk/resident/mom/prost5.jpg"></center>'
+		$setloc['StageImage'] = 'characters/pavlovsk/resident/mom/prost5.jpg'
+		gs 'core_library', 'stage_title'
 		'You tiredly open your eyes and see your mother standing over you. "Fifteen more minutes..." you mumble.'
 		'Your mother lets out a loud sigh. "No, up now!" she says as she yanks the covers off.'
 		'"<<$npc_nickname[''A29'']>>!" you exclaim as you feel a slightly cold breeze hit your body.'
@@ -335,24 +356,24 @@ if $ARGS[0] = 'intro':
 			cla & *clr
 			minut += 2
 			gs 'stat'
-			'<center><h1><font color="maroon">Your Bedroom</font></h1></center>'
-			'<center><img <<$set_imgh>> src="images/characters/pavlovsk/resident/mom/prost4.jpg"></center>'
+			$setloc['StageImage'] = 'characters/pavlovsk/resident/mom/prost4.jpg'
+			gs 'core_library', 'stage_title'
 			'As soon as you get off your now coverless bed, your mother is quick to resume her nagging, repeating what you already heard from her a few moments ago. "Summer is no excuse to laze around all day. You can''t sleep in anymore, not even for another fifteen minutes." She''s not even looking at you while she talks, but luckily for you that means she misses you rolling your eyes.'
 			'"What are you going to do when school starts, or when you get a job? You better get into the habit of setting your alarm so you can wake up bright and early."'
 			act 'Continue':
 				cla & *clr
 				minut += 2
 				gs 'stat'
-				'<center><h1><font color="maroon">Your Bedroom</font></h1></center>'
-				'<center><img <<$set_imgh>> src="images/characters/pavlovsk/resident/mom/prost5.jpg"></center>'
+				$setloc['StageImage'] = 'characters/pavlovsk/resident/mom/prost5.jpg'
+				gs 'core_library', 'stage_title'
 				'You let out an exasperated sigh. "Yeah yeah I know, you told me that already. So how early are we talking?"'
 				'Your mother shoots you a sharp look and you know to fix your attitude or else. "Well, that depends on what you plan to do in the morning. There''s breakfast, showering and brushing your teeth, doing your hair and then makeup and shaving if you really need to. If I remember right... Anya used to wake up at 06:00 for school."'
 				act 'Continue':
 					cla & *clr
 					minut += 2
 					gs 'stat'
-					'<center><h1><font color="maroon">Your Bedroom</font></h1></center>'
-					'<center><img <<$set_imgh>> src="images/characters/pavlovsk/resident/mom/prost4.jpg"></center>'
+					$setloc['StageImage'] = 'characters/pavlovsk/resident/mom/prost4.jpg'
+					gs 'core_library', 'stage_title'
 					'"You want me to wake up that early?!" you huff. "Can''t I wake up at like... 07:00?"'
 					'Your mother shrugs. "You could, but then you might have to cut corners or even end up running late to school, and I won''t be having any of that. Your teachers won''t either," she warns before making her way towards the kitchen.'
 					if stat['think_virgin'] = 1: '"Oh, don''t forget; you need to head down to the clinic and see the gynecologist for a check up. Not just once, but every month!" she adds quickly.'
@@ -361,8 +382,8 @@ if $ARGS[0] = 'intro':
 						cla & *clr
 						minut += 2
 						gs 'stat'
-						'<center><h1><font color="maroon">Your Bedroom</font></h1></center>'
-						'<center><img <<$set_imgh>> src="images/characters/pavlovsk/resident/mom/prost5.jpg"></center>'
+						$setloc['StageImage'] = 'characters/pavlovsk/resident/mom/prost5.jpg'
+						gs 'core_library', 'stage_title'
 						'Before you can finish, she cuts you off. "I''m not going to have you running around town like so many of those other girls I see! Opening their legs for any boy that comes around..." She shakes her head in disgust. "I want a referral every month and it better tell me you''re still a virgin or else, understand?" she says before she storms out of the room without giving you a chance to respond.'
 						act 'I understand...':gt 'alarmclock', 'start'
 					end

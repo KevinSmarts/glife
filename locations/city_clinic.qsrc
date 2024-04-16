@@ -9,6 +9,8 @@ if $ARGS[0] = 'start':
 	$location_type = 'indoors'
 	$menu_loc = 'city_clinic'
 	$menu_arg = 'start'
+	killvar 'temp_small_mbottle_ids'
+	killvar 'temp_medium_mbottle_ids'
 	menu_off = 0
 	*clr & cla
 	hosprand = rand(0, 10)
@@ -114,50 +116,7 @@ if $ARGS[0] = 'start':
 
 	if preg = 2:
 		act 'Give birth':
-			*clr & cla
-			menu_off = 1
-			if kid > 0:minut += rand(300,660) else minut += rand(120,480)
-			'<center><img <<$set_imgh>> src="images/locations/shared/clinic/birthing.jpg"></center>'
-			'You lay on the bed and your feet are put in stirrups. Your contractions get closer and closer, and after some time and a lot of swearing, you finally give birth.'
-			:multikidloop
-				minut += rand(30,90)
-				sterilewb += 1
-				nextbaby = arrpos('$kidname', 'unborn')
-				kid += 1
-				BabyEmbryo -= 1
-				daykid[nextbaby] = day
-				monthkid[nextbaby] = month
-				yearkid[nextbaby] = year
-				if polkid[nextbaby] = 0:$polreb[nextbaby] = 'girl' & '"Congratulations, it''s a girl! What is her name?"'
-				if polkid[nextbaby] = 1:$polreb[nextbaby] = 'boy' & '"Congratulations, it''s a boy! What is his name?"'
-				
-				wait 350
-				$kidname[nextbaby] = input("Enter your <<$polreb[nextbaby]>>''s name")
-				'The doctors clean up <<$kidname[nextbaby]>>.'
-				if $kidname[nextbaby] = '':
-					if polkid[nextbaby] = 0:$kidname[nextbaby] = 'Masha'
-					if polkid[nextbaby] = 1:$kidname[nextbaby] = 'Misha'
-				end
-			if BabyEmbryo > 0: 'You do not have much time to look at your <<$polreb[nextbaby]>>, because you''re having another contraction. Your next baby is coming!' & jump 'multikidloop'
-			preg = 0
-			!! RecovH has a decay of 1.1/hour or ~ 27/day, the recovery period is ~6-10 weeks
-			RecovH = rand(1175,1875)
-			pregbirthdate = daystart
-			thinkpreg = 0
-			knowpreg = 0
-			knowpregrecover = 1
-			vidage += 1
-			pregtalk = 0
-			pcs_pregtalk = 0
-			pregTalkFamily = 0
-			npc_pregtalk['A16'] = 0
-			npc_pregtalk['A34'] = 0
-			npc_pregtalk['A29'] = 0
-			pregchem = 0
-			cycle = 4
-			gs 'cum_cleanup', 'reset'
-			dynamic $d_cycreport_choice
-			gs 'stat'
+			gs 'medical_din', 'give_birth'
 			act 'Return to the entrance': gt 'city_clinic', 'start'
 		end
 	end
@@ -1668,14 +1627,10 @@ if $ARGS[0] = 'milk_bank':
 		'<br>----------------------------------------'
 		if lact_ev['poli_totalmilkdonation_count'] > 0:
 			'Total breast milk donation statistics'
-			if lact_ev['poli_totalmilkdonated'] < 100:
-				'Donated milk volume in liter: <<lact_ev[''poli_totalmilkdonated'']/1000>>.0<<lact_ev[''poli_totalmilkdonated''] mod 1000>>l'
-			else
-				'Donated milk volume in liter: <<lact_ev[''poli_totalmilkdonated'']/1000>>.<<lact_ev[''poli_totalmilkdonated''] mod 1000>>l'
-			end
+			'Donated milk volume in liter: <<lact_ev[''poli_totalmilkdonated'']/1000>>.<<$mid(1000 + (lact_ev[''poli_totalmilkdonated''] mod 1000), 2, 3)>>l'
 			'Donation count: <<lact_ev[''poli_totalmilkdonation_count'']>>'
-			'Average milk volume per donation in ml: <<lact_ev[''poli_totalmilkdonated'']/lact_ev[''poli_totalmilkdonation_count'']>>'
-			'Paid money: <<((lact_ev[''poli_totalmilkdonated'']/50)*100)>><b>₽</b>'
+			'Average milk volume per donation in ml: <<lact_ev[''poli_totalmilkdonated'']/lact_ev[''poli_totalmilkdonation_count'']>>.<<$mid(100 + ((100 * lact_ev[''poli_totalmilkdonated''] / lact_ev[''poli_totalmilkdonation_count'']) mod 100), 2, 2)>>'
+			'Paid money: <<lact_ev[''poli_totaldonatemoney'']>><b>₽</b>'
 			'<br>----------------------------------------'
 		end
 		act 'Leave': gt 'city_clinic', 'milk_donation_room'
@@ -1706,6 +1661,109 @@ if $ARGS[0] = 'milk_bank':
 			end
 		end
 	end
+
+	vmb_i = 0
+	:vmbloop
+	if vmb_i <= temp_var:
+		if mbarrloca[vmb_i] = 2 or mbarrloca[vmb_i] = 1:
+			gs 'lact_bp', 'update_mbottle', vmb_i
+			if $mbarrstat[vmb_i] = 'fresh' or $mbarrstat[vmb_i] = 'normal':
+				if mbarrfill[vmb_i] > 0:
+					if mbarrfill[vmb_i] <= 1500:
+						temp_small_mbottle_ids[] = vmb_i
+					else
+						temp_medium_mbottle_ids[] = vmb_i
+					end
+				end
+			end
+		end
+		vmb_i += 1
+		jump 'vmbloop'
+	end
+	killvar 'vmb_i'
+
+	if arrsize('temp_small_mbottle_ids') > 0:
+		act 'Donate a small bottle of milk':
+			*clr & cla
+			minut += 5
+			temp_total_pay = 0
+			temp_total_milk = 0
+			gs 'city_clinic', 'donate_milk_bottle', 'small'
+			gs 'stat'
+
+			!! IMAGE
+			!! TEXT
+			'You donated a <<temp_total_milk>> ml of milk and got paid <<temp_total_pay>><b>₽</b>.'
+
+			killvar 'temp_total_pay'
+			killvar 'temp_total_milk'
+			act 'Leave': minut += 5 & gt 'city_clinic', 'milk_donation_room'
+		end
+	end
+	if arrsize('temp_small_mbottle_ids') > 4:
+		act 'Donate 5 small bottles of milk':
+			*clr & cla
+			minut += 10
+			temp_total_pay = 0
+			temp_total_milk = 0
+			gs 'city_clinic', 'donate_milk_bottle', 'small'
+			gs 'city_clinic', 'donate_milk_bottle', 'small'
+			gs 'city_clinic', 'donate_milk_bottle', 'small'
+			gs 'city_clinic', 'donate_milk_bottle', 'small'
+			gs 'city_clinic', 'donate_milk_bottle', 'small'
+			gs 'stat'
+
+			!! IMAGE
+			!! TEXT
+			'You donated a <<temp_total_milk>> ml of milk and got paid <<temp_total_pay>><b>₽</b>.'
+
+			killvar 'temp_total_pay'
+			killvar 'temp_total_milk'
+			act 'Leave': minut += 5 & gt 'city_clinic', 'milk_donation_room'
+		end
+	end
+	if arrsize('temp_medium_mbottle_ids') > 0:
+		act 'Donate a medium bottle of milk':
+			*clr & cla
+			minut += 5
+			temp_total_pay = 0
+			temp_total_milk = 0
+			gs 'city_clinic', 'donate_milk_bottle', 'medium'
+			gs 'stat'
+
+			!! IMAGE
+			!! TEXT
+			'You donated a <<temp_total_milk>> ml of milk and got paid <<temp_total_pay>><b>₽</b>.'
+
+			killvar 'temp_total_pay'
+			killvar 'temp_total_milk'
+			act 'Leave': minut += 5 & gt 'city_clinic', 'milk_donation_room'
+		end
+	end
+	if arrsize('temp_medium_mbottle_ids') > 4:
+		act 'Donate 5 medium bottles of milk':
+			*clr & cla
+			minut += 10
+			temp_total_pay = 0
+			temp_total_milk = 0
+			gs 'city_clinic', 'donate_milk_bottle', 'medium'
+			gs 'city_clinic', 'donate_milk_bottle', 'medium'
+			gs 'city_clinic', 'donate_milk_bottle', 'medium'
+			gs 'city_clinic', 'donate_milk_bottle', 'medium'
+			gs 'city_clinic', 'donate_milk_bottle', 'medium'
+			gs 'stat'
+
+			!! IMAGE
+			!! TEXT
+			'You donated a <<temp_total_milk>> ml of milk and got paid <<temp_total_pay>><b>₽</b>.'
+
+			killvar 'temp_total_pay'
+			killvar 'temp_total_milk'
+			act 'Leave': minut += 5 & gt 'city_clinic', 'milk_donation_room'
+		end
+	end
+
+
 	act 'Leave': gt 'city_clinic','start'
 end
 
@@ -1761,7 +1819,7 @@ if $ARGS[0] = 'milk_donation':
 			end
 			lact_ev['poli_milkedvolume'] = 0
 			if lact_ev['poli_donationsessioncount'] > 0:
-				lact_ev['poli_donatemoney'] = (lact_ev['poli_donationsessioncount']*5)/10*10
+				lact_ev['poli_donatemoney'] = (lact_ev['poli_donationsessioncount'] / 2) * 10
 			else
 				lact_ev['poli_donatemoney'] = 0
 			end
@@ -1779,6 +1837,7 @@ if $ARGS[0] = 'milk_donation':
 				gs 'stat'
 				if lact_ev['poli_donationsessioncount'] > 0:
 					money += lact_ev['poli_donatemoney']
+					lact_ev['poli_totaldonatemoney'] += lact_ev['poli_donatemoney']
 					'You put your top back on and the employee hands you <<lact_ev[''poli_donatemoney'']>><b>₽</b> for your donated breast milk.'
 				else
 					'You put your top back on.'
@@ -1799,5 +1858,38 @@ if $ARGS[0] = 'milk_donation':
 	end
 end
 
---- city_clinic ---------------------------------
+if $ARGS[0] = 'donate_milk_bottle':
+	if $ARGS[1] = 'small':
+		temp_id = temp_small_mbottle_ids[0]
+	else
+		temp_id = temp_medium_mbottle_ids[0]
+	end
 
+	!! CHANGE PAY HERE
+	temp_pay = mbarrfill[temp_id] / 10			& !! Base pay = 1 rbl / ml for fresh milk
+	if $mbarrstat[temp_id] = 'normal': temp_pay = temp_pay / 2		& !! And 0.5 rbl / ml for normal milk
+	!!	if $mbarrtemp[temp_id] = 'hot' / 'warm' / 'lukewarm' / 'cold' / 'frozen':
+
+
+	temp_total_pay += temp_pay
+	money += temp_pay
+	lact_ev['poli_totaldonatemoney'] += temp_pay
+
+	temp_total_milk += mbarrfill[temp_id]
+	lact_ev['poli_totalmilkdonated'] += mbarrfill[temp_id]
+
+	gs 'lact_bp', 'empty_milk_bottle', temp_id
+
+	killvar 'temp_don_pay'
+	killvar 'temp_id'
+
+	if $ARGS[1] = 'small':
+		killvar 'temp_small_mbottle_ids', 0
+	else
+		killvar 'temp_medium_mbottle_ids', 0
+	end
+end
+
+
+
+--- city_clinic ---------------------------------
