@@ -34,12 +34,12 @@ if $ARGS[0] = 'start':
 		gs 'booty_call_sms', 'Add SMS2', 'pre_planned_booty_call', $ARGS[1]
 	elseif sugar_daddy_call[$ARGS[1]] = 1:
 		gs 'booty_call_sms', 'Add SMS', 'sugar_daddy_booty_call', $ARGS[1]
-		!gs 'booty_call_sms', 'Add SMS3', 'new_booty_call_sms', $ARGS[1]
+		!gs 'booty_call_sms', 'Add SMS3', 'new_booty_call', $ARGS[1]
 	elseif npc_std_test[$ARGS[1]] = 1:
 		gs 'booty_call_sms', 'Add SMS', 'std_free', $ARGS[1]
 	else
 		gs 'booty_call_sms', 'Add SMS', 'default_booty_call', $ARGS[1]
-		!gs 'booty_call_sms', 'Add SMS3', 'new_booty_call_sms', $ARGS[1]
+		!gs 'booty_call_sms', 'Add SMS3', 'new_booty_call', $ARGS[1]
 	end
 end
 
@@ -382,7 +382,7 @@ if $ARGS[0] = 'sugar_daddy_booty_call':
 end
 
 
-if $ARGS[0] = 'new_booty_call_sms':
+if $ARGS[0] = 'new_booty_call':
 !!	Structure:
 !!		0: boy
 !!			1: player
@@ -421,11 +421,11 @@ if $ARGS[0] = 'new_booty_call_sms':
 	if 0:
 		! Date invite
 
-	elseif npc_rel_type[$ARGS[1]] = 'sugar_daddy':
+	elseif $npc_rel_type[$ARGS[1]] = 'sugar_daddy':
 		$SMSTree['10'] = 'i want to see you'
 			$SMSTree['11'] = 'ive booked a hotel room'
 
-	elseif npc_rel_type[$ARGS[1]] = 'casual_date' or npc_rel_type[$ARGS[2]] = 'fuckbuddy':
+	elseif $npc_rel_type[$ARGS[1]] = 'casual_date' or $npc_rel_type[$ARGS[2]] = 'fuckbuddy':
 		$SMSTree['10'] = 'ive been thinking about you'
 				!! player response 1 option 1
 			$SMSTree['a11'] = 'what were you thinking about?'
@@ -492,7 +492,7 @@ if $ARGS[0] = 'new_booty_call_sms':
 					end
 				end
 
-	elseif npc_rel_type[$ARGS[1]] = 'boyfriend' or npc_rel_type[$ARGS[2]] = 'girlfriend' or npc_rel_type[$ARGS[2]] = 'husband' or npc_rel_type[$ARGS[2]] = 'wife':
+	elseif strpos('boyfriend|girlfriend|husband|wife', $npc_rel_type[$ARGS[1]]) > 0:
 		if 0:
 			!living with husband/wife
 		else
@@ -696,24 +696,30 @@ end
 	!!=====================================================================!!
 
 
+! $ARGS[1] = SMSTree argloc
+! $ARGS[2] = npc_code
 if $ARGS[0] = 'Add SMS3':
 	gs 'booty_call_sms', $ARGS[1], $ARGS[2]
 	gs 'SMStext_builder', 'start'
 		gs 'SMStext_builder', 'receive', $SMSTree['0']
-		gs 'SMStext_buider', 'add_reply', $SMSTree['1'], 'booty_call_sms', 'new_routing1', $ARGS[1], $ARGS[2], '<<totminut>>'
+		gs 'SMStext_builder', 'add_reply', $SMSTree['1'], 'booty_call_sms', 'new_routing1', $ARGS[1], $ARGS[2], '<<totminut>>'
 		gs 'SMStext_builder', 'add_sms', $ARGS[2]
 	gs 'SMStext_builder', 'end'
 end
 
+! $ARGS[1] = SMSTree argloc
+! $ARGS[2] = npc_code
+! $ARGS[3] = totminut string
+!  ARGS[4] = smsID
 if $ARGS[0] = 'new_routing1':
 	gs 'booty_call_sms', $ARGS[1], $ARGS[2]
 	gs 'SMStext_builder', 'start'
 		gs 'SMStext_builder', 'send', $SMSTree['1']
-		if totminut >= ARGS[3] + 180:
+		if totminut >= val($ARGS[3]) + 180:
 			gs 'SMStext_builder', 'add_reply', $SMSTree['f2'], 'booty_call_sms', 'new_delayed', '1', $ARGS[1], $ARGS[2]
 		elseif hour > 20 or hour < 4:
-			gs 'SMStext_builder', 'add_reply', $SMSTree['c2'], 'booty_call_sms', 'new_routing2', $ARGS[1], $ARGS[2], 'c2', 'npc_rel[''<<$ARGS[2]>>''] += 2'
-			gs 'SMStext_builder', 'add_reply', $SMSTree['d2'], 'booty_call_sms', 'new_routing2', $ARGS[1], $ARGS[2], 'd2', 'npc_rel[''<<$ARGS[2]>>''] -= 2'
+			gs 'SMStext_builder', 'add_reply', $SMSTree['c2'], 'booty_call_sms', 'new_routing2', $ARGS[1], $ARGS[2], 'c2', 'npc_rel[''''<<$ARGS[2]>>''''] += 2'
+			gs 'SMStext_builder', 'add_reply', $SMSTree['d2'], 'booty_call_sms', 'new_routing2', $ARGS[1], $ARGS[2], 'd2', 'npc_rel[''''<<$ARGS[2]>>''''] -= 2'
 			gs 'SMStext_builder', 'add_reply', $SMSTree['e2'], 'booty_call_sms', 'end', $ARGS[1], $ARGS[2], 'e2', 'decline_booty_call', ''
 		else
 			gs 'SMStext_builder', 'add_reply', $SMSTree['a2'], 'booty_call_sms', 'new_routing2', $ARGS[1], $ARGS[2], 'a2', ''
@@ -723,12 +729,16 @@ if $ARGS[0] = 'new_routing1':
 	gs 'SMStext_builder', 'end'
 end
 
-if $ARGS[0] = 'new_delayed1':
+! $ARGS[1] = '1' or '2'
+! $ARGS[2] = SMSTree argloc
+! $ARGS[3] = npc_code
+!  ARGS[4] = smsID
+if $ARGS[0] = 'new_delayed':
 	gs 'booty_call_sms', $ARGS[2], $ARGS[3]
 	gs 'SMStext_builder', 'start'
 		if $ARGS[1] = '1':
 			gs 'SMStext_builder', 'send', $SMSTree['f2']
-			gs 'SMStext_builder', 'add_reply', $SMSTree['f3'], 'booty_call_sms', 'new_delayed1', '2', $ARGS[2], $ARGS[3]
+			gs 'SMStext_builder', 'add_reply', $SMSTree['f3'], 'booty_call_sms', 'new_delayed', '2', $ARGS[2], $ARGS[3]
 		elseif $ARGS[2] = '2':
 			gs 'SMStext_builder', 'send', $SMSTree['f3']
 			gs 'SMStext_builder', 'add_reply', $SMSTree['fa4'], 'booty_call_sms', 'new_routing2', $ARGS[2], $ARGS[3], 'fa4', ''
@@ -740,33 +750,36 @@ if $ARGS[0] = 'new_delayed1':
 	gs 'SMStext_builder', 'end'
 end
 
+! $ARGS[1] = SMSTree argloc
+! $ARGS[2] = npc_code
+! $ARGS[3] = code reply send
+! $ARGS[4] = dynamic code to be executed
+!  ARGS[5] = smsID
 if $ARGS[0] = 'new_routing2':
 	gs 'booty_call_sms', $ARGS[1], $ARGS[2]
 	dynamic $ARGS[4]
 	gs 'SMStext_builder', 'start'
 		gs 'SMStext_builder', 'send', $SMSTree[$ARGS[3]]
 
+		gs 'SMStext_builder', 'receive', $SMSTree['10']
 		if 0:
 			! Date invite
-			gs 'SMStext_builder', 'receive', $SMSTree['10']
 			gs 'SMStext_builder', 'receive', $SMSTree['11']
-			gs 'SMStext_builder', 'add_reply', $SMSTree['a20'], 'booty_call_sms', 'new_routing3', $ARGS[1], $ARGS[2], 'a', 'decline_booty_call', 'npc_rel[''<<$ARGS[2]>>''] -= 2'
+			gs 'SMStext_builder', 'add_reply', $SMSTree['a20'], 'booty_call_sms', 'new_routing3', $ARGS[1], $ARGS[2], 'a', 'decline_booty_call', 'npc_rel[''''<<$ARGS[2]>>''''] -= 2'
 			gs 'SMStext_builder', 'add_reply', $SMSTree['b20'], 'booty_call_sms', 'new_routing3', $ARGS[1], $ARGS[2], 'b', 'accept_booty_call', ''
 			if hour > 20 or hour <= 4: gs 'SMStext_builder', 'add_reply', $SMSTree['c20'], 'booty_call_sms', 'late_apology', '1', $ARGS[1], $ARGS[2], 'c20'
 
-		elseif npc_rel_type[$ARGS[1]] = 'sugar_daddy':
-			gs 'SMStext_builder', 'receive', $SMSTree['10']
+		elseif $npc_rel_type[$ARGS[2]] = 'sugar_daddy':
 			gs 'SMStext_builder', 'receive', $SMSTree['11']
-			gs 'SMStext_builder', 'add_reply', $SMSTree['a20'], 'booty_call_sms', 'new_routing3', $ARGS[1], $ARGS[2], 'a', 'decline_booty_call', 'npc_rel[''<<$ARGS[2]>>''] -= 2'
+			gs 'SMStext_builder', 'add_reply', $SMSTree['a20'], 'booty_call_sms', 'new_routing3', $ARGS[1], $ARGS[2], 'a', 'decline_booty_call', 'npc_rel[''''<<$ARGS[2]>>''''] -= 2'
 			gs 'SMStext_builder', 'add_reply', $SMSTree['b20'], 'booty_call_sms', 'new_routing3', $ARGS[1], $ARGS[2], 'b', 'accept_booty_call', ''
 			if hour > 20 or hour <= 4: gs 'SMStext_builder', 'add_reply', $SMSTree['c20'], 'booty_call_sms', 'late_apology', '1', $ARGS[1], $ARGS[2], 'c20'
 
-		elseif npc_rel_type[$ARGS[1]] = 'casual_date' or npc_rel_type[$ARGS[2]] = 'fuckbuddy':
-			gs 'SMStext_builder', 'receive', $SMSTree['10']
-			gs 'SMStext_builder', 'add_reply', $SMSTree['a11'], 'booty_call_sms', 'new_bootycall1', $ARGS[1], $ARGS[2], 'a'
-			gs 'SMStext_builder', 'add_reply', $SMSTree['b11'], 'booty_call_sms', 'new_bootycall1', $ARGS[1], $ARGS[2], 'b'
+		elseif $npc_rel_type[$ARGS[2]] = 'casual_date' or $npc_rel_type[$ARGS[2]] = 'fuckbuddy':
+			gs 'SMStext_builder', 'add_reply', $SMSTree['a11'], 'booty_call_sms', 'new_bootycall', $ARGS[1], $ARGS[2], 'a'
+			gs 'SMStext_builder', 'add_reply', $SMSTree['b11'], 'booty_call_sms', 'new_bootycall', $ARGS[1], $ARGS[2], 'b'
 
-		elseif npc_rel_type[$ARGS[1]] = 'boyfriend' or npc_rel_type[$ARGS[2]] = 'girlfriend' or npc_rel_type[$ARGS[2]] = 'husband' or npc_rel_type[$ARGS[2]] = 'wife':
+		elseif strpos('boyfriend|girlfriend|husband|wife', $npc_rel_type[$ARGS[2]]) > 0:
 			if 0:
 				!living with husband/wife
 			else
@@ -777,7 +790,11 @@ if $ARGS[0] = 'new_routing2':
 	gs 'SMStext_builder', 'end'
 end
 
-if $ARGS[0] = 'new_bootycall1':
+! $ARGS[1] = SMSTree argloc
+! $ARGS[2] = npc_code
+! $ARGS[3] = code reply send
+!  ARGS[4] = smsID
+if $ARGS[0] = 'new_bootycall':
 	gs 'booty_call_sms', $ARGS[1], $ARGS[2]
 	gs 'SMStext_builder', 'start'
 		gs 'SMStext_builder', 'send', $SMSTree[$ARGS[3] + '11']
@@ -792,6 +809,11 @@ if $ARGS[0] = 'new_bootycall1':
 	gs 'SMStext_builder', 'end'
 end
 
+! $ARGS[1] = '1' or '2'
+! $ARGS[2] = SMSTree argloc
+! $ARGS[3] = npc_code
+! $ARGS[4] = code reply send
+!  ARGS[5] = smsID
 if $ARGS[0] = 'late apology':
 	gs 'booty_call_sms', $ARGS[2], $ARGS[3]
 	gs 'SMStext_builder', 'start'
@@ -809,8 +831,12 @@ if $ARGS[0] = 'late apology':
 	gs 'SMStext_builder', 'end'
 end
 
-
-
+! $ARGS[1] = SMSTree argloc
+! $ARGS[2] = npc_code
+! $ARGS[3] = code reply send
+! $ARGS[4] = 'accept_booty_call' or 'decline_booty_call'
+! $ARGS[5] = dynamic code to be executed
+!  ARGS[6] = smsID
 if $ARGS[0] = 'new_routing3':
 	gs 'booty_call_sms', $ARGS[1], $ARGS[2]
 	dynamic $ARGS[5]
@@ -826,8 +852,12 @@ if $ARGS[0] = 'new_routing3':
 	gs 'booty_call_sms', $ARGS[4], $ARGS[2], ARGS[6]
 end
 
-
-
+! $ARGS[1] = SMSTree argloc
+! $ARGS[2] = npc_code
+! $ARGS[3] = code reply send
+! $ARGS[4] = 'accept_booty_call' or 'decline_booty_call'
+! $ARGS[5] = dynamic code to be executed
+!  ARGS[6] = smsID
 if $ARGS[0] = 'end':
 	gs 'booty_call_sms', $ARGS[1], $ARGS[2]
 	dynamic $ARGS[5]
@@ -838,9 +868,8 @@ if $ARGS[0] = 'end':
 	gs 'booty_call_sms', $ARGS[4], $ARGS[2], ARGS[6]
 end
 
-
-
-
+! $ARGS[1] = npc_code
+!  ARGS[2] = smsID
 if $ARGS[0] = 'accept_booty_call':
 	booty_call_invite[$ARGS[1]] = daystart
 	if npc_finance[$ARGS[1]] = 2 and npc_residence[$ARGS[1]] >= 3:
@@ -851,6 +880,8 @@ if $ARGS[0] = 'accept_booty_call':
 		end
 	end
 
+! $ARGS[1] = npc_code
+!  ARGS[2] = smsID
 elseif $ARGS[0] = 'decline_booty_call':
 	if sugar_daddy_call[$ARGS[1]] = 1:
 		npc_rel[$ARGS[1]] -= 2
@@ -860,7 +891,9 @@ elseif $ARGS[0] = 'decline_booty_call':
 	if rand(0, 1) = 0: gs 'booty_call_sms', 'sexting1', 'new_sexting', $ARGS[1], ARGS[2]
 end
 
-
+! $ARGS[1] = SMSTree argloc
+! $ARGS[2] = npc_code
+!  ARGS[3] = smsID
 if $ARGS[0] = 'sexting1':
 	gs 'booty_call_sms', $ARGS[1], $ARGS[2]
 	gs 'SMStext_builder', 'start'
@@ -875,16 +908,19 @@ if $ARGS[0] = 'sexting1':
 	gs 'SMStext_builder', 'end'
 end
 
+! $ARGS[1] = SMSTree argloc
+! $ARGS[2] = npc_code
+!  ARGS[3] = smsID
 if $ARGS[0] = 'sexting_public':
 	gs 'booty_call_sms', $ARGS[1], $ARGS[2]
 	gs 'SMStext_builder', 'start'
 		gs 'SMStext_builder', 'send', $SMSTree['c1']
-		gs 'SMStext_builder', 'show_sms', ARGS[2]
+		gs 'SMStext_builder', 'show_sms', ARGS[3]
 
 		wait 250
 
 		gs 'SMStext_builder', 'receive', $SMSTree['c2']
-		if npc_dirty_lover[$ARGS[1]] = 1:
+		if npc_dirty_lover[$ARGS[2]] = 1:
 			gs 'SMStext_builder', 'add_reply', $SMSTree['a1'], 'booty_call_sms', 'sexting_refuse', $ARGS[1], $ARGS[2], 'refuse'
 			gs 'SMStext_builder', 'add_reply', $SMSTree['b1'], 'booty_call_sms', 'sexting_refuse', $ARGS[1], $ARGS[2], 'next'
 			gs 'SMStext_builder', 'send_selfie', $SMSTree['s1'], 'n|b|sh|ft|fa|fp', 'booty_call_sms', 'sexting_send', $ARGS[1], $ARGS[2]
@@ -893,12 +929,16 @@ if $ARGS[0] = 'sexting_public':
 	gs 'SMStext_builder', 'end'
 end
 
+! $ARGS[1] = SMSTree argloc
+! $ARGS[2] = npc_code
+! $ARGS[3] = 'refuse' or 'next'
+!  ARGS[4] = smsID
 if $ARGS[0] = 'sexting_refuse':
 	gs 'booty_call_sms', $ARGS[1], $ARGS[2]
 	gs 'SMStext_builder', 'start'
 		if $ARGS[3] = 'refuse':
 			gs 'SMStext_builder', 'send', $SMSTree['a2']
-			npc_rel[$ARGS[1]] -= 1
+			npc_rel[$ARGS[2]] -= 1
 		else
 			gs 'SMStext_builder', 'send', $SMSTree['b1']
 		end
@@ -906,7 +946,14 @@ if $ARGS[0] = 'sexting_refuse':
 	gs 'SMStext_builder', 'end'
 end
 
-
+! $ARGS[1] = SMSTree argloc
+! $ARGS[2] = npc_code
+!  ARGS[3] = smsID
+! $ARGS[4] = image path
+! $ARGS[5] = location
+! $ARGS[6] = state of dress (clothed, nude, etc)
+!  ARGS[7] = is the index of the location in $selfieLoc[] and $selfieFilePrefix
+!  ARGS[8] = the selfie number
 if $ARGS[0] = 'sexting_send':
 	gs 'booty_call_sms', $ARGS[1], $ARGS[2]
 	gs 'SMStext_builder', 'start'
@@ -916,14 +963,15 @@ if $ARGS[0] = 'sexting_send':
 		wait 250
 
 		gs 'SMStext_builder', 'receive', 'damn!!'
+		npc_rel[$ARGS[2]] += 3
 		gs 'SMStext_builder', 'show_sms', ARGS[3]
 
 		wait 250
 		gs 'SMStext_builder', 'send', ':)'
 		! Add responses based on the result??
 		!{
-		if $ARGS[5] = 'clothed':
-		elseif $ARGS[5] = 'nude' or $ARGS[5] = 'pussyflash':
+		if $ARGS[6] = 'clothed':
+		elseif $ARGS[6] = 'nude' or $ARGS[6] = 'pussyflash':
 		end
 		}
 		gs 'SMStext_builder', 'show_sms', ARGS[3]
