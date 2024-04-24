@@ -72,6 +72,16 @@ if $ARGS[0] = 'init_blackmail':
 	end
 end
 
+
+
+
+	!!=============================================!!
+	!!                                             !!
+	!!                  FUNCTIONS                  !!
+	!!                                             !!
+	!!=============================================!!
+
+
 if $ARGS[0] = 'add_blackmail_selfie':
 	temp_i = 0
 	if blackmailQW['total_material'] <= 10:
@@ -116,19 +126,27 @@ end
 
 
 if $ARGS[0] = 'cikl':
-	if blackmailQW['stage'] = 3 and blackmailQW['smsday'] = 0:
-		blackmailQW['smsday'] = blackmailQW['dreamday'] + 3
-		gs 'telefon', 'AddContact', 'Blackmailer', 'icon_na', 1
-		gs 'telefon', 'SetSMSSchedule', 'Blackmailer', "", "0", "gs 'blackmailer', 'Add_SMS1'", "daystart > blackmailQW['smsday'] and (hour >= 14 and hour <= 19 and rand(0, 100) = 0 or hour = 19 and minut >= 22 or hour = 20)"
-	elseif daystart = blackmailQW['smsday'] and blackmailQW['next_payment'] > 0:
-		gs 'telefon', 'SetSMSSchedule', 'Blackmailer', "", "0", "gs 'blackmailer', 'Add_SMS1_reminder'", "(hour >= 14 and hour <= 19 and rand(0, 100) = 0 or hour = 19 and minut >= 22 or hour = 20)"
-	elseif daystart > blackmailQW['smsday'] and blackmailQW['next_payment'] > 0:
-		gs 'telefon', 'SetSMSSchedule', 'Blackmailer', "", "0", "gs 'blackmailer', 'Add_SMS_failure'", "(hour >= 14 and hour <= 19 and rand(0, 100) = 0 or hour = 19 and minut >= 22 or hour = 20)"
-
-	!Currently repeating content
-	elseif blackmailQW['stage'] >= 5 and blackmailQW['smsday'] = 0:
-		blackmailQW['smsday'] = daystart + rand(0, 13 - 5 * min(blackmailQW['stage'] - 5, 2)) + 6
-		gs 'telefon', 'SetSMSSchedule', 'Blackmailer', "", "0", "gs 'blackmailer', 'Add_SMS_repeat'", "daystart > blackmailQW['smsday'] and (hour >= 14 and hour <= 19 and rand(0, 100) = 0 or hour = 19 and minut >= 22 or hour = 20)"
+	if blackmailQW['next_payment'] > 0:
+		if daystart = blackmailQW['smsday']:
+			gs 'telefon', 'SetSMSSchedule', 'Blackmailer', "", "0", "gs 'blackmailer', 'Add_SMS1_reminder'", "(hour >= 14 and hour <= 19 and rand(0, 100) = 0 or hour = 19 and minut >= 22 or hour = 20)"
+		elseif daystart > blackmailQW['smsday']:
+			gs 'telefon', 'SetSMSSchedule', 'Blackmailer', "", "0", "gs 'blackmailer', 'Add_SMS_failure'", "(hour >= 14 and hour <= 19 and rand(0, 100) = 0 or hour = 19 and minut >= 22 or hour = 20)"
+		end
+	else
+		if blackmailQW['smsday'] = 0:
+			if blackmailQW['stage'] = 3:
+				blackmailQW['smsday'] = blackmailQW['dreamday'] + 4
+				gs 'telefon', 'AddContact', 'Blackmailer', 'icon_na', 1
+			elseif blackmailQW['stage'] >= 5:
+				blackmailQW['smsday'] = daystart + 6 + rand(0, 12 - 5 * (min(blackmailQW['stage'], 7) - 5))
+			end
+		elseif daystart >= blackmailQW['smsday']:
+			if blackmailQW['stage'] = 3:
+				gs 'telefon', 'SetSMSSchedule', 'Blackmailer', "", "0", "gs 'blackmailer', 'Add_SMS1'", "(hour >= 14 and hour <= 19 and rand(0, 100) = 0 or hour = 19 and minut >= 22 or hour = 20)"
+			elseif blackmailQW['stage'] >= 5:
+				gs 'telefon', 'SetSMSSchedule', 'Blackmailer', "", "0", "gs 'blackmailer', 'Add_SMS_repeat'", "(hour >= 14 and hour <= 19 and rand(0, 100) = 0 or hour = 19 and minut >= 22 or hour = 20)"
+			end
+		end
 	end
 end
 
@@ -291,8 +309,8 @@ end
 
 
 if $ARGS[0] = 'Add_SMS1':
+	if blackmailQW['stage'] = 3: blackmailQW['stage'] = 4
 	gs 'telefon', 'ClearSMSSchedule', 'Blackmailer'
-	blackmailQW['stage'] = 4
 	blackmailQW['smsday'] = daystart + 2
 	blackmailQW['next_payment'] = rand(50, 100) * 10
 	$blackmailQW['blackmail_image_chosen'] = $blackmailQW['init_flashimage']
@@ -338,9 +356,9 @@ end
 
 if $ARGS[0] = 'Add_SMS_failure':
 	gs 'telefon', 'ClearSMSSchedule', 'Blackmailer'
+	blackmailQW['smsday'] = 0
 
 	if blackmailQW['next_payment'] > 0:
-		blackmailQW['stage'] = -1
 		blackmailQW['next_payment'] = 0
 
 		$SMSTree['0'] = 'Guess you like it when people know you''re a whore'
@@ -363,6 +381,7 @@ if $ARGS[0] = 'Add_SMS_failure':
 				fame['pav_sex'] += 5 * blackmailQW['total_material']
 			end
 		end
+		blackmailQW['stage'] = -1
 	end
 end
 
@@ -400,11 +419,12 @@ if $ARGS[0] = 'park1':
 	else
 		act 'Hide the money (<<blackmailQW[''next_payment'']>> <b>₽</b>)':
 			*clr & cla
+			if blackmailQW['stage'] = 4: blackmailQW['stage'] = 5
+			gs 'telefon', 'ClearSMSSchedule', 'Blackmailer'
+			blackmailQW['smsday'] = 0
 			money -= blackmailQW['next_payment']
 			blackmailQW['total_payment'] += blackmailQW['next_payment']
 			blackmailQW['next_payment'] = 0
-			blackmailQW['stage'] = 5
-			blackmailQW['smsday'] = 0
 
 			minut += 1
 			gs 'stat'
@@ -424,9 +444,78 @@ end
 
 	!!=============================================!!
 	!!                                             !!
+	!!                   POLICE                    !!
+	!!                                             !!
+	!!=============================================!!
+
+
+if $ARGS[0] = 'set_police_act':
+	if blackmailQW['stage'] >= 3 and blackmailQW['escape'] = 0:
+		act 'Report that you''re being blackmailed':
+			minut += 5
+			gs 'stat'
+			gt 'blackmailer', 'police1'
+		end
+	end
+end
+
+if $ARGS[0] = 'police1':
+	if $region = 'pav':
+		'<center><img <<$set_imgh>> src="images/locations/pavlovsk/police/pavrec.jpg" ></center>'
+		'You walk up to a bored looking cop shuffling about some paperwork.'
+	else:
+		'<center><img <<$set_imgh>> src="images/locations/city/citycenter/police/cityrec.jpg"></center>'
+		'You walk up to a window, you pick up the phone and hear a buzzer sound on the other side. One of the officers picks it up without hesitation and looks at you.'
+	end
+	'"Can I help you?"'
+	'"I-I''m being blackmailed" you stammer. The cops eyebrow raises slightly, but other than that his expression doesn''t change.'
+	if $region = 'pav':
+		'"Follow me, we can take your statement over here."'
+	else
+		'"Someone will come out to meet you. Follow them and they''ll take your statement in the back."'
+	end
+	act 'Continue':
+		*clr & cla
+		minut += 5
+		gs 'stat'
+
+		'<center><img <<$set_imgh>> src="images/locations/shared/police/interrogation1.jpg"></center>'
+		if $region = 'pav':
+			'You sit down at a shoddy looking desk and another officer who looks only marginally more competent than the one who greeted you sits down across from you.'
+		else
+			'As promised, someone comes out and takes you into their office space behind. You sit down at a shoddy looking desk and the officer takes his place on the other side of it.'
+		end
+		'"Alright ma''am, you stated that you were being blackmailed. Could you please explain the situation?"'
+		gs 'willpower', 'flash', 'self'
+		if pcs_willpwr < will_cost:
+			act 'Tell them that somebody caught you flashing your <<$blackmailQW[''init_flashaction'']>> <<$blackmailQW[''init_flashloc_desc'']>> and has been demanding money (<font color="red"><<will_cost>> willpower</font>)':'<br><font color="red">You don''t have enough willpower to use this action.</font>'
+		else
+			act 'Tell them that somebody caught you flashing your <<$blackmailQW[''init_flashaction'']>> <<$blackmailQW[''init_flashloc_desc'']>> and has been demanding money.':
+				*clr & cla
+			end
+		end
+		act 'This is too embarrassing, flee the police station':
+			*clr & cla
+			minut += 10
+			gs 'stat'
+
+			'<center><img <<$set_imgh>> src="images/locations/city/citycenter/police/cityext.jpg"></center>'
+			'The situation suddenly comes crashing into you '
+		end
+	end
+
+
+end
+
+
+
+
+	!!=============================================!!
+	!!                                             !!
 	!!                  REPEATING                  !!
 	!!                                             !!
 	!!=============================================!!
+
 
 if $ARGS[0] = 'Add_SMS_repeat':
 	gs 'telefon', 'ClearSMSSchedule', 'Blackmailer'
@@ -604,6 +693,8 @@ if $ARGS[0] = 'park_repeat':
 	else
 		act 'Hide the money (<<blackmailQW[''next_payment'']>> <b>₽</b>)':
 			*clr & cla
+			gs 'telefon', 'ClearSMSSchedule', 'Blackmailer'
+			blackmailQW['smsday'] = 0
 			money -= blackmailQW['next_payment']
 			blackmailQW['total_payment'] += blackmailQW['next_payment']
 			blackmailQW['next_payment'] = 0
