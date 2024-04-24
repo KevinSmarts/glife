@@ -5,30 +5,24 @@
 !!                                                                           !!
 !!===========================================================================!!
 
-if pcs_nerd <= 0: pcs_nerd = min(1,glass)
 if pcs_nerd > 0:
-	if lastreadday = daystart:
+	if daystart = lastreadday:
 		!!<font color="green">You are completely healthy shine and a healthy glow.</font>
 		if pcs_mood < 90: pcs_mood += rand(5,10)
-		SbrosNerdism = 0
 		$mudnerd = '<font color="green">You are lost in a fantasy after reading a book.</font>'
-	elseif lastreadday + 1 = daystart:
-		SbrosNerdism = 0
+	elseif daystart = lastreadday + 1:
 		$mudnerd = '<font color="black">You are a little bored and want to plunge into a book.</font>'
-	elseif lastreadday + 2 = daystart:
-		SbrosNerdism = 0
-		if pcs_mood > 50:pcs_mood -= rand(5,10)
+	elseif daystart = lastreadday + 2:
+		if pcs_mood > 50: pcs_mood -= rand(5,10)
 		$mudnerd = '<font color="red">You really want to read something.</font>'
-	elseif lastreadday + 3 <= daystart:
-		if pcs_mood > 10:pcs_mood -= rand(5,10)
-		SbrosNerdism = 1
+	elseif daystart => lastreadday + 3:
+		if pcs_mood > 10: pcs_mood -= rand(5,10)
 		$mudnerd = '<font color="red"><b>You have an incredibly strong desire to read!!!</b></font>'
+		pcs_nerd = max(0, pcs_nerd / 10 - stat['body_count'])
 	end
-
-	if SbrosNerdism = 1: pcs_nerd = max(0, pcs_nerd / 10 - stat['body_count'])
-else
+end
+if pcs_nerd <= 0:
 	killvar 'pcs_nerd'
-	killvar 'SbrosNerdism'
 	killvar '$mudnerd'
 end
 
@@ -38,13 +32,6 @@ if scpopt > 1: scpopt = 0
 if insleep = 1:
 	pcs_energy -= (succublvl / 2)
 	pcs_hydra  -= (succublvl / 2)
-	if amphHigh > 0:
-		pcs_energy -= (4 / amphetamineBonus)
-		pcs_hydra  -= (8 / amphetamineBonus)
-	else
-		pcs_energy -= (4 * amphetamineBonus)
-		pcs_hydra  -= (8 * amphetamineBonus)
-	end
 
 	pcs_stam += iif(pcs_sleep > 90, stammax/2, iif(pcs_sleep > 80, stammax/4, stammax/8))
 
@@ -57,13 +44,7 @@ if insleep = 1:
 else
 	pcs_energy -= succublvl
 	pcs_hydra  -= succublvl
-	if amphHigh > 0:
-		pcs_energy -= ( 8 / amphetamineBonus)
-		pcs_hydra  -= (16 / amphetamineBonus)
-	else
-		pcs_energy -= ( 8 * amphetamineBonus)
-		pcs_hydra  -= (16 * amphetamineBonus)
-	end
+
 
 	if hypnoAddict > 0: dynamic $hypnoAddiction
 
@@ -105,6 +86,13 @@ else
 	pcs_willpwr += pcs_willpower_feeder/100
 	pcs_willpower_feeder = pcs_willpower_feeder mod 100
 end
+
+gs 'drugs', 'smoke', 'hourly_events'
+gs 'drugs', 'joint', 'hourly_events'
+gs 'drugs', 'heroin', 'hourly_events'
+gs 'drugs', 'cocaine', 'hourly_events'
+gs 'drugs', 'amphetamine', 'hourly_events'
+gs 'drugs', 'aphrodisiac', 'hourly_events'
 
 
 !!=======================================================!!
@@ -150,12 +138,12 @@ elseif pcs_period['period_warning'] = 1 and LutH_Max-LutH <= 2:
 		msg'Your stomach twinges again. Another cramp of pain. It must mean your period is about to start. You really need to get a tampon in there ASAP.'
 	end
 elseif mesec > 0:
-	period['cramp'] = 0
+	pcs_period['period_warning'] = 0
 end
 
 
 !! code to trigger vomitting based on morning sickness, hangovers, or just plain bad luck
-if Insleep = 0:   
+if Insleep = 0:
 	vomit['daily_check'] = 0
 
 !!if Insleep = 1:
@@ -165,7 +153,7 @@ else
 
 		if alko > 4:
 			vomit['hangover'] = 1
-		 
+		
 		elseif pregchem > 600 and pregchem < 2160 and rand(1,4) = 4:
 			vomit['morning_sick'] = 1
 		
@@ -199,81 +187,11 @@ elseif alko < 0:
 	alko = 0
 end
 
-if shame > 0: 
+if shame > 0:
 	shame -= 1
 	pcs_mood -= 5
 end
 
-!!NarkImmune = 0
-if smoker >= 20 and NarkImmune = 0: smokerNeed += 1
-if smokerNeed > 10 and InSleep = 0 and pcs_mood > 20 and NarkImmune = 0: pcs_mood -= pcs_mood / 10
-
-if smokerNeed > 300: 
-	smokerNeed = 0
-	smoker = 0
-end
-
-if StrongNarkota > 0: 
-	pcs_mood -= (40 / StrongNarkota)
-	StrongNarkota -= 1
-end
-
-if amphWithdrawl >= 5: 
-	amphWithdrawl += 1
-	pcs_mood -= (amphWithdrawl / 5)
-end
-
-if amphHigh > 0:
-	if amphWithdrawl < 2: amphWithdrawl = 2
-	amphetamineBonus = 3
-	amphHigh -= 4
-	pcs_mood += (2 * amphHigh)
-
-elseif amphHigh <= 0 and amphWithdrawl = 2:
-	if amphIntake > 0:
-		amphIntake -= 1
-	else
-		amphWithdrawl = 0
-	end
-
-	amphHigh = 0
-	amphetamineBonus = 2
-	pcs_mood -= pcs_mood / 10
-
-elseif amphIntake > 0:
-	amphWithdrawl += 1
-
-elseif amphHigh = 0 and amphWithdrawl = 0:
-	amphetamineBonus = 1
-end
-
-if amphWithdrawl > 169: 
-	amphWithdrawl = 1
-	amphetamineBonus = 1
-	amphCount = 0
-end
-
-if SLomka > 0 and pcs_mood > 10: 
-	SLomka += 1
-	pcs_mood -= pcs_mood / 10
-end
-if SLomka > 100 and StrongNarkota <= 0: 
-	SLomka = 0
-	SNarkTimes = 0
-end
-
-if jointhigh > 0: jointhigh -= 1
-
-if narkoman = 1 and narkday ! daystart:
-	pcs_health -= 5
-	
-	!! Changed from pcs_mood > 40 -> pcs_mood > 45 to avoid pcs_mood becoming lower than 5. Blame Anjuna
-	if pcs_mood > 45: 
-		pcs_mood -= 40
-	else
-		pcs_mood = 5
-	end
-end
 
 if $pantyworntype = 'none' and PCloPants > 0 and PCloPanties = 0 and $clothingworntype ! 'nude' and pcs_traits['commando_lvl'] < 2:
 	!! mosol += (2 - pcs_traits['commando_lvl'])
@@ -339,18 +257,6 @@ if KGOLpers > 0:
 	if KGMana < KGManaMax: KGMana += 10
 end
 
-!! pain[0] = pain['total'] , pain[1] = pain['damage'] , pain[2] = pain['relief']
-i = arrsize('pain')
-:statpainloop
-if i > 0:
-	i -= 1
-	pain[i] -= rand(0,1)
-	if pain[i] < 0: pain[i] = 0
-
-	jump 'statpainloop'
-end
-
-
 !! Panty happiness gain
 if pcs_mood < 60 and $pantyworntype = 'cats': pcs_mood += 2
 if pcs_mood < 60 and $braworntype = 'cats': pcs_mood += 2
@@ -364,15 +270,6 @@ elseif pcs_horny < 10 and (PanThinness >= 5 or BraThinness >= 5):
 	pcs_horny += 5
 end
 
-if aphrodisiac_timer >= 1:
-	!! Changed from pcs_horny < 80 -> pcs_horny < 70 to ensure a minimum increase of +10. Blame Anjuna
-	if pcs_horny < 70:
-		pcs_horny = 80
-	else
-		pcs_horny += 10
-	end
-	aphrodisiac_timer -= 1
-end
 
 if $pantyworntype ! 'none' and clit_size >= 25 and pcs_horny < 60:
 	pcs_horny += 20
@@ -440,13 +337,13 @@ if (hour mod 2) = 0: gs 'outdoors', 'weather'
 if nerd_game['invite_day'] < daystart and week = 1 and hour >= 11 and hour <= 15:
 	if yearstart = 1 and (grupTipe = 3 or nerd_game['stage'] > 0 or rand(80,npc_rel['A152']) > 95):
 		!! hour = 15 forces SMS if it hasn''t triggered yet.
-		if rand(0, 2) = 0 or hour = 15: 
+		if rand(0, 2) = 0 or hour = 15:
 			gs 'nerd_game_night', 'summer_invite_sms', 'Add SMS'
 		end
 
 	elseif yearstart > 1 and nerd_game['fixed_uni_day'] = 0 and (nerd_game['stage'] > 0 or rand(80,npc_rel['A152']) > 95):
 		!! hour = 15 forces SMS if it hasn''t triggered yet.
-		if rand(0, 2) = 0 or hour = 15: 
+		if rand(0, 2) = 0 or hour = 15:
 			gs 'nerd_game_night', 'summer2_invite_sms', 'Add SMS'
 		end
 	end
