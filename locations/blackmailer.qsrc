@@ -343,6 +343,7 @@ if $ARGS[0] = 'Add_SMS1_reminder':
 	gs 'telefon', 'ClearSMSSchedule', 'Blackmailer'
 
 	if blackmailQW['next_payment'] > 0:
+		if blackmailQW['escape'] = -1: blackmailQW['escape'] = 0
 		$SMSTree['0'] = '<<$pcs_firstname>> don''t forget, if you don''t leave <<blackmailQW[''next_payment'']>> <b>₽</b> beneath the fourth park bench, you will regret it'
 
 		gs 'SMStext_builder', 'start'
@@ -359,6 +360,7 @@ if $ARGS[0] = 'Add_SMS_failure':
 	blackmailQW['smsday'] = 0
 
 	if blackmailQW['next_payment'] > 0:
+		if blackmailQW['escape'] = -1: blackmailQW['escape'] = 0
 		blackmailQW['next_payment'] = 0
 
 		$SMSTree['0'] = 'Guess you like it when people know you''re a whore'
@@ -452,6 +454,7 @@ end
 if $ARGS[0] = 'set_police_act':
 	if blackmailQW['stage'] >= 3 and blackmailQW['escape'] = 0:
 		act 'Report that you''re being blackmailed':
+			menu_off = 1
 			minut += 5
 			gs 'stat'
 			gt 'blackmailer', 'police1'
@@ -492,19 +495,80 @@ if $ARGS[0] = 'police1':
 		else
 			act 'Tell them that somebody caught you flashing your <<$blackmailQW[''init_flashaction'']>> <<$blackmailQW[''init_flashloc_desc'']>> and has been demanding money.':
 				*clr & cla
+				minut += 5
+				gs 'stat'
+
+				'<center><img <<$set_imgh>> src="images/locations/shared/police/interrogation2.jpg"></center>'
+				'"Some creep took a picture of me and is demanding money or he''ll release the picture!"'
+				'"Hmm, how did this person contact you?"'
+				'"He texted me."'
+				'You see a stark of hope flash through the officers eyes, if you could show us the texts we might be able to locate him."'
+				
+				if arrpos('$SMSContact', 'Blackmailer') >= 0:
+					act 'Show them the messages':
+						*clr & cla
+						if $blackmailQW['blackmail_image_chosen'] = '': $blackmailQW['blackmail_image_chosen'] = $blackmailQW['init_flashimage']
+						blackmailQW['escape'] = 1
+						minut += 10
+						gs 'stat'
+
+						'<center><img <<$set_imgh>> src="<<$blackmailQW[''blackmail_image_chosen'']>>"></center>'
+						'You open your phone and show the police officers the messages, and the images that you were send. You see the officer raise his eyebrow and you think you can almost hear him mutter "accidentally?" under his breath.'
+						'The officer fuddles around with you phone for a few minutes, his expression darkning with every bygone moment.'
+						'"Ma''am, we''re taking this very seriously, but the perp was smart and hid his telephone number. We''ll try our best, stake out this drop-off location, but I don''t have high hopes that we''ll catch him quick enough."'
+						'"I''m so sorry."'
+						'A sense of defeat and humiliation fills you, the need to remove yourself from this situation is almost unbearable.'
+						'"We will do everything we can, and here, take my card. Anything you need."'
+						'You pocket the card without even looking at it, and quickly hurry out the station.'
+						act 'Leave': gt $loc, $loc_arg
+
+					end
+					act 'Claim you deleted the messages': gt 'blackmailer', 'police_deleted'
+				else
+					act 'Say you deleted the messages': gt 'blackmailer', 'police_deleted'
+				end
 			end
 		end
 		act 'This is too embarrassing, flee the police station':
 			*clr & cla
+			blackmailQW['escape'] = -1
 			minut += 10
 			gs 'stat'
 
-			'<center><img <<$set_imgh>> src="images/locations/city/citycenter/police/cityext.jpg"></center>'
-			'The situation suddenly comes crashing into you '
+			if $region = 'pav':
+				'<center><img <<$set_imgh>> src="images/locations/pavlovsk/police/pavext.jpg" ></center>'
+			else:
+				'<center><img <<$set_imgh>> src="images/locations/city/citycenter/police/cityext.jpg"></center>'
+			end
+			'Sitting in the interrogation room with the police officer, the situation suddenly comes crashing into you. You''re going to have to show some proof. That you were flashing your <<$blackmailQW[''init_flashaction'']>> <<$blackmailQW[''init_flashloc_desc'']>>. They will see the texts, the photos. They will see you for who you must be on the inside. You can already feel their eyes judging you.'
+			'"I-I-I can''t, I can''t, I can''t..." you manage to push out, nearly hyper-ventilating.'
+			'You nearly jump up out of the chair, backing up towards the door. Your eyes wide with panic "I''m sorry, I was mistaken".'
+			'The police officer just sighs and moves towards the door "If you change your mind, you kn..."'
+			'The remainder of the officers words fall on deaths ear as you rush out of the police station.'
+
+			act 'Leave the station': gt $loc, $loc_arg
 		end
 	end
+end
 
+if $ARGS[0] = 'police_deleted':
+	minut += 10
+	blackmailQW['escape'] = -1
+	gs 'stat'
 
+	if $region = 'pav':
+		'<center><img <<$set_imgh>> src="images/locations/pavlovsk/police/pavext.jpg" ></center>'
+	else:
+		'<center><img <<$set_imgh>> src="images/locations/city/citycenter/police/cityext.jpg"></center>'
+	end
+	'"Uhhmm" you stammer. "I, uhh, I deleted them."'
+	'The hope in the officers eyes is immediately extinguised, replaced with a distrusting and tired look. "I''m sorry ma''am, we''ll try our best but without any evidence we really can''t help you."'
+	'"If the suspect contacts you again, please don''t delete the messages. Okay?"'
+	'You nod your head dejectedly.'
+	'The officer stands up and escorts you back to the lobby. You briefly think to inform the officer about the drop-off location, but before you can even open your mouth you''re already outside the station.'
+	'Seems like you''ll need some proof before they''ll take you seriously.'
+
+	act 'Leave': gt $loc, $loc_arg
 end
 
 
@@ -520,6 +584,7 @@ end
 if $ARGS[0] = 'Add_SMS_repeat':
 	gs 'telefon', 'ClearSMSSchedule', 'Blackmailer'
 	blackmailQW['smsday'] = daystart + 2
+	if blackmailQW['escape'] = -1: blackmailQW['escape'] = 0
 	blackmailQW['next_payment'] = (rand(50, 100) + (blackmailQW['total_payment'] / 50 ) / (1 + blackmailQW['total_payment'] / 20000)) * 10
 	$blackmailQW['blackmail_image_chosen'] = func('blackmailer', 'choose_blackmail_image')
 
