@@ -157,19 +157,28 @@ if $ARGS[0] = 'd_bag':
 	elseif (mc_inventory['travel_mirror'] =  1 or mc_inventory['comb'] =  1) and pcs_hairbsh = 1: 
 		'There''s a hairbrush in your purse. Your hair doesn''t need brushing right now.'
 	end
-	if pcs_hairlng > 80 and mc_inventory['scrunchies'] >= 1 and hbraids = 0:
-		if hscrunchw = 0 and hpingripw = 0: 'As you have a scrunchy, you can arrange your hair into a <a href="exec:hscrunchw = 1 & gs ''din_bad'', ''d_bag''">ponytail</a>. You have <<mc_inventory[''scrunchies'']>> scrunchies left.'
-		if hscrunchw = 1: 'Remove the <a href="exec:hscrunchw = 0 & gs ''din_bad'', ''d_bag''">scrunchie</a> to get rid of the ponytail.'
+	if pcs_hairbsh > 0 and pcs_hairlng > 80 and hbraids = 0:
+		*nl
+		if mc_inventory['scrunchies'] >= 1 and hscrunchw + hpingripw = 0:
+			'As you have a scrunchy, you can arrange your hair into a <a href="exec:hscrunchw = 1 & gs ''din_bad'', ''d_bag''">ponytail</a>. You have <<mc_inventory[''scrunchies'']>> scrunchies left.'
+		end
+		if pcs_hairlng <= 400 and mc_inventory['kirbygrips'] >= 1 and hscrunchw + hpingripw = 0:
+			'You have several clips, pins and grips for you hair. Hence, you can <a href="exec:hpingripw = 1 & gs ''din_bad'', ''d_bag''">updo your hair</a>. You have <<mc_inventory[''kirbygrips'']>> hair accessories at your disposal.'
+		end
+		if pcs_hairlng <= 800 and mc_inventory['scrunchies'] >= 1:
+			if mc_inventory['scrunchies'] >= 2 and hscrunchw + hpingripw = 0:
+				'You can use two hair ties to make yourself some <a href="exec:hpigtail = 1 & hscrunchw = 2 & gs ''din_bad'', ''d_bag''">pigtails</a>.'
+			end
+			if canBraidHair = 1 and hscrunchw + hpingripw + hpigtail = 0:
+				'You can spend <<pcs_hairlng/10>> minutes <a href="exec:minut += pcs_hairlng/10 & hbraids = 15 & gs ''din_bad'', ''d_bag''">braiding</a> your hair, just the way your sister taught you.'
+			end
+		end
 	end
-	if pcs_hairlng > 80 and pcs_hairlng <= 400 and mc_inventory['kirbygrips'] >= 1 and hbraids = 0:
-		if hscrunchw = 0 and hpingripw = 0: 'You have several clips, pins and grips for you hair. Hence, you can <a href="exec:hpingripw = 1 & gs ''din_bad'', ''d_bag''">updo your hair</a>. You have <<mc_inventory[''kirbygrips'']>> hair accessories at your disposal.'
-		if hpingripw = 1: 'Let your hair <a href="exec:hpingripw = 0 & gs ''din_bad'', ''d_bag''">flow free</a>.'
-	end
-	if pcs_hairlng > 80 and pcs_hairlng <= 800 and mc_inventory['scrunchies'] >= 2 and hbraids = 0:
-		if hscrunchw = 0 and hpingripw = 0: 'You can use two hair ties to make yourself some <a href="exec:hpigtail = 1 & hscrunchw = 2 & gs ''din_bad'', ''d_bag''">pigtails</a>.'
-		if hscrunchw = 2: '<a href="exec:hpigtail = 0 & hscrunchw = 0 & gs ''din_bad'', ''d_bag''">Remove</a> your scrunchies and let your hair flow free again.'
-	end
-	
+	if hscrunchw = 1: 'Remove the <a href="exec:hscrunchw = 0 & gs ''din_bad'', ''d_bag''">scrunchie</a> to get rid of the ponytail.'
+	if hscrunchw = 2: '<a href="exec:hpigtail = 0 & hscrunchw = 0 & gs ''din_bad'', ''d_bag''">Remove</a> your scrunchies and let your hair flow free again.'
+	if hpingripw = 1: 'Let your hair <a href="exec:hpingripw = 0 & gs ''din_bad'', ''d_bag''">flow free</a>.'
+	if hbraids > 0: 'Take <<hbraids*2+pcs_hairlng/50>> minutes removing your <a href="exec:minut += hbraids*2+pcs_hairlng/50 & hbraids = 0 & gs ''din_bad'', ''d_bag''">braid</a>.'
+
 	*nl
 	if mc_inventory['equipped_condoms'] + mc_inventory['normal_condoms'] + mc_inventory['sabotaged_condoms'] > 0:
 		if preziktype = 2 or mc_inventory['sabotaged_condoms'] > 0:
@@ -251,7 +260,7 @@ if $ARGS[0] = 'd_bag':
 	*nl
 	if $pursepantytype ! '' or $pursebratype ! '': 'You also have '+iif($pursepantytype ! '','<a href="exec:view''<<func(''$panty_image'', $pursepantytype, pursepantynumber)>>''">a pair of panties</a>','')+iif($pursepantytype ! '' and $pursebratype ! '',' and ','')+iif($pursebratype ! '','<a href="exec:view''<<func(''$bra_image'', $pursebratype, pursebranumber)>>''">a bra</a>','')+' in your purse, which you can put on in the nearest bathroom.'
 	if photographyEv >= 2: 'You have <a href="exec:gt''camera'',''start''">a camera</a> in your purse.'
-	act 'Return':gt 'obj_din', 'menu_exit'
+	act 'Return':gs 'obj_din', 'menu_exit' & gt $menu_loc, $menu_arg
 	'</td></tr></table></center>'
 end
 
@@ -735,6 +744,7 @@ $d_cycreport_actor = {
 		end
 		
 		killvar 'potfather_counter'
+		killvar 'potfather_temp'
 		
 		'<br>  <a href="exec:dynamic $d_cycreport_choice & gs ''stat''">Accept</a>'
 		'</td></tr></table></center>'
@@ -797,7 +807,7 @@ $d_cycreport_update = {
 	elseif succubusflag = 1:
 		$cycreport_txt = 'As a succubus you no longer menstruate.'
 	else
-		if cyccustom = 1:
+		if cheatVars['track_period'] = 1:
 			if preg = 1 and knowpreg = 1:
 				$cycreport_txt = 'You are pregnant. Your due date is around <<$pregduedate>>.'
 				if $wombthfath <> 'unknown' and $wombthfath <> '':
@@ -888,7 +898,7 @@ $d_cycreport_update = {
 				temp = daystart-daylastperiod
 				$cycreport_txt = 'It has been <<temp>> days since you last remember having a period.'
 			end
-		elseif cyccustom = 0:
+		elseif cheatVars['track_period'] = 0:
 			if $cycreport_txt ! 'In labour':
 				if thinkpreg = 1 or knowpreg = 1:
 					if knowpreg = 0: $temp = ' think you'
@@ -915,7 +925,7 @@ $d_cycreport_upduedate = {
 	implant_calc = daystart - lastovulation + 5
 	
 	!! Human gastation period: 280 days
-	gastation_time = 280 / (1 + pregspeedcheat)
+	gastation_time = 280 / (1 + cheatVars['preg_speed'])
 	
 	temp = gastation_time - implant_calc
 	pregdueday = day
@@ -1028,7 +1038,7 @@ $d_pregmovement = {
 				end
 			end
 		else
-			if cyccustom = 1:
+			if cheatVars['track_period'] = 1:
 				if pregchem < 4000:
 					if kid <= 0 :
 						'You feel a weird and strange fluttering sensation around inside your stomach. Perhaps you should see the doctor?'
