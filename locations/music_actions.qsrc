@@ -1,38 +1,39 @@
 #music_actions
 
-if $ARGS[0] = 'music_icon':
+
+if $ARGS[0] = 'start':
     !! Everywhere
     ml_time_left = ml_performance['max_perform_minutes']-ml_performance['performed_minutes']
-    if alko > 5:
+    !! Will move but too many changes for a
+    if ml_activities['enabled'] = 0 and (ml_guitar['hasguitar'] or vokal_lvl > 5): 
+        ml_activities['enabled'] = 1
+    end
+
+    if alko > 5 and ml_activities['enabled'] = 1:
         'You are too drunk to stream or record music without messing up or throwing up into your guitar.'
     !! $location_type = ''public_outdoors'' means parks, streets. Some event types can be placed in these locations : playing music, recording music - e.g in front of
     !! the library, or at the church, etc. 
-    else
-        if ($location_type = 'private' or ($location_type = 'public_outdoors' and sunWeather = 1 and temper > 15)) and ml_no_music = 1: gs 'music_actions', 'clear_restrictions'
-
-        if ml_no_music = 0:
-            if hour < 8: 
-                'It''s too early to do anything noisy like playing the guitar or singing.'
-            elseif hour > 22:
-                'It''s too late to do anything noisy like playing the guitar or singing.'
-            else
-                if ml_settings['its_me'] = 1: 
-                    if ml_guitar['hasguitar'] = 1 and (ml_guitar['carried'] = 1 or $ml_guitar['location'] = $loc):
-                        pl '<center><a href="exec: gs ''music_actions'', ''start''"><img title="Click to to see available music activities." height = 120 src="images/system/icons/icon_transp_guitaraction01.png"></a></center>'
-                    else
-                        pl '<center><a href="exec: gs ''music_actions'', ''start''"><img title="Click to to see available music activities." height = 120 src="images/system/icons/icon_transp_singeraction01.png"></a></center>'
-                    end
+    elseif ($location_type = 'private' or ($location_type = 'public_outdoors' and sunWeather = 1 and temper > 15)) and ml_no_music = 0 and ml_activities['enabled'] = 1:
+        if hour < 8: 
+            'It''s too early to do anything noisy like playing the guitar or singing.'
+        elseif hour > 22:
+            'It''s too late to do anything noisy like playing the guitar or singing.'
+        else
+            if ml_settings['its_me'] = 1: 
+                if ml_guitar['hasguitar'] = 1 and (ml_guitar['carried'] = 1 or $ml_guitar['location'] = $loc):
+                    pl '<center><a href="exec: gs ''music_actions'', ''available_actions''"><img title="Click to to see available music activities." height = 120 src="images/system/icons/icon_transp_guitaraction01.png"></a></center>'
                 else
-                    act 'Available musical activities': gs 'music_actions', 'start'
+                    pl '<center><a href="exec: gs ''music_actions'', ''available_actions''"><img title="Click to to see available music activities." height = 120 src="images/system/icons/icon_transp_singeraction01.png"></a></center>'
                 end
+            else
+                act 'Available musical activities': gs 'music_actions', 'available_actions'
             end
-            if ml_guitar['hasguitar'] = 1 and $location_type = 'private': gs 'music_actions', 'put_down_pick_up'
         end
+        if ml_guitar['hasguitar'] = 1 and $location_type = 'private': gs 'music_actions', 'put_down_pick_up'
     end
 end
 
-
-if $ARGS[0] = 'start': 
+if $ARGS[0] = 'available_actions': 
     cla
     ml_time_left =  ml_performance['max_perform_minutes']-ml_performance['performed_minutes']
     if $location_type = 'public_outdoors': 
@@ -42,30 +43,26 @@ if $ARGS[0] = 'start':
         killvar 'access'
     end
     
-    if ml_not_alone ! 0: gs 'music_actions', 'willpower_cost'
     if $access = '': gs 'internet_mobile', 'get_access'
 
     !! $location_type = ''private'' = these are usually homes. ''indoors'' usually an office, shop or an NPC''s home. Same for ''public_indoors'' For those locations
     !! anything music related should be part of a storyline/quest, or some prewritten scene, like in the room of Anushka
     gs 'music_actions', 'play_something'
     gs 'music_actions', 'practice_guitar'
-    
+
     if $location_type = 'public_outdoors': gs 'music_actions', 'busking'
     gs 'music_actions', 'record_music'
-    gs 'music_actions', 'stream_music'
+    
 
-    !! NOTE: When content gates are added
-    !!if ml_activities['setlist'] = 1: gs 'music_actions', 'rehearse_gig'
-    !!if ml_activities['busking'] = 1: gs 'music_actions', 'busking'
-    !!if ml_activities['streaming'] = 1: gs 'music_actions', 'stream_music'
-    !! if this is done outdoors, any editing, mixing must be dones at home. So 'Record and edit' is not available outdoors.
+    !! if this is done outdoors, any editing, mixing must be done at home. So 'Record and edit' is not available outdoors.
     !! Although more accurate would be to check whether Sveta is at home or not, and if she is not home then that option won''t be available.
-    !!if ml_activities['recording'] = 1: gs 'music_actions', 'record_music'
-
-    if $access ! 'denied': gs 'music_actions', 'set_up_account'
-    !! if $access ! 'denied': gs 'music_actions', 'upload_music'
-    gs 'music_actions', 'delete_music'
-
+    
+    if $access ! 'denied': 
+        gs 'music_actions', 'stream_music'
+        gs 'music_actions', 'set_up_account'
+        !! gs 'music_actions', 'upload_music'
+        gs 'music_actions', 'delete_music'
+    end
     act 'Finish': gs 'music_actions', 'finish'
 end
 
@@ -207,6 +204,7 @@ if $ARGS[0] = 'stream_music':
     elseif ml_time_left < 60:
         act 'Live stream (<font color="red">You are too tired</font>)': '<br><font color="red">You have played so much today, that your brain and hands are too tired to play a whole stream.</font>'    
     else
+        gs 'music_actions', 'willpower_cost'
         if will_cost = 0:
             act 'Live stream (60 minutes)': gt 'music_onlinemusic', 'live_stream'
         elseif will_cost  <= pcs_willpwr:
@@ -230,22 +228,25 @@ end
 !! click a hundred times to do something. Boring.  
 !! 4. Computer based recording is removed for now, some changes are needed
 if $ARGS[0] = 'record_music':
-    !! Recording music
+    !! Recording music    
     if ml_performance['max_perform_minutes'] < 30:
         act 'Record a song (<font color="red">You are not able to play for half an hour yet.</font>)': '<br><font color="red">You don''t have the endurance yet to play for half an hour continuously.</font>'
     elseif ml_time_left < 30:
         act 'Record a song (<font color="red">You are too tired</font>)': '<br><font color="red">You have played so much today, that your brain and hands are too tired to record anything right now.</font>'    
-    elseif will_cost = 0:
-            act 'Record a song with your phone (30 minutes)': gt 'music_onlinemusic', 'record_song'
-    elseif will_cost  <= pcs_willpwr:
-        act 'Record a song with your phone (30 minutes) (<<will_cost>> Willpower' + iif(ml_not_alone, ' - you are not alone)', ')'):
-            inhib_exp += rand(1,2)
-            gs 'willpower', 'pay', 'self'
-            gs 'stat'
-            gt 'music_onlinemusic', 'record_song'
-        end
     else
-        act 'Record a song (<font color="red"><<will_cost>> Willpower - you are not alone</font>)': '<br><font color="red">You don''t feel comfortable recording in front of other people right now.</font>'
+        gs 'music_actions', 'willpower_cost'
+        if will_cost = 0:
+            act 'Record a song with your phone (30 minutes)': gt 'music_onlinemusic', 'record_song'
+        elseif will_cost  <= pcs_willpwr:
+            act 'Record a song with your phone (30 minutes) (<<will_cost>> Willpower' + iif(ml_not_alone, ' - you are not alone)', ')'):
+                inhib_exp += rand(1,2)
+                gs 'willpower', 'pay', 'self'
+                gs 'stat'
+                gt 'music_onlinemusic', 'record_song'
+            end
+        else
+            act 'Record a song (<font color="red"><<will_cost>> Willpower - you are not alone</font>)': '<br><font color="red">You don''t feel comfortable recording in front of other people right now.</font>'
+        end
     end
 end
 
@@ -344,7 +345,7 @@ if $ARGS[0] = 'finish':
     killvar 'will_cost'
     killvar 'ml_not_alone'
     killvar 'ml_no_music'
-    killvar 'ml_time_left'
+    killvar 'ml_time_left'    
     gt $loc, $loc_arg
 end
 
