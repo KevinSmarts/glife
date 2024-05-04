@@ -45,7 +45,7 @@
 if $ARGS[0] = 'init_breasttissue':
 	!!	use func('lact_lib','init_breasttissue')
 	!!	getting the useable tissue
-	lactation['useable_cupsize'] = pcs_mass['bust'] + bodyVars['bust_magic'] + bodyVars['bust_other'] - bodyVars['vofat']
+	lactation['useable_cupsize'] = pcs_mass['bust'] + bodyVars['bust_lact'] + bodyVars['bust_magic'] + bodyVars['bust_other'] - bodyVars['vofat']
 	!!	checking the variable. If it is greater 0, sveta has natural breast tissue to work with.
 	!!	else she has fake breasts or no breasts at all and no ability to lactate
 	if lactation['useable_cupsize'] > 0:
@@ -102,7 +102,7 @@ if $ARGS[0] = 'bsizetoccm':
 	!!	Getting breast ccm per breast function based on the bra size chart in here https://en.wikipedia.org/wiki/Bra_size
 	!!	I tried to create a math polynom for this, but ended up with x^16 monsters and inaccurate numbers, so I am going this approach.
 	!!	This is the most accurate function I was able to make, and is doing the job really good. So please do not touch it.
-	!!	usage func('lact_lib','bsizetoccm', (pcs_mass['bust'] + bodyVars['bust_magic'] + bodyVars['bust_silicone']))
+	!!	usage func('lact_lib','bsizetoccm', (pcs_mass['bust'] + bodyVars['bust_lact'] + bodyVars['bust_magic'] + bodyVars['bust_silicone']))
 	if ARGS[1] < 0:
 		result = 100
 	elseif ARGS[1] <= 15:
@@ -143,7 +143,7 @@ if $ARGS[0] = 'bsizetoccm':
 end
 
 if $ARGS[0] = 'bccmtosize':
-	!!	backwardsfunction of bsizetoccm. It just reverts breast ccm to "pcs_mass['bust'] + bodyVars['bust_magic'] + bodyVars['bust_silicone']" 
+	!!	backwardsfunction of bsizetoccm. It just reverts breast ccm to "pcs_mass['bust'] + bodyVars['bust_lact'] + bodyVars['bust_magic'] + bodyVars['bust_silicone']" 
 	!!	func('lact_lib','bccmtosize',lactation['breastccm'])
 	if ARGS[1] < 0:
 		result = 0
@@ -188,18 +188,18 @@ end
 if $ARGS[0] = 'lactationBreastGrowth':
 	if lactation['maturebreast'] = 1 and lactation['preggrowth'] > 0:
 !!		lactation['lactlib_change'] = 1
-		lactation['useable_cupsize'] = pcs_mass['bust'] + bodyVars['bust_magic'] - bodyVars['vofat']
-		pcs_mass['bust'] += func('lact_lib','bccmtosize',(func('lact_lib','bsizetoccm', lactation['useable_cupsize']) + (lactation['preggrowth']/100))) + bodyVars['vofat'] - bodyVars['bust_magic'] - pcs_mass['bust']
+		lactation['useable_cupsize'] = pcs_mass['bust'] + bodyVars['bust_lact'] + bodyVars['bust_magic'] - bodyVars['vofat']
+		bodyVars['bust_lact'] += func('lact_lib','bccmtosize',(func('lact_lib','bsizetoccm', lactation['useable_cupsize']) + (lactation['preggrowth']/100))) + bodyVars['vofat'] - bodyVars['bust_magic'] - pcs_mass['bust'] - bodyVars['bust_lact']
 		lactation['result'] = func('lact_lib','init_breasttissue')
 	end
 	if lactation['alveoliexpandlvl_change'] <> lactation['alveoliexpandlvl']:
 		!!	lactlib makes a change. we need to flag that, else checkExtBreastGrowth will go off and mess up everything.
 !!		lactation['lactlib_change'] = 1
 		if lactation['alveoliexpandlvl'] mod 3 = 0 and lactation['alveoliexpandlvl_change'] + 1 = lactation['alveoliexpandlvl']:
-			pcs_mass['bust'] += 5
+			bodyVars['bust_lact'] += 5
 			'<b>Your breasts seem fuller.</b>'
-		elseif lactation['alveoliexpandlvl_change'] mod 3 = 0 and lactation['alveoliexpandlvl'] + 1 = lactation['alveoliexpandlvl_change'] and lactation['alveoliexpandlvl_change'] > 0 and pcs_mass['bust'] > 10:
-			pcs_mass['bust'] -= 5
+		elseif lactation['alveoliexpandlvl_change'] mod 3 = 0 and lactation['alveoliexpandlvl'] + 1 = lactation['alveoliexpandlvl_change'] and lactation['alveoliexpandlvl_change'] > 0 and bodyVars['bust_lact'] >= 5:
+			bodyVars['bust_lact'] -= 5
 			'<b>Your breasts seem to be getting smaller.</b>'
 		end	
 		lactation['alveoliexpandlvl_change'] = lactation['alveoliexpandlvl'] 	
@@ -306,7 +306,7 @@ if $ARGS[0] = 'prod_milk':
 			else
 				!!	If energy is too low, milk will be produced but there is a chance that pcs_mass['body'] will shrink.
 				pcs_energy = 1
-				if rand(0,100) > 95: pcs_mass['body'] -= 1
+				if rand(0, 100) < 5: pcs_mass['body'] -= 1
 				if pain['breasts'] < 20: pain['breasts'] += 1
 			end
 			if pcs_energy < 1: pcs_energy = 1
