@@ -1,0 +1,411 @@
+# miroslava_schedule
+!2024/05/05
+
+	!locat['A60'] tells us where Mira is Located
+	!----------------------------------------------
+	!locat['A60'] = 10		In front of her home
+	!locat['A60'] = 11		Home
+
+	!locat['A60'] = 20		Grandparents yard		<- gad_gpyard
+	!locat['A60'] = 21		Grandparents house		<- gad_gphouse
+	!locat['A60'] = 22		Grandparents banya		<- gad_gpbath
+	!locat['A60'] = 23		Grandparents barn		<- gad_gpbarn
+
+	!locat['A60'] = 30		Gadukino
+	!locat['A60'] = 31		Church
+
+	!locat['A60'] = 40		Forest road
+	!locat['A60'] = 41		Bus station
+	!locat['A60'] = 42		With the Gopniks
+
+	!locat['A60'] = 50		River
+	!locat['A60'] = 51		Beach
+
+	!locat['A60'] = 60		Forest-edge
+	!locat['A60'] = 61		Meadow
+	!locat['A60'] = 62		Forest-outskirts
+	!locat['A60'] = 63		Forest-center
+	!locat['A60'] = 64		Forest-swamp
+
+	!locat['A60'] = 70		Field
+
+	!locat['A60'] = 80		Highway
+	!locat['A60'] = 81		Train station
+	!locat['A60'] = 82		Lorry
+
+
+if $ARGS[0] = 'get_locat_from_loc':
+	if $loc = 'gad_miroslava_home':
+		result = 10
+
+	elseif $loc = 'gad_gpyard':
+		result = 20
+	elseif $loc = 'gad_gphouse':
+		result = 21
+	elseif $loc = 'gad_gpbath':
+		result = 22
+	elseif $loc = 'gad_gpbarn':
+		result = 23
+
+	elseif $loc = 'gadukino':
+		result = 30
+	elseif $loc = 'gad_church':
+		result = 31
+
+	elseif $loc = 'gad_road':
+		result = 40
+	elseif $loc = 'bus' and strpos('gadukino|gadukino_tickets|gadukino_busses', $loc_arg) > 0:
+		result = 41
+	elseif $loc = 'mitkabuh' or $loc = 'mitkabuh_group':
+		result = 42
+
+	elseif $loc = 'gad_river':
+		result = 50
+	elseif $loc = 'gad_beach':
+		result = 51
+
+	elseif $loc = 'gad_forest' and $loc_arg = 'forest_edge':
+		result = 60
+	elseif $loc = 'gad_meadow':
+		result = 61
+	elseif $loc = 'gad_forest' and $loc_arg = 'forest_outskirts':
+		result = 62
+	elseif $loc = 'gad_forest' and $loc_arg = 'forest_center':
+		result = 63
+	elseif $loc = 'gad_swamp':
+		result = 64
+
+	elseif $loc = 'field':
+		result = 70
+
+	elseif $loc = 'road' and nroad = 10:
+		result = 80
+	elseif $loc = 'train' and $loc_arg = 'gadukino':
+		result = 81
+	elseif $loc = 'furi' and nroad = 10:
+		result = 82
+	end
+end
+
+if $ARGS[0] = 'cikl':
+	MiraVars['sched'] = rand(0, 5)
+	MiraVars['prost_today'] = (rand(0, 2) > 0)
+end
+
+if $ARGS[0] = 'force_change':
+	temp_start_loc = locat['A60']
+	gs 'miroslava_schedule'
+	i = 0
+	:mira_loop_start
+	if locat['A60'] = temp_start_loc:
+		gs 'miroslava_schedule', 'cikl'
+		gs 'miroslava_schedule'
+		i += 1
+		if i < 10: jump 'mira_loop_start'
+	end
+	killvar 'i'
+	killvar 'temp_start_loc'
+end
+
+
+if $ARGS[0] = '':
+	locat['A60_prev'] = locat['A60']
+	gs 'miroslava_schedule', 'update_locat'
+end
+
+if $ARGS[0] = 'update_locat':
+	if daystart < MiraVars['emb_day']:
+		! Embarrassed Mira is at Home
+		locat['A60'] = 10
+		exit
+	end
+	if MiraVars['follower'] = 1:
+		MiraVars['follower'] = 0
+		! Mira is your follower, so set her location to your location.
+		locat['A60'] = func('miroslava_schedule', 'get_locat_from_loc')
+		exit
+	elseif Miravars['follow_time'] > 0:
+		locat['A60'] = locat['A60_prev']
+	end
+
+	if MiraVars['guest'] = 1:
+		!! check if mira and sveta are in the same location.
+		!! if so: locat['A60'] remains the same
+		!! else: MiraVars['guest'] = 0
+		if $loc = 'gad_gpyard':
+			locat['A60'] = 20
+		elseif $loc = 'gad_gphouse':
+			locat['A60'] = 21
+		elseif $loc = 'gad_gpbath':
+			locat['A60'] = 22
+		elseif $loc = 'gad_gpbarn':
+			locat['A60'] = 23
+		elseif $loc = 'gad_field':
+			MiraVars['guest'] = 0
+			locat['A60'] = 70
+		else
+			MiraVars['guest'] = 0
+			gs 'miroslava_schedule', ''
+		end
+		exit
+	end
+
+	gs 'miroslava_schedule', 'get_base_schedule'
+
+
+	if npc_known['A60'] = 0 and locat['A60'] ! 10 and locat['A60'] ! 30:				locat['A60'] = 30		& ! Sveta and Mira aren''t friends yet.
+	if MiraVars['QW'] > 15 and MiraVars['prost_today'] and hour >= 16 and hour < 20:	locat['A60'] = 80		& ! Prostitution 
+	if locat['A60'] = 61 and (MiraVars['meadow'] = 2 or MiraVars['meadow'] = 5):		locat['A60'] = 60		& ! If meadow not unlocked -> Forest edge
+	if locat['A60'] = 51 and (sunweather = 0 or temper < 15 or month < 5 or month > 9):	locat['A60'] = 10		& ! Winter = No Beach
+	if locat['A60'] = 42 and (MiraVars['QW'] = 0 or npc_drunk['A60'] > 0):				locat['A60'] = 10		& ! drunk or doesn''t know the guys
+	if (locat['A60'] / 10) = 2 and grandpaQW['chore_herd_cattle'] = 1 and $loc = 'gad_field' and npc_rel['A60'] >= 15 and (npc_QW['A63'] < 13 or MiraVars['QW'] >= 10 or MiraVars['had_sex'] > 1): locat['A60'] = 70		& ! Mira visits in the field if she was planning to visit you either way.
+
+	if sunWeather = 0:
+		if locat['A60'] >= 30 and locat['A60'] ! 42:
+			if MiraVars['guestday'] >= daystart or npc_known['A60'] = 0 or hour < 8 or hour >= 20 or npc_rel['A60'] < 15 or (npc_QW['A63'] >= 11 and MiraVars['QW'] < 11 and MiraVars['had_sex'] <= 1):
+				locat['A60'] = 10
+			else
+				MiraVars['invite_rand'] = rand(0, 1)
+				MiraVars['guestday'] = daystart
+				if MiraVars['invite_rand'] = 0:
+					locat['A60'] = 21
+				else
+					locat['A60'] = 10
+				end
+			end
+		end
+	end
+end
+
+
+if $ARGS[0] = 'get_base_schedule':
+	!! Mira does not naturally show up in the Forest after 11:00
+	!! Mira leaves beach after 20:00 and isn''t there before 9:00
+	!!npc_rel['A60'] >= 15 and sunWeather = 1 and hour >= 10 and temp = 1 and daystart >= MiraVars['emb_day'] and (npc_QW['A63'] < 13 or MiraVars['QW'] >= 10 or MiraVars['had_sex'] > 1) and npc_known['A60'] = 1
+
+
+	!{
+	elseif MiraVars['sched'] = 10:
+		!!				0-8,	8-10,	10-12,	12-14,	14-16,	16-18,	18-20,	20-22,	22-00
+		!! Sched0:		Home,	Home,	Home,	Home,	Home,	Home,	Home,	Home,	Home
+		if hour < 8:
+			locat['A60'] = 10
+		elseif hour < 10:
+			locat['A60'] = 10
+		elseif hour < 12:
+			locat['A60'] = 10
+		elseif hour < 14:
+			locat['A60'] = 10
+		elseif hour < 16:
+			locat['A60'] = 10
+		elseif hour < 18:
+			locat['A60'] = 10
+		elseif hour < 20:
+			locat['A60'] = 10
+		elseif hour < 22:
+			locat['A60'] = 10
+		else
+			locat['A60'] = 10
+		end
+	}
+
+
+
+	if MiraVars['sched'] = 0:
+		!!				0-8,	8-10,	10-14,	14-16,	16-18,	18-20,	20-00
+		!! Sched0:		Home,	Forest,	Beach,	Gad,	Meadow,	Gad,	gopn
+		if hour <= 7:
+			locat['A60'] = 10
+		elseif hour <= 9:
+			locat['A60'] = 60
+		elseif hour <= 13:
+			locat['A60'] = 51
+		elseif hour <= 15:
+			locat['A60'] = 30
+		elseif hour <= 17:
+			locat['A60'] = 61
+		elseif hour <= 19:
+			locat['A60'] = 30
+		else
+			locat['A60'] = 42
+		end
+
+	elseif MiraVars['sched'] = 1:
+		!!				0-10,	10-16,	16-20,	20-00
+		!! Sched1:		Home,	Beach	grandp,	home
+		if hour <= 9:
+			locat['A60'] = 10
+		elseif hour <= 15:
+			locat['A60'] = 51
+		elseif hour <= 19:
+			locat['A60'] = 20
+		else
+			locat['A60'] = 10
+		end
+
+	elseif MiraVars['sched'] = 2:
+		!!				0-8,	8-10,	10-14,	14-16,	16-18,	18-20,	20-00
+		!! Sched2:		Home,	Forest,	Meadow,	Beach,	Meadow,	Forest,	gopn
+		if hour <= 7:
+			locat['A60'] = 10
+		elseif hour <= 9:
+			locat['A60'] = 60
+		elseif hour <= 13:
+			locat['A60'] = 61
+		elseif hour <= 15:
+			locat['A60'] = 51
+		elseif hour <= 17:
+			locat['A60'] = 61
+		elseif hour <= 19:
+			locat['A60'] = 60
+		else
+			locat['A60'] = 42
+		end
+
+	elseif MiraVars['sched'] = 3:
+		!!				0-8,	8-10,	10-12,	12-14,	14-16,	16-18,	18-20,	20-22,	22-00
+		!! Sched3:		Home,	Home,	Home,	Home,	Home,	Home,	Home,	Home,	Home
+		if hour < 8:
+			locat['A60'] = 10
+		elseif hour < 14:
+			locat['A60'] = 20
+		elseif hour < 18:
+			locat['A60'] = 51
+		else
+			locat['A60'] = 10
+		end
+
+	elseif MiraVars['sched'] = 4:
+		!!				0-8,	8-10,	10-12,	12-14,	14-16,	16-18,	18-20,	20-22,	22-00
+		!! Sched4:		Home,	Home,	Home,	Home,	Home,	Home,	Home,	Home,	Home
+		if hour < 8:
+			locat['A60'] = 10
+		elseif hour < 10:
+			locat['A60'] = 60
+		elseif hour < 14:
+			locat['A60'] = 61
+		elseif hour < 20:
+			locat['A60'] = 51
+		else
+			locat['A60'] = 10
+		end
+
+	elseif MiraVars['sched'] = 5:
+		!!				0-8,	8-10,	10-12,	12-14,	14-16,	16-18,	18-20,	20-22,	22-00
+		!! Sched5:		Home,	Home,	Home,	Home,	Home,	Home,	Home,	Home,	Home
+		if hour < 8:
+			locat['A60'] = 10
+		elseif hour < 10:
+			locat['A60'] = 61
+		elseif hour < 12:
+			locat['A60'] = 60
+		elseif hour < 14:
+			locat['A60'] = 60
+		elseif hour < 16:
+			locat['A60'] = 30
+		elseif hour < 18:
+			locat['A60'] = 30
+		elseif hour < 20:
+			locat['A60'] = 20
+		elseif hour < 22:
+			locat['A60'] = 20
+		else
+			locat['A60'] = 20
+		end
+	end
+end
+
+
+
+!New
+if $ARGS[0] = 'getLocation':
+	gs 'miroslava_schedule', 'update_locat'
+
+	if locat['A60'] = 10:
+		$npcLocation['A60'] = 'Mira is at home'
+
+	elseif locat['A60'] = 20:
+		$npcLocation['A60'] = 'Mira is in your Grandparents yard'
+	elseif locat['A60'] = 21:
+		$npcLocation['A60'] = 'Mira is at your Grandparents house'
+
+	elseif locat['A60'] = 30:
+		$npcLocation['A60'] = 'Mira is walking around Gad'
+	elseif locat['A60'] = 31:
+		$npcLocation['A60'] = 'Mira is at the church'
+
+	elseif locat['A60'] = 40:
+		$npcLocation['A60'] = 'Mira at the forest road'
+	elseif locat['A60'] = 41:
+		$npcLocation['A60'] = 'Mira is at the bus station'
+	elseif locat['A60'] = 42:
+		$npcLocation['A60'] = 'Mira is with the gopniks'
+
+	elseif locat['A60'] = 50:
+		$npcLocation['A60'] = 'Mira is at the river'
+	elseif locat['A60'] = 51:
+		$npcLocation['A60'] = 'Mira is at the beach'
+
+	elseif locat['A60'] = 60:
+		$npcLocation['A60'] = 'Mira is at the forest edge'
+	elseif locat['A60'] = 61:
+		$npcLocation['A60'] = 'Mira is at the meadow'
+	elseif locat['A60'] = 62:
+		$npcLocation['A60'] = 'Mira is in the forest outskirts'
+	elseif locat['A60'] = 63:
+		$npcLocation['A60'] = 'Mira is in the center of the forest'
+	elseif locat['A60'] = 64:
+		$npcLocation['A60'] = 'Mira is at the swamps'
+
+	elseif locat['A60'] = 70:
+		$npcLocation['A60'] = 'Mira is at field'
+
+	elseif locat['A60'] = 80:
+		$npcLocation['A60'] = 'Mira is at the highway'
+	elseif locat['A60'] = 81:
+		$npcLocation['A60'] = 'Mira is at the train station'
+	elseif locat['A60'] = 82:
+		$npcLocation['A60'] = 'Mira is at the lorry'
+
+	!{
+	elseif locat['A60'] = 90:
+		$npcLocation['A60'] = 'Mira is with you'
+	}
+
+	end
+end
+
+
+!{!OLD
+if $ARGS[0] = 'getLocation':
+	if locat['A60'] = 0:
+		$npcLocation['A60'] = 'Mira is at home'
+	elseif locat['A60'] = 1:
+		$npcLocation['A60'] = 'Mira is at river'
+	elseif locat['A60'] = 2:
+		$npcLocation['A60'] = 'Mira is at meadow'
+	elseif locat['A60'] = 3:
+		$npcLocation['A60'] = 'Mira is at forest'
+	elseif locat['A60'] = 4:
+		$npcLocation['A60'] = 'Mira is at field'
+	elseif locat['A60'] = 41:
+		$npcLocation['A60'] = 'Mira is at field'
+	elseif locat['A60'] = 42:
+		$npcLocation['A60'] = 'Mira is at field'
+	elseif locat['A60'] = 43:
+		$npcLocation['A60'] = 'Mira is at field'
+	elseif locat['A60'] = 5:
+		$npcLocation['A60'] = 'Mira is at gop'
+	elseif locat['A60'] = 6:
+		$npcLocation['A60'] = 'Mira is at gad_gphouse'
+	elseif locat['A60'] = 7:
+		$npcLocation['A60'] = 'Mira is at gad_gpyard'
+	elseif locat['A60'] = 8:
+		$npcLocation['A60'] = 'Mira is at the highway'
+	elseif locat['A60'] = 9:
+		$npcLocation['A60'] = 'Mira is with you'
+	end
+end
+}
+
+--- miroslava_schedule ---------------------------------
