@@ -5,8 +5,8 @@ if $ARGS[0] = 'missionary_start':
 		cla & *clr
 		'<center><img <<$set_imgh>> src="images/shared/sex/foreplay/miss3.jpg"></center>'
 		'<<$npc_firstname[$boy]>> pushes you down onto the bed and puts his hands on your knees and spreads your legs apart, preparing to fuck you.'
-		act 'Stop him (virgin)': gt'sex_ev_virgin', 'lover_wait'
-		act 'Let him take your virginity': gs'sex_ev_virgin', 'start3'
+		act'Stop him (virgin)':gt'sex_ev_virgin', 'lover_wait'
+		act'Let him take your virginity':gs'sex_ev_virgin', 'start3'
 	elseif sex_ev['change_pos'] = 1:
 		act'Switch to missionary':
 			cla & *clr
@@ -69,7 +69,8 @@ if $ARGS[0] = 'miss_insert_slow':
 	$sex_ev['pos_speed'] = 'miss<<sex_ev[''speed'']>>'
 	if sex_ev['cock_inserted'] = 1:
 		gs'sex_ev_miss', 'miss_goto'
-	else
+	elseif sex_ev['insert_react'] = 0:
+		sex_ev['insert_react'] = 1
 		act'Insertion':
 			cla & *clr
 			sex_ev['orgasm'] = orgasm
@@ -119,7 +120,7 @@ if $ARGS[0] = 'miss_insert_slow':
 
 			act'Enjoyment':
 				cla
-				sex_ev['fuck_enjoyment'] = 1
+				$sex_ev['fuck_enjoyment'] = 'enjoy'
 				
 				act'Moan':
 					cla & *nl
@@ -190,7 +191,7 @@ if $ARGS[0] = 'miss_insert_slow':
 									'"Oh <i>fuck!</i> That''s big!" you groan, squirming as your pussy is already beginning to ache.'
 								end
 								if npc_arrogant[$boy] > 0:
-									'"Pretty incredible, isn''t it?" he grins hautily, taking a moment seemingly to admire the size of his own cock.'
+									'"Pretty incredible, isn''t it?" he grins haughtily, taking a moment seemingly to admire the size of his own cock.'
 								elseif npc_caretaker[$boy] > 0:
 									'"Sorry," he says, a sympathetic look in his eyes.'
 								else
@@ -225,6 +226,8 @@ if $ARGS[0] = 'miss_insert_slow':
 			gs 'sex_ev_miss', 'miss_pain1'
 			gs'sex_ev_miss', 'miss_insert_orgasm'
 		end
+	else
+		gs'sex_ev_miss', 'miss_goto2'
 	end
 end
 
@@ -232,7 +235,7 @@ if $ARGS[0] = 'miss_insert_orgasm':
 	if orgasm_buildup >= 100 or pcs_traits['easy_orgasms'] > 0 and hypnoHardToCum = 0:
 		act'Orgasm!':
 			cla & *clr
-			sex_ev['fuck_enjoyment'] = 1
+			$sex_ev['fuck_enjoyment'] = 'enjoy'
 			if sex_ev['orgasm'] = orgasm:
 				$orgasm_or = 'yes'
 				gs'arousal', 'vaginal', -1, 'no_orgasm_msg', $sex_ev['prostitution_flag']
@@ -307,14 +310,18 @@ end
 
 
 if $ARGS[0] = 'miss_goto':
-	$sex_ev['position'] = 'miss'
-	sex_ev['cock_inserted'] = 1
-	if sex_ev['speed'] = 0: sex_ev['speed'] = rand(1,3)
-	$sex_ev['pos_speed'] = 'miss<<sex_ev[''speed'']>>'
-	if $sex_ev['mood_type'] = 'romantic' and sex_ev['speed'] < 3:
-		act 'Make love to <<$npc_firstname[$boy]>>': gt 'sex_ev_miss', 'miss<<sex_ev[''speed'']>>'
+	if $sex_ev['fuck_enjoyment'] ! '' and sex_ev['fuck_count'] > 0:
+		gs'sex_ev_miss', 'miss_goto2'
 	else
-		act 'Let <<$npc_firstname[$boy]>> fuck you': gt 'sex_ev_miss', 'miss<<sex_ev[''speed'']>>'
+		$sex_ev['position'] = 'miss'
+		sex_ev['cock_inserted'] = 1
+		if sex_ev['speed'] = 0: sex_ev['speed'] = rand(1,3)
+		$sex_ev['pos_speed'] = 'miss<<sex_ev[''speed'']>>'
+		if $sex_ev['mood_type'] = 'romantic' and sex_ev['speed'] < 3:
+			act'Make love to <<$npc_firstname[$boy]>>':gt 'sex_ev_miss', 'miss<<sex_ev[''speed'']>>'
+		else
+			act'Let <<$npc_firstname[$boy]>> fuck you':gt 'sex_ev_miss', 'miss<<sex_ev[''speed'']>>'
+		end
 	end
 end
 if $ARGS[0] = 'miss_goto2':
@@ -326,9 +333,9 @@ if $ARGS[0] = 'miss_goto2':
 		if sex_ev['speed'] = 0: sex_ev['speed'] = rand(1,3)
 		$sex_ev['pos_speed'] = 'miss<<sex_ev[''speed'']>>'
 		if $sex_ev['mood_type'] = 'romantic' and sex_ev['speed'] < 3:
-			act 'Make love to <<$npc_firstname[$boy]>>': gt 'sex_ev_miss', 'miss<<sex_ev[''speed'']>>.2'
+			act'Make love to <<$npc_firstname[$boy]>>':gt 'sex_ev_miss', 'miss<<sex_ev[''speed'']>>.2'
 		else
-			act 'Let <<$npc_firstname[$boy]>> fuck you': gt 'sex_ev_miss', 'miss<<sex_ev[''speed'']>>.2'
+			act'Let <<$npc_firstname[$boy]>> fuck you':gt 'sex_ev_miss', 'miss<<sex_ev[''speed'']>>.2'
 		end
 	end
 end
@@ -345,20 +352,22 @@ if $ARGS[0] = 'missionary_change_position':
 end
 
 if $ARGS[0] = 'miss_pain1':
-	act'Ouch!':
-		cla & *nl
-		sex_ev['fuck_enjoyment'] = -1
-		'Lances of pain have been piercing through your vagina from the very first thrust. Whether it''s angle or technique or just the shape of your pussy and the shape of his cock, you can''t say for certain. The only thing you are sure of is that this <i>hurts!</i>'
-		*nl
-		'Every time <<$npc_firstname[$boy]>> moves it''s like a knife in your pussy, stabbing your insides like the villain in a slasher flick.'
-		gs 'sex_ev_miss', 'miss_pain2'
+	if rand(1,20) <= npc_sexskill[$boy]: 
+		act'Ouch!':
+			cla & *nl
+			$sex_ev['fuck_enjoyment'] = 'painful'
+			'Lances of pain have been piercing through your vagina from the very first thrust. Whether it''s angle or technique or just the shape of your pussy and the shape of his cock, you can''t say for certain. The only thing you are sure of is that this <i>hurts!</i>'
+			*nl
+			'Every time <<$npc_firstname[$boy]>> moves it''s like a knife in your pussy, stabbing your insides like the villain in a slasher flick.'
+			gs 'sex_ev_miss', 'miss_pain2'
+		end
 	end
 	
 	if $npc_dick_desc[$boy] = 'long' or $npc_dick_desc[$boy] = 'huge' or $npc_dick_desc[$boy] = 'enormous' or $npc_dick_desc[$boy] = 'lengthy' or $npc_dick_desc[$boy] = 'gigantic' or $npc_dick_desc[$boy] = 'monster':
 		act'Dick is too big':
 			cla & *nl
 			sex_ev['dick_too_big'] = 1
-			sex_ev['fuck_enjoyment'] = -1
+			$sex_ev['fuck_enjoyment'] = 'painful'
 			$orgasm_or = 'no'
 			'Every thrust of <<$npc_firstname[$boy]>>''s hips elicits a gasp of pain from your lips. His cock is too much for your poor pussy and it''s hard to enjoy.'
 			gs 'sex_ev_miss', 'miss_pain2'
@@ -400,7 +409,7 @@ if $ARGS[0] = 'miss_pain3':
 		cla & *nl
 		'"Ouch! Hey! Ow!" you yelp. "Wait! That hurts!"'
 		iif(sex_ev['speed'] < 3, '"It''ll get better," <<$npc_firstname[$boy]>> says uncaringly and continues to fuck you without breaking stride.', '"It''ll get better," <<$npc_firstname[$boy]>> grunts uncaringly and continues to fuck you without breaking stride.')
-		act 'Continue': gt 'sex_ev_<<$sex_ev[''position'']>>', '<<$sex_ev[''pos_speed'']>>.2'
+		act'Continue':gt 'sex_ev_<<$sex_ev[''position'']>>', '<<$sex_ev[''pos_speed'']>>.2'
 	else
 		cla & *clr
 		!!'<center><img <<$set_imgh>> src="images/shared/sex/vag/miss/3.jpg"></center>'
@@ -424,21 +433,21 @@ if $ARGS[0] = 'miss_pain3':
 			'The two of you awkwardly shuffle around for a minute, trying to find a position for your hips that''s a little more comfortable.'
 			'"How''s that?" <<$npc_firstname[$boy]>> asks.'
 			act'Fine I guess':
-				sex_ev['fuck_enjoyment'] = 0
+				$sex_ev['fuck_enjoyment'] = 'unsatisfying'
 				cla & *nl
 				'"Fine I guess," you sigh. It doesn''t really feel good, but at least it doesn''t hurt anymore.'
 				*nl
 				'<<$npc_firstname[$boy]>> takes your response as approval and starts moving again.'
-				act 'Continue': gt 'sex_ev_<<$sex_ev[''position'']>>', '<<$sex_ev[''pos_speed'']>>.2'
+				act'Continue':gt 'sex_ev_<<$sex_ev[''position'']>>', '<<$sex_ev[''pos_speed'']>>.2'
 			end
 			
 			act'Better':
-				sex_ev['fuck_enjoyment'] = 1
+				$sex_ev['fuck_enjoyment'] = 'enjoy'
 				cla & *nl
 				'"<i>Finally</i>," you sigh. "Yes, that feels better. Try to remember this next time."'
 				*nl
 				'<<$npc_firstname[$boy]>> seems to be a little ticked off by your attitude but starts moving again anyways.'
-				act 'Continue': gt 'sex_ev_<<$sex_ev[''position'']>>', '<<$sex_ev[''pos_speed'']>>.2'
+				act'Continue':gt 'sex_ev_<<$sex_ev[''position'']>>', '<<$sex_ev[''pos_speed'']>>.2'
 			end
 		end
 		
@@ -450,7 +459,7 @@ if $ARGS[0] = 'miss_pain3':
 			'<center><img <<$set_imgh>> src="images/shared/sex/vag/miss/4.jpg"></center>'
 			if sex_ev['dick_too_big'] = 1:
 				sex_ev['dick_too_big'] = 2
-				sex_ev['fuck_enjoyment'] = 0
+				$sex_ev['fuck_enjoyment'] = 'unsatisfying'
 				minut += rand(1,2)
 				'"Your dick is kind of big for me," you smile ruefully. "Can we just pause for a sec to let my poor pussy adjust?"'
 				'"Oh. Yeah, sure."'
@@ -459,7 +468,7 @@ if $ARGS[0] = 'miss_pain3':
 				*nl
 				'"Okay," you nod. "You can start moving again."'
 			else
-				sex_ev['fuck_enjoyment'] = 1
+				$sex_ev['fuck_enjoyment'] = 'enjoy'
 				'"I''m fine," you chuckle. "Your dick is kind of at an awkward angle though. Can we adjust a little?"'
 				'"Oh. Yeah, sure."'
 				*nl
@@ -467,7 +476,7 @@ if $ARGS[0] = 'miss_pain3':
 				'"How''s that?" <<$npc_firstname[$boy]>> asks.'
 				'"Much better," you nod back and he resumes thrusting.'
 			end
-			act 'Continue': gt 'sex_ev_<<$sex_ev[''position'']>>', '<<$sex_ev[''pos_speed'']>>.2'
+			act'Continue':gt 'sex_ev_<<$sex_ev[''position'']>>', '<<$sex_ev[''pos_speed'']>>.2'
 		end
 	end
 end
@@ -499,7 +508,7 @@ if $ARGS[0] = 'miss1':
 
 	act'Enjoy it':
 		sex_ev['gentle_fuck'] = 1
-		sex_ev['fuck_enjoyment'] = 1
+		$sex_ev['fuck_enjoyment'] = 'enjoy'
 		sex_ev['orgasm'] = orgasm
 		gs 'sex_ev_sex', 'fuck_arousal_code'
 		cla & *nl
@@ -516,7 +525,7 @@ if $ARGS[0] = 'miss1':
 	!! add options for dirty talk	
 	act'Doesn''t feel good':
 		cla & *clr
-		sex_ev['fuck_enjoyment'] = 0
+		$sex_ev['fuck_enjoyment'] = 'unsatisfying'
 		$orgasm_or = 'no'
 		gs 'sex_ev_sex', 'fuck_arousal_code'
 		'<center><img <<$set_imgh>> src="images/shared/sex/vag/miss/3.jpg"></center>'
@@ -534,7 +543,7 @@ if $ARGS[0] = 'miss1':
 		act'Don''t ruin the mood':
 			cla & *clr
 			sex_ev['bored'] = 1
-			sex_ev['fuck_enjoyment'] = 0
+			$sex_ev['fuck_enjoyment'] = 'unsatisfying'
 			$orgasm_or = 'no'
 			gs 'sex_ev_sex', 'fuck_arousal_code'
 			'<center><video autoplay loop src="images/shared/sex/vag/miss/slow2.mp4"></video></center>'
@@ -548,7 +557,7 @@ if $ARGS[0] = 'miss1':
 			'"This is boring," you say, staring up at <<$npc_firstname[$boy]>> with a bored look on your face. "Can you go faster? I''m never going to get off at this rate."'
 			'"I can go faster," he grunts.'
 			'"<i>Finally</i>," you say, spreading your legs a little more as he picks up the pace.'
-			act 'Continue': gt 'sex_ev_miss', 'miss2.1'
+			act'Continue':gt 'sex_ev_miss', 'miss2.1'
 		end
 
 		act'I want you to pound me':
@@ -561,7 +570,7 @@ if $ARGS[0] = 'miss1':
 			else
 				'Before you can even finish your sentence, <<$npc_firstname[$boy]>> grabs you by the hips and rams his cock into you.'
 			end
-			act 'Continue': gt 'sex_ev_miss', 'miss3.1'
+			act'Continue':gt 'sex_ev_miss', 'miss3.1'
 		end
 	end
 	
@@ -595,27 +604,43 @@ if $ARGS[0] = 'miss1.2':
 	gs 'sex_ev_events', 'sex_film_code'
 	cla & *clr
 	'<center><video autoplay loop src="images/shared/sex/vag/miss/slow2.mp4"></video></center>'
-	if sex_ev['fuck_enjoyment'] = -1:
+	if $sex_ev['fuck_enjoyment'] = 'painful':
 		if sex_ev['virgin'] = 1:
 			if sex_ev['fuck_pain'] = 1:
-				sex_ev['fuck_enjoyment'] = 0
+				$sex_ev['fuck_enjoyment'] = 'unsatisfying'
+				gs 'sex_ev_miss', 'miss1_boy_talk1'
+				gs 'sex_ev_miss', 'miss1_boy_talk2'
+				*nl
 				'You take deep breaths as <<$npc_firstname[$boy]>> keeps slowly fucking you. Finally, the stabbing pain between your legs is starting to go away. It seems your virgin pussy is starting to adjust to having a cock inside it.'
 			elseif sex_ev['fuck_pain'] = 2:
 				'"<i>Nn-! Nngh-! Ngh-!</i>"'
+				gs 'sex_ev_miss', 'miss1_boy_talk1'
 				*nl
+				gs 'sex_ev_miss', 'miss1_boy_talk2'
 				'You squeeze your eyes tight as small squeaks of pain escape your lips in time with <<$npc_firstname[$boy]>>''s thrusts. It still hurts, but you''re determined not to let a little pain cause you to pussy out of your first time.'
 			elseif sex_ev['fuck_pain'] = 3:
+				gs 'sex_ev_miss', 'miss1_boy_talk1'
+				gs 'sex_ev_miss', 'miss1_boy_talk2'
+				*nl
 				'You whimper softly, clenching your teeth as hard as you can, trying with all your might to prevent yourself from bursting into tears. It hurts <i>so much</i>, but you can''t bring yourself to tell him to stop.'
 			end
 		else
 			if sex_ev['fuck_pain'] = 1:
-				sex_ev['fuck_enjoyment'] = 0
+				$sex_ev['fuck_enjoyment'] = 'unsatisfying'
+				gs 'sex_ev_miss', 'miss1_boy_talk1'
+				gs 'sex_ev_miss', 'miss1_boy_talk2'
+				*nl
 				'You take deep breaths as <<$npc_firstname[$boy]>> keeps slowly fucking you. Closing your eyes, you focus, adjusting your position beneath him, changing your timing to try move your hips with his. After some minor adjustments, the pain <<$npc_firstname[$boy]>>''s cock was causing inside you fades. After a few minutes, it''s little more than a dull throb and you feel much more comfortable, if not all that good.'
 			elseif sex_ev['fuck_pain'] = 2:
 				'"<i>Nn-! Nngh-! Ahh-! Mm-!</i>"'
+				gs 'sex_ev_miss', 'miss1_boy_talk1'
+				gs 'sex_ev_miss', 'miss1_boy_talk2'
 				*nl
 				'You squeeze your eyes tight as small squeaks of pain escape your lips in time with <<$npc_firstname[$boy]>>''s thrusts. It still hurts like hell, but you don''t say anything, trying your best not to let it show.'
 			elseif sex_ev['fuck_pain'] = 3:
+				gs 'sex_ev_miss', 'miss1_boy_talk1'
+				gs 'sex_ev_miss', 'miss1_boy_talk2'
+				*nl
 				'You whimper softly, clenching your teeth as hard as you can, trying with all your might to prevent yourself from bursting into tears. It hurts <i>so much</i>, but you can''t bring yourself to tell him to stop.'
 			end
 		end
@@ -624,9 +649,12 @@ if $ARGS[0] = 'miss1.2':
 			*nl
 			'Nevertheless, you try to move your hips in time with his, rolling them and doing your best to make <<$npc_firstname[$boy]>> feel good, hoping he''ll come quickly.'
 		end
-	elseif sex_ev['fuck_enjoyment'] = 0:
+	elseif $sex_ev['fuck_enjoyment'] = 'unsatisfying':
 		if sex_ev['fuck_pain'] = -1:
-			sex_ev['fuck_enjoyment'] = 1
+			$sex_ev['fuck_enjoyment'] = 'enjoy'
+			gs 'sex_ev_miss', 'miss1_boy_talk1'
+			gs 'sex_ev_miss', 'miss1_boy_talk2'
+			*nl
 			if sex_ev['virgin'] = 1:
 				'Your breath hitches as <<$npc_firstname[$boy]>> continues to slowly thrust into your pussy. You aren''t sure what changed, but it''s like your body is waking up from a deep sleep. His cock stretches your walls, every thrust <i>fills</i> you in a way you didn''t know you needed to be, and even now you can feel yourself get wetter and wetter, slicking up his cock and making it easier to reach the deepest parts of your pussy.'
 			else
@@ -640,18 +668,27 @@ if $ARGS[0] = 'miss1.2':
 		elseif sex_ev['cum_speed_up'] = 1:
 			sex_ev['cum_speed_up'] = 0
 			*nl
+			gs 'sex_ev_miss', 'miss1_boy_talk1'
+			gs 'sex_ev_miss', 'miss1_boy_talk2'
+			*nl
 			'You widen your legs and try to roll your hips in time with <<$npc_firstname[$boy]>>''s, trying to make him come faster.'
 		elseif sex_ev['moan'] = 1:
 			'"<i>Mm-! Mmm-! Mm-! Mmm-!</i>"'
+			gs 'sex_ev_miss', 'miss1_boy_talk1'
+			gs 'sex_ev_miss', 'miss1_boy_talk2'
 			*nl
 			'You grunt passively as <<$npc_firstname[$boy]>> continues to pump his cock between your legs. His manhood drives into you, filling you with this weird sort of "pressure." This doesn''t feel "good" exactly, but it doesn''t feel bad either.'
 		elseif sex_ev['moan'] = 2:
 			'"<i>Ah~! Ahh~! Ahhh~!</i>"'
+			gs 'sex_ev_miss', 'miss1_boy_talk1'
+			gs 'sex_ev_miss', 'miss1_boy_talk2'
 			*nl
 			'You moan softly as <<$npc_firstname[$boy]>> continues to pump his cock between your legs. It still basically feels numb to your pussy other than the occasional bump, but you don''t want him to feel bad about it either so you play along, pretending it feels good.'
 		elseif sex_ev['dirty_talk'] > 0:
 	!!		'"Ah~! Yes~! Just like that~!" you moan, your voice a hoarse with arousal. "Your cock is amazing! It''s stretching me out. I''m <i>so</i> wet..."'
 			gs 'sex_ev_miss', 'miss1.2_dirty_talk'
+			gs 'sex_ev_miss', 'miss1_boy_talk1'
+			gs 'sex_ev_miss', 'miss1_boy_talk2'
 			*nl
 			'All your dirty talk is just that: talk. Your pussy still barely feels anything other than the occasional bump, but you don''t want <<$npc_firstname[$boy]>> to feel bad about it either so you play along, pretending it feels good.'
 		elseif sex_ev['casual_talk'] > 0:
@@ -664,6 +701,8 @@ if $ARGS[0] = 'miss1.2':
 	else
 		if sex_ev['cum_speed_up'] = 1:
 			sex_ev['cum_speed_up'] = 0
+			gs 'sex_ev_miss', 'miss1_boy_talk1'
+			gs 'sex_ev_miss', 'miss1_boy_talk2'
 			*nl
 			'You widen your legs and eagerly throw your hips back towards <<$npc_firstname[$boy]>> in time with his. Maybe if you time it right, you can come together.'
 		elseif sex_ev['moan'] <= 2 and sex_ev['moan'] > 0:
@@ -673,10 +712,14 @@ if $ARGS[0] = 'miss1.2':
 			elseif sex_ev['moan'] = 2:
 				'"<i>Ah~! Yes~! Mmm~!</i>"'
 			end
+			gs 'sex_ev_miss', 'miss1_boy_talk1'
+			gs 'sex_ev_miss', 'miss1_boy_talk2'
 			*nl
 			gs 'sex_ev_miss', 'miss1.2_moan_desc'
 		elseif sex_ev['moan'] = 3:
 			'"<i>Ah~! Ahh~! Ahhh~!</i>"'
+			gs 'sex_ev_miss', 'miss1_boy_talk1'
+			gs 'sex_ev_miss', 'miss1_boy_talk2'
 			*nl
 			'You moan loudly as <<$npc_firstname[$boy]>> continues to pump his cock between your legs. His manhood drives slowly in and out of you, his movements leaving you <b>absolutely bored</b>.'
 			*nl
@@ -684,6 +727,8 @@ if $ARGS[0] = 'miss1.2':
 		elseif sex_ev['dirty_talk'] > 0:
 	!!		'"Ah~! Yes~! Just like that~!" you moan, your voice a hoarse with arousal. "Your cock is amazing! It''s stretching me out. I''m <i>so</i> wet..."'
 			gs 'sex_ev_miss', 'miss1.2_dirty_talk'
+			gs 'sex_ev_miss', 'miss1_boy_talk1'
+			gs 'sex_ev_miss', 'miss1_boy_talk2'
 		elseif sex_ev['casual_talk'] > 0:
 			if mid($boy,1,1) = 'A':
 				gs 'sex_ev_sex_talk_<<$boy>>', 'talk_output'
@@ -691,6 +736,9 @@ if $ARGS[0] = 'miss1.2':
 			
 			end
 		else
+			gs 'sex_ev_miss', 'miss1_boy_talk1'
+			gs 'sex_ev_miss', 'miss1_boy_talk2'
+			*nl
 			'You close your eyes, letting <<$npc_firstname[$boy]>> take care of the rest, focusing on his lovemaking.'
 			*nl
 	!!		'His cock, thrusting deep inside you. How it stretches your walls till <i>just</i> before the point of pain, a massage against the aching need of your pussy. You can feel your wetness spreading, heat radiating from your sex and from his. You breathe deeply as you sink further and further into the feelings of your own arousal.'
@@ -706,7 +754,9 @@ if $ARGS[0] = 'miss1.bored':
 	$sex_ev['pos_speed'] = 'miss1'
 	sex_ev['kiss'] = 0
 	gs 'sex_ev_sex', 'fuck_arousal_code'
-	sex_ev['boy_cum'] = 2
+	gs 'sex_ev_miss', 'miss1_boy_talk1'
+	gs 'sex_ev_miss', 'miss1_boy_talk2'
+	*nl
 	cla & *clr
 	'<center><video autoplay loop src="images/shared/sex/vag/miss/slow2.mp4"></video></center>'
 	'<<$npc_firstname[$boy]>> keeps fucking you <i>excruciatingly</i> slowly and you keep having to stifle sighs of frustration, made twice worse by knowing your face is right beneath his. You smile at him, hoping he doesn''t realize how fake it is.'
@@ -743,7 +793,7 @@ if $ARGS[0] = 'miss2':
 	if rand(0,1) = 1 or sex_ev['kiss_skip'] = 1 or cum_loc['face'] > 0:
 !!		:kiss_skip2
 		act'Enjoy it':
-			sex_ev['fuck_enjoyment'] = 1
+			$sex_ev['fuck_enjoyment'] = 'enjoy'
 			sex_ev['orgasm'] = orgasm
 			gs 'sex_ev_sex', 'fuck_arousal_code'
 			cla & *clr
@@ -753,66 +803,68 @@ if $ARGS[0] = 'miss2':
 			gs 'sex_ev_cum', 'fuck_cum'
 		end
 		
-		act'Doesn''t feel good':
-			cla & *clr
-			sex_ev['fuck_enjoyment'] = 0
-			$orgasm_or = 'no'
-			gs 'sex_ev_sex', 'fuck_arousal_code'
-			'<center><img <<$set_imgh>> src="images/shared/sex/vag/miss/3.jpg"></center>'
-			'As <<$npc_firstname[$boy]>> continues to steadily pump his cock in and out of your pussy, you realize that this isn''t really doing it for you. It doesn''t feel bad exactly, but you can tell that this isn''t going to get you off either.'
-			gs 'sex_ev_cum', 'fuck_cum'
-		end
-		
-		gs 'sex_ev_miss', 'miss_pain1'
-
-		act'Pace is wrong':
-			sex_ev['fuck_enjoyment'] = 0
-			sex_ev['orgasm'] = orgasm
-			cla & *nl
-			'You groan beneath <<$npc_firstname[$boy]>>, but not in pleasure. More like frustration. Even though he''s fucking you at what would probably be considered to be a "normal" pace, it''s not what you''re in the mood for. You can''t really tell if you want it faster or slower, all you know is that it just feels... <i>wrong</i>.'
-			act'Don''t ruin the mood':
+		if rand(1,50) <= npc_sexskill[$boy]:
+			act'Doesn''t feel good':
 				cla & *clr
+				$sex_ev['fuck_enjoyment'] = 'unsatisfying'
 				$orgasm_or = 'no'
 				gs 'sex_ev_sex', 'fuck_arousal_code'
 				'<center><img <<$set_imgh>> src="images/shared/sex/vag/miss/3.jpg"></center>'
-				'You sigh internally, but decide not to ruin the mood. You continue to let <<$npc_firstname[$boy]>> fuck you, feeling like he''s scratching at the wrong itch.'
+				'As <<$npc_firstname[$boy]>> continues to steadily pump his cock in and out of your pussy, you realize that this isn''t really doing it for you. It doesn''t feel bad exactly, but you can tell that this isn''t going to get you off either.'
 				gs 'sex_ev_cum', 'fuck_cum'
-			end
-
-			act'Could you be a little more gentle?':
-				cla & *clr
-				'<center><img <<$set_imgh>> src="images/shared/sex/vag/miss/3.jpg"></center>'
-				'"Could slow down a little?" you ask. "I think I''m in the mood for something a little more... sensual...'
-				'"I can do that," <<$npc_firstname[$boy]>> says, smiling gently, and begins to move more gently.'
-				act 'Continue': gt 'sex_ev_miss', 'miss1.1'
-			end
-
-			act'I want you to pound me':
-				cla & *clr
-				'<center><img <<$set_imgh>> src="images/shared/sex/vag/miss/3.jpg"></center>'
-				'"Hey," you say, looking <<$npc_firstname[$boy]>> right in the eyes. "I didn''t come here for you to hump me like a Disney princess. I came here to <b>fuck.</b> Now fuck me like you mean it already!"'
-				*nl
-				if npc_abusive[$boy] = 1 and (npc_knows_pc_likes_rough[$boy] = 0 or sex_ev['rough_enjoy'] ! 1):
-					if rand(0,1) = 1:
-						'A concentrated look shadows <<$npc_firstname[$boy]>>''s face and quickly starts fucking you with accelerated speed.'
-					else
-						'Before you can even finish your sentence, <<$npc_firstname[$boy]>> grabs you by the hips and rams his cock into you.'
-					end
-				end
-				act 'Continue': gt 'sex_ev_miss', 'miss3.1'
 			end
 			
-			act'Boooooring':
-				cla & *clr
-				sex_ev['bored'] = 1
-				$orgasm_or = 'no'
-				gs 'sex_ev_sex', 'fuck_arousal_code'
-				'<center><img <<$set_imgh>> src="images/shared/sex/vag/miss/3.jpg"></center>'
-				'You realize all of a sudden that it''s not the pace or how hard he''s going. <<$npc_firstname[$boy]>> is just a boring fuck. You sigh internally, continuing to allow <<$npc_firstname[$boy]>> to fuck you, feeling bored out of your skull the whole time.'
-				gs 'sex_ev_cum', 'fuck_cum'
+			gs 'sex_ev_miss', 'miss_pain1'
+
+			act'Pace is wrong':
+				$sex_ev['fuck_enjoyment'] = 'unsatisfying'
+				sex_ev['orgasm'] = orgasm
+				cla & *nl
+				'You groan beneath <<$npc_firstname[$boy]>>, but not in pleasure. More like frustration. Even though he''s fucking you at what would probably be considered to be a "normal" pace, it''s not what you''re in the mood for. You can''t really tell if you want it faster or slower, all you know is that it just feels... <i>wrong</i>.'
+				act'Don''t ruin the mood':
+					cla & *clr
+					$orgasm_or = 'no'
+					gs 'sex_ev_sex', 'fuck_arousal_code'
+					'<center><img <<$set_imgh>> src="images/shared/sex/vag/miss/3.jpg"></center>'
+					'You sigh internally, but decide not to ruin the mood. You continue to let <<$npc_firstname[$boy]>> fuck you, feeling like he''s scratching at the wrong itch.'
+					gs 'sex_ev_cum', 'fuck_cum'
+				end
+
+				act'Could you be a little more gentle?':
+					cla & *clr
+					'<center><img <<$set_imgh>> src="images/shared/sex/vag/miss/3.jpg"></center>'
+					'"Could slow down a little?" you ask. "I think I''m in the mood for something a little more... sensual...'
+					'"I can do that," <<$npc_firstname[$boy]>> says, smiling gently, and begins to move more gently.'
+					act'Continue':gt 'sex_ev_miss', 'miss1.1'
+				end
+
+				act'I want you to pound me':
+					cla & *clr
+					'<center><img <<$set_imgh>> src="images/shared/sex/vag/miss/3.jpg"></center>'
+					'"Hey," you say, looking <<$npc_firstname[$boy]>> right in the eyes. "I didn''t come here for you to hump me like a Disney princess. I came here to <b>fuck.</b> Now fuck me like you mean it already!"'
+					*nl
+					if npc_abusive[$boy] = 1 and (npc_knows_pc_likes_rough[$boy] = 0 or sex_ev['rough_enjoy'] ! 1):
+						if rand(0,1) = 1:
+							'A concentrated look shadows <<$npc_firstname[$boy]>>''s face and quickly starts fucking you with accelerated speed.'
+						else
+							'Before you can even finish your sentence, <<$npc_firstname[$boy]>> grabs you by the hips and rams his cock into you.'
+						end
+					end
+					act'Continue':gt 'sex_ev_miss', 'miss3.1'
+				end
+				
+				act'Boooooring':
+					cla & *clr
+					sex_ev['bored'] = 1
+					$orgasm_or = 'no'
+					gs 'sex_ev_sex', 'fuck_arousal_code'
+					'<center><img <<$set_imgh>> src="images/shared/sex/vag/miss/3.jpg"></center>'
+					'You realize all of a sudden that it''s not the pace or how hard he''s going. <<$npc_firstname[$boy]>> is just a boring fuck. You sigh internally, continuing to allow <<$npc_firstname[$boy]>> to fuck you, feeling bored out of your skull the whole time.'
+					gs 'sex_ev_cum', 'fuck_cum'
+				end
 			end
 		end
-
+		
 		gs 'sex_ev_miss', 'missionary_change_position'
 	else
 		gs 'sex_ev_miss', 'miss_kiss'
@@ -848,27 +900,43 @@ if $ARGS[0] = 'miss2.2':
 	gs 'sex_ev_events', 'sex_film_code'
 	cla & *clr
 	'<center><video autoplay loop src="images/shared/sex/vag/miss/med<<rand(1,3)>>.mp4"></video></center>'
-	if sex_ev['fuck_enjoyment'] = -1:
+	if $sex_ev['fuck_enjoyment'] = 'painful':
 		if sex_ev['virgin'] = 1:
 			if sex_ev['fuck_pain'] = 1:
-				sex_ev['fuck_pain'] = 0 & sex_ev['fuck_enjoyment'] = 0
+				sex_ev['fuck_pain'] = 0 & $sex_ev['fuck_enjoyment'] = 'unsatisfying'
+				gs 'sex_ev_miss', 'miss2_boy_talk1'
+				gs 'sex_ev_miss', 'miss2_boy_talk2'
+				*nl
 				'You take deep breaths as <<$npc_firstname[$boy]>> keeps steadily fucking you. Finally, the stabbing pain between your legs is starting to go away. It seems your virgin pussy is starting to adjust to having a cock inside it.'
 			elseif sex_ev['fuck_pain'] = 2:
 				'"<i>Nn-! Nngh-! Ngh-!</i>"'
+				gs 'sex_ev_miss', 'miss2_boy_talk1'
+				gs 'sex_ev_miss', 'miss2_boy_talk2'
 				*nl
 				'You squeeze your eyes tight as small squeaks of pain escape your lips in time with <<$npc_firstname[$boy]>>''s thrusts. It still hurts, but you''re determined not to let a little pain cause you to pussy out of your first time.'
 			elseif sex_ev['fuck_pain'] = 3:
+				gs 'sex_ev_miss', 'miss2_boy_talk1'
+				gs 'sex_ev_miss', 'miss2_boy_talk2'
+				*nl
 				'You whimper softly, clenching your teeth as hard as you can, trying with all your might to prevent yourself from bursting into tears. It hurts <i>so much</i>, but you can''t bring yourself to tell him to stop.'
 			end
 		else
 			if sex_ev['fuck_pain'] = 1:
-				sex_ev['fuck_pain'] = 0 & sex_ev['fuck_enjoyment'] = 0
+				sex_ev['fuck_pain'] = 0 & $sex_ev['fuck_enjoyment'] = 'unsatisfying'
+				gs 'sex_ev_miss', 'miss2_boy_talk1'
+				gs 'sex_ev_miss', 'miss2_boy_talk2'
+				*nl
 				'You take deep breaths as <<$npc_firstname[$boy]>> keeps steadily fucking you. Closing your eyes, you focus, adjusting your position beneath him, changing your timing to try move your hips with his. After some minor adjustments, the pain <<$npc_firstname[$boy]>>''s cock was causing inside you fades. After a few minutes, it''s little more than a dull throb and you feel much more comfortable, if not all that good.'
 			elseif sex_ev['fuck_pain'] = 2:
 				'"<i>Nn-! Nngh-! Ngh-!</i>"'
+				gs 'sex_ev_miss', 'miss2_boy_talk1'
+				gs 'sex_ev_miss', 'miss2_boy_talk2'
 				*nl
 				'You squeeze your eyes tight as small squeaks of pain escape your lips in time with the sound of <<$npc_firstname[$boy]>>''s hips clapping against your''s. It hurts like hell, but you don''t say anything, trying your best not to let it show.'
 			elseif sex_ev['fuck_pain'] = 3:
+				gs 'sex_ev_miss', 'miss2_boy_talk1'
+				gs 'sex_ev_miss', 'miss2_boy_talk2'
+				*nl
 				'You whimper softly, clenching your teeth as hard as you can, trying with all your might to prevent yourself from bursting into tears every time <<$npc_firstname[$boy]>>''s hips loudly clap into your''s and pain lances through your pussy. It hurts <i>so much</i>, but you can''t bring yourself to tell him to stop.'
 			end
 		end
@@ -877,42 +945,58 @@ if $ARGS[0] = 'miss2.2':
 			*nl
 			'Nevertheless, you try to move your hips in time with his, rolling them and doing your best to make <<$npc_firstname[$boy]>> feel good, hoping he''ll come quickly.'
 		end
-	elseif sex_ev['fuck_enjoyment'] = 0:
+	elseif $sex_ev['fuck_enjoyment'] = 'unsatisfying':
 		if sex_ev['fuck_pain'] = -1:
-			sex_ev['fuck_enjoyment'] = 1
+			$sex_ev['fuck_enjoyment'] = 'enjoy'
+			gs 'sex_ev_miss', 'miss2_boy_talk1'
+			gs 'sex_ev_miss', 'miss2_boy_talk2'
+			*nl
 			'Your breath hitches as <<$npc_firstname[$boy]>> continues to steadily thrust into your pussy. You aren''t sure what changed, but it''s like your body is waking up from a deep sleep. His cock stretches your walls, every thrust <i>fills</i> you in a way you didn''t know you needed to be, and even now you can feel yourself get wetter and wetter, slicking up his cock and making it slide in and out of you with much greater, and pleasurable, force.'
 		elseif sex_ev['cum_speed_up'] = 1:
 			sex_ev['cum_speed_up'] = 0
+			gs 'sex_ev_miss', 'miss2_boy_talk1'
+			gs 'sex_ev_miss', 'miss2_boy_talk2'
 			*nl
 			'As your pleasure increases, you try your best to bring his up as well, putting in the effort to try and make him come.'
 		elseif sex_ev['moan'] = 1:
 			'"<i>Mm-! Mmm-! Mm-! Mmm-!</i>"'
+			gs 'sex_ev_miss', 'miss2_boy_talk1'
+			gs 'sex_ev_miss', 'miss2_boy_talk2'
 			*nl
 			'You grunt passively as <<$npc_firstname[$boy]>> continues to pump his cock between your legs. His manhood hammers deep inside you, filling you with this weird sort of "pressure." This doesn''t feel "good" exactly, but it doesn''t feel bad either.'
 		elseif sex_ev['moan'] = 2:
 			'"<i>Ah~! Ahh~! Ahhh~!</i>"'
+			gs 'sex_ev_miss', 'miss2_boy_talk1'
+			gs 'sex_ev_miss', 'miss2_boy_talk2'
 			*nl
 			'You moan softly as <<$npc_firstname[$boy]>> continues to pump his cock between your legs. It still basically feels numb to your pussy other than the slapping of his hips against yours, but you don''t want him to feel bad about it either so you play along, trying to pretend it feels good.'
 		elseif sex_ev['dirty_talk'] > 0:
 			gs 'sex_ev_miss', 'miss2.2_dirty_talk'
+			gs 'sex_ev_miss', 'miss2_boy_talk1'
+			gs 'sex_ev_miss', 'miss2_boy_talk2'
 			*nl
 			'All your dirty talk is just that: talk. For all the effort <<$npc_firstname[$boy]>> is putting in, you can''t say it feels very good. But you don''t want <<$npc_firstname[$boy]>> to feel bad about it either so you play along, pretending otherwise.'
 		end
 	elseif sex_ev['cum_speed_up'] = 1:
 		sex_ev['cum_speed_up'] = 0
+		gs 'sex_ev_miss', 'miss2_boy_talk1'
+		gs 'sex_ev_miss', 'miss2_boy_talk2'
 		*nl
 		'You widen your legs and eagerly throw your hips back towards <<$npc_firstname[$boy]>> in time with his. Maybe if you time it right, you can come together.'
 	elseif sex_ev['moan'] >= 1:
 		if sex_ev['moan'] = 1:
 			'"<i>Ah~! Ahh~! Haa~! Ah!</i>"'
-			*nl
 		elseif sex_ev['moan'] = 2:
 			'"<i>Ah~! Yes~! Mmm~! Ahh~!</i>"'
 		end
+		gs 'sex_ev_miss', 'miss2_boy_talk1'
+		gs 'sex_ev_miss', 'miss2_boy_talk2'
 		*nl
 		gs 'sex_ev_miss', 'miss2.2_moan_desc'
 	elseif sex_ev['dirty_talk'] = 1:
 		gs 'sex_ev_miss', 'miss2.2_dirty_talk'
+		gs 'sex_ev_miss', 'miss2_boy_talk1'
+		gs 'sex_ev_miss', 'miss2_boy_talk2'
 	elseif sex_ev['casual_talk'] > 0:
 		if mid($boy,1,1) = 'A':
 			gs 'sex_ev_sex_talk_<<$boy>>', 'talk_output'
@@ -920,6 +1004,9 @@ if $ARGS[0] = 'miss2.2':
 		
 		end
 	else
+		gs 'sex_ev_miss', 'miss2_boy_talk1'
+		gs 'sex_ev_miss', 'miss2_boy_talk2'
+		*nl
 		'You close your eyes, letting <<$npc_firstname[$boy]>> take care of the rest, focusing on his lovemaking.'
 		*nl
 		gs 'sex_ev_miss', 'miss2.2_sensation_desc'
@@ -966,7 +1053,7 @@ if $ARGS[0] = 'miss3':
 		pcs_sweat += 1
 		sex_ev['orgasm'] = orgasm
 		sex_ev['rough_enjoy'] = 1
-		sex_ev['fuck_enjoyment'] = 1
+		$sex_ev['fuck_enjoyment'] = 'enjoy'
 		gs 'sex_ev_sex', 'fuck_rough_arousal_code'
 		cla & *nl
 		gs 'sex_ev_miss', 'miss3_enjoy_desc'
@@ -979,7 +1066,7 @@ if $ARGS[0] = 'miss3':
 	
 	act'Doesn''t feel good':
 		cla & *nl
-		sex_ev['fuck_enjoyment'] = 0
+		$sex_ev['fuck_enjoyment'] = 'unsatisfying'
 		$orgasm_or = 'no'
 		gs 'sex_ev_sex', 'fuck_rough_arousal_code'
 		'<<$npc_firstname[$boy]>> may be going hard and fast, but to you it doesn''t feel like anything at all. It doesn''t hurt, nor does it feel good. You''re just getting... fucked...?'
@@ -994,7 +1081,7 @@ if $ARGS[0] = 'miss3':
 			act'Don''t ruin the mood':
 				sex_ev['bored'] = 1
 				sex_ev['boy_cum'] = 1
-				sex_ev['fuck_enjoyment'] = -1
+				$sex_ev['fuck_enjoyment'] = 'painful'
 				cla & *clr
 				$orgasm_or = 'no'
 				gs 'sex_ev_sex', 'fuck_rough_arousal_code'
@@ -1013,24 +1100,24 @@ if $ARGS[0] = 'miss3':
 						sex_ev['orgasm'] = orgasm
 						$orgasm_or = 'no'
 						sex_ev['rough_hurt'] = 1
-						sex_ev['fuck_enjoyment'] = -1
+						$sex_ev['fuck_enjoyment'] = 'painful'
 						sex_ev['boy_cum'] = 2
 						'"Please!" you beg, tears welling up in  your eyes. "Please slow down! I can''t-! Take-!'
 						'But <<$npc_firstname[$boy]>> is heedless of your cries. He keeps a firm hold on your hair and pulls hard with every thrust, forcing unceasing cries of pain from your lips.'
-						act 'Continue': gs 'sex_ev_cum', 'fuck_cum'
+						act'Continue':gs 'sex_ev_cum', 'fuck_cum'
 					end
 					
 					act'If you slow down I will kill you':
 						pcs_sweat += 1
 						sex_ev['orgasm'] = orgasm
 						sex_ev['rough_enjoy'] = 1
-						sex_ev['fuck_enjoyment'] = 1
+						$sex_ev['fuck_enjoyment'] = 'enjoy'
 						gs 'sex_ev_sex', 'fuck_rough_arousal_code'
 						cla & *nl
 						'You scream another cry of agonizing pleasure and glare at <<$npc_firstname[$boy]>>.'
 						'"If you slow down I will <i>fucking</i> kill you," you snarl, throwing your hips forward to slam into his for more force.'
 						gs 'sex_ev_miss', 'miss3_enjoy_desc'
-						act 'Continue': gs 'sex_ev_cum', 'fuck_cum'
+						act'Continue':gs 'sex_ev_cum', 'fuck_cum'
 					end
 				else
 					cla & *clr
@@ -1044,18 +1131,18 @@ if $ARGS[0] = 'miss3':
 					act'No (enjoy)':
 						cla & *nl
 						npc_knows_pc_likes_rough[$boy] = 1
-						sex_ev['fuck_enjoyment'] = 1
+						$sex_ev['fuck_enjoyment'] = 'enjoy'
 						sex_ev['rough_enjoy'] = 1
 						'"No," you smile back at him. "I want you to pound me."'
 						'In response, <<$npc_firstname[$boy]>> yanks you back by the hair even harder than before, slamming his cock into you to fulfil your request.'
-						act 'Continue': gt 'sex_ev_miss', 'miss3.1'
+						act'Continue':gt 'sex_ev_miss', 'miss3.1'
 					end
 					
 					act'Yes, gentle please':
 						sex_ev['too_rough'] = 1
 						cla & *nl
 						'"Yes please," you say, giving him a small smile. "A little more gently would be very nice..."'
-						act 'Continue': gt 'sex_ev_miss', 'miss1.1'
+						act'Continue':gt 'sex_ev_miss', 'miss1.1'
 					end
 
 					act'Not <i>too</i> gentle':
@@ -1063,7 +1150,7 @@ if $ARGS[0] = 'miss3':
 						cla & *nl
 						'"You don''t have to be <i>too</i> gentle with me," you giggle. "I just don''t want to feel like I''m having sex with Vlad the Impaler here."'
 						'You sigh in relief as he picks up his pace again, this time without leaving you feel like you''re being battered to bits.'
-						act 'Continue': gt 'sex_ev_miss', 'miss2.2'
+						act'Continue':gt 'sex_ev_miss', 'miss2.2'
 					end
 				end
 			end
@@ -1086,9 +1173,9 @@ if $ARGS[0] = 'miss3':
 					'"Do you need me to slow down for a bit?"'
 					'"That would... be nice," you smile.'
 					if rand(0,1) = 1:
-						act 'Continue': gt 'sex_ev_miss', 'miss1'
+						act'Continue':gt 'sex_ev_miss', 'miss1'
 					else
-						act 'Continue': gt 'sex_ev_miss', 'miss2'
+						act'Continue':gt 'sex_ev_miss', 'miss2'
 					end
 				else
 					'"I''m going to keep going, okay?"'
@@ -1120,7 +1207,7 @@ if $ARGS[0] = 'miss3.1':
 			cla & *nl
 			gs 'sex_ev_sex', 'fuck_rough_arousal_code'
 			sex_ev['rough_enjoy'] = 1
-			sex_ev['fuck_enjoyment'] = 1
+			$sex_ev['fuck_enjoyment'] = 'enjoy'
 			gs 'sex_ev_miss', 'miss3.1_desc'
 			gs 'sex_ev_cum', 'fuck_cum'
 		end
@@ -1129,7 +1216,7 @@ if $ARGS[0] = 'miss3.1':
 			cla & *nl
 			gs 'sex_ev_sex', 'fuck_rough_no_cum_code'
 			sex_ev['rough_hurt'] = 1
-			sex_ev['fuck_enjoyment'] = -1
+			$sex_ev['fuck_enjoyment'] = 'painful'
 			'Tears begin to well up in your eyes as he keeps fucking you roughly. It''s all you can do not to sob, but <<$npc_firstname[$boy]>> is unrelenting. He keeps a firm hold on your hair and pulls hard with every thrust, forcing cries of pain from your lips.'
 			*nl
 			'This isn''t what you wanted...'
@@ -1155,11 +1242,11 @@ if $ARGS[0] = 'miss3.2':
 	gs 'sex_ev_events', 'sex_film_code'
 	cla & *clr
 	'<center><video autoplay loop src="images/shared/sex/vag/miss/hard<<rand(1,3)>>.mp4"></video></center>'
-	if sex_ev['fuck_enjoyment'] = -1:
+	if $sex_ev['fuck_enjoyment'] = 'painful':
 		gs 'sex_ev_sex', 'fuck_no_cum_code'
 		if sex_ev['virgin'] = 1:
 			if sex_ev['fuck_pain'] = 1:
-				sex_ev['fuck_pain'] = 0 & sex_ev['fuck_enjoyment'] = 0
+				sex_ev['fuck_pain'] = 0 & $sex_ev['fuck_enjoyment'] = 'unsatisfying'
 				'You take deep breaths as <<$npc_firstname[$boy]>> keeps pounding his cock into you. Somehow, the stabbing pain between your legs is starting to go away. It seems your virgin pussy is starting to adjust to getting jackhammered.'
 			elseif sex_ev['fuck_pain'] = 2:
 				'"<i>Nn-! Nngh-! Ngh-!</i>"'
@@ -1172,7 +1259,7 @@ if $ARGS[0] = 'miss3.2':
 			end
 		else
 			if sex_ev['fuck_pain'] = 1:
-				sex_ev['fuck_pain'] = 0 & sex_ev['fuck_enjoyment'] = 0
+				sex_ev['fuck_pain'] = 0 & $sex_ev['fuck_enjoyment'] = 'unsatisfying'
 				'You take deep breaths as <<$npc_firstname[$boy]>> keeps pounding his cock into you. You focus hard, trying with all your might to squeeze <i>some</i> kind of pleasure from this. Anything to make the pain go away. And somehow, after several minutes, it does. <<$npc_firstname[$boy]>> continues to jackhammer your pussy with his cock, but suddenly you feel able to tolerate it, even if it doesn''t feel very good either.'
 			elseif sex_ev['fuck_pain'] = 2:
 				'"<i>Nn-! Nngh-! Ngh-!</i>"'
@@ -1189,10 +1276,10 @@ if $ARGS[0] = 'miss3.2':
 			*nl
 			'Nevertheless, you try to move your hips in time with his, rolling them and doing your best to make <<$npc_firstname[$boy]>> feel good. Maybe you can make him come soon and put an end to this agony...'
 		end
-	elseif sex_ev['fuck_enjoyment'] = 0:
+	elseif $sex_ev['fuck_enjoyment'] = 'unsatisfying':
 		gs 'sex_ev_sex', 'fuck_no_cum_code'
 		if sex_ev['fuck_pain'] = -1:
-			sex_ev['fuck_enjoyment'] = 1
+			$sex_ev['fuck_enjoyment'] = 'enjoy'
 			$orgasm_or = ''
 			'Your breath hitches as <<$npc_firstname[$boy]>> continues to pound your pussy. You aren''t sure what changed, but it''s like your body is coming alive. His cock stretches your walls, <i>filling</i> you in a way you didn''t know you needed to be, and even now you can feel yourself get wetter and wetter, slicking up his cock and making it slam harder into you with every thrust.'
 		elseif sex_ev['cum_speed_up'] = 1:
@@ -1279,10 +1366,10 @@ if $ARGS[0] = 'miss_kiss':
 			'You let his <<$npc_firstname[$boy]>>''s touch yours and feel his tongue snake into your mouth and start to wrestle against your own.'
 		end
 		*nl
-		if sex_ev['fuck_enjoyment'] = -1:
+		if $sex_ev['fuck_enjoyment'] = 'painful':
 			if sex_ev['virgin'] = 1:
 				if sex_ev['fuck_pain'] = 1:
-					sex_ev['fuck_pain'] = 0 & sex_ev['fuck_enjoyment'] = 0
+					sex_ev['fuck_pain'] = 0 & $sex_ev['fuck_enjoyment'] = 'unsatisfying'
 					'You kiss <<$npc_firstname[$boy]>> back with all your might, trying to find something to distract yourself from the pain. All your focus is on the kiss and his lips and his tongue and the taste. It comes to you with a start that after the kiss breaks, you''re not in as much pain as you were before.'
 				elseif sex_ev['fuck_pain'] = 2:
 					'You squeeze your eyes tight as small squeaks of pain escape your lips as you kiss <<$npc_firstname[$boy]>> back. The pain of your virgin pussy getting fucked is still overwhelming, but try not to let it show, hoping to distract both <<$npc_firstname[$boy]>> and yourself by returning the kiss.'
@@ -1291,7 +1378,7 @@ if $ARGS[0] = 'miss_kiss':
 				end
 			else
 				if sex_ev['fuck_pain'] = 1:
-					sex_ev['fuck_pain'] = 0 & sex_ev['fuck_enjoyment'] = 0
+					sex_ev['fuck_pain'] = 0 & $sex_ev['fuck_enjoyment'] = 'unsatisfying'
 					'You kiss <<$npc_firstname[$boy]>> back with all your might, trying to find something to distract yourself from the pain. All your focus is on the kiss and his lips and his tongue and the taste. It comes to you with a start that after the kiss breaks, you''re not in as much pain as you were before.'
 				elseif sex_ev['fuck_pain'] = 2:
 					'You squeeze your eyes tight as small squeaks of pain escape your lips as you kiss <<$npc_firstname[$boy]>> back. The pain in your pussy is still overwhelming, but try not to let it show, hoping to distract both <<$npc_firstname[$boy]>> and yourself by returning the kiss.'
@@ -1299,9 +1386,9 @@ if $ARGS[0] = 'miss_kiss':
 					'Your attempts to kiss <<$npc_firstname[$boy]>> back are clumsy at best, as opening your mouth at all puts you in danger of screaming in pain and bursting into tears. He continues fucking your pussy in the most painful way possible and you nearly sob directly into his mouth as he kisses you.'
 				end
 			end
-		elseif sex_ev['fuck_enjoyment'] = 0:
+		elseif $sex_ev['fuck_enjoyment'] = 'unsatisfying':
 			if sex_ev['fuck_pain'] = -1:
-				sex_ev['fuck_enjoyment'] = 1
+				$sex_ev['fuck_enjoyment'] = 'enjoy'
 				'A spark fires off somewhere inside you and suddenly find yourself kissing <<$npc_firstname[$boy]>> back with passion as heat spreads through your hips. Your arousal has been awakened and wetness spreads between your legs as you force your tongue into <<$npc_firstname[$boy]>>''s mouth.'
 			elseif sex_ev['moan'] = 1:
 				'You grunt passively into <<$npc_firstname[$boy]>>''s mouth as he kisses you while continuing to fuck you. The kiss isn''t really helping much, but it could be worse you guess.'
@@ -1456,6 +1543,60 @@ if $ARGS[0] = 'miss1_start_desc':
 
 end
 
+if $ARGS[0] = 'miss1_boy_talk1':
+	if npc_sex_volume[$boy] = 0:
+		'<i>"Hn-! Hn-! Hn-! Hn-!"</i>'
+	elseif npc_sex_volume[$boy] = 1:
+		'<i>"Mmph! Mmph! Mmph! Nnph!"</i>'
+	elseif npc_sex_volume[$boy] = 2:
+		if rand(1,3) = 1:
+			if pcs_vag <= 15:
+				'"Oh fuck~! Your pussy''s so tight~!"'
+			else
+				if npc_abusive[$boy] > 0 and $sex_ev['type'] = 'hookup':
+					'"You''re pussy''s pretty loose huh?"'
+				else
+					gs 'sex_ev_miss', 'miss1_boy_talk1'
+				end
+			end
+		elseif rand(1,2) = 1:
+			if npc_gentle_lover[$boy] = 1:
+				'"<i>Mmph~!</i> You''re so good~! <i>Mmph~!</i>"'
+			elseif npc_dirty_lover[$boy] = 1:
+				'"<i>Hnn~!</i> You like that? <i>Hnn~!</i> You like that?"'
+			elseif npc_sensual_lover[$boy] = 1:
+				'"<i>Mmph~!</i> You''re so good~! <i>Mmph~!</i>"'
+			else
+				'"<i>Mmph~!</i> You''re so good~! <i>Mmph~!</i>"'
+			end
+		else
+			if npc_gentle_lover[$boy] = 1:
+				'"<i>Mmph~!</i> You''re so good~! <i>Mmph~!</i>"'
+			elseif npc_dirty_lover[$boy] = 1:
+				'"<i>Hnn~!</i> Yeah... <i>Hnn~!</i> Take that cock..."'
+			elseif npc_sensual_lover[$boy] = 1:
+				'"<i>Mmph~!</i> You''re so good~! <i>Mmph~!</i>"'
+			else
+				'"<i>Mmph~!</i> You''re so good~! <i>Mmph~!</i>"'
+			end
+		end
+	elseif npc_sex_volume[$boy] = 3:
+		'<i><b>"HNGH-! HNGH-! HNGH-! HNGH-!"</b></i>'
+	end
+end
+
+if $ARGS[0] = 'miss1_boy_talk2':
+	if npc_sex_volume[$boy] = 0:
+		'<<$npc_firstname[$boy]>> barely makes a sound as he thrusts into you. You can''t even hear his breathing over the slap of your bodies colliding.'
+	elseif npc_sex_volume[$boy] = 1:
+		'<<$npc_firstname[$boy]>> grunts softly, panting as he thrusts into you.'
+	elseif npc_sex_volume[$boy] = 2:
+		'<<$npc_firstname[$boy]>> murmurs his words softly as he thrusts into you from on top.'
+	elseif npc_sex_volume[$boy] = 3:
+		'Despite the slow pace being maintained, <<$npc_firstname[$boy]>> is braying erratically like a donkey.'
+	end
+end
+
 if $ARGS[0] = 'miss1_enjoy_desc':
 	if $npc_dick_desc[$boy] = 'tiny' or $npc_dick_desc[$boy] = 'short':
 		'You moan beneath <<$npc_firstname[$boy]>>, your breath hitching with every thrust. His dick may be laughably small, but he knows how to use it and your hips buck every time he draws his away.'
@@ -1592,21 +1733,21 @@ if $ARGS[0] = 'miss1.2_dirty_talk':
 		!! dirty talk about his cock
 		if rand(1,2) = 1:
 			if $npc_dick_desc[$boy] = 'tiny' or $npc_dick_desc[$boy] = 'short':
-				iif(stat['no_sex_swearing'] = 0, '"Ah~! It feels so good!" you moan. "Fuck me with your tiny dick!"', '"Ah~! You feel <i>amazing</i> inside me," you moan. "Your tiny dick feels so good~!"')
+				iif(stat['no_sex_swearing'] = 0, '"Fuck~! Yes~! Just like that~!" you moan. "Fuck me with your tiny dick!"', '"Fuck~! Yes~! Just like that~!" you moan. "Your tiny dick feels so good~!"')
 			elseif $npc_dick_desc[$boy] = 'chode':
-				iif(stat['no_sex_swearing'] = 0, '"Ah~! Your cock feels so good!" you moan. "Don''t stop! Fuck me with your fat chode!"', '"Ah~! You''re so <i>thick</i>," you moan. "Your big fat chode feels so good~!"')
+				iif(stat['no_sex_swearing'] = 0, '"Fuck~! Yes~! Just like that~!" you moan. "Don''t stop! Fuck me with your fat chode!"', '"Ah~! You''re so <i>thick</i>~!" you moan. "You feel so good~!"')
 			elseif $npc_dick_desc[$boy] = 'skinny':
-				iif(stat['no_sex_swearing'] = 0, '"Ah~! Your cock feels so fucking good~!" you moan. "Ahh~! You slide in so easily~! It''s so good~!"', '"Ah~! You slide in so easily~!" you moan. "Ahh~! Your skinny dick feels so good~!"')
+				iif(stat['no_sex_swearing'] = 0, '"Fuck~! Yes~! Just like that~!" you moan. "Fuck me with your skinny dick~!"', '"Ah~! You slide in so easily~!" you moan. "Ahh~! Your skinny dick feels so good~!"')
 			elseif $npc_dick_desc[$boy] = 'normal':
-				iif(stat['no_sex_swearing'] = 0, '"Oh fuck~! Your cock fits perfectly inside me~!" you moan. "Ah~! It feels so fucking good~!"', '"Ah~! Your cock is a perfect fit for me," you moan. "You''re filling me up so perfectly~!"')
+				iif(stat['no_sex_swearing'] = 0, '"Fuck~! Yes~! Just like that~!" you moan. "Nngh~! So good~!"', '"Ah~! Your cock feels so good~!" you moan. "Nngh~! So good~!"')
 			elseif $npc_dick_desc[$boy] = 'thick':
-				iif(stat['no_sex_swearing'] = 0, '"Oh fuck~! You''re so <i>thick</i>!" you moan. "Ungh~! I can feel you stretching my pussy~!"', '"Ah~! You''re so <i>thick</i>!" you moan. "Ungh~! You''re stretching me out! It''s so good!"')
+				iif(stat['no_sex_swearing'] = 0, '"Oh fuck~! You''re so <i>thick</i>!" you moan. "Ungh~! Fuck me with your big cock~!"', '"Ah~! You''re so <i>thick</i>!" you moan. "Ungh~! You''re stretching me out! It''s so good!"')
 			elseif $npc_dick_desc[$boy] = 'long':
 				iif(stat['no_sex_swearing'] = 0, '"Ungh~! Fuck~! You''re so deep~!" you groan. "Nngh~! Right there! Right fucking there~!"', '"Ungh~! You''re so deep~!" you groan. "Nngh~! It''s so deep inside me~! Ah~!"')
 			elseif $npc_dick_desc[$boy] = 'huge':
-				iif(stat['no_sex_swearing'] = 0, '"Ungh~!" you groan. "Your cock is so <i>big</i>! Fuck~! It feels so good~!"', '"Ungh~! You''re so <i>big</i>!" you groan. "Ohmygoodness~! It''s driving me crazy~!"')
+				iif(stat['no_sex_swearing'] = 0, '"Ahh~! Yes~! Just like that~!" you groan. "Ungh~! Fuck me with your huge cock~!"', '"Ungh~! You''re so <i>big</i>!" you groan. "Ohmygoodness~! It''s driving me crazy~!"')
 			elseif $npc_dick_desc[$boy] = 'enormous':
-				iif(stat['no_sex_swearing'] = 0, '"Ungh~!" you groan. "You''re so <i>fucking big</i>! Ahhn~!"', '"Ungh~! You''re <i>enormous</i>~!" you groan. "It''s filling me up~! It''s stretching me out~! Unngh~! I can barely breathe~!"')
+				iif(stat['no_sex_swearing'] = 0, '"Ungh~! You''re cock is <i>enormous</i>~!" you groan. "Ahhn~! It''s amazing~!"', '"Ungh~! You''re <i>enormous</i>~!" you groan. "It''s filling me up~! It''s stretching me out~! Unngh~! I can barely breathe~!"')
 			elseif $npc_dick_desc[$boy] = 'lengthy':
 				iif(stat['no_sex_swearing'] = 0, '"Ungh~!" you groan, your voice a hoarse with arousal. "Oh <i>fuck!</i> Your cock is so fucking long! I feel you in my stomach~!"', '"Ungh~! <i>Icanfeelyouinmystomach~!</i>" you groan, your voice a hoarse with arousal. "Oh <i>sugar~!</i> It''s <i>so</i> deep inside me~!"')
 			elseif $npc_dick_desc[$boy] = 'gigantic':
@@ -1622,7 +1763,7 @@ if $ARGS[0] = 'miss1.2_dirty_talk':
 			elseif $npc_dick_desc[$boy] = 'skinny':
 				iif(stat['no_sex_swearing'] = 0, '"Ah~! Your cock feels so good!" you moan.', '"Ah~! Your cock feels so good!" you moan.')
 			elseif $npc_dick_desc[$boy] = 'normal':
-				iif(stat['no_sex_swearing'] = 0, '"Ah~! Your cock feels so good!" you moan. "You fit just right inside me!"', '"You''re a perfect fit for my pussy," you moan.')
+				iif(stat['no_sex_swearing'] = 0, '"Ah~! I fucking love your cock~!" you moan. "Iloveit!Iloveit!Iloveit!Iloveit!"', '"You''re a perfect fit for my pussy," you moan.')
 			elseif $npc_dick_desc[$boy] = 'thick':
 				iif(stat['no_sex_swearing'] = 0, '"Ah~! You''re so big!" you moan. "Ungh~! You''re stretching me out! It''s so good!"', '"Ah~! You''re so big!" you moan. "Ungh~! You''re stretching me out! It''s so good!')
 			elseif $npc_dick_desc[$boy] = 'long':
@@ -1630,9 +1771,9 @@ if $ARGS[0] = 'miss1.2_dirty_talk':
 			elseif $npc_dick_desc[$boy] = 'huge':
 				iif(stat['no_sex_swearing'] = 0, '"Ungh~!" you groan. "Your cock is so <i>big</i>! You''re so huge!"', '')
 			elseif $npc_dick_desc[$boy] = 'enormous':
-				iif(stat['no_sex_swearing'] = 0, '"Ungh~!" you groan. "You''re so <i>fucking big</i>! Don''t stop!"', '')
+				iif(stat['no_sex_swearing'] = 0, '"Ungh~!" you groan. "I love your <i>big fucking cock</i>~! Nngh~! It''s driving me crazy~!"', '')
 			elseif $npc_dick_desc[$boy] = 'lengthy':
-				iif(stat['no_sex_swearing'] = 0, '"Ungh~!" you groan, your voice a hoarse with arousal. "Oh <i>fuck!</i> Your cock is so fucking long! I feel you in my stomach~!"', '')
+				iif(stat['no_sex_swearing'] = 0, '"Ungh~! <i>Fuck!</i>" you groan, your voice a hoarse with arousal. "I can feel you in my stomach~!"', '')
 			elseif $npc_dick_desc[$boy] = 'gigantic':
 				iif(stat['no_sex_swearing'] = 0, '"Ungh~! <i>Fuck!</i>" you groan, your voice a hoarse with arousal. "Oh <i>fuck!</i> You''re so <i>fucking big</i>! I can feel you in my stomach~!"', '')
 			elseif $npc_dick_desc[$boy] = 'monster':
@@ -1790,6 +1931,60 @@ if $ARGS[0] = 'miss2_start_desc':
 		'<<$npc_firstname[$boy]>> drives into you at a steady pace, hard enough that your breasts jiggle with every thrust and his gigantic dick fills you to the brim. Sloppy wet slaps echo around the room as <<$npc_firstname[$boy]>> batters your pussy with his long hard cock.'
 	elseif $npc_dick_desc[$boy] = 'monster':
 		'<<$npc_firstname[$boy]>> drives into you at a steady pace, hard enough that your breasts jiggle with every thrust. His dick fills you completely and then some, forcing your pussy to strain and stretch around his long, girthy shaft. Sloppy wet slaps echo around the room as <<$npc_firstname[$boy]>> repeatedly batters your pussy with his monstrous cock.'
+	end
+end
+
+if $ARGS[0] = 'miss2_boy_talk1':
+	if npc_sex_volume[$boy] = 0:
+		'<i>"Hn-! Hn-! Hn-! Hn-!"</i>'
+	elseif npc_sex_volume[$boy] = 1:
+		'<i>"Mmph! Mmph! Mmph! Nnph!"</i>'
+	elseif npc_sex_volume[$boy] = 2:
+		if rand(1,3) = 1:
+			if pcs_vag <= 15:
+				'"Oh fuck~! Your pussy''s so tight~!"'
+			else
+				if npc_abusive[$boy] > 0 and $sex_ev['type'] = 'hookup':
+					'"You''re pussy''s pretty loose huh?"'
+				else
+					gs 'sex_ev_miss', 'miss1_boy_talk1'
+				end
+			end
+		elseif rand(1,2) = 1:
+			if npc_gentle_lover[$boy] = 1:
+				'"<i>Mmph~!</i> You''re so good~! <i>Mmph~!</i>"'
+			elseif npc_dirty_lover[$boy] = 1:
+				'"<i>Hnn~!</i> You like that? <i>Hnn~!</i> You like that?"'
+			elseif npc_sensual_lover[$boy] = 1:
+				'"<i>Mmph~!</i> You''re so good~! <i>Mmph~!</i>"'
+			else
+				'"<i>Mmph~!</i> You''re so good~! <i>Mmph~!</i>"'
+			end
+		else
+			if npc_gentle_lover[$boy] = 1:
+				'"<i>Mmph~!</i> You''re so good~! <i>Mmph~!</i>"'
+			elseif npc_dirty_lover[$boy] = 1:
+				'"<i>Hnn~!</i> Yeah... <i>Hnn~!</i> Take that cock..."'
+			elseif npc_sensual_lover[$boy] = 1:
+				'"<i>Mmph~!</i> You''re so good~! <i>Mmph~!</i>"'
+			else
+				'"<i>Mmph~!</i> You''re so good~! <i>Mmph~!</i>"'
+			end
+		end
+	elseif npc_sex_volume[$boy] = 3:
+		'<i><b>"HNGH-! HNGH-! HNGH-! HNGH-!"</b></i>'
+	end
+end
+
+if $ARGS[0] = 'miss2_boy_talk2':
+	if npc_sex_volume[$boy] = 0:
+		'<<$npc_firstname[$boy]>> barely makes a sound as he thrusts into you. You can''t even hear his breathing over the slap of your bodies colliding.'
+	elseif npc_sex_volume[$boy] = 1:
+		'<<$npc_firstname[$boy]>> grunts softly, panting as he thrusts into you.'
+	elseif npc_sex_volume[$boy] = 2:
+		'<<$npc_firstname[$boy]>> murmurs his words softly as he thrusts into you from on top.'
+	elseif npc_sex_volume[$boy] = 3:
+		'Despite the slow pace being maintained, <<$npc_firstname[$boy]>> is braying erratically like a donkey.'
 	end
 end
 
@@ -2060,6 +2255,60 @@ if $ARGS[0] = 'miss3_start_desc':
 		'You gasp as <<$npc_firstname[$boy]>> slams his cock into you and the impact ripples through your entire body. As your head jerks forward, <<$npc_firstname[$boy]>>''s hand grabs hold of your hair, yanking on it to force as much of his gigantic cock inside you as he can.'
 	elseif $npc_dick_desc[$boy] = 'monster':
 		'You gasp as <<$npc_firstname[$boy]>> slams his cock into you and the impact ripples through your entire body. As your head jerks forward, <<$npc_firstname[$boy]>>''s hand grabs hold of your hair, yanking on it to force as much of his monstrously huge cock inside you as he can.'
+	end
+end
+
+if $ARGS[0] = 'miss3_boy_talk1':
+	if npc_sex_volume[$boy] = 0:
+		'<i>"Hn-! Hn-! Hn-! Hn-!"</i>'
+	elseif npc_sex_volume[$boy] = 1:
+		'<i>"Hngh! Hngh! Hngh! Hngh!"</i>'
+	elseif npc_sex_volume[$boy] = 2:
+		if rand(1,3) = 1:
+			if pcs_vag <= 15:
+				'"Oh fuck~! Your pussy''s so tight~!"'
+			else
+				if npc_abusive[$boy] > 0 and $sex_ev['type'] = 'hookup':
+					'"You''re pussy''s pretty loose huh?"'
+				else
+					gs 'sex_ev_miss', 'miss1_boy_talk1'
+				end
+			end
+		elseif rand(1,2) = 1:
+			if npc_gentle_lover[$boy] = 1:
+				'"<i>Mmph~!</i> You''re so good~! <i>Mmph~!</i>"'
+			elseif npc_dirty_lover[$boy] = 1:
+				'"<i>Hnn~!</i> You like that? <i>Hnn~!</i> You like that when I pound your fucking pussy?"'
+			elseif npc_sensual_lover[$boy] = 1:
+				'"<i>Mmph~!</i> You''re so good~! <i>Mmph~!</i>"'
+			else
+				'"<i>Mmph~!</i> You''re so good~! <i>Mmph~!</i>"'
+			end
+		else
+			if npc_gentle_lover[$boy] = 1:
+				'"<i>Mmph~!</i> You''re so good~! <i>Mmph~!</i>"'
+			elseif npc_dirty_lover[$boy] = 1:
+				'"<i>Hnn~!</i> Yeah! <i>Hnn~!</i> Take my fucking cock bitch!"'
+			elseif npc_sensual_lover[$boy] = 1:
+				'"<i>Mmph~!</i> You''re so good~! <i>Mmph~!</i>"'
+			else
+				'"<i>Mmph~!</i> You''re so good~! <i>Mmph~!</i>"'
+			end
+		end
+	elseif npc_sex_volume[$boy] = 3:
+		'<i><b>"HNGH-! HNGH-! HNGH-! HNGH-!"</b></i>'
+	end
+end
+
+if $ARGS[0] = 'miss3_boy_talk2':
+	if npc_sex_volume[$boy] = 0:
+		'<<$npc_firstname[$boy]>> barely makes a sound as he thrusts into you. You can''t even hear his breathing over the slap of his hips smashing into yours.'
+	elseif npc_sex_volume[$boy] = 1:
+		'<<$npc_firstname[$boy]>> grunts softly, panting as he thrusts into you.'
+	elseif npc_sex_volume[$boy] = 2:
+		'<<$npc_firstname[$boy]>> growls as he smashes your pussy from above.'
+	elseif npc_sex_volume[$boy] = 3:
+		'<<$npc_firstname[$boy]>> is braying erratically like a donkey as he thrusts equally as erratically into your pussy.'
 	end
 end
 
