@@ -10,9 +10,34 @@ if $ARGS[0] = 'simple':
 !! so we can add about 2 hours to time to full as a limit
 	sleepVars['time_to_full'] += 60 + rand(0, 90)
 
-
 	gs 'sleep', 'calc_minutes_to_wakeup'
 
+	gs 'sleep_simple', 'loop'
+end
+
+if $ARGS[0] = 'forced':
+	if ARGS[1] <= 0:
+		gs 'sleep_simple', 'simple'
+		exit
+	end
+
+	sleepVars['time_to_full'] = (100 - pcs_sleep) * 5
+	sleepVars['time_to_full'] += 60 + rand(0, 90)
+	sleepVars['minutes_to_wakeup'] = ARGS[1]
+
+	gs 'sleep_simple', 'loop'
+end
+
+if $ARGS[0] = 'sleep_until':
+	temp_minutes = (ARGS[1] - hour) * 60 + ARGS[2] - minut
+	if temp_minutes < 0: temp_minutes += 1440
+
+	gs 'sleep_simple', 'forced', temp_minutes
+	killvar 'temp_minutes'
+end
+
+
+if $ARGS[0] = 'loop':
 	InSleep = 1
 	:sleep_simple_loop
 		minut += 1
@@ -21,19 +46,26 @@ if $ARGS[0] = 'simple':
 		sleepVars['minutes_to_wakeup'] -= 1
 		sleepVars['time_to_full'] -= 1
 
-		if recuperation = 0: pcs_health += 5
+		if recuperation = 0 or SleepVars['no_health'] = 1: sleepVars['health_stock'] += healthmax
+		if sleepVars['health_stock'] >= 960:
+			pcs_health += sleepVars['health_stock'] / 960
+			sleepVars['health_stock'] = sleepVars['health_stock'] mod 960
+		end
 
 		if sleepVars['stime'] mod 5 = 0: pcs_sleep += 1
+
 		if sleepVars['stime'] >= 60: sleepVars['stime'] = 0
 		if minut = 60: gs 'stat'
 
 		gs 'sleep_simple', 'mod_sleeptriggers'
 	if sleepVars['minutes_to_wakeup'] > 0: jump 'sleep_simple_loop'
 
+	sleepVars['no_health'] = 0
 	sleepVars['time_now'] = daystart * 1440 + hour * 60 + minut
 	InSleep = 0
 	gs 'stat'
 end
+
 
 if $ARGS[0] = 'mod_sleeptriggers':
 	!! This location is here to allow mods to hook into the system.
@@ -44,28 +76,53 @@ if $ARGS[0] = 'mod_sleeptriggers':
 end
 
 if $ARGS[0] = 'nap_bed':
-	act 'Take a nap (1:00)':
-		menu_off = 1
-		cla
-		if pcs_sleep < 10:
-			gs 'shortgs', 'autosave'
-			gt 'pre_sleep', 'prepare_sleep'
-		elseif pcs_sleep <= 90:
-			InSleep = 1
-			pcs_sleep += 10
-			pcs_health += 5
-			minut += 60
-			gs 'stat'
-			*nl
-			'You sleep about an hour.'
-		else
-			minut += 5
-			gs 'stat'
-			*nl
-			'You are not tired enough to sleep, even for a short nap.'
-		end
-		act 'Get up': InSleep = 0 & gt 'bed_get_out', 'start'
+	cla
+	menu_off = 1
+	if pcs_sleep < 10:
+		gs 'shortgs', 'autosave'
+		gt 'pre_sleep', 'prepare_sleep'
+	elseif pcs_sleep <= 90:
+		InSleep = 1
+		gs 'sleep_simple', 'nap_base', 60
+		*nl
+		if ARGS[1] = 0: 'You sleep about an hour.'
+	else
+		minut += 5
+		*nl
+		if ARGS[1] = 0: 'You are not tired enough to sleep, even for a short nap.'
 	end
+	gs 'stat'
+	act 'Get up': InSleep = 0 & gt 'bed_get_out', 'start'
 end
+
+if $ARGS[0] = 'nap':
+	cla
+	menu_off = 1
+	if pcs_sleep <= 90:
+		InSleep = 1
+		gs 'sleep_simple', 'nap_base', 60
+		*nl
+		if ARGS[1] = 0: 'You nap for about an hour.'
+	else
+		minut += 5
+		*nl
+		if ARGS[1] = 0: 'You are not tired enough even for a short nap.'
+	end
+	gs 'stat'
+	InSleep = 0
+	act 'Get up': gt $loc, $loc_arg
+end
+
+if $ARGS[0] = 'nap_base':
+	if ARGS[1] > 0:
+		minut += ARGS[1]
+	else
+		ARGS[1] *= -1
+	end
+	pcs_sleep += ARGS[1] / 6
+	pcs_health += ARGS[1] / 12
+	gs 'stat'
+end
+
 
 --- sleep_simple ---------------------------------

@@ -1,0 +1,105 @@
+# gad_swamp_woods
+
+!TODO: Break into more arg blocks
+if $ARGS[0] = 'start':
+	CLOSE ALL
+	gs 'shortgs', 'setloc', 'gad_swamp_woods', 'start'
+	$location_type = 'secluded'
+	menu_off = 0
+	$forest_args1 = 'gad_swamp_woods'
+
+	'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/nearby_woods.jpg"></center>'
+	'You are in the woods near the hut. You can see it not too far in the distance.'
+	'You can also venture deeper into the woods to circle around the swamp, granted you do not get lost trying.'
+	gs 'gadukino_event', 'sound'
+	gs 'hunter_ambient', 'schedule'
+	gs 'stat'
+	!TODO: Make schedule more dynamic e.g. more factors
+	*nl
+
+	act 'Go back to the hut': minut += 10 & gt 'gad_swamp_yard', 'start'
+
+	if firewood < 10:
+		'You can pick up some firewood around here to keep the fire going.'
+
+		act 'Collect firewood (0:15)':
+			cla & *clr
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/'+iif($clothingworntype ! 'nude','firewood_normal.jpg','firewood_nude.jpg')+'"></center>'
+			'You pick up some dry branches and twigs, putting them in a pile near the fire pit before returning.'
+			firewood += rand(2,6)
+			if firewood < 15:
+				'You have <<firewood>> pieces of firewood and should probably grab some more to keep the fire going.'
+			else
+				'You have <<firewood>> pieces of firewood and should have enough firewood to get a fire going.'
+			end
+			minut += 15
+			gs 'stat'
+
+			act 'Further': gt 'gad_swamp_woods', 'start'
+		end
+	else
+		'You think about picking up firewood before remembering you have plenty back at the yard.'
+	end
+
+	act 'Try to circle around the swamp':
+		!no one likes to be trapped. Need to update gadfrestswamp with pcs_bushcraft method, but there should always be an option to try, no matter how low the skill.
+		*clr & cla
+		if pcs_bushcraft < 25:
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/thinks1.jpg"></center>'
+			'You consider trying to circle around the swamp but then think it is better if you do not get too far from the hut.'
+			'If only you were a skilled pathfinder or knew nearby people that could help you get back...'
+
+			act 'Further': gt 'gad_swamp_woods', 'start'
+		elseif pcs_bushcraft < 40:
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/thinks2.jpg"></center>'
+			'You consider trying to circle around the swamp. You have a vague idea of how to accomplish that, but there is a good chance you may get lost.'
+
+			act 'Stay around for now': gt 'gad_swamp_woods', 'start'
+			act 'Try anyway':
+				*clr & cla
+				minut += 30
+				nearby_woods_check = rand(1,10)
+
+				if nearby_woods_check = 1:
+					!Make it to the other side fine
+					'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/'+iif($clothingworntype ! 'nude','nearby_woods_success.jpg','nearby_woods_success_nude.jpg')+'"></center>'
+					'You stick as close to the swamp as possible and follow the edge in one direction.'
+					'Even though you occasionally step into the swamp, you manage to not get stuck.'
+					'After some time walking and struggling not to get stuck, you can see the hut on the opposite side.'
+
+					act 'Success!': gs 'exp_gain', 'bushcraft', 5 & gt 'gad_forest', 'forest_center'
+				elseif nearby_woods_check <= 3:
+					!End up stuck in the swamp
+					'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/'+iif($clothingworntype ! 'nude','nearby_woods_stuck.jpg','nearby_woods_stuck_nude.jpg')+'"></center>'
+					'You stick as close to the swamp as possible and follow the edge in one direction.'
+					'Trusting the ground, you keep going, but you sink right into the swamp at some point without even realizing it.'
+					*nl
+					'Seems like the forest can camouflage parts of the swamp, fooling careless hikers.'
+
+					act 'If only you knew': gs 'exp_gain', 'bushcraft', 3 & gt 'gad_swamp','stuck'
+				else
+					'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/'+iif($clothingworntype ! 'nude','nearby_woods_hike.jpg','nearby_woods_hike_nude.jpg')+'"></center>'
+					!Circle back to where the pcs started
+					'You start going into the woods in a direction you think will take you around the swamp.'
+					'After a few hours of walking, you realize your surroundings are familiar.'
+					'Then you look around you and can see the hut in the distance. Seems like you just walked around in circles and ended up where you started.'
+					*nl
+					'You can see broken branches and prints ahead of you, marking the direction you initially started walking towards.'
+
+					act 'That''s interesting...': gs 'exp_gain', 'bushcraft', 2 & gt 'gad_swamp_woods', 'start'
+				end
+			end
+		else
+			minut += 90
+			!Make it back without effort
+			'<center><img <<$set_imgh>> src="images/locations/gadukino/hunters/'+iif($clothingworntype ! 'nude','pathfinder.jpg','pathfinder_nude.jpg')+'"></center>'
+			'You have a rough idea of how the forest curves around the swamp from seeing part of the swamp''s edge from the hut yard.'
+			'With that in mind, you go into the forest, aware of your surroundings, to ensure you are not stepping too far from the swamp''s edge.'
+			'After a couple hours, you are on the other edge of the forest.'
+
+			act 'Further': gt 'gad_swamp_woods', 'start'
+		end
+	end
+end
+
+--- gad_swamp_woods ---------------------------------

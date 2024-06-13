@@ -1,14 +1,21 @@
 # mitkabuh
 !2021/05/05
 
+$loc = 'mitkabuh'
+gs 'miroslava_schedule'
+
+
 if $ARGS[0] = '':
+	npc_drunk['A60'] = 0
+	GadBoy['drunk_event'] = 0
+	MiraVars['drunk_event'] = 0
 	menu_off = 1
 	CLOSE ALL
 	gs 'stat'
 	
 	'<center><img <<$set_imgh>> src="images/locations/gadukino/village/mitka_old_trailer.jpg"></center>'
 	*nl
-	if mitka_first_drink = 1:
+	if GadBoy['first_drink'] = 1:
 		'You follow the boys into the woods. After about 15 minutes you get to an old rusty trailer partially overgrown with vegetation. It obviously has been here a long time.'
 		'Mitka announces that we''ve arrived. He wasn''t joking when he said that no one would ever bother them out here.'
 		'It isn''t a very far walk but you would definitely have to know where you are going to find this place.'
@@ -18,22 +25,22 @@ if $ARGS[0] = '':
 	*nl
 	if sunWeather = 1:
 		'The skies are clear today so you all decide to drink outside tonight.'
-		if mitka_first_drink = 1:
+		if GadBoy['first_drink'] = 1:
 			'The boys have arranged a couple of logs and a bench into a small circle for everyone to sit on. Not the most comfortable seating ever but you''ll probably be too drunk to care soon enough.'
 		else
 			'You quickly head over to the bench and sit down before anyone else can claim it.'
 		end
 		
 		act 'Sit down outside':
-			if MiraLoc ! 5:
-				gt 'mitkabuh','partyalone'
+			if locat['A60'] = 42:
+				gt 'mitkabuh', 'partywithMira'
 			else
-				gt 'mitkabuh','partywithMira'
+				gt 'mitkabuh', 'partyalone'
 			end
 		end
 	else
 		'The weather is poor outside today so you all decide to drink inside tonight.'
-		if mitka_first_drink = 1:
+		if GadBoy['first_drink'] = 1:
 			'The inside of the trailer is about what you expected. A couple couches and tables in the main area along with a bedroom at the back, not that it is ever used for sleeping.'
 			'There are empty bottles and cups scattered around the whole interior of the trailer and you can still smell the alcohol. This obviously not the first party in the trailer and certainly won''t be the last.'
 		else
@@ -41,14 +48,15 @@ if $ARGS[0] = '':
 		end
 		
 		act 'Go inside the trailer':
-			if MiraLoc ! 5:
-				gt 'mitkabuh','partyalone'
+			if locat['A60'] = 42:
+				gt 'mitkabuh', 'partywithMira'
 			else
-				gt 'mitkabuh','partywithMira'
+				gt 'mitkabuh', 'partyalone'
 			end
 		end
 	end
 end
+
 
 if $ARGS[0] = 'partyalone':
 	$loc = 'mitkabuh'
@@ -64,21 +72,20 @@ if $ARGS[0] = 'partyalone':
 	'You, Mitka, Kolyamba and Vasyan are sitting on some '+iif(sunWeather=1,'logs outside','couches inside')+' the trailer. There is plenty of moonshine to go around but no snacks.'
 	
 	! prevent drinking events from repeating after sex is done because the passage of time in the sex events allowed alko to decrease again
-	if mitkabuhday = 1 and alko < 10: alko = 10
-	mitkadrinkday = daystart
+	if GadBoy['drunk_event'] = 1 and alko < 10: alko = 10
+	GadBoy['drinkday'] = daystart
 	
 	! Sveta is not drunk
 	if alko < 10:
 		gs 'willpower', 'drink', 'resist'
 		if will_cost <= pcs_willpwr:
 			act 'Leave (<<will_cost>> Willpower)':
-				mitkabuhday = 0
 				minut += 15
 				gs 'willpower', 'drink', 'resist'
 				gs 'willpower', 'pay', 'resist'
 				gs 'stat'
 				
-				gt 'gadroad'
+				gt 'gad_road', 'start'
 			end
 		else
 			act 'Leave (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
@@ -87,9 +94,9 @@ if $ARGS[0] = 'partyalone':
 			*clr & cla
 			menu_off = 1
 			minut += 15
-			npc_rel['A63'] += rand(0,1)
-			npc_rel['A62'] += rand(0,1)
-			npc_rel['A61'] += rand(0,1)
+			npc_rel['A61'] += rand(0, 1)
+			npc_rel['A62'] += rand(0, 1)
+			npc_rel['A63'] += rand(0, 1)
 			gs 'drugs', 'alcohol', 'moonshine', 1
 			gs 'stat'
 			
@@ -98,8 +105,8 @@ if $ARGS[0] = 'partyalone':
 			'Mitka pours some of the brew into a clear plastic shot glass and hands it over to you.'
 			'The moonshine burns as it goes down your throat. Your eyes water a little and you have a tough time catching your breath. You compose yourself, and look around but remember no one brought anything to eat.'
 			'Mitka looks at you approvingly, "Good shit, right?"'
-			if mitka_first_drink = 1:
-				mitka_first_drink = 2
+			if GadBoy['first_drink'] = 1:
+				GadBoy['first_drink'] = 2
 				'"That was stronger than I expected!" you reply.'
 			else
 				'"Just as good as the last batch you made!" you reply.'
@@ -108,23 +115,23 @@ if $ARGS[0] = 'partyalone':
 			act 'Continue drinking':gt 'mitkabuh', 'partyalone'
 		end
 	! Sveta is drunk and already had sex with Mitka or is the village whore
-	elseif npc_QW['A63'] > 0 and gadriver_gang < 3:
+	elseif npc_QW['A63'] > 0 and GadBoy['river_gang'] < 3:
 		*clr & cla
 		menu_off = 1
-		if mitkabuhday = 0:
-			mitkabuhday = 1
+		if GadBoy['drunk_event'] = 0:
+			GadBoy['drunk_event'] = 1
 			if npc_QW['A63'] < 10:
 				gt 'mitkabuh','solo_1to9'
 			elseif npc_QW['A63'] = 10:
 				gt 'mitkabuh','solo_10'
 			else
-				mitkarand = rand(1,10)
-				if mitkarand < 4:
-					gt 'mitkabuh','solo_11andup_1boy'
-				elseif mitkarand < 10:
-					gt 'mitkabuh','solo_11andup_2boys'
+				temp_rand = rand(1,10)
+				if temp_rand < 4:
+					gt 'mitkabuh', 'solo_11andup_1boy'
+				elseif temp_rand < 10:
+					gt 'mitkabuh', 'solo_11andup_2boys'
 				else
-					gt 'mitkabuh','solo_11andup_3boys'
+					gt 'mitkabuh', 'solo_11andup_3boys'
 				end
 			end
 		else
@@ -135,14 +142,14 @@ if $ARGS[0] = 'partyalone':
 				'As you are leaving you overhear the guys talking about you, but can''t make out what they are saying.'
 			else
 				'You are way too drunk and can barely stand. The guys tell you to leave, they already fucked you tonight, but to make sure to come back tomorrow for another round.'
-				if npc_QW['A60'] < 11:
+				if MiraVars['QW'] < 11:
 					'As you are leaving the guys call after you "Hey, <<$pcs_nickname>>, come drink with us again, we love fucking you!! Ha-ha!" They laugh as you make your way out. You are too drunk to come up with a proper insult and just mumble, "I''m sure you can find someone else instead..."'
 				else
 					'As you are leaving the guys call after you "Hey, <<$pcs_nickname>>, come drink with us again, we love fucking you!! Ha-ha!" They laugh as you make your way out. You are too drunk to come up with a proper insult and just walk away.'
 				end
 			end
 			
-			act 'Leave': mitkabuhday = 0 & minut += 15 & gt 'gadroad'
+			act 'Leave': minut += 15 & gt 'gad_road', 'start'
 		end
 	! Sveta is drunk but hasn''t done anything to encourage Mitka yet
 	else
@@ -152,63 +159,63 @@ if $ARGS[0] = 'partyalone':
 		*nl
 		'You are way too drunk, and can barely stand. Mitka, noticing your condition, walks over to you and laughs, "It seems you''ve had enough for tonight. Get out of here."'
 		
-		act 'Leave': mitkabuhday = 0 & minut += 15 & gt 'gadroad'
+		act 'Leave': minut += 15 & gt 'gad_road', 'start'
 	end
 end
 
+
 if $ARGS[0] = 'partywithMira':
-	$loc = 'mitkabuh'
-	$loc_arg = 'partywithMira'
+	gs 'shortgs', 'setloc', 'mitkabuh', 'partywithMira'
 	$location_type = 'indoors'
-	
-	$menu_loc = 'mitkabuh'
-	$menu_arg = 'partywithMira'
 	menu_off = 0
-	
+
+	MiraVars['follower'] = 0
+	MiraVars['follow_time'] = 3
+
 	!start Mira''s quest
-	if npc_QW['A60'] = 0: npc_QW['A60'] = 1
+	if MiraVars['QW'] = 0: MiraVars['QW'] = 1
 	
 	'<center><img <<$set_imgh>> src="images/locations/gadukino/village/drunk.jpg"></center>'
 	*nl
 	'You, Mira, Mitka, Kolyamba and Vasyan are sitting on some '+iif(sunWeather=1,'logs outside','couches inside')+' the trailer. There is plenty of moonshine to go around but no snacks.'
 	
 	! prevent drinking events from repeating after sex is done because the passage of time in the sex events allowed alko to decrease again
-	if mitkabuhday = 1 and alko < 10: alko = 10
-	if mitkabuhmiraday = 1 and npc_drunk['A60'] < 10: npc_drunk['A60'] = 10
+	if GadBoy['drunk_event'] = 1 and alko < 10: alko = 10
+	if MiraVars['drunk_event'] = 1 and npc_drunk['A60'] < 10: npc_drunk['A60'] = 10
 	
 	! Sveta is drunk and Mira is drunk and boys fucked both already tonight
-	if npc_drunk['A60'] >= 10 and alko >= 10 and mitkabuhday = 1 and mitkabuhmiraday = 1:
+	if npc_drunk['A60'] >= 10 and alko >= 10 and GadBoy['drunk_event'] = 1 and MiraVars['drunk_event'] = 1:
 		*clr & cla
 		'<center><img <<$set_imgh>> src="images/characters/gadukino/mira/girls_go.jpg"></center>'
 		*nl
-		if npc_QW['A63'] < 11 and npc_QW['A60'] < 11:
+		if npc_QW['A63'] < 11 and MiraVars['QW'] < 11:
 			'You and Mira are both way too drunk and can barely stand. You decide it is time to go for the night and you should walk home together.'
 			'As you are leaving you overhear the guys talking about you both, but can''t make out what they are saying.'
-		elseif npc_QW['A63'] < 11 and npc_QW['A60'] >= 11:
+		elseif npc_QW['A63'] < 11 and MiraVars['QW'] >= 11:
 			'You and Mira are both way too drunk and can barely stand. You decide it is time to go for the night and you should walk home together.'
 			'As you are leaving the guys call after Mira "Hey, Mira, come drink with us again, we love fucking you!! Ha-ha!" They laugh as you make your way out.'
-		elseif npc_QW['A63'] >= 11 and npc_QW['A60'] < 11:
+		elseif npc_QW['A63'] >= 11 and MiraVars['QW'] < 11:
 			'You and Mira are both way too drunk and can barely stand. The guys tell you to leave, they already fucked you tonight, but to make sure to come back tomorrow for another round.'
 			'As you are leaving the guys call after you "Hey, <<$pcs_nickname>>, come drink with us again, we love fucking you!! Ha-ha!" They laugh as you make your way out. You are too drunk to come up with a proper insult and just mumble, "I''m sure you can find someone else instead..."'
-		elseif npc_QW['A63'] >= 11 and npc_QW['A60'] >= 11:
+		elseif npc_QW['A63'] >= 11 and MiraVars['QW'] >= 11:
 			'You and Mira are both way too drunk and can barely stand. The guys tell you to leave, they already fucked you tonight, but to make sure to come back tomorrow for another round.'
 			'As you are leaving the guys call after you both "Hey, <<$pcs_nickname>> and Mira, come drink with us again, we love fucking you both!! Ha-ha!" They laugh as you make your way out. You are too drunk to come up with a proper insult and just walk away with Mira.'
 		end
 		
-		act 'Leave': MiraLoc = 0 & npc_drunk['A60'] = 0 & mitkabuhmiraday = 0 & mitkabuhday = 0 & minut += 15 & gt 'gadroad'
+		act 'Leave': minut += 15 & gt 'gad_road', 'start'
 	! Mira is drunk and not had sex with the boys or refused a drink yet tonight
-	elseif npc_drunk['A60'] >= 10 and mitkabuhmiraday = 0:
+	elseif npc_drunk['A60'] >= 10 and MiraVars['drunk_event'] = 0:
 		*clr & cla
-		mitkabuhmiraday = 1
-		if npc_QW['A60'] = 5:
+		MiraVars['drunk_event'] = 1
+		if MiraVars['QW'] = 5:
 			gt 'mitkabuh','mira_5'
-		elseif npc_QW['A60'] = 7:
+		elseif MiraVars['QW'] = 7:
 			gt 'mitkabuh','mira_7'
-		elseif npc_QW['A60'] = 8:
+		elseif MiraVars['QW'] = 8:
 			gt 'mitkabuh','mira_8'
-		elseif npc_QW['A60'] = 9:
+		elseif MiraVars['QW'] = 9:
 			gt 'mitkabuh','mira_9'
-		elseif npc_QW['A60'] >= 11:
+		elseif MiraVars['QW'] >= 11:
 			gt 'mitkabuh','mira_11andup'
 		else
 			'<center><img <<$set_imgh>> src="images/locations/gadukino/village/drinking.jpg"></center>'
@@ -218,16 +225,13 @@ if $ARGS[0] = 'partywithMira':
 				gs 'willpower', 'drink', 'resist'
 				if will_cost <= pcs_willpwr:
 					act 'Leave (<<will_cost>> Willpower)':
-						MiraLoc = 0
 						npc_drunk['A60'] = 0
-						mitkabuhmiraday = 0
-						mitkabuhday = 0
 						minut += 15
 						gs 'willpower', 'drink', 'resist'
 						gs 'willpower', 'pay', 'resist'
 						gs 'stat'
 						
-						gt 'gadroad'
+						gt 'gad_road', 'start'
 					end
 				else
 					act 'Leave (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
@@ -235,10 +239,10 @@ if $ARGS[0] = 'partywithMira':
 				act 'Drink the shot yourself':
 					cla
 					minut += 15
-					npc_rel['A63'] += rand(0,1)
-					npc_rel['A62'] += rand(0,1)
-					npc_rel['A61'] += rand(0,1)
-					npc_rel['A60'] += rand(0,1)
+					npc_rel['A60'] += rand(0, 1)
+					npc_rel['A61'] += rand(0, 1)
+					npc_rel['A62'] += rand(0, 1)
+					npc_rel['A63'] += rand(0, 1)
 					gs 'drugs', 'alcohol', 'moonshine', 1
 					gs 'stat'
 					
@@ -251,24 +255,24 @@ if $ARGS[0] = 'partywithMira':
 				'You and Mira are both way too drunk and can barely stand. You decide it is time to go for the night and you should walk home together.'
 				'As you are leaving you overhear the guys talking about you both, but can''t make out what they are saying.'
 				
-				act 'Leave': MiraLoc = 0 & npc_drunk['A60'] = 0 & mitkabuhmiraday = 0 & mitkabuhday = 0 & minut += 15 & gt 'gadroad'
+				act 'Leave': minut += 15 & gt 'gad_road', 'start'
 			end
 		end
 	! Sveta is drunk and not had sex with the boys or refused a drink yet tonight
-	elseif alko >= 10 and mitkabuhday = 0:
+	elseif alko >= 10 and GadBoy['drunk_event'] = 0:
 		*clr & cla
-		mitkabuhday = 1
+		GadBoy['drunk_event'] = 1
 		! Sveta already had sex with Mitka or is the village whore
-		if npc_QW['A63'] > 0 and gadriver_gang < 3:
+		if npc_QW['A63'] > 0 and GadBoy['river_gang'] < 3:
 			if npc_QW['A63'] < 10:
 				gt 'mitkabuh','solo_1to9'
 			elseif npc_QW['A63'] = 10:
 				gt 'mitkabuh','solo_10'
 			else
-				mitkarand = rand(1,10)
-				if mitkarand < 4:
+				temp_rand = rand(1,10)
+				if temp_rand < 4:
 					gt 'mitkabuh','solo_11andup_1boy'
-				elseif mitkarand < 10:
+				elseif temp_rand < 10:
 					gt 'mitkabuh','solo_11andup_2boys'
 				else
 					gt 'mitkabuh','solo_11andup_3boys'
@@ -279,16 +283,16 @@ if $ARGS[0] = 'partywithMira':
 			*nl
 			'Mira attempts to pass you another shot glass full of liquor, but you refuse. You have already had too much tonight and are happy to just chat the rest of the night.'
 			if npc_drunk['A60'] < 10:
-				act 'Leave': MiraLoc = 0 & npc_drunk['A60'] = 0 & mitkabuhmiraday = 0 & mitkabuhday = 0 & minut += 15 & gt 'gadroad'
+				act 'Leave': minut += 15 & gt 'gad_road', 'start'
 				gs 'willpower', 'drink', 'force'
 				if will_cost <= pcs_willpwr:
 					act 'Make Mira drink the shot instead (<<will_cost>> Willpower)':
 						cla
 						minut += 15
-						npc_rel['A63'] += rand(0,1)
-						npc_rel['A62'] += rand(0,1)
-						npc_rel['A61'] += rand(0,1)
-						npc_rel['A60'] += rand(0,1)
+						npc_rel['A60'] += rand(0, 1)
+						npc_rel['A61'] += rand(0, 1)
+						npc_rel['A62'] += rand(0, 1)
+						npc_rel['A63'] += rand(0, 1)
 						npc_drunk['A60'] += 5
 						gs 'willpower', 'drink', 'force'
 						gs 'willpower', 'pay', 'force'
@@ -307,7 +311,7 @@ if $ARGS[0] = 'partywithMira':
 				'You and Mira are both way too drunk and can barely stand. You decide it is time to go for the night and you should walk home together.'
 				'As you are leaving you overhear the guys talking about you both, but can''t make out what they are saying.'
 				
-				act 'Leave': MiraLoc = 0 & npc_drunk['A60'] = 0 & mitkabuhmiraday = 0 & mitkabuhday = 0 & minut += 15 & gt 'gadroad'
+				act 'Leave': minut += 15 & gt 'gad_road', 'start'
 			end
 		end
 	else
@@ -316,16 +320,12 @@ if $ARGS[0] = 'partywithMira':
 			gs 'willpower', 'drink', 'resist'
 			if will_cost <= pcs_willpwr:
 				act 'Leave (<<will_cost>> Willpower)':
-					MiraLoc = 0
-					npc_drunk['A60'] = 0
-					mitkabuhmiraday = 0
-					mitkabuhday = 0
 					minut += 15
 					gs 'willpower', 'drink', 'resist'
 					gs 'willpower', 'pay', 'resist'
 					gs 'stat'
-					
-					gt 'gadroad'
+
+					gt 'gad_road', 'start'
 				end
 			else
 				act 'Leave (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
@@ -334,10 +334,10 @@ if $ARGS[0] = 'partywithMira':
 				*clr & cla
 				menu_off = 1
 				minut += 15
-				npc_rel['A63'] += rand(0,1)
-				npc_rel['A62'] += rand(0,1)
-				npc_rel['A61'] += rand(0,1)
-				npc_rel['A60'] += rand(0,1)
+				npc_rel['A60'] += rand(0, 1)
+				npc_rel['A61'] += rand(0, 1)
+				npc_rel['A62'] += rand(0, 1)
+				npc_rel['A63'] += rand(0, 1)
 				gs 'stat'
 				
 				'<center><img <<$set_imgh>> src="images/locations/gadukino/village/drinking.jpg"></center>'
@@ -348,10 +348,10 @@ if $ARGS[0] = 'partywithMira':
 					act 'Make Mira drink the shot instead (<<will_cost>> Willpower)':
 						cla
 						minut += 15
-						npc_rel['A63'] += rand(0,1)
-						npc_rel['A62'] += rand(0,1)
-						npc_rel['A61'] += rand(0,1)
-						npc_rel['A60'] += rand(0,1)
+						npc_rel['A60'] += rand(0, 1)
+						npc_rel['A61'] += rand(0, 1)
+						npc_rel['A62'] += rand(0, 1)
+						npc_rel['A63'] += rand(0, 1)
 						npc_drunk['A60'] += 5
 						gs 'willpower', 'drink', 'force'
 						gs 'willpower', 'pay', 'force'
@@ -367,17 +367,17 @@ if $ARGS[0] = 'partywithMira':
 				act 'Drink the shot yourself':
 					cla
 					minut += 15
-					npc_rel['A63'] += rand(0,1)
-					npc_rel['A62'] += rand(0,1)
-					npc_rel['A61'] += rand(0,1)
-					npc_rel['A60'] += rand(0,1)
+					npc_rel['A60'] += rand(0, 1)
+					npc_rel['A61'] += rand(0, 1)
+					npc_rel['A62'] += rand(0, 1)
+					npc_rel['A63'] += rand(0, 1)
 					gs 'drugs', 'alcohol', 'moonshine', 1
 					gs 'stat'
 					
 					'You take the shot glass full of moonshine and quickly gulp it down, you cough and suck in your breath. Mira chats with the boys as they drink as well.'
 					'Mitka looks at you approvingly, "Good shit, right?"'
-					if mitka_first_drink = 1:
-						mitka_first_drink = 2
+					if GadBoy['first_drink'] = 1:
+						GadBoy['first_drink'] = 2
 						'"That was stronger than I expected!" you reply.'
 					else
 						'"Just as good as the last batch you made!" you reply.'
@@ -391,16 +391,12 @@ if $ARGS[0] = 'partywithMira':
 			gs 'willpower', 'drink', 'resist'
 			if will_cost <= pcs_willpwr:
 				act 'Leave (<<will_cost>> Willpower)':
-					MiraLoc = 0
-					npc_drunk['A60'] = 0
-					mitkabuhmiraday = 0
-					mitkabuhday = 0
 					minut += 15
 					gs 'willpower', 'drink', 'resist'
 					gs 'willpower', 'pay', 'resist'
 					gs 'stat'
 					
-					gt 'gadroad'
+					gt 'gad_road', 'start'
 				end
 			else
 				act 'Leave (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
@@ -409,10 +405,10 @@ if $ARGS[0] = 'partywithMira':
 				*clr & cla
 				menu_off = 1
 				minut += 15
-				npc_rel['A63'] += rand(0,1)
-				npc_rel['A62'] += rand(0,1)
-				npc_rel['A61'] += rand(0,1)
-				npc_rel['A60'] += rand(0,1)
+				npc_rel['A60'] += rand(0, 1)
+				npc_rel['A61'] += rand(0, 1)
+				npc_rel['A62'] += rand(0, 1)
+				npc_rel['A63'] += rand(0, 1)
 				gs 'drugs', 'alcohol', 'moonshine', 1
 				gs 'stat'
 				
@@ -421,8 +417,8 @@ if $ARGS[0] = 'partywithMira':
 				'Mitka pours some of the brew into a clear plastic shot glass and hands it over to you.'
 				'The moonshine burns as it goes down your throat. Your eyes water a little and you have a tough time catching your breath. You compose yourself, and look around but remember no one brought anything to eat.'
 				'Mitka looks at you approvingly, "Good shit, right?"'
-				if mitka_first_drink = 1:
-					mitka_first_drink = 2
+				if GadBoy['first_drink'] = 1:
+					GadBoy['first_drink'] = 2
 					'"That was stronger than I expected!" you reply.'
 				else
 					'"Just as good as the last batch you made!" you reply.'
@@ -432,14 +428,14 @@ if $ARGS[0] = 'partywithMira':
 			end
 		! Mira is not drunk
 		elseif npc_drunk['A60'] < 10:
-			act 'Leave': MiraLoc = 0 & npc_drunk['A60'] = 0 & mitkabuhmiraday = 0 & mitkabuhday = 0 & minut += 15 & gt 'gadroad'
+			act 'Leave': minut += 15 & gt 'gad_road', 'start'
 			act 'Watch Mira drink with the boys':
 				*clr & cla
 				menu_off = 1
-				npc_rel['A63'] += rand(0,1)
-				npc_rel['A62'] += rand(0,1)
-				npc_rel['A61'] += rand(0,1)
-				npc_rel['A60'] += rand(0,1)
+				npc_rel['A60'] += rand(0, 1)
+				npc_rel['A61'] += rand(0, 1)
+				npc_rel['A62'] += rand(0, 1)
+				npc_rel['A63'] += rand(0, 1)
 				minut += 15
 				npc_drunk['A60'] += 5
 				gs 'stat'
@@ -455,6 +451,39 @@ if $ARGS[0] = 'partywithMira':
 	end
 end
 
+
+
+
+	!!================================================!!
+	!!                                                !!
+	!!                  DRUNK EVENTS                  !!
+	!!                                                !!
+	!!================================================!!
+
+
+if $ARGS[0] = 'set_continue_acts':
+	if sunWeather = 1:
+		act 'Sit down outside':
+			if locat['A60'] = 42:
+				gt 'mitkabuh', 'partywithMira'
+			else
+				gt 'mitkabuh', 'partyalone'
+			end
+		end
+	else
+		act 'Sit down in the trailer':
+			if locat['A60'] = 42:
+				gt 'mitkabuh', 'partywithMira'
+			else
+				gt 'mitkabuh', 'partyalone'
+			end
+		end
+	end
+end
+
+
+
+
 if $ARGS[0] = 'solo_1to9':
 	*clr & cla
 	menu_off = 1
@@ -462,8 +491,8 @@ if $ARGS[0] = 'solo_1to9':
 	*nl
 	'You are way too drunk and can barely stand. Mitka, noticing your condition, grabs you by the waist. "Well, well little <<$pcs_nickname>>, had a bit too much to drink? Come with me."'
 	
-	mitkarand = rand(1,10)
-	if (mitkarand = 1 or (mitkarand < 5 and stat['think_virgin'] = 0)) and mesec = 0:
+	temp_rand = rand(1, 10)
+	if (temp_rand = 1 or (temp_rand < 5 and stat['think_virgin'] = 0)) and mesec = 0:
 		act 'You nod and slur your words... mumbling something as you fall into his waiting arms':
 			*clr & cla
 			if pcs_vag = 0:
@@ -490,21 +519,9 @@ if $ARGS[0] = 'solo_1to9':
 			gs 'arousal', 'end'
 			gs 'stat'
 			
-			if sunWeather = 1:
-				if MiraLoc ! 5:
-					act 'Sit down outside':gt 'mitkabuh','partyalone'
-				else
-					act 'Sit down outside':gt 'mitkabuh','partywithMira'
-				end
-			else
-				if MiraLoc ! 5:
-					act 'Sit down in the trailer':gt 'mitkabuh','partyalone'
-				else
-					act 'Sit down in the trailer':gt 'mitkabuh','partywithMira'
-				end
-			end
+			gs 'mitkabuh', 'set_continue_acts'
 		end
-	elseif mitkarand < 9:
+	elseif temp_rand < 9:
 		act 'You nod and slur your words... mumbling something as you fall into his waiting arms':
 			*clr & cla
 			
@@ -522,8 +539,8 @@ if $ARGS[0] = 'solo_1to9':
 			
 			act 'Make him cum':
 				*clr & cla
-				mitkarand = rand(0,5)
-				if mitkarand = 5:
+				temp_rand = rand(0,5)
+				if temp_rand = 5:
 					'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkabjcum1.jpg"></center>'
 					*nl
 					'You are sucking his cock fiercely until suddenly warm cum starts to fill your mouth. Surprised, you pull his cock out of your mouth which continues to shoot cum onto your face and breasts.'
@@ -533,7 +550,7 @@ if $ARGS[0] = 'solo_1to9':
 					gs 'cum_call','face','A63',1
 					gs 'cum_call','mouth','A63',1
 					gs 'cum_call','breasts','A63',1
-				elseif mitkarand >= 3:
+				elseif temp_rand >= 3:
 					'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkabjcum.jpg"></center>'
 					*nl
 					'You tighten your lips and suck harder on Mitka''s cock. Your head bobs up and down as you cram as much of his cock as deep in your mouth and throat as you can take it.'
@@ -557,19 +574,7 @@ if $ARGS[0] = 'solo_1to9':
 				gs 'arousal', 'end'
 				gs 'stat'
 
-				if sunWeather = 1:
-					if MiraLoc ! 5:
-						act 'Sit down outside':gt 'mitkabuh','partyalone'
-					else
-						act 'Sit down outside':gt 'mitkabuh','partywithMira'
-					end
-				else
-					if MiraLoc ! 5:
-						act 'Sit down in the trailer':gt 'mitkabuh','partyalone'
-					else
-						act 'Sit down in the trailer':gt 'mitkabuh','partywithMira'
-					end
-				end
+				gs 'mitkabuh', 'set_continue_acts'
 			end
 		end
 	else
@@ -599,22 +604,12 @@ if $ARGS[0] = 'solo_1to9':
 			gs 'arousal', 'end'
 			gs 'stat'
 
-			if sunWeather = 1:
-				if MiraLoc ! 5:
-					act 'Sit down outside':gt 'mitkabuh','partyalone'
-				else
-					act 'Sit down outside':gt 'mitkabuh','partywithMira'
-				end
-			else
-				if MiraLoc ! 5:
-					act 'Sit down in the trailer':gt 'mitkabuh','partyalone'
-				else
-					act 'Sit down in the trailer':gt 'mitkabuh','partywithMira'
-				end
-			end
+			gs 'mitkabuh', 'set_continue_acts'
 		end
 	end
+	killvar 'temp_rand'
 end
+
 
 if $ARGS[0] = 'solo_10':
 	*clr & cla
@@ -663,19 +658,7 @@ if $ARGS[0] = 'solo_10':
 				gs 'arousal', 'end'
 				gs 'stat'
 
-				if sunWeather = 1:
-					if MiraLoc ! 5:
-						act 'Sit down outside':gt 'mitkabuh','partyalone'
-					else
-						act 'Sit down outside':gt 'mitkabuh','partywithMira'
-					end
-				else
-					if MiraLoc ! 5:
-						act 'Sit down in the trailer':gt 'mitkabuh','partyalone'
-					else
-						act 'Sit down in the trailer':gt 'mitkabuh','partywithMira'
-					end
-				end
+				gs 'mitkabuh', 'set_continue_acts'
 			end
 		end
 		act 'Bend over':
@@ -702,33 +685,22 @@ if $ARGS[0] = 'solo_10':
 			gs 'arousal', 'end'
 			gs 'stat'
 
-			if sunWeather = 1:
-				if MiraLoc ! 5:
-					act 'Sit down outside':gt 'mitkabuh','partyalone'
-				else
-					act 'Sit down outside':gt 'mitkabuh','partywithMira'
-				end
-			else
-				if MiraLoc ! 5:
-					act 'Sit down in the trailer':gt 'mitkabuh','partyalone'
-				else
-					act 'Sit down in the trailer':gt 'mitkabuh','partywithMira'
-				end
-			end
+			gs 'mitkabuh', 'set_continue_acts'
 		end
 	end
 end
 
+
 if $ARGS[0] = 'solo_11andup_1boy':
 	*clr & cla
 	menu_off = 1
-	mitkarand = rand(0,1)
-	mitkabuhrand = rand(1,3)
-	if mitkarand = 0:
-		if mitkabuhrand = 1:
+	temp_rand = rand(0, 1)
+	temp2_rand = rand(1, 3)
+	if temp_rand = 0:
+		if temp2_rand = 1:
 			gs 'boyStat','A63','0'
 			'<center><img <<$set_imgh>> src="images/characters/shared/headshots_main/big63.jpg"></center>'
-		elseif mitkabuhrand = 2:
+		elseif temp2_rand = 2:
 			gs 'boyStat','A61','0'
 			'<center><img <<$set_imgh>> src="images/characters/shared/headshots_main/big61.jpg"></center>'
 		else
@@ -756,7 +728,7 @@ if $ARGS[0] = 'solo_11andup_1boy':
 				'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkagroupcum2.jpg"></center>'
 				*nl
 				'<<$boydesc[1]>> groans as your head quickly bobs up and down his dick. As he begins to cum you open your mouth to give him a good view as he shoots his load down your throat.'
-				if gadriver_gang = 2:
+				if GadBoy['river_gang'] = 2:
 					'After he''s done he looks at you and says, "What are you waiting for? Oh right, money. You''ll do anything for a ruble. Here you go."'
 					'He takes a 5 ruble note out of his pocket and throws it at you, "Clean yourself up with that."'
 					money += 5
@@ -768,26 +740,14 @@ if $ARGS[0] = 'solo_11andup_1boy':
 				gs 'arousal', 'end'
 				gs 'stat'
 
-				if sunWeather = 1:
-					if MiraLoc ! 5:
-						act 'Sit down outside':gt 'mitkabuh','partyalone'
-					else
-						act 'Sit down outside':gt 'mitkabuh','partywithMira'
-					end
-				else
-					if MiraLoc ! 5:
-						act 'Sit down in the trailer':gt 'mitkabuh','partyalone'
-					else
-						act 'Sit down in the trailer':gt 'mitkabuh','partywithMira'
-					end
-				end
+				gs 'mitkabuh', 'set_continue_acts'
 			end
 		end
 	else
-		if mitkabuhrand = 1:
+		if temp2_rand = 1:
 			gs 'boyStat','A63','0'
 			'<center><img <<$set_imgh>> src="images/characters/shared/headshots_main/big63.jpg"></center>'
-		elseif mitkabuhrand = 2:
+		elseif temp2_rand = 2:
 			gs 'boyStat','A61','0'
 			'<center><img <<$set_imgh>> src="images/characters/shared/headshots_main/big61.jpg"></center>'
 		else
@@ -819,7 +779,7 @@ if $ARGS[0] = 'solo_11andup_1boy':
 				gs 'cum_call','anus',$boy[0],1
 			end
 			'He quickly picks up the pace, and you feel as if every thrust goes deeper than the last. Soon enough, he cums inside of your '+iif(mesec=0,'pussy','ass')+'.'
-			if gadriver_gang = 2:
+			if GadBoy['river_gang'] = 2:
 				'After he''s done <<$boydesc[0]>> looks at you and says, "What are you waiting for? Oh right, money. You''ll do anything for a ruble. Here you go."'
 				'He takes a 5 ruble note out of his pocket and throws it at you, "Clean yourself up with that."'
 				money += 5
@@ -828,34 +788,25 @@ if $ARGS[0] = 'solo_11andup_1boy':
 			
 			gs 'arousal', 'end'
 			gs 'stat'
-			
-			if sunWeather = 1:
-				if MiraLoc ! 5:
-					act 'Sit down outside':gt 'mitkabuh','partyalone'
-				else
-					act 'Sit down outside':gt 'mitkabuh','partywithMira'
-				end
-			else
-				if MiraLoc ! 5:
-					act 'Sit down in the trailer':gt 'mitkabuh','partyalone'
-				else
-					act 'Sit down in the trailer':gt 'mitkabuh','partywithMira'
-				end
-			end
+
+			gs 'mitkabuh', 'set_continue_acts'
 		end
 	end
+	killvar 'temp_rand'
+	killvar 'temp2_rand'
 end
+
 
 if $ARGS[0] = 'solo_11andup_2boys':
 	*clr & cla
 	menu_off = 1
-	mitkarand = rand(0,1)
-	mitkabuhrand = rand(1,3)
-	if mitkarand = 0:
-		if mitkabuhrand = 1:
+	temp_rand = rand(0,1)
+	temp2_rand = rand(1,3)
+	if temp_rand = 0:
+		if temp2_rand = 1:
 			gs 'boyStat','A63','0'
 			gs 'boyStat','A61','1'
-		elseif mitkabuhrand = 2:
+		elseif temp2_rand = 2:
 			gs 'boyStat','A63','0'
 			gs 'boyStat','A62','1'
 		else
@@ -892,7 +843,7 @@ if $ARGS[0] = 'solo_11andup_2boys':
 				'<center><img <<$set_imgh>> src="images/locations/gadukino/sex/mitka/mitkabjpublicguys2.jpg"></center>'
 				*nl
 				'You kneel in front of <<$boydesc[0]>> and <<$boydesc[1]>> and shove both cocks in your mouth. The two boys begin to cum and you have to quickly swallow their combined loads before it overflows from your mouth.'
-				if gadriver_gang = 2:
+				if GadBoy['river_gang'] = 2:
 					'After they''re done <<$boydesc[0]>> looks at you and says, "What are you waiting for? Oh right, money. You''ll do anything for a ruble. Here you go."'
 					'He takes a 5 ruble note out of his pocket and throws it at you, "Clean yourself up with that."'
 					money += 5
@@ -905,26 +856,14 @@ if $ARGS[0] = 'solo_11andup_2boys':
 				gs 'arousal', 'end'
 				gs 'stat'
 
-				if sunWeather = 1:
-					if MiraLoc ! 5:
-						act 'Sit down outside':gt 'mitkabuh','partyalone'
-					else
-						act 'Sit down outside':gt 'mitkabuh','partywithMira'
-					end
-				else
-					if MiraLoc ! 5:
-						act 'Sit down in the trailer':gt 'mitkabuh','partyalone'
-					else
-						act 'Sit down in the trailer':gt 'mitkabuh','partywithMira'
-					end
-				end
+				gs 'mitkabuh', 'set_continue_acts'
 			end
 		end
 	else
-		if mitkabuhrand = 1:
+		if temp2_rand = 1:
 			gs 'boyStat','A63','0'
 			gs 'boyStat','A61','1'
-		elseif mitkabuhrand = 2:
+		elseif temp2_rand = 2:
 			gs 'boyStat','A63','0'
 			gs 'boyStat','A62','1'
 		else
@@ -966,7 +905,7 @@ if $ARGS[0] = 'solo_11andup_2boys':
 			'<<$boydesc[0]>> bends you over '+iif(sunWeather=1,'the bench outside the trailer.','in the kitcen of the trailer.')+' He places his hands on your hips and pulls your '+iif(mesec=0,'pussy','ass')+' onto his dick.'
 			'<<$boydesc[1]>> grabs you by the hair and shoves his cock into your mouth. You rock back and forth between the two boys as they thrust into you.'
 			'They quicken their pace and it doesn''t take long for them both to cum inside of you.'
-			if gadriver_gang = 2:
+			if GadBoy['river_gang'] = 2:
 				'After they''re done <<$boydesc[0]>> looks at you and says, "What are you waiting for? Oh right, money. You''ll do anything for a ruble. Here you go."'
 				'He takes a 5 ruble note out of his pocket and throws it at you, "Clean yourself up with that."'
 				money += 5
@@ -981,23 +920,14 @@ if $ARGS[0] = 'solo_11andup_2boys':
 			gs 'cum_call','mouth',$boy[1],1
 			gs 'arousal', 'end'
 			gs 'stat'
-			
-			if sunWeather = 1:
-				if MiraLoc ! 5:
-					act 'Sit down outside':gt 'mitkabuh','partyalone'
-				else
-					act 'Sit down outside':gt 'mitkabuh','partywithMira'
-				end
-			else
-				if MiraLoc ! 5:
-					act 'Sit down in the trailer':gt 'mitkabuh','partyalone'
-				else
-					act 'Sit down in the trailer':gt 'mitkabuh','partywithMira'
-				end
-			end
+
+			gs 'mitkabuh', 'set_continue_acts'
 		end
 	end
+	killvar 'temp_rand'
+	killvar 'temp2_rand'
 end
+
 
 if $ARGS[0] = 'solo_11andup_3boys':
 	*clr & cla
@@ -1041,7 +971,7 @@ if $ARGS[0] = 'solo_11andup_3boys':
 			'They switch positions so everyone gets a chance will all your holes. After a while you get used to the constant pounding as the three boys don''t seem to be tiring out as quick as usual.'
 			'You have a feeling they may be competing to see who can go the longest without telling you.'
 			'Vasyan is the first to go, spraying cum all over your body. This sets off a chain reaction as Kolyamba begins cumming all over your face and hair and Mitka fills your '+iif(mesec=0,'pussy','ass')+' at the same time.'
-			if gadriver_gang = 2:
+			if GadBoy['river_gang'] = 2:
 				'After they''re done Mitka looks at you and says, "What are you waiting for? Oh right, money. You''ll do anything for a ruble. Here you go."'
 				'He takes a 5 ruble note out of his pocket and throws it at you, "Clean yourself up with that."'
 				money += 5
@@ -1066,29 +996,21 @@ if $ARGS[0] = 'solo_11andup_3boys':
 			end
 			gs 'arousal', 'end'
 			gs 'stat'
-			
-			if sunWeather = 1:
-				if MiraLoc ! 5:
-					act 'Sit down outside':gt 'mitkabuh','partyalone'
-				else
-					act 'Sit down outside':gt 'mitkabuh','partywithMira'
-				end
-			else
-				if MiraLoc ! 5:
-					act 'Sit down in the trailer':gt 'mitkabuh','partyalone'
-				else
-					act 'Sit down in the trailer':gt 'mitkabuh','partywithMira'
-				end
-			end
+
+			gs 'mitkabuh', 'set_continue_acts'
 		end
 	end
 end
+
+
+
+	!!------------------- MIRA -------------------!!
 
 if $ARGS[0] = 'mira_5':
 	*clr & cla
 	menu_off = 1
 	minut += 5
-	npc_QW['A60'] = 6
+	MiraVars['QW'] = 6
 	gs 'stat'
 	
 	gs 'miroslava','miraclothes'
@@ -1112,7 +1034,7 @@ if $ARGS[0] = 'mira_5':
 		act 'Talk to Mira':
 			*clr & cla
 			minut += 5
-			npc_QW['A60'] = 7
+			MiraVars['QW'] = 7
 			gs 'stat'
 			
 			gs 'miroslava','miraclothes'
@@ -1128,13 +1050,14 @@ if $ARGS[0] = 'mira_5':
 			end
 		end
 	end
-end		
-	
+end
+
+
 if $ARGS[0] = 'mira_7':
 	*clr & cla
 	menu_off = 1
 	minut += 5
-	npc_QW['A60'] = 8
+	MiraVars['QW'] = 8
 	gs 'stat'
 	
 	gs 'miroslava','miraclothes'
@@ -1159,11 +1082,12 @@ if $ARGS[0] = 'mira_7':
 	end
 end
 
+
 if $ARGS[0] = 'mira_8':
 	*clr & cla
 	menu_off = 1
 	minut += 5
-	npc_QW['A60'] = 9
+	MiraVars['QW'] = 9
 	gs 'stat'
 	
 	gs 'miroslava','miraclothes'
@@ -1189,11 +1113,12 @@ if $ARGS[0] = 'mira_8':
 	end
 end
 
+
 if $ARGS[0] = 'mira_9':
 	*clr & cla
 	menu_off = 1
 	minut += 5
-	npc_QW['A60'] = 10
+	MiraVars['QW'] = 10
 	gs 'stat'
 	
 	gs 'miroslava','miraclothes'
@@ -1251,7 +1176,7 @@ if $ARGS[0] = 'mira_9':
 						act 'Talk to Mira':
 							*clr & cla
 							minut += 5
-							npc_QW['A60'] = 11
+							MiraVars['QW'] = 11
 							gs 'stat'
 							
 							gs 'miroslava','miraclothes'
@@ -1276,22 +1201,22 @@ if $ARGS[0] = 'mira_9':
 	end
 end
 
+
 if $ARGS[0] = 'mira_11andup':
 	*clr & cla
 	menu_off = 1
 	minut += 5
-	if npc_QW['A60'] < 15: npc_QW['A60'] += 1
+	if MiraVars['QW'] < 15: MiraVars['QW'] += 1
 	gs 'stat'
 	
-	mitkarand = rand(0,1)
-	mitkabuhrand = rand(1,3)
-	if mitkarand = 0:
+	temp_rand = rand(1, 3)
+	if rand(0,1) = 0:
 		'<center><img <<$set_imgh>> src="images/characters/gadukino/mira/miraqw11_4.jpg"></center>'
 		*nl
 		'"Well Mira," Mirka says while smiling. "Are you ready to suck some cock?" - The other guys voice their agreement.'
 		'Mira blushes a bit but nods and obediently kneels down right where she was.'
 		
-		if mitkabuhrand = 1:
+		if temp_rand = 1:
 			act 'Watch her':
 				*clr & cla
 				gs 'arousal', 'voyeur_sex', 15, 'sub', 'group'
@@ -1300,7 +1225,7 @@ if $ARGS[0] = 'mira_11andup':
 				'<center><img <<$set_imgh>> src="images/characters/gadukino/mira/sex/miraqw11_5.jpg"></center>'
 				*nl
 				'The boys immediately forget about you, as they surround Mira and pull out their cocks and present them to her. Mira starts to suck off all the guys and the sound of moans and loud slurping sounds interrupt the silence of the night. It does not take long for Mira to make the guys cum all over her.'
-				if npc_QW['A60'] >= 16:
+				if MiraVars['QW'] >= 16:
 					'After they''re done Mitka looks at Mira and says, "What are you waiting for? Oh right, money. You''ll do anything for a ruble. Here you go."'
 					'He takes a 5 ruble note out of his pocket and throws it at her, "Clean yourself up with that."'
 				end
@@ -1311,7 +1236,7 @@ if $ARGS[0] = 'mira_11andup':
 					act 'Go back in the trailer':gt 'mitkabuh','partywithMira'
 				end
 			end
-		elseif mitkabuhrand = 2:
+		elseif temp_rand = 2:
 			act 'Watch her':
 				*clr & cla
 				gs 'arousal', 'voyeur_sex', 15, 'sub', 'goup'
@@ -1320,7 +1245,7 @@ if $ARGS[0] = 'mira_11andup':
 				'<center><img <<$set_imgh>> src="images/characters/gadukino/mira/sex/miraqw11_6.jpg"></center>'
 				*nl
 				'The boys immediately forget about you, as they surround Mira and take turns roughly fucking her mouth. She grunts and gags a lot, but they don''t pay attention, they continue to slam their cocks into her mouth and throat until they have all cum on her.'
-				if npc_QW['A60'] >= 16:
+				if MiraVars['QW'] >= 16:
 					'After they''re done Mitka looks at Mira and says, "What are you waiting for? Oh right, money. You''ll do anything for a ruble. Here you go."'
 					'He takes a 5 ruble note out of his pocket and throws it at her, "Clean yourself up with that."'
 				end
@@ -1340,7 +1265,7 @@ if $ARGS[0] = 'mira_11andup':
 				'<center><img <<$set_imgh>> src="images/characters/gadukino/mira/sex/miraqw11_7.jpg"></center>'
 				*nl
 				'The boys immediately forget about you, as they surround Mira and take their cocks out. She starts sucking off each guy while jerking off the others with her free hands. Mira has gotten pretty good at this you think to yourself as the boys quickly climax and shoot their loads in her mouth.'
-				if npc_QW['A60'] >= 16:
+				if MiraVars['QW'] >= 16:
 					'After they''re done Mitka looks at Mira and says, "What are you waiting for? Oh right, money. You''ll do anything for a ruble. Here you go."'
 					'He takes a 5 ruble note out of his pocket and throws it at her, "Clean yourself up with that."'
 				end
@@ -1358,7 +1283,7 @@ if $ARGS[0] = 'mira_11andup':
 		'"Well Mira," Mitka says while smiling. "Are you ready to work that pussy?" - The other guys voice their agreement.'
 		'Mira drunkenly giggles in response, after which she readily pulls down her pants in front of the group, turns her back to them and then pulls down her panties. She bends forward displaying her pussy and ass for everyone to see.'
 		
-		if mitkabuhrand = 1:
+		if temp_rand = 1:
 			act 'Watch her':
 				*clr & cla
 				gs 'arousal', 'voyeur_sex', 15, 'sub'
@@ -1367,7 +1292,7 @@ if $ARGS[0] = 'mira_11andup':
 				'<center><img <<$set_imgh>> src="images/characters/gadukino/mira/sex/miraqw11_1.jpg"></center>'
 				*nl
 				'Kolyamba is pleased with the show but wants more tonight. He pulls Mira aside, and orders her to work her cunt on his cock. He pulls off his pants and plops down waiting for her to obey. Mira jumps on top of him and starts to ride his cock until he cums inside of her.'
-				if npc_QW['A60'] >= 16:
+				if MiraVars['QW'] >= 16:
 					'After he''s done Kolyamba looks at Mira and says, "What are you waiting for? Oh right, money. You''ll do anything for a ruble. Here you go."'
 					'He takes a 5 ruble note out of his pocket and throws it at her, "Clean yourself up with that."'
 				end
@@ -1378,7 +1303,7 @@ if $ARGS[0] = 'mira_11andup':
 					act 'Go back in the trailer':gt 'mitkabuh','partywithMira'
 				end
 			end
-		elseif mitkabuhrand = 2:
+		elseif temp_rand = 2:
 			act 'Watch her':
 				*clr & cla
 				gs 'arousal', 'voyeur_sex', 15, 'sub'
@@ -1387,7 +1312,7 @@ if $ARGS[0] = 'mira_11andup':
 				'<center><img <<$set_imgh>> src="images/characters/gadukino/mira/sex/miraqw11_2.jpg"></center>'
 				*nl
 				'Mitka grunts approvingly and takes the drunk Mira aside, where he pulls down his pants and shoves his cock into her exposed pussy. He fucks her for several a while until dumping his load into her pussy.'
-				if npc_QW['A60'] >= 16:
+				if MiraVars['QW'] >= 16:
 					'After he''s done Mitka looks at Mira and says, "What are you waiting for? Oh right, money. You''ll do anything for a ruble. Here you go."'
 					'He takes a 5 ruble note out of his pocket and throws it at her, "Clean yourself up with that."'
 				end
@@ -1407,20 +1332,23 @@ if $ARGS[0] = 'mira_11andup':
 				'<center><img <<$set_imgh>> src="images/characters/gadukino/mira/sex/miraqw11_3.jpg"></center>'
 				*nl
 				'Vasyan enjoys the show and asks Mira to follow him and take off her clothes. Mira looks at him for a second before complying with his order. Once completely naked Vasyan pulls off his pants and starts to fuck Mira. Vasyan, hoots and hollers as he roughly fucks Mira, acting like a cowboy. Eventally, he cums deep in her pussy.'
-				if npc_QW['A60'] >= 16:
+				if MiraVars['QW'] >= 16:
 					'After he''s done Vasyan looks at Mira and says, "What are you waiting for? Oh right, money. You''ll do anything for a ruble. Here you go."'
 					'He takes a 5 ruble note out of his pocket and throws it at her, "Clean yourself up with that."'
 				end
 				
 				if sunWeather = 1:
-					act 'Go back to the trailer':gt 'mitkabuh','partywithMira'
+					act 'Go back to the trailer': gt 'mitkabuh','partywithMira'
 				else
-					act 'Go back in the trailer':gt 'mitkabuh','partywithMira'
+					act 'Go back in the trailer': gt 'mitkabuh','partywithMira'
 				end
 			end
 		end
 	end
+	killvar 'temp_rand'
 end
 
---- mitkabuh ---------------------------------
 
+killvar 'temp_rand'
+
+--- mitkabuh ---------------------------------

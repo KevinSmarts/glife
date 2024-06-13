@@ -26,7 +26,7 @@ if $ARGS[0] = 'chartabs':
 		$tabsaction[] = 'menu_page = 6 & gs ''obj_din'', ''magic'''
 	end
 	gs 'tabhead',menu_page
-	act 'Exit the menu': killvar 'menu_page' & gt 'obj_din', 'menu_exit'
+	act 'Exit the menu': gs 'obj_din', 'menu_exit' & gt $menu_loc, $menu_arg
 end
 
 if $ARGS[0] = 'bodytabs':
@@ -56,35 +56,38 @@ if $ARGS[0] = 'bodytabs':
 	$tabsname[] = 'Piercings'
 	$tabsaction[] = 'menu_page = 7 & gs ''obj_din'', ''piercing'''
 	gs 'tabhead',menu_page
-	act 'Exit the menu': killvar 'menu_page' & gt 'obj_din', 'menu_exit'
+	act 'Exit the menu': gs 'obj_din', 'menu_exit' & gt $menu_loc, $menu_arg
 end
 
 if $ARGS[0] = 'settingtabs':
 	cla
 	!0: Gameplay
-	!1: Display
-	!2: Status
-	!3: Phone
-	!4: Mods
-	!5: About
+	!1: Glossary
+	!2: Display
+	!3: Status
+	!4: Phone
+	!5: Mods
+	!6: About
 	$tabsname[] = 'Gameplay Settings'
 	$tabsaction[] = 'menu_page = 0 & dynamic $cheatmenu[''setting'']'
+	$tabsname[] = 'Glossary'
+	$tabsaction[] = 'menu_page = 1 & gt ''stat_explanations'', ''start'''
 	$tabsname[] = 'Display Settings'
-	$tabsaction[] = 'menu_page = 1 & dynamic $cheatmenu[''display'']'
+	$tabsaction[] = 'menu_page = 2 & dynamic $cheatmenu[''display'']'
 	$tabsname[] = 'Status Window Settings'
-	$tabsaction[] = 'menu_page = 2 & dynamic $cheatmenu[''status'']'
+	$tabsaction[] = 'menu_page = 3 & dynamic $cheatmenu[''status'']'
 	if settingmode ! 1:
 		$tabsname[] = 'Phone Theme Settings'
-		$tabsaction[] = 'menu_page = 3 & dynamic $cheatmenu[''theme'']'
+		$tabsaction[] = 'menu_page = 4 & dynamic $cheatmenu[''theme'']'
+		$tabsname[] = 'Mods'
+		$tabsaction[] = 'menu_page = 5 & gt ''mod_setting'''
+		$tabsname[] = 'About'
+		$tabsaction[] = 'menu_page = 6 & dynamic $cheatmenu[''about'']'
+	else
 		$tabsname[] = 'Mods'
 		$tabsaction[] = 'menu_page = 4 & gt ''mod_setting'''
 		$tabsname[] = 'About'
 		$tabsaction[] = 'menu_page = 5 & dynamic $cheatmenu[''about'']'
-	else
-		$tabsname[] = 'Mods'
-		$tabsaction[] = 'menu_page = 3 & gt ''mod_setting'''
-		$tabsname[] = 'About'
-		$tabsaction[] = 'menu_page = 4 & dynamic $cheatmenu[''about'']'
 	end
 	gs 'tabhead',menu_page
 	if settingmode = 1:
@@ -98,8 +101,8 @@ if $ARGS[0] = 'settingtabs':
 		act 'Enter cheat menu': killvar 'menu_page' & gs '$menu_cheat'
 		act 'Get Game Settings': killvar 'menu_page' & gt 'initg', 'get_game_set'
 		act 'Set Game Settings': killvar 'menu_page' & gt 'initg', 'set_game_set'
-		act 'Emergency Exit': killvar 'menu_page' & gt 'obj_din', 'emergency'
-		act 'Exit the menu': killvar 'menu_page' & gt 'obj_din', 'menu_exit'
+		act 'Emergency Exit': gs 'obj_din', 'menu_exit' & gt 'obj_din', 'emergency'
+		act 'Exit the menu': gs 'obj_din', 'menu_exit' & gt $menu_loc, $menu_arg
 	end
 end
 
@@ -125,7 +128,7 @@ if $ARGS[0] = 'cheattabs':
 	if menu_page = 0:
 		$cheat_tab_list = '<th>Index</th>'
 	else
-		$cheat_tab_list = '<th><a href="exec:menu_page = 0 & dynamic $cheatmenu">Index</a></th>'
+		$cheat_tab_list = '<th><a href="exec:menu_page = 0 & dynamic $cheatmenu[''index'']">Index</a></th>'
 	end
 
 	if menu_page = 1:
@@ -234,12 +237,17 @@ if $ARGS[0] = 'cheattabs':
 
 	$cheat_tab_list
 
-	act 'Settings menu': killvar 'menu_page' & gs '$menu_setting'
-	act 'Emergency Exit': killvar 'menu_page' & gt 'obj_din', 'emergency'
-	act 'Exit the menu': killvar 'menu_page' & gt 'obj_din', 'menu_exit'
+	act 'Settings menu': gs 'obj_din', 'menu_exit' & gs '$menu_setting'
+	act 'Emergency Exit': gs 'obj_din', 'menu_exit' & gt 'obj_din', 'emergency'
+	act 'Exit the menu': gs 'obj_din', 'menu_exit' & gt $menu_loc, $menu_arg
 end
 
-if $ARGS[0] = 'menu_exit': settingmode = 0 & gt $menu_loc, $menu_arg
+if $ARGS[0] = 'menu_exit':
+	settingmode = 0
+	menu_off = 0
+	killvar 'cheatmenu'
+	killvar 'menu_page'
+end
 
 if $ARGS[0] = 'menu_disabled': '<font color="red"><b>Menu is disabled for this event</b></font>'
 
@@ -338,8 +346,8 @@ if $ARGS[0] = 'description':
 	'<<$pcs_butt>>'
 	'<<$pcs_ass>>'
 	*nl
-	if avatar_hair = 1:
-		'Your hair: <<$av_hair>>.'
+	if $face_style['avatar_hair'] ! '':
+		'Your hair: <<$face_style[''avatar_hair'']>>.'
 	else
 		'<<$hair>>'
 	end
@@ -707,14 +715,18 @@ if $ARGS[0] = 'stats':
 		*nl
 	end
 
-	if runnerQW['races_ran'] > 0: 'You have run in <<runnerQW[''races_ran'']>> races'
-	if runnerQW['pav_wins1'] >= 1: 'You have <<runnerQW[''pav_wins1'']/3>> trophies from local racing competitions'
-	if runnerQW['bronze_medals'] > 0: '<<runnerQW[''bronze_medals'']>> - bronze medals for running'
-	if runnerQW['silver_medals'] > 0: '<<runnerQW[''silver_medals'']>> - silver medals for running'
-	if runnerQW['gold_medals'] > 0: '<<runnerQW[''gold_medals'']>> - gold medals for running'
-	if runnerQW['champ_bronze'] > 0: '<<runnerQW[''champ_bronze'']>> times bronze medalist at the St. Petersburg Track Championship'
-	if runnerQW['champ_silver'] > 0: '<<runnerQW[''champ_silver'']>> times silver medalist at the St. Petersburg Track Championship'
-	if runnerQW['champ_gold'] > 0: '<<runnerQW[''champ_gold'']>> times St. Petersburg Track Champion.'
+	if runnerQW['races_ran'] > 0: 'You ran in <<runnerQW[''races_ran'']>> competitive race' + iif(runnerQW['races_ran'] = 1, '','s')
+	if runnerQW['pav_wins2'] >= 3:
+		'You have won the school race trophy twice'
+	elseif runnerQW['pav_wins1'] >= 3:
+		'You have won a school race trophy'
+	end
+	if runnerQW['bronze_medals'] > 0: 'As a runner you have won <<runnerQW[''bronze_medals'']>> bronze medal' + iif(runnerQW['bronze_medals'] = 1, '','s')
+	if runnerQW['silver_medals'] > 0: 'As a runner you have won <<runnerQW[''silver_medals'']>> silver medal' + iif(runnerQW['silver_medals'] = 1, '','s')
+	if runnerQW['gold_medals'] > 0: 'As a runner you have won <<runnerQW[''gold_medals'']>> gold medal' + iif(runnerQW['gold_medals'] = 1, '','s')
+	if runnerQW['bronze_medals'] > 0: 'In the St. Petersburg Track Championship race you have won <<runnerQW[''champ_bronze'']>> bronze medal' + iif(runnerQW['champ_bronze'] = 1, '','s')
+	if runnerQW['champ_silver'] > 0: 'In the St. Petersburg Track Championship race you have won <<runnerQW[''champ_silver'']>> silver medal' + iif(runnerQW['champ_silver'] = 1, '','s')
+	if runnerQW['champ_gold'] > 0: 'In the St. Petersburg Track Championship race you have won <<runnerQW[''champ_gold'']>> gold medal' + iif(runnerQW['champ_gold'] = 1, '','s')
 	if runnerQW['prof_stage'] > 0:
 		if runnerQW['prof_stage'] = 1: 'You''re registered for a semi-professional''s race, in the junior squad'
 		if runnerQW['prof_stage'] = 2: 'You''re registered for a semi-professional''s race, in the veteran squad'
@@ -1651,8 +1663,8 @@ if $ARGS[0] = 'face':
 	$img_temp = func('$face_image')
 	'<center><img <<$set_imgh>> src="<<$img_temp>>"></a></center>'
 	killvar 'img_temp'
-	if avatar_hair = 1:
-		'Your hair: <<$av_hair>>.'
+	if $face_style['avatar_hair'] ! '':
+		'Your hair: <<$face_style[''avatar_hair'']>>.'
 	else
 		'<<$hair>>'
 	end
@@ -2237,13 +2249,13 @@ if $ARGS[0] = 'old':
 	killobj
 	oldobjmenu = 1
 	addobj '<center>Refresh</center>'
-	if cheatConsole = 0: addobj '<center>Console</center>'
+	if cheatVars['console'] = 0: addobj '<center>Console</center>'
 	addobj '<center>Toggle Debug Variables</center>'
 	addobj '<center>Add Debug Variable</center>'
 	addobj '<center>Delete Debug Variable</center>'
 	addobj '<center>Switch HTML</center>'
 	addobj '<center>Toggle Call Trace</center>'
-	if cheatTime = 1:
+	if cheatVars['time'] = 1:
 		addobj '<center>-1 Hour</center>'
 		addobj '<center>+1 Hour</center>'
 	end
@@ -2338,7 +2350,7 @@ if $ARGS[0] = 'rest':
 			pcs_sleep += 10
 		end
 	elseif waiting <= 0 or waiting > 120:
-		'Invalid time.'
+		msg 'Invalid time.'
 	end
 	gs 'stat'
 	gt $loc, $loc_arg
