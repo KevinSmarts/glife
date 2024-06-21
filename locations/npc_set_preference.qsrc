@@ -27,11 +27,10 @@ end
 
 !! $ARGS[0] = 'A***', 'B***', 'C***', etc.
 if isnum(mid($ARGS[0], 2)):
-	
+
 	!!Dynamically create the $npc_pref_traits and npc_trait_values arrays
 	dynamic $npc_preferences[$ARGS[0]]
-	dynamic $npc_pref_values[$ARGS[0]]
-	
+
 	!! Example of these created arrays.
 	!!$npc_pref_traits: npc_pref_traits[i] = 'strong'
 	!!npc_trait_values: npc_trait_values['strong'] = -15
@@ -67,10 +66,8 @@ if isnum(mid($ARGS[0], 2)):
 		if arrsize('$npc_pref_traits') = 0:
 			!!replace(..., '	', '') is there to remove the tabs from the string.
 			$npc_preferences[$ARGS[0]] = replace({killvar '$npc_pref_traits'
+				killvar 'npc_trait_values'
 				$npc_pref_traits[] = } + "'<<$ARGS[1]>>'" + {
-			}, '	', '')
-
-			$npc_pref_values[$ARGS[0]] = replace({killvar 'npc_trait_values'
 				npc_trait_values} + "['<<$ARGS[1]>>'] = <<temp_set_preference_trait_value>>" + {
 			}, '	', '')
 
@@ -87,9 +84,7 @@ if isnum(mid($ARGS[0], 2)):
 				!!We have checked that the npc has no preference for the trait.
 				!!We add the preference to the npc.
 				$npc_preferences[$ARGS[0]] += replace({$npc_pref_traits[] = } + "'<<$ARGS[1]>>'" + {
-				}, '	', '')
-
-				$npc_pref_values[$ARGS[0]] += replace({npc_trait_values} + "['<<$ARGS[1]>>'] = <<temp_set_preference_trait_value>>" + {
+					npc_trait_values} + "['<<$ARGS[1]>>'] = <<temp_set_preference_trait_value>>" + {
 				}, '	', '')
 			end
 		end
@@ -118,46 +113,43 @@ end
 
 !! Called as gs 'npc_set_preference', 'rebuild_preferences', $npc_code
 if $ARGS[0] = 'rebuild_preferences':
-	!!Rebuild the $npc_pref....[$ARGS[0]] strings from the grounds up
-	$temp_npc_pref_traits = {killvar '$npc_pref_traits'
-	}
-	$temp_npc_trait_values = {killvar 'npc_trait_values'
+	!!Rebuild the $npc_pref....[$ARGS[1]] strings from the grounds up
+	$temp_npc_preferences = {killvar '$npc_pref_traits'
+		killvar 'npc_trait_values'
 	}
 
-	!!Loop over every preference and add it to the $npc_pref....[$ARGS[0]] strings.
+	!!Loop over every preference and add it to the $npc_pref....[$ARGS[1]] strings.
 	rebuild_preferences_index = 0
 	:rebuild_preferences_loop
-		$temp_npc_pref_traits += {$npc_pref_traits[] = } + "'<<$npc_pref_traits[rebuild_preferences_index]>>'" + {
-		}
-		$temp_npc_trait_values += {npc_trait_values} + "['<<$npc_pref_traits[rebuild_preferences_index]>>'] = <<npc_trait_values[rebuild_preferences_index]>>" + {
+		$temp_npc_preferences += {$npc_pref_traits[] = } + "'<<$npc_pref_traits[rebuild_preferences_index]>>'" + {
+			npc_trait_values} + "['<<$npc_pref_traits[rebuild_preferences_index]>>'] = <<npc_trait_values[rebuild_preferences_index]>>" + {
 		}
 
 		rebuild_preferences_index += 1
 	if rebuild_preferences_index < arrsize('$npc_pref_traits'): jump 'rebuild_preferences_loop'
 
 
-	!!Overwrite the $npc_pref....[$ARGS[0]] strings with the rebuild string.
-	$npc_preferences[$ARGS[0]] = replace($temp_npc_pref_traits,    '	', '')
-	$npc_pref_values[$ARGS[0]] = replace($temp_npc_trait_values,   '	', '')
+	!!Overwrite the $npc_pref....[$ARGS[1]] strings with the rebuild string.
+	$npc_preferences[$ARGS[1]] = replace($temp_npc_preferences,    '	', '')
 
-	killvar '$temp_npc_pref_traits'
-	killvar '$temp_npc_trait_values'
+	killvar '$temp_npc_preferences'
 	killvar 'rebuild_preferences_index'
 end
 
 
 !! Called as gs 'npc_set_preference', 'remove_prefence', $npc_code, $pref_trait
 if $ARGS[0] = 'remove_preference':
+	dynamic $npc_preferences[$ARGS[1]]
 	if arrsize('$npc_pref_traits') > 0:
 		!! Check the position of the preference in the preference array.
 		temp_set_preferences_trait_position = arrpos('$npc_pref_traits', $ARGS[2])
-		
+
 		!! If the preference exists:
 		if temp_set_preferences_trait_position ! -1:
 			!! Remove the preference from the array.
 			killvar '$npc_pref_traits', temp_set_preferences_trait_position
 			gs 'shortgs', 'remove_array_element', 'npc_trait_values', $ARGS[2]
-			
+
 			!! Then rebuild the dynamic string.
 			gs 'npc_set_preference', 'rebuild_preferences', $ARGS[1]
 		end
@@ -220,13 +212,13 @@ if $ARGS[0] = 'get_value':
 		temp_pref_values['like']    = 1
 		temp_pref_values['dislike'] = -1
 		temp_pref_values['hate']    = -2
-	
+
 	elseif $ARGS[1] = 'body_skin_normal':
 		temp_pref_values['love']    = 2
 		temp_pref_values['like']    = 1
 		temp_pref_values['dislike'] = -1
 		temp_pref_values['hate']    = -2
-	
+
 	elseif $ARGS[1] = 'body_skin_good':
 		temp_pref_values['love']    = 2
 		temp_pref_values['like']    = 1
@@ -258,7 +250,7 @@ end
 
 
 !!		Preferences:
-!!		
+!!
 !!		body:
 !!			ass:
 !!				body_ass_flat
@@ -306,7 +298,7 @@ end
 !!			body_pregnant
 !!			body_tan
 !!			body_tan_not
-!!		
+!!
 !!		clothes:
 !!			exposed:
 !!				clothes_exposed_ass
@@ -323,17 +315,17 @@ end
 !!				clothes_style_goth
 !!				clothes_style_punk
 !!			clothes_thin
-!!		
+!!
 !!		cosmetics:
 !!			cosmetics_deodorant
 !!			cosmetics_makeup
 !!			cosmetics_piercing
 !!			cosmetics_tattoo
-!!		
+!!
 !!		cum:
 !!			cum_clothes
 !!			cum_face
-!!		
+!!
 !!		hair:
 !!			color:
 !!				hair_color_black
