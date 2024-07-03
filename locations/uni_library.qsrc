@@ -2,50 +2,31 @@
 !!march 18 2024
 !!This is the file containing the university library
 
-killvar '$downlibrary'
-$downlibrary['read'] = {
-	*clr & cla
-	menu_off = 1
-	if blizoruk = 500 or glassqw = 1:
-		glassqw = 1
-		msg '	The text blurs across the page. It seems you have poor eyesight. Maybe you should visit an ophthalmologist?'
-		gt 'uni_library', 'start'
-	end
-	if pcs_nerd > 0:
-		lastread = totminut
-		lastreadday = daystart
-		pcs_nerd += 1
-	end
-	minut += 60
-	blizoruk += 1
-}
+menu_off = 0
 
 if $ARGS[0] = 'start' or $ARGS[0] = '':
-	$sexloc = 'uni_library'
-    $location_type = 'public_indoors'
-	cla & *clr
 	minut += 5
-	$loc = 'uni_library'
-	$loc_arg = 'start'
-	$menu_loc = 'uni_library'
-	$menu_arg = 'start'
-	menu_off = 0
+	gs 'shortgs', 'setloc', 'uni_library', 'start'
+	$sexloc = 'uni_library'
+	$location_type = 'public_indoors'
 	gs 'katja_meynold_schedule'
 	!!gs 'albina_uni_schedule'
 	gs 'stat'
+
 	gs 'themes', 'indoors'
+
 	'<center><b><font color="maroon">The University Library</font></b></center>'
 	'<center><img <<$set_imgh>> src="images/locations/city/island/university/library/library.jpg"></center>'
 	'One of the medium sized buildings is the university''s library. It is three stories tall and filled with books, sections with tables scattered around to study or relax at and computer stations to help students with their studying.'
-	
+
 	if locat['katja'] = 29:
 		'You see '+iif(katjaQW['know_katja_uni'] = 0 and ($start_type['loc'] ! 'sg' and $start_type['magic'] = 'tg'), 'a cute redheaded girl', '<a href="exec:gt ''katja_uni'', ''library''">Katja</a>')+' sitting at one of the desks with a laptop and a pile of books.'
 	end
-	
+
 	if locat['A144'] = 12:
 		'You see your former classmate <a href="exec:gt ''uni_library'', ''anushka''">Anushka</a> sitting at one of the tables studying some books.'
 	end
-	
+
 	!!if locat['albina'] = 6:
 		!!'You see '+iif(AlbinaQW['know_albina_uni'] = 0 and ($start_type['loc'] ! 'sg' and $start_type['magic'] = 'tg'), 'an attractive looking brunette', '<a href="exec:gt ''albina_uni'', ''library''">Albina</a>')+' searching the shelves for books.'
 	!!end
@@ -57,11 +38,11 @@ if $ARGS[0] = 'start' or $ARGS[0] = '':
 			'You see a pretty ebony <a href="exec:gt ''uni_library'', ''kendra''">girl</a> sitting at one of the tables studying some books.'
 		end
 	end
-	
+
 	if yearstart > 1 and week <= 5 and hour >= 15 and hour < 17:
 		'You see your former classmate <a href="exec:gt ''uni_library'', ''artem''">Artem</a> sitting at one of the tables studying some books.'
 	end
-	
+
 	if $start_type['loc'] = 'sg' and yearstart > 1 and week > 5 and hour >= 12 and hour < 14:
 		if nataliaQW['library_day_check'] ! daystart:
 			nataliaQW['library_day_check'] = daystart
@@ -71,38 +52,34 @@ if $ARGS[0] = 'start' or $ARGS[0] = '':
 			'You see your former classmate <a href="exec: gt ''natalia_pavlova'',''library''">Natalia Pavlova</a>.'
 		end
 	end
-	
-	if (week < 6 or hour < 23) and hour > 7:
-		act 'Read a book':
-			gt 'uni_library', 'read'	
-		end
-		
-		act 'Borrow a book':
-			gt 'uni_library', 'loan'
-		end
 
-		if university['enrolled_in_semester'] > university['semester_passed']:
-			act 'Study': gt 'uni_library', 'study'
-		end
-
-		act 'Wander around': gt 'uni_library', 'wander'
-	else
+	if (week >= 6 and hour = 23) or hour < 8:
 		'The library is closing for the night.'
+		act 'Leave': minut += 5 & gt 'uni_grounds', 'main'
+		exit
 	end
-	act 'Leave':
-		minut += 2
-		gt 'uni_grounds', 'main'
+
+
+	act 'Read a book': gt 'uni_library', 'read'
+	act 'Borrow a book': gt 'uni_library', 'loan'
+
+	if university['enrolled_in_semester'] > university['semester_passed']:
+		act 'Study': gt 'uni_library', 'study'
 	end
+
+	act 'Wander around': gt 'uni_library', 'wander'
+	act 'Leave': minut += 2 & gt 'uni_grounds', 'main'
 end
 
 if $ARGS[0] = 'study':
-	$sexloc = 'uni_library'
-	cla & *clr
 	minut += 5
+	$sexloc = 'uni_library'
 	gs 'stat'
+
 	'<center><b><font color="maroon">The University Library</font></b></center>'
 	'<center><img <<$set_imgh>> src="images/locations/city/island/university/library/study' + rand(1,7) + '.jpg"></center>'
-	'You spend some time collecting some books on your subjects and grab one of the library''s laptops before finding a quiet place to sit.' 
+	'You spend some time collecting some books on your subjects and grab one of the library''s laptops before finding a quiet place to sit.'
+
 	if university['semester_week'] > 0:
 		i = 0
 		:study_loop
@@ -114,7 +91,7 @@ if $ARGS[0] = 'study':
 				'You don''t need to study any more this week for your <<$class_list_name[i]>> class.'
 			end
 		end
-		
+
 		i += 1
 		if ARRSIZE('class_list_institution') >= i: jump 'study_loop'
 		killvar 'i'
@@ -124,29 +101,31 @@ if $ARGS[0] = 'study':
 		if $class_list_institution[i] = 'uni_<<$university[''enrolled_in'']>>_semester_<<university[''enrolled_in_semester'']>>' and func('uni_programs', 'exam', 'is_over', $class_list_name[i]) = 0:
 			dynamic '	act ''Study intensely for your <<$class_list_name[i]>> exam (30 minuts)'': gt ''uni_library'', ''studying_exam'', ''<<$class_list_institution[i]>>'', ''<<$class_list_name[i]>>'' '
 		end
-		
+
 		i += 1
 		if ARRSIZE('class_list_institution') >= i: jump 'exam_loop'
 		killvar 'i'
-	end	
-	act 'Leave':
-		minut += 5
-		gt 'uni_grounds', 'main'
 	end
-	act 'Return to the entrance':
-		minut += 2
-		gt 'uni_library', 'start'
+
+	if (week >= 6 and hour = 23) or hour < 8:
+		'The library is closing for the night.'
+		act 'Leave': minut += 5 & gt 'uni_grounds', 'main'
+		exit
 	end
+
 	act 'Wander around': gt 'uni_library', 'wander'
+	act 'Return to the entrance': minut += 2 & gt 'uni_library', 'start'
+	act 'Leave': minut += 5 & gt 'uni_grounds', 'main'
 end
 
 if $ARGS[0] = 'studying':
-	cla & *clr
-	'<center><b><font color="maroon">The University Library</font></b></center>'
-	'<center><img <<$set_imgh>> src="images/locations/city/island/university/library/study' + rand(1,7) + '.jpg"></center>'
 	minut += 30
 	gs 'grades', 'optional_activity_attribute', '<<$ARGS[1]>>', '<<$ARGS[2]>>', 'yes', min(pcs_intel+10,100)
 	gs 'stat'
+
+	'<center><b><font color="maroon">The University Library</font></b></center>'
+	'<center><img <<$set_imgh>> src="images/locations/city/island/university/library/study' + rand(1,7) + '.jpg"></center>'
+
 	'You open the books and start studying for your <<$ARGS[2]>> class. The library is mostly quiet, but you hear occasional noises, some of them hard to make out and some of them fairly suspicious. Despite this, it is a good environment to study in and you can see a number of other students studying as well.'
 	*nl
 	if dyneval ('RESULT = class[''<<$ARGS[1]>>_<<$ARGS[2]>>_optional_weekly_grade_gain'']') < dyneval ('RESULT = class[''<<$ARGS[1]>>_<<$ARGS[2]>>_optional_weekly_max'']'):
@@ -154,24 +133,20 @@ if $ARGS[0] = 'studying':
 	else
 		'You study for half an hour and believe you now understand everything that is being covered this week.'
 	end
-	act 'Leave':
-		minut += 5
-		gt 'uni_grounds', 'main'
-	end
-	if (week < 6 or hour < 23) and hour > 7:
-		act 'Return to entrance':
-			minut += 2
-			gt 'uni_library', 'start'
-		end
-		act 'Keep studying': gt 'uni_library', 'study'
-		act 'Wander around': gt 'uni_library', 'wander'
-	else
+
+	if (week >= 6 and hour = 23) or hour < 8:
 		'The library is closing for the night.'
+		act 'Leave': minut += 5 & gt 'uni_grounds', 'main'
+		exit
 	end
+
+	act 'Keep studying': gt 'uni_library', 'study'
+	act 'Wander around': gt 'uni_library', 'wander'
+	act 'Return to entrance': minut += 2 & gt 'uni_library', 'start'
+	act 'Leave': minut += 5 & gt 'uni_grounds', 'main'
 end
 
 if $ARGS[0] = 'studying_exam':
-	cla & *clr
 	'<center><b><font color="maroon">The University Library</font></b></center>'
 	'<center><img <<$set_imgh>> src="images/locations/city/island/university/library/study' + rand(1,7) + '.jpg"></center>'
 	!!Nerds like studying and so their mood improves a little. Everybody else gets in a worse mood by studying.
@@ -243,35 +218,30 @@ if $ARGS[0] = 'studying_exam':
 			'You study for half an hour and believe that you''re making good progress in getting ready for the exam.'
 		else
 			'You study for half an hour and believe that you''re improving a lot.'
-		end		
+		end
 		gs 'grades', 'grade_award', '<<$ARGS[1]>>', '<<$ARGS[2]>>', study_mod
 	end
-	
+
 	gs 'stat'
-	
+
 	killvar 'study_mod'
 	killvar 'nod_study'
-	
-	act 'Leave':
-		minut += 5
-		gt 'uni_grounds', 'main'
-	end
-	if (week < 6 or hour < 23) and hour > 7:
-		act 'Return to the entrance':
-			minut += 2
-			gt 'uni_library', 'start'
-		end
-		act 'Keep studying': gt 'uni_library', 'study'
-		act 'Wander around': gt 'uni_library', 'wander'
-	else
+
+	act 'Leave': minut += 5 & gt 'uni_grounds', 'main'
+
+	if (week >= 6 and hour = 23) or hour < 8:
 		'The library is closing for the night.'
+		exit
 	end
+
+	act 'Return to the entrance': minut += 2 & gt 'uni_library', 'start'
+	act 'Keep studying': gt 'uni_library', 'study'
+	act 'Wander around': gt 'uni_library', 'wander'
 end
 
 if $ARGS[0] = 'wander':
-	$sexloc = 'uni_library'
-	cla & *clr
 	minut += 15
+	$sexloc = 'uni_library'
 	gs 'stat'
 	'<center><b><font color="maroon">The University Library</font></b></center>'
 	temp = rand(1,20)
@@ -330,217 +300,53 @@ if $ARGS[0] = 'wander':
 		'<center><img <<$set_imgh>> src="images/locations/city/island/university/library/library.jpg"></center>'
 		'You wander around the library for a while, looking at all the books. You pass by several of your fellow students, some quietly studying, reading or just looking through the bookshelves. You don''t come across anything of interest.'
 	end
-	act 'Leave':
-		minut += 5
-		gt 'uni_grounds', 'main'
-	end
-	if (week < 6 or hour < 23) and hour > 7:
-		act 'Return to the entrance':
-			minut += 2
-			gt 'uni_library', 'start'
-		end
-		act 'Wander around':
-			gt 'uni_library', 'wander'
-		end 
-	else
+
+	act 'Leave': minut += 5 & gt 'uni_grounds', 'main'
+
+	if (week >= 6 and hour = 23) or hour < 8:
 		'The library is closing for the night.'
+		exit
 	end
+
+	act 'Return to the entrance': minut += 2 & gt 'uni_library', 'start'
+	act 'Wander around': gt 'uni_library', 'wander'
 end
 
 if $ARGS[0] = 'read':
-	cla
-	act 'Read a book on science (1:00)':
-		dynamic $downlibrary['read']
-		gs 'exp_gain', 'intel', rand(3,6) + rand(0, drugVars['mentats_dose'])
-		grupvalue[3] += 1
-		gs 'stat'
-		'<center><img <<$set_imgh>> src="images/pc/items/accessories/books/science1.jpg"></center>'
-		'You spend an hour reading, trying to make sense of all the clever propositions written inside and understand the subject it describes.'
-		act 'Put the book back': gt 'uni_library', 'read'
+	gs 'shortgs', 'setloc', 'uni_library', 'read'
+
+	'<center><b><font color="maroon">The University Library</font></b></center>'
+	'<center><img <<$set_imgh>> src="images/locations/city/island/university/library/library.jpg"></center>'
+
+	act 'Leave': minut += 5 & gt 'uni_grounds', 'main'
+
+	if (week >= 6 and hour = 23) or hour < 8:
+		'The library is closing for the night.'
+		exit
 	end
 
-	act 'Read an adventure novel (1:00)':
-		dynamic $downlibrary['read']
-		pcs_mood = 100
-		grupvalue[3] += 1
-		gs 'stat'
-		'<center><img <<$set_imgh>> src="images/pc/items/accessories/books/fiction' + rand(1,2) + '.jpg"></center>'
-		'You spend an hour reading an adventure novel, immersing yourself in daring deeds and awesome twists.'
-		act 'Put the book back': gt 'uni_library', 'read'
-	end
-
-	act 'Read a fantasy novel (1:00)':
-		dynamic $downlibrary['read']
-		pcs_mood = 100
-		grupvalue[3] += 1
-		gs 'stat'
-		'<center><img <<$set_imgh>> src="images/pc/items/accessories/books/fantasy' + rand(1,9) + '.jpg"></center>'
-		'You spend an hour reading a fantasy novel, rescuing damsels from dragons, digging for jewels with dwarves and performing word changing magic alongside elves and druids.'
-		act 'Put the book back': gt 'uni_library', 'read'
-	end
-
-	act 'Read a science fiction novel (1:00)':
-		dynamic $downlibrary['read']
-		pcs_mood = 100
-		grupvalue[3] += 1
-		gs 'stat'
-		'<center><img <<$set_imgh>> src="images/pc/items/accessories/books/scifi' + rand(1,6) + '.jpg"></center>'
-		'You spend an hour reading a science fiction novel - flying off into space, travelling though time, running from rogue AI and creating monsters with your hunchbacked assistant.'
-		act 'Put the book back': gt 'uni_library', 'read'
-	end
-
-	act 'Read a romance novel (1:00)':
-		dynamic $downlibrary['read']
-		pcs_mood = 100
-		pcs_horny += 20
-		gs 'stat'
-		'<center><img <<$set_imgh>> src="images/pc/items/accessories/books/romance' + rand(1,20) + '.jpg"></center>'
-		'You spend a very short hour reading a romance novel - choosing between a vampire or a werewolf, falling in love with an obscenely wealthy Grey... Several of the scenes are very steamy and you find yourself getting quite aroused.'
-		act 'Put the book back': gt 'uni_library', 'read'
-	end
-	
-	temp = pcs_intel * 2 + pcs_sprt
-	if temp < 100:
-		$diff = 'hard'
-	elseif temp < 150:
-		$diff = 'medium'
-	else
-		$diff = 'easy'
-	end
-	gs 'willpower', 'misc', 'self', $diff
-	if will_cost <= pcs_willpwr:
-		act 'Read from the collected works of Leo Tolstoy (1:00) (<<will_cost>> Willpower)':
-			gs 'willpower', 'pay', 'self'
-			killvar 'will_cost'
-
-			dynamic $downlibrary['read']
-			gs 'exp_gain', 'sprt', rand(3,6)
-			grupvalue[3] += 2
-			gs 'stat'
-			'<center><img <<$set_imgh>> src="images/pc/items/accessories/books/tolstoy.jpg"></center>'
-			'You read the book for an hour. Tolstoy is certainly a classic writer, but he used a <i>lot</i> of words.'
-			act 'Put the book back': gt 'uni_library', 'read'
-		end
-	else
-		act 'Read from the collected works of Leo Tolstoy (1:00) (<font color="red"><<will_cost>> Willpower</font>)': '<br><font color="red">You don''t have enough willpower to use this action.</font>'
-	end
-	
 	act 'Go back': gt 'uni_library', 'start'
+	gs 'library_functions', 'set_read_acts'
 end
 
 if $ARGS[0] = 'loan':
-	cla
-	if $lib_book_loaned ! '':
-		'You''ve currently borrowed <<$lib_book_loaned>>.'
-		if lib_debt <= 0:
-			temp_loan_days_left = lib_debt / -50
-			'You have <<temp_loan_days_left>> days left before you need to return it.'
-		else
-			'<font color="red">Your book is overdue!</font>'
-		end
+	gs 'shortgs', 'setloc', 'uni_library', 'loan'
 
-		act 'Return your loaned book':
-			if lib_book_read = 0:
-				if $lib_book_loaned = 'fantasy': f_book -= 1
-			elseif lib_book_read = 1:
-				if $lib_book_loaned = 'fantasy': fantasybook = 0
-			end
-			$lib_book_loaned = ''
-			if lib_debt <= 0: lib_debt = 0
-			gt 'uni_library', 'start'
-		end
-	end
+	'<center><b><font color="maroon">The University Library</font></b></center>'
+	'<center><img <<$set_imgh>> src="images/locations/city/island/university/library/library.jpg"></center>'
 
-	if lib_debt > 0:
-		'You owe an outstanding debt of <<lib_debt>> <b>₽</b> to the library.'
-		if money < lib_debt and karta < lib_debt:
-			'You don''t have enough money to pay your debt!'
-		else
-			if money >= lib_debt:
-				act 'Pay your debt (cash)':
-					money -= lib_debt
-					lib_debt = 0
-					gt 'uni_library', 'loan'
-				end
-			end
-			if karta >= lib_debt:
-				act 'Pay your debt (card)':
-					karta -= lib_debt
-					lib_debt = 0
-					gt 'uni_library', 'loan'
-				end
-			end
-		end
-	end
+	act 'Leave': minut += 5 & gt 'uni_grounds', 'main'
 
-	if $lib_book_loaned = '' and lib_debt = 0:
-		!!There''s currently only code for fantasy novels (Is this still true? I''ve left everything but the fantasy novel out until confirmed)
-		!{act 'Borrow a science book':
-			*clr & cla
-			menu_off = 1
-			s_book += 1
-			$lib_book_loaned = 'a science book'
-			lib_debt = -700
-			!!Picture here
-			'You find a science book that catches your interest and bring it to the librarian, who notes your name and the title of the book down before handing it to you.'
-			'"You need to return it within 2 weeks. Every day that you''re late incurs a 50 <b>₽</b> fine."'
-			act 'Continue': gt 'uni_library'
-		end
-		
-		act 'Borrow an adventure novel':
-			*clr & cla
-			menu_off = 1
-			a_book += 1
-			$lib_book_loaned = 'an adventure novel'
-			lib_debt = -700
-			!!Picture here
-			'You find an adventure novel that catches your interest and bring it to the librarian, who notes your name and the title of the book down before handing it to you.'
-			'"You need to return it within 2 weeks. Every day that you''re late incurs a 50 <b>₽</b> fine."'
-			act 'Continue': gt 'uni_library'
-		end}
-		
-		act 'Borrow a fantasy novel':
-			*clr & cla
-			menu_off = 1
-			f_book += 1
-			$lib_book_loaned = 'a fantasy novel'
-			lib_debt = -700
-			!!Picture here
-			'You find a fantasy novel that catches your interest and bring it to the librarian, who notes your name and the title of the book down before handing it to you.'
-			'"You need to return it within 2 weeks. Every day that you''re late incurs a 50 <b>₽</b> fine."'
-			act 'Continue': gt 'uni_library'
-		end
-		
-		!{act 'Borrow a science fiction novel':
-			*clr & cla
-			menu_off = 1
-			sf_book += 1
-			$lib_book_loaned = 'a science fiction novel'
-			lib_debt = -700
-			!!Picture here
-			'You find a science fiction novel that catches your interest and bring it to the librarian, who notes your name and the title of the book down before handing it to you.'
-			'"You need to return it within 2 weeks. Every day that you''re late incurs a 50 <b>₽</b> fine."'
-			act 'Continue': gt 'uni_library'
-		end
-		
-		act 'Borrow a romance novel':
-			*clr & cla
-			menu_off = 1
-			r_book += 1
-			$lib_book_loaned = 'a romance novel'
-			lib_debt = -700
-			!!Picture here
-			'You find a fantasy novel that catches your interest and bring it to the librarian, who notes your name and the title of the book down before handing it to you.'
-			'"You need to return it within 2 weeks. Every day that you''re late incurs a 50 <b>₽</b> fine."'
-			act 'Continue': gt 'uni_library'
-		end}
+	if (week >= 6 and hour = 23) or hour < 8:
+		'The library is closing for the night.'
+		exit
 	end
 
 	act 'Go back': gt 'uni_library', 'start'
+	gs 'library_functions', 'set_loan_acts'
 end
 
 if $ARGS[0] = 'kendra':
-	*clr & cla
 	menu_off = 1
 	gs 'npc_relationship', 'modify', 'A82', 'like'
 	gs 'exp_gain', 'chrsm', rand(1,2)
@@ -548,36 +354,33 @@ if $ARGS[0] = 'kendra':
 	'<center><img <<$set_imgh>> src="images/locations/city/island/university/classroom/ebony_girl_talk.jpg"></center>'
 	'You walk over to her table.'
 	if meet_kendra = 1:
-		if kendraQW['sub'] < 0:
+		if kendraQW['sub'] <= 0:
 			'You''re about to take a seat when Kendra glares at you. "I don''t think so, Princess. We''re not friends and I want nothing to do with you. Go sit somewhere else."'
-			'You glance around and notice a few other students staring at you, so you move away from her and find a seat by yourself.' 
-		elseif kendraQW['sub'] >= 10:
+			'You glance around and notice a few other students staring at you, so you move away from her and find a seat by yourself.'
+		elseif kendraQW['sub'] <= 10:
 			if npc_rel['A82'] >= 60:
 				minut += 10
 				'You sit next to Kendra. You talk to her and she even lets you get a few words in, but she mostly treats you like a pet or someone simple, often making condescending comments towards you.'
-			elseif npc_rel['A82'] <= 20:
-				'You''re about to sit next to Kendra when she glares at you. "We''re not friends. You''re nothing more than my white slave bitch to use and abuse as I see fit. You don''t come over to me in public, <i>ever</i>. Go sit somewhere else."'
-				'You glance around and notice a few other students staring at you, so you move away from her and find a seat by yourself.' 
-			else
+			elseif npc_rel['A82'] >= 20:
 				minut += 10
-				'You sit next to Kendra and try to have a conversation with her, but anytime you try and get a word in, she gives you a dirty look until you shut up and let her keep talking.'
+				'You sit next to Kendra. You try and have a conversation with her, but mostly she talks and you listen. Any time you try and get a word in edgewise she just gives you a dirty look until you shut up and let her keep talking.'
+			else
+				'You''re about to sit next to Kendra when she looks over at you. "I don''t think so, Princess. We''re not friends. You''re nothing more than my toy to be used when and where I want, and now is not the time, so go sit somewhere else."'
+				'You glance around and notice a few other students staring at you, so you move away from her.'
 			end
 		else
 			if npc_rel['A82'] >= 60:
 				minut += 10
 				'You sit next to Kendra. You talk to her and she even lets you get a few words in, but she mostly treats you like a pet or someone simple, often making condescending comments towards you.'
-			elseif npc_rel['A82'] <= 20:
-				'You''re about to sit next to Kendra when she looks over at you. "I don''t think so, Princess. We''re not friends. You''re nothing more than my toy to be used when and where I want, and now is not the time, so go sit somewhere else."'
-				'You glance around and notice a few other students staring at you, so you move away from her.' 
-			else
+			elseif npc_rel['A82'] >= 20:
 				minut += 10
-				'You sit next to Kendra. You try and have a conversation with her, but mostly she talks and you listen. Any time you try and get a word in edgewise she just gives you a dirty look until you shut up and let her keep talking.'
+				'You sit next to Kendra and try to have a conversation with her, but anytime you try and get a word in, she gives you a dirty look until you shut up and let her keep talking.'
+			else
+				'You''re about to sit next to Kendra when she glares at you. "We''re not friends. You''re nothing more than my white slave bitch to use and abuse as I see fit. You don''t come over to me in public, <i>ever</i>. Go sit somewhere else."'
+				'You glance around and notice a few other students staring at you, so you move away from her and find a seat by yourself.'
 			end
 		end
-		act 'Leave Kendra be':
-			minut += 2
-			gt 'uni_library', 'start'
-		end
+		act 'Leave Kendra be': minut += 2 & gt 'uni_library', 'start'
 	else
 		if hotcat >= 5:
 			meet_kendra = 1
@@ -586,20 +389,15 @@ if $ARGS[0] = 'kendra':
 			'You''re taken aback by her comment. "Slaves?"'
 			'She smiles. "Yes, I have many sex slaves here, and I can train you to serve me well. If you''re interested, come to my dorm room. It''s on the eighth floor of the east dorm, room 808."'
 			'She then ignores you, leaving you to wonder if you should visit her dorm room and see what she was talking about...'
-			act 'Leave Kendra be':
-				minut += 2
-				gt 'uni_library', 'start'
-			end
+
+			act 'Leave Kendra be': minut += 2 & gt 'uni_library', 'start'
 		else
 			'There''s something about this ebony girl that intrigues you, so you decide to sit next to her. "Hi, I''m <<$pcs_nickname>>."'
 			'"No. Not interested. Maybe if you do something about all of... ''this'', you can try again." Her hand indicates your entire person with languid disinterest.'
 			'You''re taken aback by her comment. "What?"'
 			'She rolls her eyes, believing your shocked silence to be stupidity. "Just go away."'
 			'She then ignores you, leaving you to wonder if she doesn''t find you attractive enough to get her attention. Maybe if you were better looking she would talk to you?'
-			act 'Leave her be':
-				minut += 2
-				gt 'uni_library', 'start'
-			end
+			act 'Leave her be': minut += 2 & gt 'uni_library', 'start'
 		end
 	end
 end
@@ -616,43 +414,38 @@ if $ARGS[0] = 'artem':
 		artemQW['knows_dorm_room_number'] = 1
 		minut += 10
 		'You sit next to Artem. The two of you talk about your classes, fellow students, roommates, and just life in general for awhile. Finally he says. "I don''t mean to be rude but I really need to finish this, but why don''t you come to my dorm room sometime and we can hangout then. I am on the second floor in room 209." You tell him you will, then say your goodbyes and leave him to study.'
-	elseif npc_rel['A2'] <= 20:
-		'You sit next to Artem when he looks over at you. "I''m busy and need to study, so please go sit somewhere else." You sigh and get up and move away.'
-	else
+	elseif npc_rel['A2'] >= 20:
 		minut += 5
 		'You sit next to Artem. You try and have a conversation with him, but mostly you talk as he tries to study. Finally after a bit he says. "Look sorry but I really need to study this, maybe we can talk at the cafe sometime or something. But if you don''t mind." He indicates his book, you get the hint and leave him alone.'
+	else
+		'You sit next to Artem when he looks over at you. "I''m busy and need to study, so please go sit somewhere else." You sigh and get up and move away.'
 	end
-	act 'Leave Artem be':
-		minut += 2
-		gt 'uni_library', 'start'
-	end
+
+	act 'Leave Artem be': minut += 2 & gt 'uni_library', 'start'
 end
 
 if $ARGS[0] = 'anushka':
-	*clr & cla
 	menu_off = 1
 	gs 'npc_relationship', 'modify', 'A144', 'like'
 	gs 'exp_gain', 'chrsm', rand(1,2)
 	minut += 5
 	'<center><img <<$set_imgh>> src="images/characters/shared/headshots_main/big144.jpg"></center>'
 	'You walk over to her table.'
+
 	if npc_rel['A144'] >= 60:
 		anushkaCityQW['first_visit'] = 1
 		minut += 5
 		gs 'stat'
 		'<center><img <<$set_imgh>> src="images/characters/shared/headshots_main/big144.jpg"></center>'
 		'You exchange greetings as you sit. Anushka seems really intent on her studies, at first she is polite and tries to respond but after a few minutes she mostly stops responding and just listening until she finally says. "I don''t mean to be rude but can you politely fuck off." She says in a teasing tone and a smile on her face. "But in all seriousness I really do need to get this done, this is one of the few times I have to be in the library. If you want to hang out, you can stop by the Coffee Hole sometimes or come by the boys'' and my apartment if you want." She tells you where the apartment she shares with the boys from the band is. With that, you get the hint and leave her alone.'
-	elseif npc_rel['A144'] <= 20:
-		'You sit next to Anushka when she looks over at you. "Go the fuck away, can''t you see I''m busy." You sigh and get up and move away.'
-	else
+	elseif npc_rel['A144'] >= 20:
 		minut += 5
 		'You sit next to Anushka. You try and have a conversation with her, but mostly you talk as she tries to study. Finally after a bit he says. "Look I don''t have time to hang out, I got to get this studying done now while I have some free time, why don''t you stop by the Coffee Hole sometime if you want to talk, I sometimes have free time then." You get the hint and leave her alone.'
+	else
+		'You sit next to Anushka when she looks over at you. "Go the fuck away, can''t you see I''m busy." You sigh and get up and move away.'
 	end
-	act 'Leave Anushka be':
-		minut += 2
-		gt 'uni_library', 'start'
-	end
+
+	act 'Leave Anushka be': minut += 2 & gt 'uni_library', 'start'
 end
 
 --- uni_library ---------------------------------
-
