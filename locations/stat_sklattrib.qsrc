@@ -25,6 +25,7 @@
 !! _muta replaces the assorted mutagen variables for attributes, this is to replace the 30 lines of code with 1
 !! _flr, this is the floor through which an attribute/skill cannot fall
 !! _xpnxt is the XP required to reach the next level
+!! _xpprv was the XP required to reach this level
 
 !! Traits
 !! $traitattskl[x], this stores a list of all traits that can affect attribute or skill advancement or degradation, if a trait does not, it does not go in this array
@@ -123,7 +124,7 @@ $traitattskl[2] = 'schlrly'
 if attsklupdate = 0:
 	i = 0 & x = 1
 	:rstloop
-	expadj = func('_difficulty','getexpadj')	
+	expadj = func('_difficulty','getexpadj')
 	tl = 0
 	:trtrstloop
 	tltp = 0
@@ -186,7 +187,7 @@ if $ARGS[0] = 'daycall':
 	:degloop
 	degadj = 60
 	if x = 2: degadj += 30
-	expadj = func('_difficulty','getexpadj')	
+	expadj = func('_difficulty','getexpadj')
 	tl = 0
 	:trtdegloop
 	tltp = 0
@@ -215,10 +216,10 @@ if $ARGS[0] = 'daycall':
 		else
 			degtmp = 2 + <<$attskltmp>>_muta
 		end
-	
+
 		degtmp = degadj * degtmp / 60
 		if degtmp < 2: degtmp = 2
-		
+
 		if <<$attskltmp>>_exp < <<$attskltmp>>_mem: <<$attskltmp>>_exp = <<$attskltmp>>_mem
 
 		if <<$attskltmp>>_exp = <<$attskltmp>>_mem:
@@ -274,11 +275,18 @@ end
 
 dynamic "
 	if <<$attskltmp>>_lvl ! <<$attskltmp>>_lvlst: <<$attskltmp>>_lvl = <<$attskltmp>>_lvlst
-	if <<$attskltmp>>_exp > (expadj * 73*<<$attskltmp>>_lvl * <<$attskltmp>>_lvl / 2730): <<$attskltmp>>_lvl += 1
+	if <<$attskltmp>>_lvl > 0: <<$attskltmp>>_xpprv = (expadj * 73 * (<<$attskltmp>>_lvl-1) * (<<$attskltmp>>_lvl-1) / 2730) + 1 else <<$attskltmp>>_xpprv = 0
+	<<$attskltmp>>_xpnxt = (expadj * 73 * <<$attskltmp>>_lvl * <<$attskltmp>>_lvl / 2730) + 1
+
+	if <<$attskltmp>>_exp > <<$attskltmp>>_xpnxt: <<$attskltmp>>_lvl += 1
+	if <<$attskltmp>>_exp < <<$attskltmp>>_xpprv: <<$attskltmp>>_lvl -= 1
 	<<$attskltmp>>_lvlst = <<$attskltmp>>_lvl
-	<<$attskltmp>>_xpnxt = (expadj * 73*<<$attskltmp>>_lvl * <<$attskltmp>>_lvl / 2730) + 1
+
 	if <<$attskltmp>>_lvl / 5 > <<$attskltmp>>_flr: <<$attskltmp>>_flr = <<$attskltmp>>_lvl / 5
 	if <<$attskltmp>>_lvl > (100 + (<<$attskltmp>>_muta * 50)): <<$attskltmp>>_lvl = (100 + (<<$attskltmp>>_muta * 50))
+
+	if <<$attskltmp>>_lvl > 0: <<$attskltmp>>_xpprv = (expadj * 73 * (<<$attskltmp>>_lvl-1) * (<<$attskltmp>>_lvl-1) / 2730) + 1 else <<$attskltmp>>_xpprv = 0
+	<<$attskltmp>>_xpnxt = (expadj * 73 * <<$attskltmp>>_lvl * <<$attskltmp>>_lvl / 2730) + 1
 	"
 !! removed by rachels 17/10/23 to correct the "marksman" bug - belongs into preceding dynamic code
 !!	if <<$attskltmp>>_exp > (expadj * (<<$attskltmp>>_lvl + 1) * (<<$attskltmp>>_lvl + 1) / 180) - 1:
