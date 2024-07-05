@@ -43,11 +43,12 @@ if $ARGS[0] = 'setup':
 	!! gs 'gad_gp_chores', 'start'
 	!! gs 'locat', 'A60'
 	gs 'gp_elene_schedule'
+	!! gs 'locat', 'A32'
 	if gp_debug = 1:
-    	!! test tracker
+    !! test tracker
 		$locat['elene']
 	end
-	!! gs 'locat', 'A32'
+
 end
 
 !! leave location - reset vars and other housekeeping functions
@@ -101,7 +102,7 @@ if $ARGS[0] = 'main':
 			gt $loc, 'exit', 'gad_gpyard', 'start'
 		end
 
-	!! Disable leaving nude - awaiting global punishment system?
+	!!Disable leaving nude - awaiting global punishment system?
 	!!elseif $clothingworntype = 'nude':
 	!!	act 'Go outside naked':
 	!!		*clr & cla
@@ -163,6 +164,79 @@ if $ARGS[0] = 'kitchen':
 	dynamic $fatdel
 	dynamic $lekarstvo
 	dynamic $vitamin
+end
+
+!! quest and family inter-links
+
+if $ARGS[0] = 'family_trip':
+	! family comes to visit first weekend of each month from Saturday at 1200 to Sunday at 2100
+	if week = 6 and hour > 12 and locat['Fam_month_inGad'] ! month: locat['Fam_inGad'] = 1
+
+	if locat['Fam_inGad'] = 1:
+		'Your parents are relaxing inside.'
+
+		gs 'mother', 'check_workout'
+
+		if gadstay_day ! daystart and func('homes_properties', 'has_access', 'parents_home'):
+			if week = 7:
+				if hour = 20:
+					locat['Fam_month_inGad'] = month
+					if (kanikuli = 4 or kanikuli = 5) and ((month = 6 or month = 7) or (month = 8 and day <= 25)):
+						*clr & cla
+						menu_off = 1
+						'<center><b><font color="maroon">Your mother, Natasha <<$pcs_lastname>></font></b></center>'
+						'<center><img <<$set_imgh>> src="images/characters/pavlovsk/resident/mom/mother.jpg"></center>'
+						*nl
+						'<<$npc_nickname[''A29'']>> asks, "<<$pcs_nickname>>, are you coming home with us or are you going to stay in the village with your grandparents?"'
+
+						act 'Stay with your grandparents':gadstay_day = daystart & gadstay = 1 & locat['Fam_inGad'] = 0 & gt 'gad_gphouse', 'entry'
+						act 'Go home to Pavlovsk': gt 'gad_gphouse', 'to_pavlovsk'
+					else
+						act 'Go home to Pavlovsk': gt 'gad_gphouse', 'to_pavlovsk'
+					end
+				elseif hour > 20:
+					locat['Fam_month_inGad'] = month
+				end
+			end
+		end
+	end
+end
+
+if $ARGS[0] = 'to_pavlovsk':
+	menu_off = 1
+	*clr & cla
+	gadstay = 0
+	locat['Fam_inGad'] = 0
+	minut += rand(15,25)
+	gs 'stat'
+
+	'<center><b><font color="maroon">Your grandmother</font></b></center>'
+	'<center><img <<$set_imgh>> src="images/locations/gadukino/village/grandmahelp.jpg"></center>'
+	*nl
+	if grandmaQW['help_amount'] > 0:
+		money += grandmaQW['help_amount']*25
+		gs 'stat'
+
+		'Before leaving, your grandma hugs you and gives you <<grandmaQW[''help_amount'']*25>> rubles for your help with chores.'
+		grandmaQW['help_amount'] = 0
+	else
+		'Before leaving, your grandma gives you a big hug goodbye.'
+	end
+
+	'You get into the Volga with the rest of your family, and before you know it, you''ve arrived back in Pavlovsk.'
+	act 'Go home': gt 'korrPar'
+end
+
+if $ARGS[0] = 'to_gadukino':
+	menu_off = 1
+	*clr & cla
+	locat['Fam_inGad'] = 1
+	minut += rand(15,25)
+	gs 'stat'
+
+	'You get into the Volga with the rest of your family, and before you know it, you''ve arrived in Gadukino.'
+
+	act 'Go to your grandparents house': gt 'gad_gphouse', 'entry'
 end
 
 !! game start code - do not touch
