@@ -2,10 +2,10 @@
 
 if $ARGS[0] = '':
 	!{
-        PC's appearance is updated regularly in stat.qsrc.
-        Note: A huge part of PC's appearance is from base appearance, which is updated once a day. Because it's
-        a global variable, it does not show in this function in particular, but it's used in 'CalcAppearance'
-    }
+		PC's appearance is updated regularly in stat.qsrc.
+		Note: A huge part of PC's appearance is from base appearance, which is updated once a day. Because it's
+		a global variable, it does not show in this function in particular, but it's used in 'CalcAppearance'
+	}
 	if pcs_makeup = 6 and bimbolevel >= 2: extra_supnatvnesh = 2*bimbolevel - 2
 
 	clothingBonus = func('AppearanceSystem', 'CalcClothingBonus')
@@ -44,47 +44,32 @@ if $ARGS[0] = 'CalcFaceBonus':
 		eyelashesBonus = 0
 	elseif pcs_lashes = 1:
 		eyelashesBonus = 1
-	elseif pcs_lashes = 2:
-		eyelashesBonus = 3
-	elseif pcs_lashes = 3:
-		eyelashesBonus = 4
-	elseif pcs_lashes = 4:
-		eyelashesBonus = 5
-	elseif pcs_lashes = 5:
-		eyelashesBonus = 6
-	else
-		eyelashesBonus = 0
+	elseif pcs_lashes >= 2:
+		eyelashesBonus = pcs_lashes + 1
 	end
 	eyelashesBonus = FUNC('AppearanceSystem', 'AdjustFromBMI', eyelashesBonus)
 
 	!!	Setting Eye Size bonus
-	if pcs_eyesize = 1:
-		eyeSizeBonus = 1
+	if pcs_eyesize <= 1:
+		eyeSizeBonus = pcs_eyesize
 	elseif pcs_eyesize = 2:
 		eyeSizeBonus = 3
-	elseif pcs_eyesize = 3:
-		eyeSizeBonus = 2
 	else
-		eyeSizeBonus = 0
+		eyeSizeBonus = 2
 	end
 	eyeSizeBonus = FUNC('AppearanceSystem', 'AdjustFromBMI', eyeSizeBonus)
 
 	!!	Setting the Lip size bonus
-	if pcs_lip = 0:
+	if pcs_lip <= 0:
 		lipBonus = -2
-	elseif pcs_lip = 1:
-		lipBonus = 0
-	elseif pcs_lip = 2:
-		lipBonus = 1
-	elseif pcs_lip = 3:
-		lipBonus = 3
+	elseif pcs_lip <= 2:
+		lipBonus = pcs_lip - 1
 	else
 		lipBonus = 3
 	end
 	lipBonus = FUNC('AppearanceSystem', 'AdjustFromBMI', lipBonus)
 
 	result = eyelashesBonus + eyeSizeBonus + lipBonus
-
 end
 
 if $ARGS[0] = 'CalcAttributeBonus':
@@ -95,11 +80,7 @@ if $ARGS[0] = 'CalcAttributeBonus':
 end
 
 if $ARGS[0] = 'CalcVisibleAgePenalty':
-	if vidage < 20:
-		tempAttributePenalty =   func('shortgs','round_divide', (5*(20 - vidage)), 2)
-	else
-		tempAttributePenalty = 0
-	end
+	if vidage < 20: tempAttributePenalty = func('shortgs','round_divide', (5*(20 - vidage)), 2)
 
 	result = func('AppearanceSystem', 'AdjustFromBMI', tempAttributePenalty)
 	killvar 'tempAttributePenalty'
@@ -157,30 +138,26 @@ end
 
 if $ARGS[0] = 'CalcClothingBonus':
 	if $clothingworntype = 'nude':
-		if pcs_bmi >= 19 and pcs_bmi < 30:
+		if func('pcs_has_attr', 'OR', 'body_bmi_normal', 'body_bmi_overweight'):
 			! Healthy and overweight
-			tempRevealing = 405
-			PCloQuality = 3
+			result = 15
 		else
-			tempRevealing = 0
-			PCloQuality = 1
+			result = 0
 		end
 	else
-		if pcs_bmi < 19:
+		if func('pcs_has_attr', 'OR', 'body_bmi_starving', 'body_bmi_underweight'):
 			!Skinny and severely skinny
-			tempRevealing = ((400 - PXCloThinness) + (500 - PXCloTopCut) + (400 - PXCloBottomShortness))/2
-		elseif pcs_bmi >= 19 and pcs_bmi < 30:
+			tempRevealing = ((400 - PXCloThinness) + (500 - PXCloTopCut) + (400 - PXCloBottomShortness)) / 2
+		elseif func('pcs_has_attr', 'OR', 'body_bmi_normal', 'body_bmi_overweight'):
 			!Healthy and overweight
 			tempRevealing = (PXCloThinness + PXCloTopCut + PXCloBottomShortness)/2
-		elseif pcs_bmi >= 30:
+		else
 			!Moderately overweight and above
-			tempRevealing = ((400 - PXCloThinness) + (500 - PXCloTopCut) + (400 - PXCloBottomShortness)) * 3/4
+			tempRevealing = ((400 - PXCloThinness) + (500 - PXCloTopCut) + (400 - PXCloBottomShortness)) * 3 / 4
 		end
+		result = tempRevealing / 76 * PCloQuality
+		killvar 'tempRevealing'
 	end
-
-	result = tempRevealing/ 76 * PCloQuality
-	killvar 'tempRevealing'
-
 end
 
 if $ARGS[0] = 'CalcAccessoriesBonus':
@@ -188,30 +165,17 @@ if $ARGS[0] = 'CalcAccessoriesBonus':
 	shoesQualityBonus = ARGS[2] & !! PShoQuality
 
 	!!bonuses for certain underwear
-	if $pantyworntype = 'none':
-		pantyBonus = 0:
-	else
-		if PanQuality = 6:
-			pantyBonus = 4
-		elseif PanQuality = 5:
-			pantyBonus = 3
-		elseif PanQuality >= 3:
-			pantyBonus = 2
+	if $pantyworntype ! 'none':
+		if PanQuality => 4:
+			pantyBonus = PanQuality - 2
 		else
 			pantyBonus = PanQuality - 1
 		end
 	end
 
-
-	if $braworntype = 'none':
-		braBonus = 0:
-	else
-		if BraQuality = 6:
-			braBonus = 4
-		elseif BraQuality = 5:
-			braBonus = 3
-		elseif BraQuality >= 3:
-			braBonus = 2
+	if $braworntype ! 'none':
+		if BraQuality => 4:
+			braBonus = BraQuality - 2
 		else
 			braBonus = BraQuality - 1
 		end
@@ -239,23 +203,18 @@ if $ARGS[0] = 'CalcGroomingBonus':
 	!result = tempGroomingBonus
 	result = func('AppearanceSystem', 'AdjustFromBMI', tempGroomingBonus)
 
+	killvar 'tempGroomingBonus'
+	killvar 'breathBonus'
+	killvar 'makeupBonus'
 end
 
 if $ARGS[0] = 'CalcGroomingPenalty':
-	if pcs_lipbalm > 0:
-		lipBalmPenalty = 0
-	else
-		lipBalmPenalty = 5
-	end
+	if pcs_lipbalm <= 0: lipBalmPenalty = 5
 
 	hairPenalty = (1 - pcs_hairbsh) * 10
 
 	!! buzzcut penalty to pcs_apprnc
-	if pcs_hairlng < 10:
-		buzzCutPenalty = 10
-	else
-		buzzCutPenalty = 0
-	end
+	if pcs_hairlng < 10: buzzCutPenalty = 10
 
 	!!Small penalty for not wearing deodorant, if pcs_sweat is low enough
 	if deodorant_on = 0 or pcs_sweat >= 20: deodorantPenalty = 5
@@ -271,11 +230,7 @@ if $ARGS[0] = 'CalcGroomingPenalty':
 	end
 
 	!Glasses Penalty
-	if glass >= 2 or glass = 0:
-		glassesPenalty = 0
-	elseif glass = 1:
-		glassesPenalty = 10
-	end
+	if glass = 1: glassesPenalty = 10
 
 	!hair color fade penalty
 	if pcs_haircol ! nathcol:
@@ -284,15 +239,7 @@ if $ARGS[0] = 'CalcGroomingPenalty':
 	end
 
 	! Leg hair penalty
-	if pcs_leghair <= 0:
-		legPenalty = 0
-	elseif pcs_leghair <= 3:
-		legPenalty = 3
-	elseif pcs_leghair <= 6:
-		legPenalty = 6
-	else
-		legPenalty = 9
-	end
+	legPenalty = max(0, min(3 * (pcs_leghair / 3), 9))
 
 	result = sweatPenalty + glassesPenalty + hairDyePenalty + buzzCutPenalty + legPenalty + lipBalmPenalty + hairPenalty + deodorantPenalty
 
@@ -312,12 +259,11 @@ if $ARGS[0] = 'CalcAppearance':
 
 	temp_apprnc = pcs_apprncbase + clothingBonus + accessoriesBonus + groomingBonus - groomingPenalty
 
-	if temp_apprnc >= 200: temp_apprnc = 200
-	if temp_apprnc < 0: temp_apprnc = 0
-
 	!Any super natural bonuses are allowed to go above the max scale
-	result = temp_apprnc + superNaturalBonus
+	result = max(0, min(temp_apprnc, 200)) + superNaturalBonus
 
+	killvar 'temp_apprnc'
+	killvar 'superNaturalBonus'
 end
 
 if $ARGS[0] = 'ConvertToHotcat':
@@ -347,33 +293,36 @@ end
 if $ARGS[0] = 'AdjustFromBMI':
 	tempValue = ARGS[1] & !!value to be adjusted
 
-	if pcs_bmi < 16:
+	temp_bs_class = func('body_structure', 'get_class')
+	if temp_bs_class < 100:
 		!! severely underweight
-		tempValue = tempValue * 50 / 100
-    elseif pcs_bmi < 19:
+		result = tempValue * 50 / 100
+	elseif temp_bs_class < 200:
 		!! underweight
-		tempValue = tempValue * 95 / 100
-    elseif pcs_bmi < 25:
+		result = tempValue * 95 / 100
+	elseif temp_bs_class < 400:
 		!! healthy weight
 		!! normal bonus
-    elseif pcs_bmi < 30:
+		result = tempValue
+	elseif temp_bs_class < 500:
 		!! overweight
-		tempValue = tempValue * 95 / 100
-    elseif pcs_bmi < 35:
+		result = tempValue * 95 / 100
+	elseif temp_bs_class < 600:
 		!! moderately obese
-		tempValue = tempValue * 80 / 100
-    elseif pcs_bmi < 40:
+		result = tempValue * 80 / 100
+	elseif temp_bs_class < 700:
 		!! severely obese
-		tempValue = tempValue * 55 / 100
-    elseif pcs_bmi < 45:
+		result = tempValue * 55 / 100
+	elseif temp_bs_class < 800:
 		!! very severely obese
-		tempValue = tempValue * 50 / 100
-    else
+		result = tempValue * 50 / 100
+	else
 		!!morbidly obese
-		tempValue = tempValue * 40 / 100
-    end
+		result = tempValue * 40 / 100
+	end
 
-	result = tempValue
 	killvar 'tempValue'
+	killvar 'temp_bs_class'
 end
+
 --- AppearanceSystem ---------------------------------
