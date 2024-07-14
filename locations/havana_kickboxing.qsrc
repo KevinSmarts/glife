@@ -1,0 +1,401 @@
+# havana_kickboxing
+
+if $ARGS[0] = 'start':
+	killvar '$locclass'
+	menu_off = 1
+	minut += 5
+	gs 'stat'
+	gs 'kickboxing_funcs', 'sash_advancement'
+	gs 'themes', 'indoors'
+
+	'<center><b><font color="maroon">Kickboxing Gym</font></b></center>'
+	'<center><img <<$set_imgh>> src="images/locations/city/citycenter/gym/kickboxing/kik.jpg"></center>'
+	'This section is dominated by the ring itself, square like a boxing ring and the only equipment that can''t be easily moved.'
+	'Around it there are various punching bags of different sizes and weights and a couple of coaches with practice pads.'
+	'You can try your luck in a fight here on Saturdays but safety concerns limit everyone to a maximum of 1 bout per week.'
+
+	act 'Return to dressing room': gt 'havana_kickboxing', 'leave'
+
+	if pcs_energy < 20:
+		*nl
+		'You are too hungry to do anymore exercises now.'
+	elseif pcs_stam < stammax / 5:
+		*nl
+		'You are too fatigued to do anymore exercises now.'
+	else
+		act 'Work on your jabs':
+			*clr & cla
+			abonement -= 1
+			gs 'exercise', 'tier3', 30, 'jab', 'react'
+			if pcs_inhib < 30: inhib_exp += rand(1, 2)
+
+			'<center><img <<$set_imgh>> src="images/locations/city/citycenter/gym/kickboxing/kik1.jpg"></center>'
+			'You practice your jabs on the speed bag and double-end bag, straight punches with a step forward. These strikes are not so powerful, but they are fast.'
+
+			act 'Leave': gt 'havana_kickboxing', 'start'
+		end
+
+		act 'Work on your heavy punches':
+			*clr & cla
+			abonement -= 1
+			gs 'exercise', 'tier3', 30, 'stren', 'punch'
+			if pcs_inhib < 30: inhib_exp += rand(1, 2)
+
+			'<center><img <<$set_imgh>> src="images/locations/city/citycenter/gym/kickboxing/kik1.jpg"></center>'
+			'You practice your power punches on the heavy bag. These are high impact and powerful, but they are hard to get to their target.'
+
+			act 'Leave': gt 'havana_kickboxing', 'start'
+		end
+
+		act 'Work on your kicking':
+			*clr & cla
+			abonement -= 1
+			gs 'exercise', 'tier3', 30, 'stren', 'kick'
+			if pcs_inhib < 30: inhib_exp += rand(1, 2)
+
+			'<center><img <<$set_imgh>> src="images/locations/city/citycenter/gym/kickboxing/kik1.jpg"></center>'
+			'You practice your powerful kicks on a kickboxing bag. These impacts are very powerful and able to cut down an opponant, but are very difficult to hit with.'
+
+			act 'Leave': gt 'havana_kickboxing', 'start'
+		end
+
+		act 'Work on defence':
+			*clr & cla
+			abonement -= 1
+			gs 'exercise', 'tier3', 30, 'def', 'agil'
+			if pcs_inhib < 30: inhib_exp += rand(1, 2)
+
+			'<center><img <<$set_imgh>> src="images/locations/city/citycenter/gym/kickboxing/kik1.jpg"></center>'
+			'You practice your defense movements.'
+
+			act 'Leave': gt 'havana_kickboxing', 'start'
+		end
+
+		act 'Sparring (training bout in the ring)':
+			*clr & cla
+			'You need to choose a partner for sparring'
+			if pcs_inhib < 30: inhib_exp += rand(1, 2)
+
+			act 'Pick a random partner':
+				abonement -= 1
+				pcs_mood += 2
+				gs 'exercise', 'tier3', 30, 'jab', 'punch', 'kick', 'def'
+				gs 'kickboxing_funcs', 'init_fight_vars'
+				temp_kickboxVars['fight_type'] = 0
+
+
+				gs 'kickboxing_funcs', 'generate_opponent', 'spar'
+				gt 'havana_kickboxing', 'match'
+			end
+		end
+
+		if week = 6 and kickbox['amateur_fight_day'] ! daystart:
+			'You can take part in an amateur fight.'
+
+			act 'Amateur fight':
+				kickbox['amateur_fight_day'] = daystart
+				pcs_mood += 2
+				gs 'exercise', 'tier3', 30, 'jab', 'punch', 'kick', 'def'
+				gs 'kickboxing_funcs', 'init_fight_vars'
+
+				kickbox['opponent'] = kickbox['sash'] + (rand(-2, 5) / 2)
+				temp_kickboxVars['fight_type'] = 1
+
+				gs 'kickboxing_funcs', 'generate_opponent', 'amateur_fight', kickbox['opponent']
+				gt 'havana_kickboxing', 'match'
+			end
+		end
+
+		!! Professional fight: temp_kickboxVars['fight_type'] = 2
+	end
+end
+
+
+if $ARGS[0] = 'match':
+	if pcs_health <= 0:
+		'<b><font color = red>You lost by TKO</font></b>'
+		xgt 'havana_kickboxing', 'end', 'lossKO'
+
+	elseif temp_kickboxVars['npc_health'] <= 0:
+		'<b><font color = green><<$boydesc>> lost by TKO</font></b>'
+		xgt 'havana_kickboxing', 'end', 'winKO'
+	end
+
+	if temp_kickboxVars['round'] >= 1:
+		'<center><b>Round <<temp_kickboxVars[''round'']>></b></center>'
+		*nl
+		if temp_kickboxVars['fight_type'] = 0:
+			'<center><img <<$set_imgh>> src="images/locations/city/citycenter/gym/kickboxing/kik1.jpg"></center>'
+		else
+			'<center><img <<$set_imgh>> src="images/locations/city/citycenter/gym/kickboxing/ring<<temp_kickboxVars[''round'']>>.jpg"></center>'
+		end
+
+		gs 'kickboxing_funcs', 'display_header'
+		temp_kickboxVars['time'] += 1
+
+
+		gs 'kickboxing_funcs', 'set_initiative'
+
+		if temp_kickboxVars['active_init'] = 0:
+			!!Player attacks
+			'<font color="green">You can attack</font>'
+
+			act 'Fast Jab':
+				'<font color="green">You go for the quick jab and step forward.</font>'
+				gs 'kickboxing_funcs', 'attack', 'player', 'jab'
+				if temp_kickboxVars['KO'] = 1: xgt 'havana_kickboxing', 'end', 'winKO'
+
+				xgt 'havana_kickboxing', 'sta'
+			end
+
+			act 'Power punch':
+				'<font color="green">You attempt a powerful punch.</font>'
+				gs 'kickboxing_funcs', 'attack', 'player', 'punch'
+				if temp_kickboxVars['KO'] = 1: xgt 'havana_kickboxing', 'end', 'winKO'
+				xgt 'havana_kickboxing', 'sta'
+			end
+
+			act 'Big kick':
+				'<font color="green">You try a powerful kick.</font>'
+				gs 'kickboxing_funcs', 'attack', 'player', 'kick'
+				if temp_kickboxVars['KO'] = 1: xgt 'havana_kickboxing', 'end', 'winKO'
+				xgt 'havana_kickboxing', 'sta'
+			end
+		else
+			!!Enemy attacks
+			'<font color="red"><<$boydesc>> attacks</font>'
+			tiprand = rand(0, 2)
+
+			if tiprand = 0:
+				act 'Block <<$boydesc>>''s quick jab':
+					'<font color="red"><<$boydesc>> deals with quick jab, stepping forward.</font>'
+					gs 'kickboxing_funcs', 'attack', 'enemy', 'jab'
+					if temp_kickboxVars['KO'] = 1: xgt 'havana_kickboxing', 'end', 'lossKO'
+					xgt 'havana_kickboxing', 'sta'
+				end
+
+			elseif tiprand = 1:
+				act 'Dodge <<$boydesc>>''s power punch':
+					'<font color="red"><<$boydesc>> applies a power punch.</font>'
+					gs 'kickboxing_funcs', 'attack', 'enemy', 'punch'
+					if temp_kickboxVars['KO'] = 1: xgt 'havana_kickboxing', 'end', 'lossKO'
+					xgt 'havana_kickboxing', 'sta'
+				end
+
+			else
+				act 'Dodge <<$boydesc>>''s kick':
+					'<font color="red"><<$boydesc>> goes for a kick.</font>'
+					gs 'kickboxing_funcs', 'attack', 'enemy', 'kick'
+					if temp_kickboxVars['KO'] = 1: xgt 'havana_kickboxing', 'end', 'lossKO'
+					xgt 'havana_kickboxing', 'sta'
+				end
+			end
+		end
+	end
+end
+
+if $ARGS[0] = 'sta':
+	temp_kickboxVars['set_init'] = 0
+
+	act 'Further': gt 'havana_kickboxing', 'match'
+
+	if temp_kickboxVars['time'] = 6:
+		cla
+		temp_kickboxVars['time'] = 0
+		temp_kickboxVars['round'] += 1
+		'The bell rings indicating the end of round <<temp_kickboxVars[''round'']>>.'
+		if temp_kickboxVars['round'] <= temp_kickboxVars['max_rounds']:
+			act 'Back to the corner':
+				*clr & cla
+				'<center><img <<$set_imgh>> src="images/locations/city/citycenter/gym/kickboxing/kickboxing_corner.jpg"></center>'
+				'You try to rest as best as you can.'
+
+				act 'Return to the ring': gt 'havana_kickboxing', 'match'
+			end
+		elseif temp_kickboxVars['fight_type'] = 0:
+			if temp_kickboxVars['pcs_points'] > temp_kickboxVars['npc_points']:
+				gt 'havana_kickboxing', 'end', 'win'
+			elseif temp_kickboxVars['pcs_points'] < temp_kickboxVars['npc_points']:
+				gt 'havana_kickboxing', 'end', 'loss'
+			elseif temp_kickboxVars['pcs_points'] = temp_kickboxVars['npc_points']:
+				gt 'havana_kickboxing', 'end', 'draw'
+			end
+		elseif temp_kickboxVars['fight_type'] = 1:
+			act 'Go to the middle of the ring for the announcement':
+				*clr & cla
+				if temp_kickboxVars['pcs_points'] > temp_kickboxVars['npc_points']:
+					gt 'havana_kickboxing', 'end', 'win'
+				elseif temp_kickboxVars['pcs_points'] < temp_kickboxVars['npc_points']:
+					gt 'havana_kickboxing', 'end', 'loss'
+				elseif temp_kickboxVars['pcs_points'] = temp_kickboxVars['npc_points']:
+					gt 'havana_kickboxing', 'end', 'draw'
+				end
+			end
+		end
+	end
+end
+
+
+
+
+if $ARGS[0] = 'end':
+	if pcs_health < 10: pcs_health = 10
+	$temp_kickboxVars['result'] = $ARGS[1]
+
+	if temp_kickboxVars['fight_type'] = 0:
+		*clr & cla
+		if $temp_kickboxVars['result'] = 'win':
+			'<center><img <<$set_imgh>> src="images/locations/city/citycenter/gym/kickboxing/kickboxing_rival.jpg"></center>'
+			'The fight is over and your rival comes over to you and says "Nice hustle in the ring."'
+			'You nod and she turns around and heads to the dressing room.'
+
+		elseif $temp_kickboxVars['result'] = 'winKO':
+			'<center><img <<$set_imgh>> src="images/locations/city/citycenter/gym/kickboxing/kickboxing_win_ko.jpg"></center>'
+			'The fight is over. You can hear some of the people quietly comment that you didn''t have to knock her out...'
+
+		elseif $temp_kickboxVars['result'] = 'loss':
+			'<center><img <<$set_imgh>> src="images/locations/city/citycenter/gym/kickboxing/kickboxing_rival.jpg"></center>'
+			'The fight is over and your rival comes over to you and smugly says "Keep practicing."'
+			'You nod and she turns around and heads to the dressing room.'
+
+		elseif $temp_kickboxVars['result'] = 'lossKO':
+			'<center><img <<$set_imgh>> src="images/locations/city/citycenter/gym/kickboxing/kickboxing_loss_ko.jpg"></center>'
+			'Before you know it, you''re laying on the floor and the room starts getting darker and darker...'
+
+		else
+			'<center><img <<$set_imgh>> src="images/locations/city/citycenter/gym/kickboxing/kickboxing_rival.jpg"></center>'
+			'The fight is over and your rival comes over to you and says "That was pretty close, good fight."'
+			'You nod and she turns around and heads to the dressing room.'
+		end
+
+		act 'Leave the ring': gt 'havana_kickboxing', 'leave'
+
+	elseif temp_kickboxVars['fight_type'] = 1:
+		'<center><img <<$set_imgh>> src="images/locations/city/citycenter/gym/kickboxing/kickboxing_speaker.jpg"></center>'
+		'The referee calls you over. It''s time for the announcement...'
+
+		act 'Goto the center of the ring for the announcement':
+			*clr & cla
+			if $temp_kickboxVars['result'] = 'win':
+				'<center><img <<$set_imgh>> src="images/locations/city/citycenter/gym/kickboxing/kickboxing_win.jpg"></center>'
+				'The referee raises your arm. Congratulations! You''ve won!'
+
+				if kickbox['opponent'] = 0:
+					gs 'fame', 'city', 'kickboxing', rand(4, 6)
+				elseif kickbox['opponent'] = 1:
+					gs 'fame', 'city', 'kickboxing', rand(5, 9)
+				elseif kickbox['opponent'] = 2:
+					gs 'fame', 'city', 'kickboxing', rand(6, 9)
+				elseif kickbox['opponent'] = 3:
+					gs 'fame', 'city', 'kickboxing', rand(6, 10)
+				elseif kickbox['opponent'] = 4:
+					gs 'fame', 'city', 'kickboxing', rand(7, 10)
+				else
+					gs 'fame', 'city', 'kickboxing', rand(7, 13)
+				end
+				kickbox['amateurWin'] += 1
+				kickbox['advancement'] += 1
+				money += 500 + kickbox['money']
+				rikudo += 5
+				'You are awarded a cash prize of <<500 + kickbox[''money'']>> <b>₽</b>.'
+				gs 'kickboxing_funcs', 'sash_advancement'
+
+			elseif $temp_kickboxVars['result'] = 'winKO':
+				'<center><img <<$set_imgh>> src="images/locations/city/citycenter/gym/kickboxing/kickboxing_win_ko.jpg"></center>'
+				'The referee raises your arm. Congratulations! You''ve won by knockout!'
+
+				gs 'fame', 'city', 'kickboxing', rand(4, 6)
+				if kickbox['opponent'] = 0:
+					gs 'fame', 'city', 'kickboxing', rand(4, 6)
+				elseif kickbox['opponent'] = 1:
+					gs 'fame', 'city', 'kickboxing', rand(5, 9)
+				elseif kickbox['opponent'] = 2:
+					gs 'fame', 'city', 'kickboxing', rand(6, 9)
+				elseif kickbox['opponent'] = 3:
+					gs 'fame', 'city', 'kickboxing', rand(6, 10)
+				elseif kickbox['opponent'] = 4:
+					gs 'fame', 'city', 'kickboxing', rand(7, 10)
+				else
+					gs 'fame', 'city', 'kickboxing', rand(7, 13)
+				end
+				kickbox['amateurWin'] += 1
+				kickbox['amateurWinKO'] += 1
+				kickbox['advancement'] += 1
+				money += 500 + kickbox['money']
+				rikudo += 10
+				'You are awarded a cash prize of <<500 + kickbox[''money'']>> <b>₽</b>.'
+				gs 'kickboxing_funcs', 'sash_advancement'
+
+			elseif $temp_kickboxVars['result'] = 'loss':
+				'<center><img <<$set_imgh>> src="images/locations/city/citycenter/gym/kickboxing/kickboxing_loss.jpg"></center>'
+				'The referee raises your opponent''s arm. You''ve lost.'
+				kickbox['amateurLoss'] += 1
+				if kickbox['advancement'] > 0:kickbox['advancement'] -= 1
+
+			elseif $temp_kickboxVars['result'] = 'lossKO':
+				'<center><img <<$set_imgh>> src="images/locations/city/citycenter/gym/kickboxing/kickboxing_loss_ko.jpg"></center>'
+				'All of a sudden, the room starts getting darker and darker...'
+				kickbox['amateurLoss'] += 1
+				kickbox['amateurLossKO'] += 1
+				if kickbox['advancement'] > 0:kickbox['advancement'] -= 1
+
+			else
+				!'<center><img <<$set_imgh>> src="images/locations/city/citycenter/gym/kickboxing/kickboxing_draw.jpg"></center>'
+				'The referee raises both of your arms. It''s a draw!'
+				kickbox['amateurDraw'] += 1
+			end
+
+			act 'Leave the ring': gt 'havana_kickboxing', 'leave'
+		end
+
+	elseif temp_kickboxVars['fight_type'] = 2:
+		'<center><img <<$set_imgh>> src="images/locations/city/citycenter/gym/kickboxing/kickboxing_speaker.jpg"></center>'
+		'The referee calls you over. It''s time for the announcement...'
+
+		act 'Go to the middle for the announcement':
+			*clr & cla
+			if $temp_kickboxVars['result'] = 'win':
+				'<center><img <<$set_imgh>> src="images/locations/city/citycenter/gym/kickboxing/kickboxing_win.jpg"></center>'
+				'The referee raises your arm. Congratulations! You''ve won!'
+				kickbox['proWin'] += 1
+				rikudo += 5
+
+			elseif $temp_kickboxVars['result'] = 'winKO':
+				'<center><img <<$set_imgh>> src="images/locations/city/citycenter/gym/kickboxing/kickboxing_win_ko.jpg"></center>'
+				'The referee raises your arm. Congratulations! You''ve won by knockout!'
+
+				kickbox['proWin'] += 1
+				kickbox['proWinKO'] += 1
+				rikudo += 10
+
+			elseif $temp_kickboxVars['result'] = 'loss':
+				'<center><img <<$set_imgh>> src="images/locations/city/citycenter/gym/kickboxing/kickboxing_loss.jpg"></center>'
+				'The referee raises your opponent''s arm. You''ve lost.'
+				kickbox['proLoss'] += 1
+
+			elseif $temp_kickboxVars['result'] = 'lossKO':
+				'<center><img <<$set_imgh>> src="images/locations/city/citycenter/gym/kickboxing/kickboxing_loss_ko.jpg"></center>'
+				'All of a sudden, the room starts getting darker and darker...'
+				kickbox['proLoss'] += 1
+				kickbox['proLossKO'] += 1
+
+			else
+				'The referee raises both of your arms. It''s a draw!'
+				kickbox['proDraw'] += 1
+			end
+
+			act 'Leave the ring': gt 'havana_kickboxing', 'leave'
+		end
+	end
+end
+
+
+if $ARGS[0] = 'leave':
+	killvar 'temp_kickboxVars'
+
+	gt $loc, $loc_arg
+end
+
+
+
+--- havana_kickboxing -----------------------------------------------

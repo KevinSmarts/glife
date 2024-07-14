@@ -16,7 +16,7 @@
 !! Init location - one time use to set up unique variables or call settings
 
 if $ARGS[0] = 'entry':
-	$default_img_path = 'locations/gadukino'
+	$default_img_path = 'locations/gadukino/gp_dacha'
 	$loc = 'gad_gphouse'
 	gs 'homes_properties', 'give_access', 'grandparents_house'
 	if ARGS[1] ! '':
@@ -31,10 +31,11 @@ end
 if $ARGS[0] = 'setup':
 	*clr & cla
 	$setloc['StageTitle'] = '<<$room_title>>'
-	$setloc['StageImage'] =   '<<$default_img_path>>/village/<<$room_image>>'
+	$setloc['StageImage'] =   '<<$default_img_path>>/<<$room_image>>'
 	$location_type = 'public_indoors'
 	gs 'shortgs', 'setloc', $loc, $ARGS[0]
 	gs 'themes', 'indoors'
+	gs 'shortgs', 'clothing_status'
 	gs 'stat'
 	gs 'core_library', 'stage_title'
 
@@ -43,9 +44,13 @@ if $ARGS[0] = 'setup':
 	!! gs 'gad_gp_chores', 'start'
 	!! gs 'locat', 'A60'
 	gs 'gp_elene_schedule'
+	gs 'gp_zlatek_schedule'
+	if gp_debug = 1:
     !! test tracker
-	$locat['elene']
-	!! gs 'locat', 'A32'
+		$locat['elene']
+		$locat['zlatek']
+	end
+
 end
 
 !! leave location - reset vars and other housekeeping functions
@@ -67,26 +72,40 @@ end
 if $ARGS[0] = 'main':
 	$locclass = 'livingr'
 	menu_off = 0
-	gs $loc, 'setup'
 	$room_title = 'Your Grandparents'' Cottage'
 	$room_image = 'izba.jpg'
-	gs $loc, 'intro'
+	gs $loc, 'setup'
 	*nl
-	'A fairly simple cottage in the village of Gadukino which your grandparents call home. In the main room there is a huge <a href="exec:gt ''wardrobe'', ''start''">wardrobe</a>. wYou share this to with your grandparents to store anything that won''t fit in your chest.'
+	'A fairly simple cottage in the village of Gadukino which your grandparents call home. In the main room there is a huge <a href="exec:gt ''wardrobe'', ''start''">wardrobe</a>. You share this with your grandparents to store anything that won''t fit in your chest.'
 	'There is an old <a href="exec:gt ''TV'',''gad''">television</a> in the living room. It''s positioned next to a body length <a href="exec:gt ''mirror'', ''start''">mirror</a>.'
 	'Your grandfather''s <a href="exec: newspaperVars[''dbag''] = 0 & gs ''newspaper'', ''start''">newspaper</a> is lying to the side.'
+
+	if $locat['elene'] = 'lounge':
+		loc_rnd = rand(1,4)
+		*nl
+		if loc_rnd = 1:
+			'You see your grandmother relaxing on the couch reading a book.'
+		elseif loc_rnd = 2:
+			'You see your grandmother relaxing on the couch watching TV.'
+		elseif loc_rnd:
+			'You see your grandmother sittinng on the couch repairing some clothes.'
+		else
+			'You see your grandmother sitting on the couch knitting.'
+		end
+		killvar 'loc_rnd'
+	end
+
 	if rand(0,2) ! 0: gs 'din_bad' & dynamic $mobile_check
 	gs 'prostitution_functions', 'prostitute_outfit_at_home'
 
 	!! Set up actions:
-	if $clothingworntype ! 'nude':
+	if $apparel['status'] ! 'nude' or $apparel['status'] ! 'pantyless' or $apparel['status'] ! 'braless':
 		act 'Go outside':
 			leave_time = 2
-			$new_loc = 'gad_gpyard'
-			gt $loc, 'exit'
+			gt $loc, 'exit', 'gad_gpyard', 'start'
 		end
 
-	!! Disable leaving nude - awaiting global punishment system?
+	!!Disable leaving nude - awaiting global punishment system?
 	!!elseif $clothingworntype = 'nude':
 	!!	act 'Go outside naked':
 	!!		*clr & cla
@@ -116,17 +135,28 @@ if $ARGS[0] = 'main':
 	!!	end
 	end
 	act 'Go to your room': leave_time = 2  & gt $loc, 'exit', 'gad_gpbarn', 'barn_room'
+	act 'Go to the kitchen': leave_time = 2  & gt $loc, 'exit', $loc, 'kitchen'
 end
 
 !! Small roughshod kitchenette attached to the building.
 
 if $ARGS[0] = 'kitchen':
 	$locclass = 'kitchen'
-	$room_title = 'Your Grandparents'' kitchenette'
+	$room_title = 'Your Grandparents'' Kitchenette'
 	$room_image = 'gp_kitchen.jpg'
 	gs $loc, 'setup'
 	*nl
 	'A small area seperated from the rest of the dacha reserved for cooking and eating meals.'
+
+	if $locat['elene'] = 'kitchen':
+		*nl
+		'You see your grandmother in the kitchen preparing a meal.'
+	end
+	if $locat['zlatek'] = 'kitchen':
+		*nl
+		'You see your grandfather in the kitchen reading a newspaper.'
+	end
+	act 'Return to the living room': leave_time = 1  & gs $loc, 'exit', $loc, 'main'
 	act 'Eat a hearty meal (0:20)': gs 'food', 'l_meal'
 	act 'Eat a normal meal (0:15)': gs 'food', 'm_meal'
 	act 'Eat a light meal (0:10)': gs 'food', 's_meal'
@@ -140,8 +170,79 @@ if $ARGS[0] = 'kitchen':
 	dynamic $fatdel
 	dynamic $lekarstvo
 	dynamic $vitamin
-	act 'return to living room': leave_time = 1  & gs $loc, 'exit', $loc, 'main'
+end
 
+!! quest and family inter-links
+
+if $ARGS[0] = 'family_trip':
+	! family comes to visit first weekend of each month from Saturday at 1200 to Sunday at 2100
+	if week = 6 and hour > 12 and locat['Fam_month_inGad'] ! month: locat['Fam_inGad'] = 1
+
+	if locat['Fam_inGad'] = 1:
+		'Your parents are relaxing inside.'
+
+		gs 'mother', 'check_workout'
+
+		if gadstay_day ! daystart and func('homes_properties', 'has_access', 'parents_home'):
+			if week = 7:
+				if hour = 20:
+					locat['Fam_month_inGad'] = month
+					if (kanikuli = 4 or kanikuli = 5) and ((month = 6 or month = 7) or (month = 8 and day <= 25)):
+						*clr & cla
+						menu_off = 1
+						'<center><b><font color="maroon">Your mother, Natasha <<$pcs_lastname>></font></b></center>'
+						'<center><img <<$set_imgh>> src="images/characters/pavlovsk/resident/mom/mother.jpg"></center>'
+						*nl
+						'<<$npc_nickname[''A29'']>> asks, "<<$pcs_nickname>>, are you coming home with us or are you going to stay in the village with your grandparents?"'
+
+						act 'Stay with your grandparents':gadstay_day = daystart & gadstay = 1 & locat['Fam_inGad'] = 0 & gt 'gad_gphouse', 'entry'
+						act 'Go home to Pavlovsk': gt 'gad_gphouse', 'to_pavlovsk'
+					else
+						act 'Go home to Pavlovsk': gt 'gad_gphouse', 'to_pavlovsk'
+					end
+				elseif hour > 20:
+					locat['Fam_month_inGad'] = month
+				end
+			end
+		end
+	end
+end
+
+if $ARGS[0] = 'to_pavlovsk':
+	menu_off = 1
+	*clr & cla
+	gadstay = 0
+	locat['Fam_inGad'] = 0
+	minut += rand(15,25)
+	gs 'stat'
+
+	'<center><b><font color="maroon">Your grandmother</font></b></center>'
+	'<center><img <<$set_imgh>> src="images/locations/gadukino/village/grandmahelp.jpg"></center>'
+	*nl
+	if grandmaQW['help_amount'] > 0:
+		money += grandmaQW['help_amount']*25
+		gs 'stat'
+
+		'Before leaving, your grandma hugs you and gives you <<grandmaQW[''help_amount'']*25>> rubles for your help with chores.'
+		grandmaQW['help_amount'] = 0
+	else
+		'Before leaving, your grandma gives you a big hug goodbye.'
+	end
+
+	'You get into the Volga with the rest of your family, and before you know it, you''ve arrived back in Pavlovsk.'
+	act 'Go home': gt 'korrPar'
+end
+
+if $ARGS[0] = 'to_gadukino':
+	menu_off = 1
+	*clr & cla
+	locat['Fam_inGad'] = 1
+	minut += rand(15,25)
+	gs 'stat'
+
+	'You get into the Volga with the rest of your family, and before you know it, you''ve arrived in Gadukino.'
+
+	act 'Go to your grandparents house': gt 'gad_gphouse', 'entry'
 end
 
 !! game start code - do not touch
