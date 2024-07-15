@@ -1,7 +1,7 @@
 # pushkin_ballet_class
-
 !! Date Created: 17th Sept, 2022
-!! Version .01 initial release
+!! Version: .01 - initial release
+!! Version: .02 -  Bug fixes, npc migration, balance tweaks and implementation of asssesment system. New appearance checker to assist in achieving grades.
 !! Author Hooded Silence
 !!
 !! Ballet Summer School - Lessons and day schedule
@@ -22,25 +22,21 @@
 $default_img_path = 'locations/pushkin/'
 if $ARGS[0] = 'start':
 	*clr & cla
-	$location_type = 'public_indoors'
 	$setloc['StageTitle'] = 'Terpsichore Wing'
 	$setloc['StageImage'] = '<<$default_img_path>>ballet_school/daily/hall.jpg'
 	!! clear switch vars
 	killvar 'sharedmeal'
 	$balletEv['trigger'] = ''
-
 	$location_type = 'public_indoors'
 	gs 'shortgs', 'setloc', 'pushkin_ballet_class', $ARGS[0]
 	gs 'core_library', 'corridor'
-	gs 'themes', 'indoors'
 	gs 'core_library', 'stage_title'
 
 	!! Random trivia - Terpsichore is one of the nine Greecian muses. Her sphere was dance, rhythm and choral music.
 
 	if ballet_day = 6 and balletqw['school'] ! 1:
-		gt 'pushkin_ballet_class', 'assessment'
+		gt $loc, 'assessment'
 	elseif ballet_day = 6 and balletqw['school'] = 1:
-		*clr & cla
 		gs 'stat'
 		gs 'core_library', 'stage_title'
 		*nl
@@ -63,26 +59,26 @@ if $ARGS[0] = 'start':
 		'You grab a shower before you leave to catch the bus that is waiting for you outside. Standing next to it is <<$npc_firstname[''A284'']>>, who addresses you all once you''ve gathered. "I wish you all the best for your future." With that, Birserka returns back into the school.'
 		dynamic $showerdin
 		gs 'stat'
-		gs 'pushkin_ballet_init', 'cleanup_var'
 		act 'Return home' : gt 'pav_commcenter'
 	elseif balletqw['school'] ! 1 and ballet_day = 1:
 		'You are chaperoned to your school by <<$npc_firstname[''A284'']>>. After a short journey, you were standing outside a classroom and told to wait by <<$npc_firstname[''A284'']>>. You look around you at various photographs and artwork of dancers and performances.'
 		'You look at the girls you are with, with a few of them trying to catch your attention, but before you can talk to them, <<$npc_firstname[''A284'']>> has come back from the classroom. "You can enter now, girls."'
-		act 'Attend class': gt 'pushkin_ballet_class', 'pilates'
+		act 'Attend class': gt $loc, 'pilates'
 	elseif balletqw['school'] ! 1 and ballet_day > 1:
 		'You head to school with your group, and you can see a few of your classmates gossiping up front, but you are left to your own thoughts. Before you realize it, you''re standing at the doors to your first lesson.'
-		act 'Attend class': gt 'pushkin_ballet_class', 'pilates'
+		act 'Attend class': gt $loc, 'pilates'
 	end
 end
 
 if $ARGS[0] = 'pilates':
 	*clr & cla
-	gs 'pushkin_ballet_init', 'daily_assessment'
 	$location_type = 'public_indoors'
 	gs 'themes', 'indoors'
 	$setloc['StageTitle'] = 'Pilates'
 	$setloc['StageImage'] = '<<$default_img_path>>ballet_school/daily/pilates_2.jpg'
+	gs 'shortgs', 'setloc', 'pushkin_ballet_class', $ARGS[0]
 	nclass = 1
+	gs 'pushkin_ballet_init', 'daily_assessment'
 	if ballet_day = 1:
 		minut = (8 - hour) * 60
 		gs 'stat'
@@ -93,14 +89,13 @@ if $ARGS[0] = 'pilates':
 		'Your group forms a gaggle near the door. One of the ladies shouts out for you to take your positions! Your group automatically fans out and instinctively falls into the First Position.'
 		'"Good." She walks past each girl looking for mistakes. Then, she turns around and walks back to the front. As she reaches the front, she says, "You can relax, I''m <<$npc_firstname[''A284'']>> Ananiashvili, and I''ll be your instructor this week." Then, she turns and indicates towards the other woman. "This is <<$npc_firstname[''A285'']>> Solovyova. She will be your music instructor and class pianist."'
 		'"You have all been selected to attend this week by merit or determination. You are the select few that''ll represent the Pavlova Class. You are the best of this year''s intake and have been chosen to attend this course to further your passion for dance and ballet."'
-		'"This week will be intensive. You will live, breathe, and dance your hearts out during your time here. I expect no less from each of you. You represent the school. If you exhibit any behaviour that negatively affects the school''s reputation, you will be dismissed. Understood? Good."'
+		'"This week will be exhausting, intensive and we expect you give us your absolute best. You will live, breathe, and dance your hearts out during your time here. I expect nothing less from each of you. You represent the school. If you exhibit any behaviour that negatively affects this school''s reputation, you will be dismissed. Understood?", she pauses and gives everyone a hard look, "Good."'
 		cla
 		act 'Start Pilates':
 			*clr & cla
 			!! set Pain
 			!! increase stats gain for endurance/strength.
 			gs 'exercise', 'tier1', 30, 'agil', 'stren'
-			gs 'sweat', 'add', 20
 			gs 'stat'
 			gs 'core_library', 'stage_title'
 			'"Refer to your dorm''s induction books for the daily course lessons, but now that introductions are out of the way, let us start stretching with pilates."'
@@ -113,7 +108,7 @@ if $ARGS[0] = 'pilates':
 			'"Yoga is about spirituality and flexibility, and Pilates is about strengthening your mind and core body."'
 			'"Excellent answer, that''s why we will do pilates each morning. If you do yoga exercises, then you will find this easy."'
 			'With that, <<$npc_firstname[''A284'']>> leads the class through strenuous exercises designed to strengthen and stretch your muscles. After an hour, your body slightly aches from the warm-up exercises.'
-			act 'Next class': gt 'pushkin_ballet_class', 'first_lesson'
+			act 'Next class': gt $loc, 'first_lesson'
 		end
 
 	elseif ballet_day => 2:
@@ -121,68 +116,66 @@ if $ARGS[0] = 'pilates':
 		!! set Pain
 		!! increase stats gain for endurance/strength.
 		gs 'exercise', 'tier1', 30, 'agil', 'stren'
-		gs 'sweat', 'add', 20
 		gs 'stat'
 		gs 'core_library', 'stage_title'
 		'You all file into the class for your pilates lesson. It''s a different teacher today. Still, before you can settle in, she''s already guiding you on how to use the various bits of equipment. After an hour, your muscles ache from the exercises.'
 		'"Remember, students, stretching, warm-ups and a disciplined fitness regime are needed to be a dancer. You''re an elite athlete. Remember this at all times." You notice Gasha blush in the back and wonder what caused that reaction. You grab a quick drink of water at the end of the class before heading to your next class.'
 		pcs_hydra += 30
-		act 'Next class': gt 'pushkin_ballet_class', 'first_lesson'
+		act 'Next class': gt $loc, 'first_lesson'
 	end
 end
 
 if $ARGS[0] = 'first_lesson':
+
 	*clr & cla
 	minut = (9 - hour) * 60
-	gs 'pushkin_ballet_init', 'daily_assessment'
 	$location_type = 'public_indoors'
 	gs 'themes', 'indoors'
 	$setloc['StageTitle'] = 'Dance Class'
 	$setloc['StageImage'] = '<<$default_img_path>>ballet_school/daily/ballet_class_002.jpg'
 	gs 'exp_gain', 'perform', rand(1,2)
+	gs 'shortgs', 'setloc', 'pushkin_ballet_class', $ARGS[0]
 	nclass = 2
+	gs 'pushkin_ballet_init', 'daily_assessment'
 	gs 'stat'
 
 	if ballet_day = 1 :
 		!! Set stats for modern dance
 		gs 'exercise', 'tier3', 90, 'agil', 'stren', 'danc'
-		gs 'sweat', 'add', 30
 		gs 'stat'
 		gs 'core_library', 'stage_title'
 
 		'"Listen up!" shouts <<$npc_firstname[''A284'']>>, "I want you to introduce yourselves. Once introductions are done, I''ll assign you to a dance partner for the week."'
-		' <<$npc_firstname[''A284'']>> points to the student that''s furthest from you. Seeing her being picked first, she gets a panicked look and stutters ""I..I... I''m G... <<$npc_firstname[''A277'']>> Molchalina," she says in a final rush to get her name out, her face crimson with embarrassment.'
-		' <<$npc_firstname[''A284'']>> frowns. "You need to work on your confidence and presentation, <<$npc_firstname[''A277'']>>." "Yes, Ms. Ananiashvili," replies <<$npc_firstname[''A277'']>>, wilting a bit under her gaze.'
-		'"You." <<$npc_firstname[''A284'']>> points to another student. "I''m Taisiya Lebedeva." You look at her effortless grace in envy as she curtseys to Birserka. You noticed her captivating beauty when you entered the studio earlier in the morning.'
-		' <<$npc_firstname[''A284'']>> points to another student. "Kima Agapova," Kima calls out, also performing another elegant curtsey. <<$npc_firstname[''A284'']>> keeps pointing out the students who introduce themselves, and you finally get your chance to introduce yourself to the class.'
+		'<<$npc_firstname[''A284'']>> points to the student that''s furthest from you. Seeing her being picked first, she gets a panicked look and stutters ""I..I... I''m G... <<$npc_firstname[''A277'']>> <<$npc_lastname[''A277'']>>," she says in a final rush to get her name out, her face crimson with embarrassment.'
+		'<<$npc_firstname[''A284'']>> frowns. "You need to work on your confidence and presentation, <<$npc_firstname[''A277'']>>." "Yes, Ms. Ananiashvili," replies <<$npc_firstname[''A277'']>>, wilting a bit under her gaze.'
+		'"You." <<$npc_firstname[''A284'']>> points to another student. "I''m <<$npc_firstname[''A27'']>> <<$npc_lastname[''A278'']>>." You look at her effortless grace in envy as she curtseys to <<$npc_firstname[''A284'']>>. You noticed her captivating beauty when you entered the studio earlier in the morning.'
+		'<<$npc_firstname[''A284'']>> points to another student. "Kima Agapova," Kima calls out, also performing another elegant curtsey. <<$npc_firstname[''A284'']>> keeps pointing out the students who introduce themselves, and you finally get your chance to introduce yourself to the class.'
 		'"Now we''ve introduced yourselves. I will assign your study partner for this week." <<$npc_firstname[''A284'']>> starts calling out names, and the girls move into pairs as they''re assigned.'
-		'"<<$pcs_nickname>> is fine <<$npc_firstname[''A274'']>>", you reply.'
-		' <<$npc_firstname[''A284'']>> moves to the front of the class and claps her hands for attention. She nods to <<$npc_firstname[''A285'']>>, who sits at the piano and starts playing. <<$npc_firstname[''A284'']>> starts a nearly flawless ballet routine demonstrating her elegance and mastery of what she teaches.'
+		'"Hi <<$npc_firstname[''A274'']>>", you say to her as joins you as your dance partner, "Good to see you again <<$pcs_nickname>>, sorry about the interuption last night!"'
+		'Before you can reply <<$npc_firstname[''A284'']>> moves to the front of the class and claps her hands for attention. She nods to <<$npc_firstname[''A285'']>>, who sits at the piano and starts playing. <<$npc_firstname[''A284'']>> starts a nearly flawless ballet routine demonstrating her elegance and mastery of what she teaches.'
 		'Once <<$npc_firstname[''A284'']>> stops her performance, she thanks <<$npc_firstname[''A285'']>> and turns back to the class.'
-		'"That is what I expect from you this week. You have been all shortlisted as the best dancers in this area, and I expect no less from you all. Topics this week will include basic technique, classical performances, divertissement, and Pas de Deux. In addition, there will be an informal grading assessment on Saturday, of which the three best dancers will be offered to join the theatre."'
+		'"That is what I expect from you this week. You have been all shortlisted as the best dancers in this region, and I expect no less from you all. Topics this week will include basic technique, classical performances, divertissement, and Pas de Deux. In addition, there will be an formal grading assessment on Saturday, of which the three best dancers will be offered to join the theatre."'
 		'For the next hour, <<$npc_firstname[''A284'']>> puts you through a series of demanding exercises going to each girl to guide her posture with a quick word or touch.'
 		*nl
-		'The lesson concluded with the traditional Reverence to <<$npc_firstname[''A284'']>> and <<$npc_firstname[''A285'']>>.'
-
-		act 'Go to the showers' : gt 'pushkin_ballet_class', 'shower'
+		'The lesson concluded with a traditional Reverence to <<$npc_firstname[''A284'']>> and <<$npc_firstname[''A285'']>>.'
+		act 'Go to the showers' : gt $loc, 'shower'
 	end
 
 	if ballet_day = 2:
 		!! Set stats for modern dance
 		gs 'exercise', 'tier3', 90, 'agil', 'stren', 'danc'
-		gs 'sweat', 'add', 30
 		gs 'stat'
 		gs 'core_library', 'stage_title'
 
-		'You sit in the class, take your ballet shoes out of your shoe bag, and fit them on. <<$npc_firstname[''A274'']>> comes over to talk to you and starts giving tips on your ballet shoes and how to wear them. You give her a quick smile and thank her when <<$npc_firstname[''A284'']>> walks through the door. She claps her hands to get everyone''s attention.'
+		'You sit in the class, take your new ballet shoes out of your shoe bag, and try to fit them on. <<$npc_firstname[''A274'']>> comes over to talk to you and starts giving tips on your ballet shoes and how to break them in and wear them. You give her a quick smile and thank her when <<$npc_firstname[''A284'']>> walks through the door. She claps her hands to get everyone''s attention.'
 		'"Yesterday showed me what you were all capable of. Today we are going through the assessment requirements. The assessment is for both group and individual routines. I expect everyone here to diligently practice with their assigned partners over the next week."'
-		'"Do I make myself clear?" There''s a chorus of ''Yes, Ms. Ananiashvili.'' She looks over the class, gauging her students'' expressions. "Excellent, now I want everyone to team up with your partner and, today, we will concentrate on your form and poise."'
+		'"Do I make myself clear?" There''s a chorus of "Yes, Ms. <<$npc_lastname[''A284'']>>." She looks over the class, gauging her students'' expressions. "Excellent, now I want everyone to team up with your partner and, today, we will concentrate on your form and poise."'
 
 		'class event'
 
 		'As with the previous lesson, it concluded with the traditional Reverence to <<$npc_firstname[''A284'']>> and <<$npc_firstname[''A285'']>>. Today you perform ports de bras to pay your respects.'
 
-		act 'Go to the showers' : gt 'pushkin_ballet_class', 'shower'
+		act 'Go to the showers' : gt $loc, 'shower'
 	end
 
 	if ballet_day = 3:
@@ -191,8 +184,6 @@ if $ARGS[0] = 'first_lesson':
 		gs 'pain', 2, 'legL', 'stretch'
 		gs 'pain', 2, 'legR', 'stretch'
 		gs 'pain', 5, 'feet', 'stretch'
-		gs 'sweat', 'add', 30
-		gs 'pushkin_ballet_init', 'daily_assessment'
 		gs 'stat'
 		$setloc['StageImage'] = '<<$default_img_path>>ballet_school/daily/ballet_class_003.jpg'
 		gs 'core_library', 'stage_title'
@@ -200,21 +191,21 @@ if $ARGS[0] = 'first_lesson':
 		'As you enter the classroom, there''s an air of excitement this morning. You''re halfway through the week, and anticipation and nervousness are creeping in for the upcoming assessment.'
 		'You see <<$npc_firstname[''A284'']>> standing close to <<$npc_firstname[''A285'']>>, going over a musical score. You can''t help but wonder if they''re more than friends because of how close they are and how <<$npc_firstname[''A284'']>>''s hand is resting on <<$npc_firstname[''A285'']>>''s shoulder. She looks up as the class enters the room with a start and quickly moves away.'
 		'"Today, we''re concentrating on your group assessment routine. This is what you will be graded on." She doesn''t sound like her commanding self and is slightly flustered. Still, it''s only momentary as she starts moving you all into a group.'
-		'"The routine will be a revised Entrance of the Swans from Swan Lake as part of the Corp de Ballet. There will be no Principle Dancer. Instead, you will concentrate purely on working as the Corp on this performance. You will be assessed on both your performance and will perform with your fellow dancers."'
+		'"The routine will be a revised variation of the Entrance of the Swans from Swan Lake as part of the Corp de Ballet. There will be no Principle Dancer. Instead, you will concentrate purely on working as the Corp on this performance. You will be assessed on both your performance and will perform with your fellow dancers."'
 		'You realise that you will be assessed on one of the most demanding routines the Corp can perform. It requires an inordinate amount of concentration and timing to pull off. You look at <<$npc_firstname[''A274'']>> and see by the expression on her face the same thoughts must be going through her head.'
-		'"You were chosen as the best this Oblast has, so I expect you to perform your best. Have any of you performed Swan Lake here?" <<$npc_firstname[''A284'']>> asks. <<$npc_firstname[''A274'']>> and Kima both put up their hands. <<$npc_firstname[''A284'']>> nods. "Good. You will take the lead as Coryphée for your respective groups, the class will split into two groups of five, and <<$npc_firstname[''A285'']>> will play the opening scene on the piano."'
-		'What follows for the next hour and a half can only be described as hell. Gone was the comforting <<$npc_firstname[''A284'']>> of the last few days. Instead, she drives all the students hard, criticising all mistakes, leaving <<$npc_firstname[''A277'']>> close to tears.'
+		'"You were chosen as the best this Oblast has, so I expect you to perform your best. Have any of you performed Swan Lake here?" <<$npc_firstname[''A284'']>> asks. <<$npc_firstname[''A274'']>> and <<$npc_firstname[''A275'']>> both put up their hands. <<$npc_firstname[''A284'']>> nods. "Good. You will take the lead as Coryphée for your respective groups, the class will split into two groups of five, and <<$npc_firstname[''A285'']>> will play the opening scene on the piano."'
+		'What follows for the next hour and a half can only be described as hell. Gone was the comforting <<$npc_firstname[''A284'']>> of the last few days. Instead, she relentlesly drives all the students hard, criticising all mistakes, which leaves <<$npc_firstname[''A277'']>> close to tears.'
 		act 'Conclude lesson':
 			*clr & cla
 			gs 'core_library', 'stage_title'
 			*nl
 			'The class concludes with you performing an adagio culminating in a ports de bras for your Reverence.'
 			*nl
-			'As you finish the reverence, you realise your feet and body ache not so much from the dancing but from the demands of standing still during the performance. So you drag yourself up from the ground after removing the tape and your ballet shoes, then stow them back in your bag after checking if they''re safe to use.'
-			'<<$npc_firstname[''A274'']>> approaches you. "Don''t worry about the class, Sveta. <<$npc_firstname[''A284'']>> was too hard on everyone. You all performed as well as you could without having done this before." Her words comfort you, but you still have doubts.'
+			'As you finish the reverence, you realise your feet and body ache not so much from the dancing but from the demands of standing still during the performance. So you drag yourself up from the ground after removing the tape from around your toes and your ballet shoes, then stow them back in your bag after quickly checking if they''re still safe to use.'
+			'<<$npc_firstname[''A274'']>> approaches you. "Don''t worry about the class, Sveta. <<$npc_firstname[''A284'']>> was too hard on everyone. You all performed as well as you could without having done this before." Her words comfort you, but you still have doubts about your abilities.'
 			'"Come on, we have to get ready!" she exclaims as you both hurry to get a shower before attending your next class.'
 
-			act 'Go to the showers' : gt 'pushkin_ballet_class', 'shower'
+			act 'Go to the showers' : gt $loc, 'shower'
 		end
 	end
 
@@ -225,27 +216,25 @@ if $ARGS[0] = 'first_lesson':
 		gs 'pain', 2, 'legL', 'stretch'
 		gs 'pain', 2, 'legR', 'stretch'
 		gs 'pain', 5, 'feet', 'stretch'
-		gs 'sweat', 'add', 60
-		gs 'pushkin_ballet_init', 'daily_assessment'
 		gs 'stat'
 		gs 'core_library', 'stage_title'
 
+		!! TODO: Add Health bar stats
+
 		'After yesterday''s rehearsals, you sense an air of both anticipation and dread for today''s lesson. <<$npc_firstname[''A284'']>> is waiting in the class for you all to arrive.'
 		'"Welcome. Today we will go over the Entrance. Any questions?" Silence greets <<$npc_firstname[''A284'']>>''s question. "Good, let us proceed. <<$npc_firstname[''A285'']>>, from the start."'
-		'You split into your two groups, and you follow <<$npc_firstname[''A274'']>>. She places your second line to follow her and help guide the students behind you into the routine. Unfortunately, it''s another demanding routine, and <<$npc_firstname[''A284'']>> doesn''t give much time to relax.'
-		'When you get a bit of breathing space, you quickly eat an energy bar before <<$npc_firstname[''A284'']>> finishes working with the other group. Now it''s your turn to practice.'
+		'You split into your two groups, and you follow <<$npc_firstname[''A274'']>>. She places you in the second line to follow her and help guide the students behind you through the routine. Unfortunately, it''s another demanding performance and <<$npc_firstname[''A284'']>> doesn''t give much time to relax.'
+		'When you finally get a bit of breathing space, you quickly eat an energy bar before <<$npc_firstname[''A284'']>> finishes working with the other group. Now it''s your turn to practice again.'
 		'As you finish, <<$npc_firstname[''A284'']>> tells the class, "Tomorrow, you will wear the Ballet Blanc provided for the rehearsals. I will be assessing you on your attire and presentation before your actual assessment on Saturday. So please ensure you are ready and be here at 0900 sharp."'
 		*nl
 		'The class concludes with you repeating the previous day''s routine for your Reverence.'
 
-		act 'Go to the showers' : gt 'pushkin_ballet_class', 'shower'
+		act 'Go to the showers' : gt $loc, 'shower'
 	end
 
 	if ballet_day = 5:
 		! Set stats for modern dance
 		gs 'exercise', 'tier2', 90, 'agil', 'stren', 'danc'
-		gs 'sweat', 'add', 30
-		gs 'pushkin_ballet_init', 'daily_assessment'
 		gs 'stat'
 		$setloc['StageImage'] = '<<$default_img_path>>ballet_school/daily/ballet_class_005.jpg'
 		gs 'core_library', 'stage_title'
@@ -272,7 +261,7 @@ if $ARGS[0] = 'first_lesson':
 					gs 'core_library', 'stage_title'
 					'You and the girls all look at each other and start to perform a deep curtsy as part of the great reverence you agreed to the previous evening with the girls to pay respect to <<$npc_firstname[''A284'']>> and <<$npc_firstname[''A285'']>> for their teaching this week. '
 					'Both teachers look taken aback and have a smile on their faces. "Thank you, class. It''s been a pleasure to teach you this week," <<$npc_firstname[''A284'']>> says, with <<$npc_firstname[''A285'']>> nodding her agreement and repeating her words.'
-					act 'Go to the showers' : gt 'pushkin_ballet_class', 'shower'
+					act 'Go to the showers' : gt $loc, 'shower'
 				end
 			end
 		end
@@ -294,12 +283,13 @@ if $ARGS[0] = 'shower':
 		gs 'stat'
 		gs 'core_library', 'stage_title'
 		if nclass = 2:
-			act 'Go to next lesson' : gt 'pushkin_ballet_class', 'makeup'
+			act 'Go to next lesson' : gt $loc, 'makeup'
 		elseif nclass = 4:
-			act 'Go to next lesson' : gt 'pushkin_ballet_class', 'music_theory'
+			act 'Go to next lesson' : gt $loc, 'music_theory'
 		end
-		gs 'core_library', 'bathroom'
 		'You enter the school showers after your lesson. You and your classmates don''t have much time to talk to each other, with you having little time until your next lesson.'
+		*nl
+		gs 'core_library', 'bathroom'
 		*nl
 	else
 		$setloc['StageTitle'] = 'Residential Bathroom'
@@ -310,14 +300,49 @@ if $ARGS[0] = 'shower':
 		gs 'core_library', 'stage_title'
 		act 'Return to the hallway' :
 			if $clothingworntype = 'nude':
-				msg'<b><font color = red>You need to get dressed before leaving.</font></b>'
+				msg'<b><font color = "red">You need to get dressed before leaving.</font></b>'
 				gt $loc, $loc_arg
 			else
 				gt 'pushkin_ballet_res', 'hallway'
 			end
 		end
+		if  (hour > 5 or hour < 8) and week ! 7:
+			'You can check your <a href="exec:gs ''<<$loc>>'', ''grade_check''">appearance</a> before leaving in the full length mirror.'
+			*nl
+		end
 		gs 'core_library', 'bathroom'
 	end
+end
+if $ARGS[0] = 'grade_check':
+	$popup_advise = '<center><h3>You critically look at your appearance according to the schools assessment guidelines:</h3></center>'
+	$popup_advise += '<br><br>'
+	if pcs_makeup > 1:
+		$popup_advise += '<font color = "green">✓</font> Your make up is of an acceptable standard.</font>'
+	else
+		$popup_advise += '<font color = "red">🗴</font> You need to apply some make up. If you do not have any you will need to speak to Ms. <<$npc_lastname[''A286'']>>.'
+	end
+	$popup_advise += '<br>'
+	if hbraids > 0 or hpingripw > 0:
+		$popup_advise += '<font color = "green">✓</font> You look at your hair whilst tidying up a few strays and is properly set for classes.'
+	else
+		$popup_advise += '<font color = "red">🗴</font> You need to set your hair in a braid or in an bun to meet with the schools standards.'
+	end
+	$popup_advise += '<br>'
+	if pcs_pubes >= 3:
+		$popup_advise += '<font color = "red">🗴</font> You need to shave your pussy to avoid any unsightly bumps or hairs sticking out from the sides of your leotard.'
+	elseif pcs_leghair >= 3:
+		$popup_advise += '<font color = "red">🗴</font> You run your hands of your legs and notice they are starting to feel rough, you need to shave or wax them.'
+	else
+		$popup_advise +='<font color = "green">✓</font> You are clean shaven.'
+	end
+	$popup_advise += '<br>'
+	if $apparel['status'] = 'sport' or $apparel['status'] = 'dance':
+		$popup_advise += '<font color = "green">✓</font> Your sports clothing is suitable for the dance class.'
+	else
+		$popup_advise += '<font color = "red">🗴</font> You need to change into sports clothing that is suitable for the dance school.'
+	end
+	msg $popup_advise
+	killvar 'popup_advise'
 end
 
 if $ARGS[0] = 'makeup':
@@ -335,8 +360,9 @@ if $ARGS[0] = 'makeup':
 	gs 'exp_gain', 'makeupskl', rand(1,2)
 	makupskl_lvl += rand(1, 3)
 	!pcs_makeup = 4
-	gs 'pushkin_ballet_init', 'daily_assessment'
+	gs 'shortgs', 'setloc', 'pushkin_ballet_class', $ARGS[0]
 	nclass = 3
+	gs 'pushkin_ballet_init', 'daily_assessment'
 	gs 'stat'
 
 	if ballet_day = 1:
@@ -375,7 +401,7 @@ if $ARGS[0] = 'makeup':
 		'Today your teacher is more active, going between the various students, and complimenting or advising them as required. You see her have a short conversation with Nikita, and you''re curious about what it was about before <<$npc_firstname[''A274'']>> grabs your attention to carry on with practising your makeup.'
 	end
 
-	act 'Grab lunch' : gt 'pushkin_ballet_class', 'lunch'
+	act 'Grab lunch' : gt $loc, 'lunch'
 end
 
 if $ARGS[0] = 'lunch':
@@ -390,7 +416,7 @@ if $ARGS[0] = 'lunch':
 	*nl
 	'You enter the school''s canteen. It seems you''ve timed it between lunch breaks, so it''s relatively quiet.'
 	*nl
-	act 'Head to next lesson' : menu_off = 0 & gt 'pushkin_ballet_class', 'second_lesson'
+	act 'Head to next lesson' : menu_off = 0 & gt $loc, 'second_lesson'
 	gs 'core_library', 'kitchen'
 	act 'Eat lunch':
 		cla
@@ -407,9 +433,9 @@ if $ARGS[0] = 'second_lesson':
 	! set stats for modern dance
 	gs 'exercise', 'tier2', 90, 'agil', 'stren', 'danc'
 	gs 'exp_gain', 'perform', rand(1,2)
-	gs 'sweat', 'add', 60
-	gs 'pushkin_ballet_init', 'daily_assessment'
+	gs 'shortgs', 'setloc', 'pushkin_ballet_class', $ARGS[0]
 	nclass = 4
+	gs 'pushkin_ballet_init', 'daily_assessment'
 	gs 'stat'
 	$setloc['StageTitle'] = 'Dance Practice'
 	if mayaqw['grave'] = 4:
@@ -479,7 +505,7 @@ if $ARGS[0] = 'second_lesson':
 		'You perform a reverence to Maya in thanks for her help, she returns the curtsey, and you head to the showers together.'
 
 		nclass = 4
-		act 'Go to the showers' : gt 'pushkin_ballet_class', 'shower'
+		act 'Go to the showers' : gt $loc, 'shower'
 	end
 end
 
@@ -490,23 +516,19 @@ if $ARGS[0] = 'music_theory':
 	$setloc['StageImage'] = '<<$default_img_path>>ballet_school/daily/ballet_class_004.jpg'
 	$location_type = 'public_indoors'
 	gs 'themes', 'indoors'
-	killvar 'nclass'
-	gs 'pushkin_ballet_init', 'daily_assessment'
 	!! set stats for performance, music production and inst. music.
 	gs 'exp_gain', 'intel', rand(1,2)
 	gs 'exp_gain', 'instrmusic', rand(1,2)
 	gs 'exp_gain', 'musicprod', rand(1,2)
-	nclass = 5
-
 	gs 'stat'
 	gs 'core_library', 'stage_title'
-
-
+	gs 'shortgs', 'setloc', 'pushkin_ballet_class', $ARGS[0]
+	nclass = 5
+	gs 'pushkin_ballet_init', 'daily_assessment'
+	nclass = 0
 	if ballet_day = 1:
-		'You enter the classroom, and you see <<$npc_firstname[''A285'']>> standing beside the door. "Welcome, girls. It''s a pleasure to see you all again. I hope you''ve enjoyed your first day?" She greets you in a warm and rich voice.
-		You and your classmates murmur a yes, unsure how to react. <<$npc_firstname[''A285'']>> ignores the half-hearted response. "You''re probably wondering why you are here, as you''re not musicians. However, as a dancer, it''s essential to
-		understand the basics of Harmony, Melody and Rhythm. How they form the backbone, and how composers have audible cues to your performance. Whilst I don''t expect you to become a musician by the end of this week, you
-		should have a solid understanding of the user scores.'
+		'You enter the classroom, and you see <<$npc_firstname[''A285'']>> standing beside the door. "Welcome, girls. It''s a pleasure to see you all again. I hope you''ve enjoyed your first day?" She greets you in a warm and rich voice.'
+		'You and your classmates murmur a yes, unsure how to react. <<$npc_firstname[''A285'']>> ignores the half-hearted response. "You''re probably wondering why you are here, as you''re not musicians. However, as a dancer, it''s essential to understand the basics of Harmony, Melody and Rhythm. How they form the backbone, and how composers have audible cues to your performance. Whilst I don''t expect you to become a musician by the end of this week, you should have a solid understanding your performances musical scores and help covney the essence of what the composer intended.'
 		*nl
 		'The rest of your lesson is taken up with music theory and how to deconstruct the performances and variations to pick up the composers cues.'
 
@@ -520,20 +542,17 @@ if $ARGS[0] = 'music_theory':
 		'<<$npc_firstname[''A285'']>> nods in approval to Taiya''s response spends the rest of the lesson discussing the history of ballet. You noticed a few of your classmates looking sleepy by the end of the class.'
 
 	elseif ballet_day = 3:
-		gs 'sweat', 'add', 20
 		'Today, you''re given a sharp shock. <<$npc_firstname[''A285'']>> claps her hands to get everyone''s attention. "Today, we will test what you''ve learned. I''m going to be playing some pieces. On the first beat, you will do a demi plié down."'
 		'"On the second beat, you will do a demi plié up. Repeat until the sixth beat and do a grand plié. The seventh rise from the demi, and the eighth beat finish the demi. Understand? Good."'
 		'<<$npc_firstname[''A285'']>> wastes no time. She starts the piece and calls out, "1 2 3, 2 2 3, 3 2 3, 4 2 3, 5 2 3 and grand plié! 6 2 3, and finish." <<$npc_firstname[''A285'']>> runs an eye critically over the class. "You can do better than that and again."'
 		'You continue the lesson. <<$npc_firstname[''A285'']>> keeps you all on your toes by changing the tempo, causing some girls to stumble and earning themselves criticism. By the end of the lesson, you''re glad it''s over.'
 
 	elseif ballet_day = 4:
-		gs 'sweat', 'add', 20
 		'"Positions!" <<$npc_firstname[''A285'']>> calls out before you can relax as you enter the class. "You''ve been practising the requisite variations for the assessment. I will review the score cues," she says as she sits at the piano and starts playing the Entrance of the Swans.'
 		'You all stand there wondering if you should dance, but after a few moments, <<$npc_firstname[''A285'']>> stops. "Did you listen to the music to find your cues? Let''s try that again, on the count of three, one, two, three." Then, you start the whole routine that <<$npc_firstname[''A284'']>> has been drilling into you.'
 		'The difference is <<$npc_firstname[''A285'']>> is creating audible cues with the notes being played to guide you through the whole performance, and you see a marked improvement from all the dancers with the additional guidance.'
 
 	elseif ballet_day = 5:
-		gs 'sweat', 'add', 20
 		'It''s your final lesson today before your assessment tomorrow. So you all crowd into the dance hall and start to put on your shoes in preparation for your lesson.'
 		'<<$npc_firstname[''A285'']>> and <<$npc_firstname[''A284'']>> walk into the class together, and <<$npc_firstname[''A285'']>> moves towards the piano. "Class, this is your final lesson. After that, we will do a rehearsal, and I will give you feedback on your performances."'
 		'"Take your positions." The class scrambles to get ready. "Remember everything that <<$npc_firstname[''A285'']>> and I have gone over in the last week. I want you to listen to the music cues, I want you to follow the steps I''ve taught you and, most of all, I want you to prove to me that you''re ready for tomorrow."'
@@ -555,17 +574,15 @@ if $ARGS[0] = 'assessment':
 	$location_type = 'public_indoors'
 	gs 'themes', 'indoors'
 	!! Dance exam
-
-	balletqw['school'] = 1
+	gs 'pushkin_ballet_init', 'daily_assessment'
 	gs 'exercise', 'tier4', 180, 'agil', 'stren', 'danc'
 	gs 'exp_gain', 'perform', rand(5,10)
 	!! rank is the final assessment score to determine pass, fail or a potential fall into Randolph''s clutches.
 	!!gs 'pushkin_ballet_init', 'famemodifier', 'rank'
 	!! Maya friendship mechanics to be implemented after feedback on core game with how she reacts to you at the exams.
-
 	minut = (9 - hour) * 60
-
 	$setloc['StageImage'] = '<<$default_img_path>>ballet_school/daily/hall.jpg'
+	gs 'stat'
 	gs 'core_library', 'stage_title'
 
 	'You arrive at the ballet school and can sense an air of anticipation and nervousness among your classmates. <<$npc_firstname[''A274'']>> is standing close to you.'
@@ -576,11 +593,9 @@ if $ARGS[0] = 'assessment':
 	*nl
 	'Once you''re dressed, you check your makeup in the mirror and walk over to <<$npc_firstname[''A274'']>> to check her appearance in preparation for the first assessment, and she returns the favour.'
 	*nl
-	'With minutes to spare, you''re outside the door to the examination. You feel your nerves are shredded, but Maya grabs your hand and whispers, "You''ve got this; remember neither fluff, nor feather." You nod smiling at the old saying replying with "to the devil", and the doors open.'
+	'With minutes to spare, you''re outside the door to the examination. You feel your nerves are shredded but Maya grabs your hand and whispers, "You''ve got this; remember neither fluff, nor feather." You nod smiling at the old saying replying with "to the devil", and the doors open.'
 	act 'Perform the Entrance':
 		*clr & cla
-		minut += 20
-		gs 'stat'
 		$setloc['StageImage'] = '<<$default_img_path>>ballet_school/exams/exam_1.jpg'
 		gs 'core_library', 'stage_title'
 
@@ -592,8 +607,6 @@ if $ARGS[0] = 'assessment':
 
 		act 'Perform pas de deux':
 			*clr & cla
-			minut += 60
-			gs 'stat'
 			$setloc['StageImage'] = '<<$default_img_path>>ballet_school/exams/exam_2.jpg'
 			gs 'core_library', 'stage_title'
 
@@ -609,8 +622,6 @@ if $ARGS[0] = 'assessment':
 
 			act 'Solo performance':
 				*clr & cla
-				minut += 120
-				gs 'stat'
 				$setloc['StageImage'] = '<<$default_img_path>>ballet_school/exams/solo_2.jpg'
 				gs 'core_library', 'stage_title'
 				'Back outside, you and <<$npc_firstname[''A274'']>> do checks on your outfits. You notice a small tear on <<$npc_firstname[''A274'']>>''s tights and get your needle and thread out to repair it. You then check each other''s hair and makeup, with <<$npc_firstname[''A274'']>> applying some hairspray to tame your flyaway hairs.'
@@ -624,11 +635,11 @@ if $ARGS[0] = 'assessment':
 				*nl
 				'At the end of the performance, you feel a sense of loss of something extraordinary. You realize the emotional high you''ve been riding has come to a crashing end, and you barely retain your sense of poise and perform the great reverence to your examiners before you are given permission to leave.'
 
-				!! gs 'pushkin_ballet_init', 'daily_assessment', 'grade'
-				act 'Finalé' : gt 'pushkin_ballet_class', 'start'
+				gs 'pushkin_ballet_init', 'daily_assessment', 'grade'
+				balletqw['school'] = 1
+				act 'Finalé' : gt $loc, 'start'
 			end
 		end
 	end
 end
-
 --- pushkin_ballet_class ---------------------------------

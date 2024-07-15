@@ -3,6 +3,8 @@
 !! Date Created: 17th Sept, 2022
 !! Modified date:
 !! Version: .01 - initial release
+!! Version: .02 - Content updates, bug fixes and assessement system.
+!!
 !! Author: Hooded Silence
 !!
 !! Ballet Summer School
@@ -15,9 +17,9 @@
 !! mod_ballet[blocker]- quest line initiator to start/stop the quests.
 !! mod_ballet[letter]- temp blocker to prevent the letter being read multiple times.
 !! ballet[hypno] = 1 - hypno content trapdoor
-!! school_prep, school_running tally and final_score - preparation work, will be added to final school score to determine pass, almost pass (favor) or fail (no favor) converts to balletqw[school]
+!! school_mod_grade_score[''total''] combines mod_grade_score[''class'']  and mod_grade_score[''homework''] to assess attendance and homework completion.
 !! balletqw[school] - Holding variable for final score 2 - passed, 3 - passed with Rudolph''s help, 4 - passed with Maya's help, 5 = Merit, 1 - failed
-!! balletqw[rank] - What stage of her career, 1 apprenticeship, 2 part of Corp de ballet, 3 full member of the Theatre.
+!! balletqw[rank] - What stage of her career, 0 failed, 1 apprenticeship, 2 sponsored apprenticeship, 3 part of Corp de ballet, 4 full member of the Theatre.
 !! Ranks
 !! Corps De Ballet, coryphée, demi-soloist, soloist, principle dancer.
 !! balletqw[performances] - How many shows perfomed
@@ -55,14 +57,13 @@ if $ARGS[0] = 'init':
 		if daystart > 33 and $loc = 'bedrPar' and mod_ballet['letter'] = 1:
 			gs 'shortgs', 'remove_array_element', 'mod_ballet', 'blocker'
 			gs 'shortgs', 'remove_array_element', 'mod_ballet', 'letter'
-
 			msg 'You''ve missed your ballet school start date, maybe there will be other opportunities in future.'
 		end
 	end
 	!! Initiate the ballet events.
 	If mod_ballet['blocker'] = 1:
 		mod_ballet['blocker'] = 2
-		gs 'fame', 'pushkin', 'ballet', 30, 'local'
+		gs 'fame', 'pushkin', 'ballet', 15, 'local'
 	end
 end
 
@@ -71,83 +72,126 @@ if $ARGS[0] = 'start':
 	if $loc = 'kuhrPar' and ($start_type['cat'] = 'dancer' or ($start_type['cat'] = 'custom' and danc_lvl >= 45)):
 		if locat['Mother'] = 4 and mod_ballet['letter'] < 1 and daystart <= 14 :
 			! Trigger first act
-			act 'Read the letter': gt 'pushkin_ballet_evt', 'letter'
+			act '<b>Read the letter</b>': gt 'pushkin_ballet_evt', 'letter'
 		end
 		if locat['Mother'] = 4 and mod_ballet['letter'] < 1 and daystart >=45:
 			! Trigger second act
-			act 'Read the letter': gt 'pushkin_ballet_evt', 'letter'
+			act '<b>Read the letter</b>': gt 'pushkin_ballet_evt', 'letter'
 		end
 	end
 end
 
 if $ARGS[0] = 'daily_assessment':
-
 	!! Grade appearance, behaviour and other factors.
-
 	!! Daily Appearance
-	if school_daily_check ! daystart and (hour >= 8 and hour <= 17):
+	if school_daily_check ! daystart and (nclass > 0 or nclass <= 5):
+		gs 'shortgs', 'clothing_status'
+		if ballet_debug = 1: if nclass > 0: $mod_class_debug += nclass + ' - ' + $loc_arg +  iif(nclass = 5, ' -|- <br>', ', ')
 		!! Positive additions:
 		mod_grade_attendance[week] += 1
-		if pcs_makeup > 1: mod_grade_mua[week] += 1
-		if hBraids > 0 or hpingripw > 0: mod_grade_appearance[week] +=1
-
+		if pcs_makeup > 1:
+			mod_grade_mua[week] += 1
+		else
+			mod_grade_mua[week] -= 1
+		end
+		if hbraids > 0 or hpingripw > 0:
+			mod_grade_braids[week] +=1
+		elseif hscrunchw > 0:
+			mod_grade_braids[week] -=1
+		end
+		if pcs_pubes < 4 and pcs_leghair < 4:
+			mod_grade_shave[week] +=1
+		else
+			mod_grade_shave[week] -=1
+		end
+		if $apparel['status'] = 'sport' or $apparel['status'] = 'dance':
+			mod_grade_uniform[week] += 1
+		else
+			mod_grade_uniform[week] -= 1
+		end
 		!! Negative deductions:
-		if pcs_hairbsh = 0: mod_grade_appearance[week] -=1
-		if pcs_missing_teeth > 0 or pcs_teeth ! -1: mod_grade_appearance[week] -=1
-		if school_curfew > 0: mod_grade_disciplne[week] -= 1
-		if pcs_leghair > 3 : mod_grade_appearance[week] -= 1
-		if pubestyle = 10: mod_grade_appearance[week] -= 1
+		!! large busts can affect balance so will penalise performances - penalise if over a c cup
+		if pcs_cupsize > 20: mod_grade_appearance[week] -= 1
+		!! pregnancy check - unlikely but in place due to cheats - automatic fail on course
+		if thinkpreg > 1 or knowpreg > 1: mod_grade_discipline[week] -= 200
+		!! Teeth checks, appearance is everything and should only affects if custom or cheat stats
+		if pcs_missing_teeth > 0 or pcs_teeth ! -1: mod_grade_appearance[week] -= 5
+		if pcs_brace > 1: mod_grade_discipline[week] -= 1
+		!! Don''t do drugs kids - school is zero tolerance to any form of drugs, this only affects the residency week.
+		if drugVars['cigarettes_used'] > 1: mod_grade_discipline[week] -= 5
 		if alko > 1: mod_grade_discipline[week] -= 1
-		!!mod_daily_score[week] = mod_grade_mua[week] + mod_grade_attendance[week] + mod_grade_appearance[week] - mod_grade_discipline[week]
-		!! msg 'Attend: <<mod_grade_attendance[week]>>, MUA:<<mod_grade_mua[week]>>, Appear: <<mod_grade_appearance[week]>>, Discipline <<mod_grade_disciple[week]>>, <<pcs_hairbsh>>'
+		if drugVars['heroin_high'] > 0 or drugVars['weed_high'] > 0 or drugVars['heroin_high'] > 0: mod_grade_discipline[week] -= 50
 	end
 	if nclass = 5 and school_daily_check ! daystart:
-		mod_daily_score[week] = mod_grade_attendance[week] + mod_grade_mua[week] + mod_grade_appearance[week] + mod_homework[week] - mod_grade_discipline[week]
+		!! Daily class score
+		mod_daily_score[week] = mod_grade_attendance[week] + mod_grade_mua[week] + mod_grade_braids[week] + mod_grade_shave[week] + mod_grade_uniform[week] + mod_homework[week] - mod_grade_discipline[week]
+		!! Cumulative daily score
+		mod_grade_score['class'] += mod_daily_score[week]
 	end
-
 
 	if $ARGS[1]= 'grade':
-		final_score = (pcs_apprnc / 10) + ((pcs_stren + pcs_agil + pcs_danc) / 10 ) + school_running_tally + study_tally
+		!! theoretical max score is 175 allowing for 30pts a day, lessons + 5 points (less exam day) in homework lessons.
+		!! Bonus points will be added on the asssessment day such as taking care of feet.
+
+		mod_grade_score['total'] = 100 * (mod_grade_score['class']  + mod_grade_score['homework'] + mod_grade_health + (danc_lvl / 10)) / 210
 		!! Three score levels, fail, pass and merit. Fail is one route for corruption path, pass is either low or no pay, merit is low to low +10%.
-		if final_score <= 40:
-			balletqw[school] = 5
-		elseif final_score >=41 and final_score < 60:
-			!! Interim pass until quest lines are created for Maya/Rudolph
-			balletqw[school] = 1
-			balletqw[rank] = 1
-		elseif final_score >= 61 and final_score <= 90:
-			balletqw[school] = 1
-			balletqw[rank] = 1
-		elseif final_score >= 91:
-			balletqw[school] = 4
-			balletqw[rank] = 1
+
+		if mod_grade_score['total'] <= 40:
+			balletqw['school'] = 0
+		elseif mod_grade_score['total'] >= 41 and mod_grade_score['total'] < 70:
+			!! Interim pass until quest lines are created for Maya/Rudolph - see header for stage no.
+			balletqw['school'] = 4
+			balletqw['rank'] = 1
+		elseif mod_grade_score['total'] >= 70 and mod_grade_score['total'] <= 90:
+			balletqw['school'] = 2
+			balletqw['rank'] = 1
+		elseif mod_grade_score['total'] >= 91:
+			gs 'pushkin_ballet_init', 'famemodifier', mod_grade_score['total']
+			balletqw['school'] = 5
+			balletqw['rank'] = 1
 		end
-
-		if final_score > 60: gs 'pushkin_ballet_init', 'famemodifier', final_Score
+		$mod_ballet['final_report'] += '<centre><h2> Pushkin Ballet School - Performance Report </h2></centre>'
+		$mod_ballet['final_report'] += '<br>'
+		if mod_grade_score['class'] < 25:
+			$mod_ballet['final_report'] += 'Was it even worth your time to attend the school? You did not attend all lessons or had discipline concerns. It is obvious you have no interest in a ballet career.'
+		elseif mod_grade_score['class'] = 25:
+			$mod_ballet['final_report'] += 'You attended all classes, and had no discipline issues. Your discipline and focus is commendable.'
+		else
+			$mod_ballet['final_report'] += '<font color="red"><b>Class attendance bug:</b></font> <<mod_grade_score[''class''] >>'
+		end
+		$mod_ballet['final_report'] += '<br>'
+		if mod_grade_score['homework'] < 5:
+			$mod_ballet['final_report'] += 'You did not complete all the homework set out for you, you lack the discipline and aptitude to become part of our school''s Coryphée.'
+		elseif mod_grade_score['homework'] <= 11:
+			$mod_ballet['final_report'] += 'Your dedication and discipline in completing all your assigned homework is admirable in a student, but we expect to see more effort from you if you wish to become a Principle Dancer.'
+		elseif mod_grade_score['homework'] > 12:
+			$mod_ballet['final_report'] += 'You showed an exceptional aptitude and discipline going beyond what was expected of you for your homework assignments. This is exactly what we expect from our dancers who stive to become a Principle Dancer.'
+		else
+			$mod_ballet['final_report'] += '<font color="red"><b>Homework debug message:</b></font> <<mod_grade_score[''homework'']>> '
+		end
+		$mod_ballet['final_report'] += '<br><br>'
+		if balletqw['school'] = 5:
+			$mod_ballet['final_report'] += 'Your skill and dedication has given us pleasure to award you a Distinction pass and you have been accepted as an apprentice with sponsorship to our dance school.'
+		elseif balletqw['school'] = 3 or balletqw['school'] = 4:
+			$mod_ballet['final_report'] +=  'After much consideration we are pleased to offer you a place at our school, unfortunately your performance at the school was not sufficient to grant you an sponsorship.'
+		elseif balletqw['school'] = 2:
+			$mod_ballet['final_report'] += 'We are pleased to offer you a place at our school, unfortunately your performance at the school was not sufficient to grant you an sponsorship.'
+		elseif balletqw['school'] = 1:
+			$mod_ballet['final_report'] += 'Your performance and discipline as severly lacking and was disappointing. Your attitude was a disgrace and we have never had a student who showed such callous disregad for the privilege you was granted. Therefore you will not be granted a place in the school''s coryphée.'
+		else
+			$mod_ballet['final_report'] += '<font color="red"><b>Award debug mesage:</b></font>  <<balletqw[''school'']>>'
+		end
+		gs $loc, 'cleanup_var'
 	end
-
 end
 
 if $ARGS[0] = 'famemodifier':
-
-	! Set upper value for seed.
-	rank = ARGS[1]
-
-	hc_restrict = rand(2, (rank/4))
-	ballet_fame = ( (rank + pcs_danc ) / hc_restrict )
-
-	if ballet_fame < 1: ballet_fame = 5
-
-	gs 'fame', 'pushkin', 'ballet', rand(0, ballet_fame), 'local'
+	gs 'fame', 'pushkin', 'ballet', rand(30, mod_grade_score['total'] / 2), 'local'
 	!! Diags
-		ballet_temp['score'] = final_score
-		ballet_temp['rank'] = rank
-		ballet_temp['fame'] = fame
+	!!	ballet_temp['score'] = mod_grade_score['total']
+	!!	ballet_temp['rank'] = rank
+	!!	ballet_temp['fame'] = fame
 	!! End Diags
-	killvar 'final_score'
-	killvar 'rank'
-	killvar 'hc_restrict'
-	killvar 'ballet_fame'
 end
 
 if $ARGS[0] = 'cleanup_var':
@@ -166,10 +210,6 @@ if $ARGS[0] = 'cleanup_var':
 		gs 'shortgs', 'remove_array_element', 'balletqw','performances'
 		gs 'shortgs', 'remove_array_element', 'balletqw','rank'
 	end
-	!! Diags
-		ballet_temp['srt'] = school_running_tally
-		ballet_temp['school_prep'] = school_prep
-	!! End diags
 	killvar 'ballet_awol'
 	killvar 'school_running_tally'
 	killvar 'sharedmeal'
@@ -178,6 +218,18 @@ if $ARGS[0] = 'cleanup_var':
 	killvar 'ballet_day'
 	killvar 'ballet_first_bedroom'
 	killvar 'feet_track'
+	killvar 'homework_active'
+	!! Running tallies
+	killvar 'debug_day'
+	killvar 'total_daily'
+	killvar 'mod_grade_attendance'
+	killvar 'mod_grade_mua'
+	killvar 'mod_grade_braids'
+	killvar 'mod_grade_shave'
+	killvar 'mod_grade_uniform'
+	killvar 'mod_grade_health'
+	killvar 'mod_class_debug'
+
 	gs 'shortgs', 'remove_array_element', 'ballet_mod', 'letter'
 	gs 'shortgs', 'remove_array_element', 'ballet_mod', 'res_mg'
 end
@@ -185,15 +237,25 @@ end
 if $ARGS[0] = 'score_debug':
 	debug_day = 1
 	:jmp_debug_score
+		total_daily = mod_daily_score[debug_day] + mod_homework[debug_day]
 		'Day: <<debug_day>>'
 		'Make-up Score: <<mod_grade_mua[debug_day]>>'
-		'Appearance: <<mod_grade_appearance[debug_day]>>'
-		'Rules and Discipline: <<mod_grade_disciple[debug_day]>>'
+		'Appearance - hair: <<mod_grade_braids[debug_day]>>'
+		'Appearance - shave: <<mod_grade_shave[debug_day]>>'
+		'Appearance - uniform: <<mod_grade_uniform[debug_day]>>'
+		'Rules and Discipline: <<mod_grade_discipline[debug_day]>>'
+		'Health: <<mod_grade_discipline[''feetcare'']>>'
 		'Homework: <<mod_homework[debug_day]>>'
 		'Attendance: <<mod_grade_attendance[debug_day]>>'
-		'Total Day Score: <<mod_daily_score[debug_day]>>'
+		'Total Day Score: <<total_daily>>'
 		' - - - '
 		debug_day += 1
 	if debug_day <= 5: jump 'jmp_debug_score'
+	'Cumulative daily score: <<mod_grade_score[''class'']>>'
+	'Cumulative homework score: <<mod_grade_score[''homework'']>>'
+	'Passmark: ' + +  100 * (mod_grade_score['class']  + mod_grade_score['homework']) / 210
+	$mod_class_debug
+	killvar 'debug_day'
+	killvar 'total_daily'
 end
 --- pushkin_ballet_init ---------------------------------
