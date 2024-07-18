@@ -1,0 +1,485 @@
+# gad_market
+
+if $ARGS[0] = 'start':
+	$region = 'gad'
+	menu_off = 0
+	gs 'shortgs', 'setloc', 'gad_market', 'start'
+	$location_type = 'public_outdoors'
+	CLOSE ALL
+	if sound = 0:
+		if month >=11 and month <= 12 or month >=1 and month <=3:
+			PLAY 'sound/street2.mp3',30 & PLAY 'sound/zima.mp3',30
+		else
+			PLAY 'sound/street2.mp3',30 & PLAY 'sound/street_leto.mp3',30
+		end
+	end
+	gs 'stat'
+
+	'<center><h2>Farmers Market</h2></center>'
+	'<center><img <<$set_imgh>> src="images/locations/gadukino/market/farmersmarket.jpg"></center>'
+	'A small and modest farmers market, a few small shops fill the space.'
+	*nl
+
+	if hour < 8 or hour > 20:
+		gs 'gad_market', 'close'
+		exit
+	end
+
+	'On one side you spot a stand where' + iif(hunters_were_met = 1, ' the hunters are ', ' ') + 'selling <a href="exec:minut += 1 & gt ''gad_market'', ''hunter_stand''">dried goods</a>.'
+	act 'Browse the <<iif(hunters_were_met = 1, ''hunters'', ''dried food'')>> stand': minut += 1 & gt 'gad_market', 'hunter_stand'
+
+	'You spot a stand filled with <a href="exec:minut += 1 & gt ''gad_market'', ''clothing_stand''">cheap clothing</a>.'
+	act 'Browse the clothing stand': minut += 1 & gt 'gad_market', 'clothing_stand'
+
+	if gad_stand = 1:
+		if hour <= 20:
+			act 'Go to your own stand (0:01)': minut += 1 & gt 'gad_market', 'your_stand'
+		end
+
+		act 'Breakdown your stand (0:30)': gt 'gad_market', 'breakdown_stand'
+		act '<font color="red">Return</font>': *nl '<font color="red">You can''t leave while your stand is still open.</font>'
+	else
+		if hour < 18 and (boletus_stored + bilberry_stored + fish_stored) > 0:
+			act 'Setup your own stand (1:00)': gt 'gad_market', 'build_stand'
+		elseif hour >= 18:
+			*nl
+			'It''s too late to build your stand'
+		else
+			*nl
+			'You have nothing to sell.'
+		end
+		act 'Return': gt 'gad_market', 'leave'
+	end
+end
+
+
+!----- Shops -----
+
+if $ARGS[0] = 'hunter_stand':
+	menu_off = 0
+	gs 'shortgs', 'setloc', 'gad_market', 'hunter_stand'
+	$loc_s = 'gad_market'
+	$args_s = 'hunter_stand'
+	gs 'stat'
+
+	if hour < 8 or hour > 20:
+		'The shop is currently closed.'
+
+		act 'Leave': gt 'gad_market', 'clothing_stand'
+		exit
+	end
+
+
+	'A small stand selling dried meat'
+
+	if hunters_were_met = 1: act 'Talk to one of the hunters': gt 'gad_market', 'hunter_talk'
+
+	act 'Browse the stand': gt 'gad_market', 'hunter_cart'
+	act 'Stop browsing': gt 'gad_market', 'start'
+end
+
+if $ARGS[0] = 'hunter_cart':
+	menu_off = 1
+	gs 'shortgs', 'setloc', 'gad_market', 'hunter_cart'
+	$loc_s = 'gad_market'
+	$args_s = 'hunter_cart'
+	gs 'stat'
+
+	if hour < 8 or hour > 20:
+		'The shop is currently closed.'
+
+		act 'Leave': gt 'gad_market', 'hunter_stand'
+		exit
+	end
+
+	gs 'item_cart', 'shoppping_aisle', 'gad_market_hunter'
+	gs 'stat'
+	gs 'themes', 'outdoors'
+
+	act 'Exit shopping cart': $backimage = '' & gt 'gad_market', 'hunter_stand'
+	act 'Leave the stand': minut += 1 & gt 'gad_market', 'start'
+end
+
+if $ARGS[0] = 'clothing_stand':
+	menu_off = 0
+	gs 'shortgs', 'setloc', 'gad_market', 'clothing_stand'
+	$loc_s = 'gad_market'
+	$args_s = 'clothing_stand'
+
+	'A small stand selling cheap clothes'
+
+	if hour < 8 or hour > 20:
+		'The shop is currently closed.'
+
+		act 'Leave': gt 'gad_market', 'clothing_stand'
+		exit
+	end
+
+
+	act 'Browse the clothes': gt 'gad_market', 'clothing_cart'
+	act 'Browse the swimsuits': gt 'gad_market', 'swimsuit_cart'
+	act 'Stop browsing': gt 'gad_market', 'start'
+end
+
+if $ARGS[0] = 'clothing_cart':
+	menu_off = 0
+	gs 'shortgs', 'setloc', 'gad_market', 'clothing_cart'
+	$loc_s = 'gad_market'
+	$args_s = 'clothing_cart'
+	gs 'stat'
+
+	'<center><b><font color="maroon">Clothes</font></b></center>'
+	'You inspect what cheap clothing the stall has to offer.'
+
+	if hour < 8 or hour > 20:
+		'The shop is currently closed.'
+
+		act 'Leave': gt 'gad_market', 'clothing_stand'
+		exit
+	end
+
+	act 'Return': minut += 5 & gt 'gad_market', 'clothing_stand'
+
+	gs 'clothing_QV', 'shop_filter_header'
+	gs 'clothing', 'totals', 'market_outfits'
+
+	!!To filter just this set
+	clo_i = 0
+	:loopmarket_outfits_filter
+		i = 1 + clothingstock mod 4
+		:loopmarket_outfits
+			if market_outfits[i] = 0:
+				gs 'clothing_attributes', 'market_outfits', i
+				gs 'clothing_QV', 'shop_filter'
+
+				!!sort by filter
+				if (clothingfilter['quality'] = 0 and CloQuality = clo_i) or (clothingfilter['inhibition'] = 0 and CloInhibit = clo_i) or clothingfilter['number'] = 0:
+					if clothingfilter['inc'] = 1 and clothingfilter['only'] = 1:*p '<a href="exec: i = <<i>> & gt ''gad_market'', ''marketclo''"><img <<$set_imgh>> src="images/pc/items/market/clothes/<<i>>.jpg" 	height="250" /></a>'
+				end
+			end
+			!! Only half of the market outfits are ever sold here.
+			i += 8
+		if i <= total: jump 'loopmarket_outfits'
+		clo_i += 1
+	if (clothingfilter['quality'] = 0 and clo_i <= 7) or (clothingfilter['inhibition'] = 0 and clo_i <= 50):
+		jump 'loopmarket_outfits_filter'
+	end
+end
+
+if $ARGS[0] = 'marketclo':
+	if market_outfits[i] ! 0:
+		msg 'You already own these clothes.'
+		gt 'gad_market', 'clothing_cart'
+	end
+
+	gt 'clothing', 'view_clothing_item', 'market_outfits', i, 750, 'shop'
+end
+
+if $ARGS[0] = 'swimsuit_cart':
+	menu_off = 0
+	gs 'shortgs', 'setloc', 'gad_market', 'swimsuit_cart'
+	$loc_s = 'gad_market'
+	$args_s = 'swimsuit_cart'
+	gs 'stat'
+
+	'<center><b><font color="maroon">Swimsuits</font></b></center>'
+	'You inspect what cheap swimsuits the stall has to offer.'
+
+	if hour < 8 or hour > 20:
+		'The shop is currently closed.'
+
+		act 'Leave': gt 'gad_market', 'clothing_stand'
+		exit
+	end
+
+	act 'Return': minut += 5 & gt 'gad_market', 'clothing_stand'
+
+	gs 'clothing_QV', 'shop_filter_header'
+
+	!!To filter just this set
+	clo_i = 0
+	:loopgad_swim_filter
+		if (Clothingstock / 4) mod 2 = 0:
+			i = 4
+			if scandalicious_swimsuit[i] = 0:
+				gs 'clothing_attributes', 'scandalicious_swimsuit', i
+				gs 'clothing_QV', 'shop_filter'
+
+				!!sort by filter
+				if (clothingfilter['quality'] = 0 and CloQuality = clo_i) or (clothingfilter['inhibition'] = 0 and CloInhibit = clo_i) or clothingfilter['number'] = 0:
+					if clothingfilter['inc'] = 1 and clothingfilter['only'] = 1: *p '<a href="exec: i = <<i>> & gt ''gad_market'', ''swim1''"><img src="images/pc/items/scandalicious/swim/one/<<i>>.jpg"	 height="250" /></a>'
+				end
+			end
+			i = 6
+			if scandalicious_bikinis[i] = 0:
+				gs 'clothing_attributes', 'scandalicious_bikinis', i
+				gs 'clothing_QV', 'shop_filter'
+
+				!!sort by filter
+				if (clothingfilter['quality'] = 0 and CloQuality = clo_i) or (clothingfilter['inhibition'] = 0 and CloInhibit = clo_i) or clothingfilter['number'] = 0:
+					if clothingfilter['inc'] = 1 and clothingfilter['only'] = 1: *p '<a href="exec: i = <<i>> & gt ''gad_market'', ''bikini1''"><img src="images/pc/items/scandalicious/swim/two/<<i>>.jpg"	 height="250" /></a>'
+				end
+			end
+			i = 7
+			if scandalicious_bikinis[i] = 0:
+				gs 'clothing_attributes', 'scandalicious_bikinis', i
+				gs 'clothing_QV', 'shop_filter'
+
+				!!sort by filter
+				if (clothingfilter['quality'] = 0 and CloQuality = clo_i) or (clothingfilter['inhibition'] = 0 and CloInhibit = clo_i) or clothingfilter['number'] = 0:
+					if clothingfilter['inc'] = 1 and clothingfilter['only'] = 1: *p '<a href="exec: i = <<i>> & gt ''gad_market'', ''bikini1''"><img src="images/pc/items/scandalicious/swim/two/<<i>>.jpg"	 height="250" /></a>'
+				end
+			end
+		else
+			i = 15
+			if scandalicious_swimsuit[i] = 0:
+				gs 'clothing_attributes', 'scandalicious_swimsuit', i
+				gs 'clothing_QV', 'shop_filter'
+
+				!!sort by filter
+				if (clothingfilter['quality'] = 0 and CloQuality = clo_i) or (clothingfilter['inhibition'] = 0 and CloInhibit = clo_i) or clothingfilter['number'] = 0:
+					if clothingfilter['inc'] = 1 and clothingfilter['only'] = 1: *p '<a href="exec: i = <<i>> & gt ''gad_market'', ''swim1''"><img src="images/pc/items/scandalicious/swim/one/<<i>>.jpg"	 height="250" /></a>'
+				end
+			end
+			i = 22
+			if scandalicious_swimsuit[i] = 0:
+				gs 'clothing_attributes', 'scandalicious_swimsuit', i
+				gs 'clothing_QV', 'shop_filter'
+
+				!!sort by filter
+				if (clothingfilter['quality'] = 0 and CloQuality = clo_i) or (clothingfilter['inhibition'] = 0 and CloInhibit = clo_i) or clothingfilter['number'] = 0:
+					if clothingfilter['inc'] = 1 and clothingfilter['only'] = 1: *p '<a href="exec: i = <<i>> & gt ''gad_market'', ''swim1''"><img src="images/pc/items/scandalicious/swim/one/<<i>>.jpg"	 height="250" /></a>'
+				end
+			end
+			i = 60
+			if scandalicious_bikinis[i] = 0:
+				gs 'clothing_attributes', 'scandalicious_bikinis', i
+				gs 'clothing_QV', 'shop_filter'
+
+				!!sort by filter
+				if (clothingfilter['quality'] = 0 and CloQuality = clo_i) or (clothingfilter['inhibition'] = 0 and CloInhibit = clo_i) or clothingfilter['number'] = 0:
+					if clothingfilter['inc'] = 1 and clothingfilter['only'] = 1: *p '<a href="exec: i = <<i>> & gt ''gad_market'', ''bikini1''"><img src="images/pc/items/scandalicious/swim/two/<<i>>.jpg"	 height="250" /></a>'
+				end
+			end
+		end
+		clo_i += 1
+	if clothingfilter['quality'] = 0 and clo_i <= 7 or clothingfilter['inhibition'] = 0 and clo_i <= 50:
+		jump 'loopgad_swim_filter'
+	end
+end
+
+if $ARGS[0] = 'bikini1': gt 'clothing', 'view_clothing_item', 'scandalicious_bikinis', i, 1750, 'shop'
+if $ARGS[0] = 'swim1': gt 'clothing', 'view_clothing_item', 'scandalicious_swimsuit', i, 1750, 'shop'
+
+
+
+if $ARGS[0] = 'build_stand':
+	menu_off = 1
+	gs 'stat'
+
+	'<center><img <<$set_imgh>> src="images/system/image_needed.png"></center>'
+	'It takes you roughly an hour to setup your stand.'
+
+	act 'Continue':
+		minut += rand(40, 60)
+		gad_stand = 1
+		gt 'gad_market', 'your_stand'
+	end
+end
+
+if $ARGS[0] = 'breakdown_stand':
+	menu_off = 1
+	gs 'stat'
+
+	'<center><img <<$set_imgh>> src="images/system/image_needed.png"></center>'
+	'It takes you roughly half an hour to break down your stand.'
+
+	act 'Continue':
+		minut += rand(20, 30)
+		gad_stand = 0
+		gt 'gad_market', 'start'
+	end
+end
+
+
+if $ARGS[0] = 'your_stand':
+	gs 'shortgs', 'setloc', 'gad_market', 'your_stand'
+	gs 'stat'
+
+	'<center><b><font color="maroon">Your Stand</font></b></center>'
+	'<center><img <<$set_imgh>> src="images/system/image_needed.png"></center>'
+	gs 'gad_market', 'see_stored'
+
+	act 'Try and sell your wares': gt 'gad_market', 'sell_wares'
+	act 'Go back': gt 'gad_market', 'start'
+end
+
+if $ARGS[0] = 'sell_wares':
+	menu_off = 1
+	gs 'stat'
+
+	if hour < 8 or hour > 20:
+		'The market is closed, you should break down your stand.'
+		act 'Break down your stand': gt 'gad_market', 'breakdown_stand'
+		exit
+	end
+
+
+	temp_rand = rand(0, 249)
+	if temp_rand >= pcs_chrsm + pcs_persuas:
+		if rand(0, 2) > 0:
+			gt 'gad_market', 'sell_talk'
+		else
+			gt 'gad_market', 'sell_nobody'
+		end
+	else
+		temp_rand = rand(0, 6)
+		if temp_rand < 2 and boletus_stored > 0:
+			gt 'gad_market', 'sell_mushrooms'
+		elseif temp_rand >= 2 and temp_rand < 4 and bilberry_stored > 0:
+			gt 'gad_market', 'sell_berries'
+		elseif temp_rand >= 4 and temp_rand < 6 and fish_stored > 0:
+			gt 'gad_market', 'sell_fish'
+		else
+			gt 'gad_market', 'sell_talk'
+		end
+	end
+end
+
+if $ARGS[0] = 'sell_nobody':
+	minut += 10
+	gs 'stat'
+
+	'<center><img <<$set_imgh>> src="images/system/image_needed.png"></center>'
+	gs 'gad_market', 'see_stored'
+
+
+	'You wait 10 minutes, but nobody seems interested in what you have to sell'
+	act 'Continue trying to sell your wares': gt 'gad_market', 'sell_wares'
+	act 'Stop selling  your wares': gt 'gad_market', 'your_stand'
+
+
+elseif $ARGS[0] = 'sell_mushrooms':
+	minut += 10
+	gs 'stat'
+
+	'<center><img <<$set_imgh>> src="images/system/image_needed.png"></center>'
+	gs 'gad_market', 'see_stored'
+	'Somebody wants to buy a kg of mushrooms!'
+
+	act 'Sell them 1 kg of stored mushrooms':
+		*clr & cla
+		money += 20
+		boletus_stored -= 1
+		gs 'stat'
+
+		'<center><img <<$set_imgh>> src="images/system/image_needed.png"></center>'
+		gs 'gad_market', 'see_stored'
+		'You sell 1 kg of stored mushrooms'
+
+		act 'Continue trying to sell your wares': gt 'gad_market', 'sell_wares'
+		act 'Stop selling  your wares': gt 'gad_market', 'your_stand'
+	end
+
+
+elseif $ARGS[0] = 'sell_berries':
+	minut += 10
+	gs 'stat'
+	'<center><img <<$set_imgh>> src="images/system/image_needed.png"></center>'
+
+	gs 'gad_market', 'see_stored'
+
+
+	'Somebody wants to buy a kg of berries!'
+	act 'Sell them 1 kg of stored berries':
+		*clr & cla
+		money += 20
+		bilberry_stored -= 1
+		gs 'stat'
+
+		'<center><img <<$set_imgh>> src="images/system/image_needed.png"></center>'
+		gs 'gad_market', 'see_stored'
+		'You sell 1 kg of stored berries'
+
+		act 'Continue trying to sell your wares': gt 'gad_market', 'sell_wares'
+		act 'Stop selling  your wares': gt 'gad_market', 'your_stand'
+	end
+
+elseif $ARGS[0] = 'sell_fish':
+	minut += 10
+	gs 'stat'
+
+	'<center><img <<$set_imgh>> src="images/system/image_needed.png"></center>'
+	gs 'gad_market', 'see_stored'
+	'Somebody wants to buy a kg of preserved fish!'
+
+	act 'Sell them 1 kg of preserved fish':
+		*clr & cla
+		money += 20
+		fish_stored -= 1
+		gs 'stat'
+
+		'<center><img <<$set_imgh>> src="images/system/image_needed.png"></center>'
+		gs 'gad_market', 'see_stored'
+		'You sell 1 kg of preserved fish'
+
+		act 'Continue trying to sell your wares': gt 'gad_market', 'sell_wares'
+		act 'Stop selling  your wares': gt 'gad_market', 'your_stand'
+	end
+
+elseif $ARGS[0] = 'sell_talk':
+	minut += 10
+	gs 'stat'
+
+	'<center><img <<$set_imgh>> src="images/system/image_needed.png"></center>'
+	gs 'gad_market', 'see_stored'
+	'A couple of people walk up to your stand and you spend tem minutes making some small-talk.'
+
+	act 'Continue trying to sell your wares': gt 'gad_market', 'sell_wares'
+	act 'Stop selling  your wares': gt 'gad_market', 'your_stand'
+end
+
+if $ARGS[0] = 'see_stored':
+	if boletus_stored > 0:	'You currently are storing <b><<boletus_stored>></b> kg of raw mushrooms.'
+	if bilberry_stored > 0:	'You currently are storing <b><<bilberry_stored>></b> kg of raw berries.'
+	if fish_stored > 0:		'You currently are storing <b><<fish_stored>></b> kg of preserved fish.'
+	if boletus_stored + bilberry_stored + fish_stored = 0: 'You currently have nothing that you can sell'
+end
+
+
+
+
+
+if $ARGS[0] = 'hunter_talk':
+	menu_off = 1
+	minut += 5
+	gs 'stat'
+
+	'<center><img <<$set_imgh>> scr="images/system/image_needed.png"></center>'
+	'You talk to the hunters.'
+
+	act 'Return': gt 'gad_market', 'hunter_stand'
+end
+
+
+
+if $ARGS[0] = 'close':
+	menu_off = 1
+	gs 'stat'
+
+	if gad_stand = 1:
+		'The market is closing, you should break down your stand.'
+		act 'Break down your stand': gt 'gad_market', 'breakdown_stand'
+	else
+		'The market is closing and so you head back to the main street.'
+		act 'Return': gt 'gad_market', 'leave'
+	end
+end
+
+if $ARGS[0] = 'leave':
+	minut += 5
+	killvar 'temp_rand'
+	gt 'gadukino'
+end
+
+--- gad_market ---------------------------------
