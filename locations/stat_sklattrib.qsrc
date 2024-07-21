@@ -122,185 +122,191 @@ $traitattskl[2] = 'schlrly'
 !!This is sets _lvl and _exp based on the value of pcs_"name" the first time so that _lvl and _exp do not need to set on start.
 !!Theoretically this can be eventually deleted.
 if attsklupdate = 0:
-	i = 0 & x = 1
-	:rstloop
-	expadj = func('_difficulty','getexpadj')
-	tl = 0
-	:trtrstloop
-	tltp = 0
-	:trtrstinsdlp
-!!	Note this loop is done with a flag set in the dynamic that is checked outside; this is because testing showed inconsistent results when jumping from inside the dynamic and with the whole loop in the dynamic.
-	dynamic "
-		if <<$traitattskl[tl]>> > 0 and <<$traitattskl[tl]>>[tltp + 1] = x and <<$traitattskl[tl]>>[tltp + 2] = i and <<$traitattskl[tl]>>[tltp + 3] ! 0: expadj += <<$traitattskl[tl]>>[tltp + 3]
-		if <<$traitattskl[tl]>>[tltp + 11] ! 0: insdlpflag = 1
-		"
-	if insdlpflag = 1: tltp += 10 & insdlpflag = 0 & jump 'trtrstinsdlp'
-	tl += 1
-	if tl < arrsize ('$traitattskl'): jump 'trtrstloop'
-	killvar 'tl' & killvar 'tltp' & killvar 'insdlpflag'
+	x = 1
+	:rstloop_outer
+		i = 0
+		:rstloop_inner
+			expadj = func('_difficulty','getexpadj')
+			tl = 0
+			:trtrstloop
+				tltp = 0
+				:trtrstinsdlp
+					!!	Note this loop is done with a flag set in the dynamic that is checked outside; this is because testing showed inconsistent results when jumping from inside the dynamic and with the whole loop in the dynamic.
+					dynamic "
+						if <<$traitattskl[tl]>> > 0 and <<$traitattskl[tl]>>[tltp + 1] = x and <<$traitattskl[tl]>>[tltp + 2] = i and <<$traitattskl[tl]>>[tltp + 3] ! 0: expadj += <<$traitattskl[tl]>>[tltp + 3]
+						if <<$traitattskl[tl]>>[tltp + 11] ! 0: insdlpflag = 1
+						"
+				if insdlpflag = 1: tltp += 10 & insdlpflag = 0 & jump 'trtrstinsdlp'
+				tl += 1
+			if tl < arrsize ('$traitattskl'): jump 'trtrstloop'
+			killvar 'tl' & killvar 'tltp' & killvar 'insdlpflag'
 
-	if x = 1:
-		$attskltmp = $att_name[i]
-	else
-		$attskltmp = $skl_name[i]
-	end
+			if x = 1:
+				$attskltmp = $att_name[i]
+			else
+				$attskltmp = $skl_name[i]
+			end
 
-	dynamic "
-		if pcs_<<$attskltmp>> > 0 and <<$attskltmp>>_lvl = 0:
-			<<$attskltmp>>_exp = (expadj *73* (pcs_<<$attskltmp>> - 1) * (pcs_<<$attskltmp>> - 1) / 2730) + 1
-			<<$attskltmp>>_mem = <<$attskltmp>>_exp - 1
-			<<$attskltmp>>_lvl = pcs_<<$attskltmp>>
-			<<$attskltmp>>_lvlst = <<$attskltmp>>_lvl
-		end
-	"
-	killvar 'expadj' & killvar '$attskltmp'
-	i += 1
-	if (x = 1 and i < arrsize ('$att_name')) or (x = 2 and i < arrsize ('$skl_name')): jump 'rstloop'
-	i = 0 & x += 1
-	if x < 3: jump 'rstloop'
-	killvar 'i' & killvar 'x'
+			dynamic "
+				if pcs_<<$attskltmp>> > 0 and <<$attskltmp>>_lvl = 0:
+					<<$attskltmp>>_exp = (expadj *73* (pcs_<<$attskltmp>> - 1) * (pcs_<<$attskltmp>> - 1) / 2730) + 1
+					<<$attskltmp>>_mem = <<$attskltmp>>_exp - 1
+					<<$attskltmp>>_lvl = pcs_<<$attskltmp>>
+					<<$attskltmp>>_lvlst = <<$attskltmp>>_lvl
+				end
+			"
+			killvar 'expadj' & killvar '$attskltmp'
+			i += 1
+		if (x = 1 and i < arrsize ('$att_name')) or (x = 2 and i < arrsize ('$skl_name')): jump 'rstloop_inner'
+		x += 1
+	if x < 3: jump 'rstloop_outer'
 
 	attsklupdate = 1
 end
 
 !!This is the section that runs when the call is from cikl
 if $ARGS[0] = 'daycall':
-!!	Attribute XP with Skill XP gain
+	!!	Attribute XP with Skill XP gain
 	x = 0
 	:sklxploop
-	y = 1
-	:persklloop
-	dynamic "$attnamtmp = $att_name[<<$skl_name[x]>>[y]]"
-	dynamic "
-		if <<$skl_name[x]>>_exp > <<$skl_name[x]>>_mem: <<$attnamtmp>>_exp += (<<$skl_name[x]>>_exp - <<$skl_name[x]>>_mem) / 5
-		if <<$skl_name[x]>>[y + 1] = -1 or y >= 9: lpstopflg = 1
-		"
-	killvar '$attnamtmp'
-	if lpstopflg = 0: y += 1 & jump 'persklloop'
-	killvar 'lpstopflg'
-	x += 1
+		y = 1
+		:persklloop
+			dynamic "$attnamtmp = $att_name[<<$skl_name[x]>>[y]]"
+			dynamic "
+				if <<$skl_name[x]>>_exp > <<$skl_name[x]>>_mem: <<$attnamtmp>>_exp += (<<$skl_name[x]>>_exp - <<$skl_name[x]>>_mem) / 5
+				if <<$skl_name[x]>>[y + 1] = -1 or y >= 9: lpstopflg = 1
+				"
+			killvar '$attnamtmp'
+		if lpstopflg = 0: y += 1 & jump 'persklloop'
+		killvar 'lpstopflg'
+		x += 1
 	if x < arrsize ('$skl_name'): jump 'sklxploop'
 	killvar 'x' & killvar 'y' & killvar '$attnamtmp'
 
-!!	Degradation Loop
-	i = 0 & x = 1
-	:degloop
-	degadj = 60
-	if x = 2: degadj += 30
-	expadj = func('_difficulty','getexpadj')
-	tl = 0
-	:trtdegloop
-	tltp = 0
-	:trtdeginsdlp
-!!	Note this loop is done with a flag set in the dynamic that is checked outside; this is because testing showed inconsistent results when jumping from inside the dynamic and with the whole loop in the dynamic.
-	dynamic "
-		if <<$traitattskl[tl]>> > 0 and <<$traitattskl[tl]>>[tltp + 1] = x and <<$traitattskl[tl]>>[tltp + 2] = i and <<$traitattskl[tl]>>[tltp + 3] ! 0: expadj += <<$traitattskl[tl]>>[tltp + 3]
-		if <<$traitattskl[tl]>> > 0 and <<$traitattskl[tl]>>[tltp + 1] = x and <<$traitattskl[tl]>>[tltp + 2] = i and <<$traitattskl[tl]>>[tltp + 4] ! 0: degadj += <<$traitattskl[tl]>>[tltp + 4]
-		if <<$traitattskl[tl]>>[tltp + 11] ! 0: insdlpflag = 1
-		"
-	if insdlpflag = 1: tltp += 10 & insdlpflag = 0 & jump 'trtdeginsdlp'
-	tl += 1
-	if tl < arrsize ('$traitattskl'): jump 'trtdegloop'
-	killvar 'tl' & killvar 'tltp' & killvar 'insdlpflag'
+	!!	Degradation Loop
+	x = 1
+	:degloop_outer
+		i = 0
+		:degloop_inner
+			degadj = 60
+			if x = 2: degadj += 30
+			expadj = func('_difficulty','getexpadj')
+			tl = 0
+			:trtdegloop
+				tltp = 0
+				:trtdeginsdlp
+					!!	Note this loop is done with a flag set in the dynamic that is checked outside; this is because testing showed inconsistent results when jumping from inside the dynamic and with the whole loop in the dynamic.
+					dynamic "
+						if <<$traitattskl[tl]>> > 0 and <<$traitattskl[tl]>>[tltp + 1] = x and <<$traitattskl[tl]>>[tltp + 2] = i and <<$traitattskl[tl]>>[tltp + 3] ! 0: expadj += <<$traitattskl[tl]>>[tltp + 3]
+						if <<$traitattskl[tl]>> > 0 and <<$traitattskl[tl]>>[tltp + 1] = x and <<$traitattskl[tl]>>[tltp + 2] = i and <<$traitattskl[tl]>>[tltp + 4] ! 0: degadj += <<$traitattskl[tl]>>[tltp + 4]
+						if <<$traitattskl[tl]>>[tltp + 11] ! 0: insdlpflag = 1
+						"
+					if insdlpflag = 1: tltp += 10 & insdlpflag = 0 & jump 'trtdeginsdlp'
+					tl += 1
+				if tl < arrsize ('$traitattskl'): jump 'trtdegloop'
+				killvar 'tl' & killvar 'tltp' & killvar 'insdlpflag'
 
-	if x = 1:
-		$attskltmp = $att_name[i]
-	else
-		$attskltmp = $skl_name[i]
-	end
+				if x = 1:
+					$attskltmp = $att_name[i]
+				else
+					$attskltmp = $skl_name[i]
+				end
 
-	dynamic "
-		if <<$attskltmp>>_lvl ! <<$attskltmp>>_lvlst: <<$attskltmp>>_lvl = <<$attskltmp>>_lvlst
-		if <<$attskltmp>>_lvl < 100:
-			degtmp = (102 - <<$attskltmp>>_lvl + <<$attskltmp>>_muta)
-		else
-			degtmp = 2 + <<$attskltmp>>_muta
-		end
+				dynamic "
+					if <<$attskltmp>>_lvl ! <<$attskltmp>>_lvlst: <<$attskltmp>>_lvl = <<$attskltmp>>_lvlst
+					if <<$attskltmp>>_lvl < 100:
+						degtmp = (102 - <<$attskltmp>>_lvl + <<$attskltmp>>_muta)
+					else
+						degtmp = 2 + <<$attskltmp>>_muta
+					end
 
-		degtmp = degadj * degtmp / 60
-		if degtmp < 2: degtmp = 2
+					degtmp = degadj * degtmp / 60
+					if degtmp < 2: degtmp = 2
 
-		if <<$attskltmp>>_exp < <<$attskltmp>>_mem: <<$attskltmp>>_exp = <<$attskltmp>>_mem
+					if <<$attskltmp>>_exp < <<$attskltmp>>_mem: <<$attskltmp>>_exp = <<$attskltmp>>_mem
 
-		if <<$attskltmp>>_exp = <<$attskltmp>>_mem:
-			<<$attskltmp>>_deg -= 1
-		else
-			<<$attskltmp>>_deg = degtmp
-		end
+					if <<$attskltmp>>_exp = <<$attskltmp>>_mem:
+						<<$attskltmp>>_deg -= 1
+					else
+						<<$attskltmp>>_deg = degtmp
+					end
 
-		if <<$attskltmp>>_deg <= 0 and <<$attskltmp>>_lvl > <<$attskltmp>>_flr:
-			exptmp = <<$attskltmp>>_exp - (expadj * 73*(<<$attskltmp>>_lvl - 1) * (<<$attskltmp>>_lvl - 1) / 2730)
-			if exptmp < 0: exptmp = 0
-			<<$attskltmp>>_lvl -= 1
-			<<$attskltmp>>_deg = degtmp
-			<<$attskltmp>>_exp = (expadj *73* (<<$attskltmp>>_lvl - 1) * (<<$attskltmp>>_lvl - 1) / 2730) + exptmp
-!!			This will only do anything if the PC builds exp well in excess of what is needed to level
-			if <<$attskltmp>>_exp > (expadj * 73*(<<$attskltmp>>_lvl) * (<<$attskltmp>>_lvl) / 2730): <<$attskltmp>>_exp -= (2 * <<$attskltmp>> - 1) / 10
-		end
-		<<$attskltmp>>_lvlst = <<$attskltmp>>_lvl
-		<<$attskltmp>>_mem = <<$attskltmp>>_exp
-		"
-	killvar 'degtmp' & killvar 'exptmp'
-	killvar 'degadj' & killvar 'expadj' & killvar '$attskltmp'
-	i += 1
-	if (x = 1 and i < arrsize ('$att_name')) or (x = 2 and i < arrsize ('$skl_name')): jump 'degloop'
-	i = 0 & x += 1
-	if x < 3: jump 'degloop'
-	killvar 'i' & killvar 'x'
+					if <<$attskltmp>>_deg <= 0 and <<$attskltmp>>_lvl > <<$attskltmp>>_flr:
+						exptmp = <<$attskltmp>>_exp - (expadj * 73*(<<$attskltmp>>_lvl - 1) * (<<$attskltmp>>_lvl - 1) / 2730)
+						if exptmp < 0: exptmp = 0
+						<<$attskltmp>>_lvl -= 1
+						<<$attskltmp>>_deg = degtmp
+						<<$attskltmp>>_exp = (expadj *73* (<<$attskltmp>>_lvl - 1) * (<<$attskltmp>>_lvl - 1) / 2730) + exptmp
+			!!			This will only do anything if the PC builds exp well in excess of what is needed to level
+						if <<$attskltmp>>_exp > (expadj * 73*(<<$attskltmp>>_lvl) * (<<$attskltmp>>_lvl) / 2730): <<$attskltmp>>_exp -= (2 * <<$attskltmp>> - 1) / 10
+					end
+					<<$attskltmp>>_lvlst = <<$attskltmp>>_lvl
+					<<$attskltmp>>_mem = <<$attskltmp>>_exp
+					"
+				killvar 'degtmp' & killvar 'exptmp'
+				killvar 'degadj' & killvar 'expadj' & killvar '$attskltmp'
+				i += 1
+		if (x = 1 and i < arrsize ('$att_name')) or (x = 2 and i < arrsize ('$skl_name')): jump 'degloop_inner'
+		x += 1
+	if x < 3: jump 'degloop_outer'
 end
 
 !!Advancement Loop
-i = 0 & x = 1
-:advloop
-expadj = func('_difficulty','getexpadj')
-tl = 0
-:trtadvloop
-tltp = 0
-:trtadvinsdlp
-!!Note this loop is done with a flag set in the dynamic that is checked outside; this is because testing showed inconsistent results when jumping from inside the dynamic and with the whole loop in the dynamic.
-dynamic "
-	if <<$traitattskl[tl]>> > 0 and <<$traitattskl[tl]>>[tltp + 1] = x and <<$traitattskl[tl]>>[tltp + 2] = i and <<$traitattskl[tl]>>[tltp + 3] ! 0: expadj += <<$traitattskl[tl]>>[tltp + 3]
-	if <<$traitattskl[tl]>>[tltp + 11] ! 0: insdlpflag = 1
-	"
-if insdlpflag = 1: tltp += 10 & insdlpflag = 0 & jump 'trtadvinsdlp'
-tl += 1
-if tl < arrsize ('$traitattskl'): jump 'trtadvloop'
-killvar 'tl' & killvar 'tltp' & killvar 'insdlpflag'
+x = 1
+:advloop_outer
+	i = 0
+	:advloop_inner
+		expadj = func('_difficulty','getexpadj')
+		tl = 0
+		:trtadvloop
+			tltp = 0
+			:trtadvinsdlp
+				!!Note this loop is done with a flag set in the dynamic that is checked outside; this is because testing showed inconsistent results when jumping from inside the dynamic and with the whole loop in the dynamic.
+				dynamic "
+					if <<$traitattskl[tl]>> > 0 and <<$traitattskl[tl]>>[tltp + 1] = x and <<$traitattskl[tl]>>[tltp + 2] = i and <<$traitattskl[tl]>>[tltp + 3] ! 0: expadj += <<$traitattskl[tl]>>[tltp + 3]
+					if <<$traitattskl[tl]>>[tltp + 11] ! 0: insdlpflag = 1
+					"
+			if insdlpflag = 1: tltp += 10 & insdlpflag = 0 & jump 'trtadvinsdlp'
+			tl += 1
+		if tl < arrsize ('$traitattskl'): jump 'trtadvloop'
+		killvar 'tl' & killvar 'tltp' & killvar 'insdlpflag'
 
-if x = 1:
-	$attskltmp = $att_name[i]
-else
-	$attskltmp = $skl_name[i]
-end
+		if x = 1:
+			$attskltmp = $att_name[i]
+		else
+			$attskltmp = $skl_name[i]
+		end
 
-dynamic "
-	if <<$attskltmp>>_lvl ! <<$attskltmp>>_lvlst: <<$attskltmp>>_lvl = <<$attskltmp>>_lvlst
-	if <<$attskltmp>>_lvl > 0: <<$attskltmp>>_xpprv = (expadj * 73 * (<<$attskltmp>>_lvl-1) * (<<$attskltmp>>_lvl-1) / 2730) + 1 else <<$attskltmp>>_xpprv = 0
-	<<$attskltmp>>_xpnxt = (expadj * 73 * <<$attskltmp>>_lvl * <<$attskltmp>>_lvl / 2730) + 1
+		dynamic "
+			if <<$attskltmp>>_lvl ! <<$attskltmp>>_lvlst: <<$attskltmp>>_lvl = <<$attskltmp>>_lvlst
+			if <<$attskltmp>>_lvl > 0: <<$attskltmp>>_xpprv = (expadj * 73 * (<<$attskltmp>>_lvl-1) * (<<$attskltmp>>_lvl-1) / 2730) + 1 else <<$attskltmp>>_xpprv = 0
+			<<$attskltmp>>_xpnxt = (expadj * 73 * <<$attskltmp>>_lvl * <<$attskltmp>>_lvl / 2730) + 1
 
-	if <<$attskltmp>>_exp > <<$attskltmp>>_xpnxt: <<$attskltmp>>_lvl += 1
-	if <<$attskltmp>>_exp < <<$attskltmp>>_xpprv: <<$attskltmp>>_lvl -= 1
-	<<$attskltmp>>_lvlst = <<$attskltmp>>_lvl
+			if <<$attskltmp>>_exp > <<$attskltmp>>_xpnxt: <<$attskltmp>>_lvl += 1
+			if <<$attskltmp>>_exp < <<$attskltmp>>_xpprv: <<$attskltmp>>_lvl -= 1
+			<<$attskltmp>>_lvlst = <<$attskltmp>>_lvl
 
-	if <<$attskltmp>>_lvl / 5 > <<$attskltmp>>_flr: <<$attskltmp>>_flr = <<$attskltmp>>_lvl / 5
-	if <<$attskltmp>>_lvl > (100 + (<<$attskltmp>>_muta * 50)): <<$attskltmp>>_lvl = (100 + (<<$attskltmp>>_muta * 50))
+			if <<$attskltmp>>_lvl / 5 > <<$attskltmp>>_flr: <<$attskltmp>>_flr = <<$attskltmp>>_lvl / 5
+			if <<$attskltmp>>_lvl > (100 + (<<$attskltmp>>_muta * 50)): <<$attskltmp>>_lvl = (100 + (<<$attskltmp>>_muta * 50))
 
-	if <<$attskltmp>>_lvl > 0: <<$attskltmp>>_xpprv = (expadj * 73 * (<<$attskltmp>>_lvl-1) * (<<$attskltmp>>_lvl-1) / 2730) + 1 else <<$attskltmp>>_xpprv = 0
-	<<$attskltmp>>_xpnxt = (expadj * 73 * <<$attskltmp>>_lvl * <<$attskltmp>>_lvl / 2730) + 1
-	"
-!! removed by rachels 17/10/23 to correct the "marksman" bug - belongs into preceding dynamic code
-!!	if <<$attskltmp>>_exp > (expadj * (<<$attskltmp>>_lvl + 1) * (<<$attskltmp>>_lvl + 1) / 180) - 1:
-!!		<<$attskltmp>>_exp = (expadj * (<<$attskltmp>>_lvl + 1) * (<<$attskltmp>>_lvl + 1) / 180) - 1
-!!		<<$attskltmp>>_mem = <<$attskltmp>>_exp
-!!	end
+			if <<$attskltmp>>_lvl > 0: <<$attskltmp>>_xpprv = (expadj * 73 * (<<$attskltmp>>_lvl-1) * (<<$attskltmp>>_lvl-1) / 2730) + 1 else <<$attskltmp>>_xpprv = 0
+			<<$attskltmp>>_xpnxt = (expadj * 73 * <<$attskltmp>>_lvl * <<$attskltmp>>_lvl / 2730) + 1
+			"
+		!! removed by rachels 17/10/23 to correct the "marksman" bug - belongs into preceding dynamic code
+		!!	if <<$attskltmp>>_exp > (expadj * (<<$attskltmp>>_lvl + 1) * (<<$attskltmp>>_lvl + 1) / 180) - 1:
+		!!		<<$attskltmp>>_exp = (expadj * (<<$attskltmp>>_lvl + 1) * (<<$attskltmp>>_lvl + 1) / 180) - 1
+		!!		<<$attskltmp>>_mem = <<$attskltmp>>_exp
+		!!	end
 
 
-killvar 'expadj' & killvar '$attskltmp'
-i += 1
-if (x = 1 and i < arrsize ('$att_name')) or (x = 2 and i < arrsize ('$skl_name')): jump 'advloop'
-i = 0 & x += 1
-if x < 3: jump 'advloop'
-killvar 'i' & killvar 'x'
+		killvar 'expadj' & killvar '$attskltmp'
+		i += 1
+	if (x = 1 and i < arrsize ('$att_name')) or (x = 2 and i < arrsize ('$skl_name')): jump 'advloop_inner'
+	x += 1
+if x < 3: jump 'advloop_outer'
+
+killvar 'i'
+killvar 'x'
 
 gs 'stat_sklattrib_lvlset'
 
