@@ -1,0 +1,1 @@
+setup.qsp_str = (n)=>n+"";
