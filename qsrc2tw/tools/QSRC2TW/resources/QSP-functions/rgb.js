@@ -1,0 +1,1 @@
+setup.qsp_rgb = (r,g,b)=>r*256^2+g*256+b;

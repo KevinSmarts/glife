@@ -1,0 +1,1 @@
+setup.qsp_isnum = (n) => Number.isInteger(Number(n));
