@@ -1,0 +1,1 @@
+setup.qsp_iif = (condition,ifTrue,ifFalse) => Scripting.evalJavaScript(condition) ? ifTrue : ifFalse;

@@ -1,0 +1,1 @@
+setup.qsp_instr = (text,search,start=0) => text.indexOf(search,start)+1;

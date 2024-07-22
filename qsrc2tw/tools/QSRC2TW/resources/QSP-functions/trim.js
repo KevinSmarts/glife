@@ -1,0 +1,1 @@
+setup.qsp_trim = (s) => s.trim();

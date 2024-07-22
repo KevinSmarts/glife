@@ -1,0 +1,1 @@
+setup.qsp_len = (s)=>s.length;
