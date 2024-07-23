@@ -2,7 +2,7 @@
 
 You need `node` and `npm` installed.
 
-Navigate to `.\tools\QSRC2TW` and run `npm i` there.
+Navigate to `.\tools\QSRC2TW` and run `npm i` there. Do this in the current folder (`qsrc2tw`) as well.
 
 # Changing the ANTLR-grammar
 
