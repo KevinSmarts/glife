@@ -1,0 +1,1 @@
+setup.qsp_msg = (msg) => alert(msg);
