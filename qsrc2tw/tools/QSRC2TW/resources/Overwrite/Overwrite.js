@@ -1,7 +1,34 @@
 class Overwrite{
 
-    _var = {};
+    _func = {};
+    func(passage,args){
+        passage = passage.toLowerCase();
+        if(this._func[passage] === undefined)
+            return undefined;
+        if(typeof this._func[passage] == "function")
+            return this._func[passage](args);
+        return this._func[passage];
+    }
 
+    funcRegister(passage,code){
+        this._func[passage.toLowerCase()] = code;
+    }
+
+    _gs = {};
+    gs(passage,args){
+        passage = passage.toLowerCase();
+        if(this._gs[passage] === undefined)
+            return undefined;
+        if(typeof this._gs[passage] == "function")
+            return this._gs[passage](args);
+        return this._gs[passage];
+    }
+
+    gsRegister(passage,code){
+        this._gs[passage.toLowerCase()] = code;
+    }
+
+    _var = {};
     varGet(id,index){
         if(this._var[id] === undefined || this._var[id].get === undefined)
             return undefined;

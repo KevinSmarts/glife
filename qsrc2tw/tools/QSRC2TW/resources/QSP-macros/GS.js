@@ -1,5 +1,4 @@
 setup.qsp_gs_statistics ??= {};
-setup.qsp_gs_overwrite ??= {};
 
 setup.qsp_gs = function(output,...args){
 	const startTime = (new Date()).getTime();
@@ -17,7 +16,8 @@ setup.qsp_gs = function(output,...args){
 		console.error(`Argument not reckognized in setup.gs()`,args[0]);
 	}
 
-
+	if(setup.Overwrite.gs(destination.toLowerCase(),destinationArgs) !== undefined)
+		return;
 
 	State.variables.ARGSstack.push(destinationArgs);
 
@@ -28,8 +28,6 @@ setup.qsp_gs = function(output,...args){
 	setup.qsp_callStack.push({type:"gs",passage:destination,args:destinationArgs});
 
 	var code = `<<include '${destination.toLowerCase()}'>>`;
-	if(typeof setup.qsp_gs_overwrite[destination.toLowerCase()] == "string")
-		code = setup.qsp_gs_overwrite[destination.toLowerCase()];
 
 	try{
 		if(output)
