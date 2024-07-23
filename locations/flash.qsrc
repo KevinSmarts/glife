@@ -1,27 +1,39 @@
 # flash
 !2020/10/16/Gwen
-!!Centralised flashing location
-!!For flashing events only, do not use for exposure leading to sex
-!!To be used in the following format
-!!gs 'flash', '[type]', '[location]', [time], [option]
-!![time] in minutes, default is 0
-!!Available options as follows
-!![type] - bra, butt, full, panties, pussy, tits
-!![location] - indoors, outdoors
-!![option]
-!!		- Nothing or 0 will clear the screen and give a standard text and randome picture, if you set $flash_image to image string this image will be used instead of a random one.
-!!		- 1 will only advance time and set the diferent variables but not clear the screen, print text or picture.
-!!		- 2 will add the variabels an advance time and set the random picture, but not clear screen and print text.
-!!eg. gs 'flash', 'tits', 'outdoors', 15, 0
-!!There is no continue action so you must add this as required
-!!You should add checks for underwear before allowing the player to flash them but a non-event contingency is included
+!2024/03/25/Anjuna	- Rewrite of flash code
+!2024/07/23/Anjuna	- Added the option to enforce the
+
+!!	Centralised flashing location
+!!	For flashing events only, do not use for exposure leading to sex
+!!	To be used in the following format
+!!	gs 'flash', '[type]', '[location]', [time], [option]
+!!	[time] in minutes, default is 0
+!!	Available options as follows
+!!	[type] - bra, panty, pantyrear, tits, butt, pussy, full
+!!	[location] - indoors, outdoors
+!!	[option]
+!!		- Nothing or 0 will clear the screen and give a standard text and randome picture. flashVars will be deleted
+!!		- 1 will only advance time and set the diferent variables but not clear the screen, generate text or picture. Optional events will NOT trigger.
+!!			- flashVars['image'] contains the generated image
+!!			- flashVars['text_before'] contains the generated text of the flash itself before the arousal call
+!!			- flashVars['text_after'] contains the generated text of the covering up, after the arousal call
+!!		- 2 will add the variables and advance time and set the random picture, but not clear screen or generate text. flashVars will be deleted
+!!
+!!	You enforce the displayed text and image in the following way:
+!!		- $flash_image or $flash_video will set the image or video (if video is set, that will have priority)
+!!		- $flash_text[0] sets all of the flash itself, before the arousal call
+!!		- $flash_text[1] sets all of the covering up, after the arousal call
+
+!!	eg. gs 'flash', 'tits', 'outdoors', 15, 0
+!!	There is no continue action so you must add this as required
+!!	You should add checks for underwear before allowing the player to flash them but a non-event contingency is included
 
 if $ARGS[0] = 'panties': $ARGS[0] = 'panty'
 if $ARGS[0] = 'panties_rear': $ARGS[0] = 'pantyrear'
 if $ARGS[0] = 'butt' and analplugin = 1: $ARGS[0] = 'butt_plug'
 
 
-if $ARGS[0] = 'get_image' and $flash_image = '':
+if $ARGS[0] = 'get_image' and $flash_image = '' and $flash_video = '':
 	flashVars['dress_ind_bra'] = 3
 	flashVars['dress_ind_tits'] = 12
 	flashVars['dress_ind_panty'] = 4
@@ -92,156 +104,192 @@ if $ARGS[0] = 'get_image' and $flash_image = '':
 	end
 
 	flashVars['rand'] = rand(1, flashVars[$temp_id_text])
-	$flash_image += str(flashVars['rand'])
+	$flash_image += str(flashVars['rand']) + '.jpg'
+
 	$flashVars['image'] = $flash_image
 
 	killvar 'temp_id_text'
 end
 
 
+if $ARGS[0] = 'display_image':
+	if $flash_video = '':
+		'<center><img <<$set_imgh>> src="<<$flash_image>>"></center>'
+	else
+		'<center><video autoplay loop src="<<$flash_video>>"></video></center>'
+	end
+end
+
+
+
+
+	!!=========================================================!!
+	!!                                                         !!
+	!!                          TYPES                          !!
+	!!                                                         !!
+	!!=========================================================!!
+
 
 if $ARGS[0] = 'bra':
 	if Exhibitionist_lvl < 1 or pcs_inhib < 40: gs 'flash', 'exhibitionism', 1
-	gs 'arousal', 'flashlite', ARGS[2]
-	gs 'arousal', 'end'
-	gs 'flash', 'get_image', $ARGS[0], $ARGS[1]
+
+	$flashVars['text_before'] = 'You glance around to see who  is in the area, then you pull up your top and expose your bra clad breasts to the world. Most people don''t notice but a few do, some smile, others frown or shake their head in disgust.'
+	$flashVars['text_after'] = 'You pull your top back down, feeling the thrill of excitement running down your spine.'
+
 	if ARGS[3] < 1:
 		*clr
-		'<center><img <<$set_imgh>> src="<<$flash_image>>.jpg"></center>'
-		'You glance around to see who  is in the area, then you pull up your top and expose your bra clad breasts to the world. Most people don''t notice but a few do, some smile, others frown or shake their head in disgust.'
-		gs 'blackmailer', 'init_check', $ARGS[0], $ARGS[1]
-		'You pull your top back down, feeling the thrill of excitement running down your spine.'
-
-		$flash_image = ''
-	elseif ARGS[3] = 2:
-		'<center><img <<$set_imgh>> src="<<$flash_image>>.jpg"></center>'
+		$flash_text[0] = $flashVars['text_before']
+		$flash_text[1] = $flashVars['text_after']
 	end
 
-	if ARGS[3] ! 1: killvar 'flashVars'
+	gs 'flash', 'get_image', $ARGS[0], $ARGS[1]
+	if ARGS[4] ! 1: gs 'flash', 'display_image'
+
+	if $flash_text[0] ! '': '<<$flash_text[0]>>'
+	gs 'arousal', 'flashlite', ARGS[2]
+	if ARGS[4] ! 1: gs 'flash', 'events', $ARGS[1], $ARGS[2], ARGS[3], ARGS[4]
+	if $flash_text[1] ! '': '<<$flash_text[1]>>'
+	gs 'arousal', 'end'
+
+	gs 'flash', 'cleanup', ARGS[3]
 end
 
 if $ARGS[0] = 'tits':
 	gs 'flash', 'exhibitionism', 1
-	gs 'arousal', 'flashlite', ARGS[2]
-	gs 'arousal', 'end'
-	gs 'flash', 'get_image', $ARGS[0], $ARGS[1]
-	if ARGS[3] < 1:
-		*clr
-		'<center><img <<$set_imgh>> src="<<$flash_image>>.jpg"></center>'
-		'You glance around to see who  is in the area, then you pull up your top and expose your bare breasts to the world. Most people don''t notice but a few do, some smile, others frown or shake their head in disgust.'
-		gs 'blackmailer', 'init_check', $ARGS[0], $ARGS[1]
-		'You pull your top back down, feeling the thrill of excitement running down your spine.'
-		$flash_text
 
-		$flash_text
-		$flash_image = ''
-	elseif ARGS[3] = 2:
-		'<center><img <<$set_imgh>> src="<<$flash_image>>.jpg"></center>'
+	$flashVars['text_before'] = 'You glance around to see who  is in the area, then you pull up your top and expose your bare breasts to the world. Most people don''t notice but a few do, some smile, others frown or shake their head in disgust.'
+	$flashVars['text_before'] = 'You pull your top back down, feeling the thrill of excitement running down your spine.'
+
+	if ARGS[3] < 1:
+		$flash_text[0] = $flashVars['text_before']
+		$flash_text[1] = $flashVars['text_after']
 	end
 
-	if ARGS[3] ! 1: killvar 'flashVars'
+	gs 'flash', 'get_image', $ARGS[0], $ARGS[1]
+	if ARGS[4] ! 1: gs 'flash', 'display_image'
+
+	if $flash_text[0] ! '': '<<$flash_text[0]>>'
+	gs 'arousal', 'flashlite', ARGS[2]
+	if ARGS[4] ! 1: gs 'flash', 'events', $ARGS[1], $ARGS[2], ARGS[3], ARGS[4]
+	if $flash_text[1] ! '': '<<$flash_text[1]>>'
+	gs 'arousal', 'end'
+
+	gs 'flash', 'cleanup', ARGS[3]
 end
 
 if $ARGS[0] = 'panty' or $ARGS[0] = 'panties':
 	gs 'flash', 'exhibitionism', 2
-	gs 'arousal', 'flash', ARGS[2]
-	gs 'arousal', 'end'
-	gs 'flash', 'get_image', $ARGS[0], $ARGS[1]
-	if ARGS[3] < 1:
-		*clr
-		'<center><img <<$set_imgh>> src="<<$flash_image>>.jpg"></center>'
-		'You glance around to see who  is in the area, then you ' + iif(PCloSkirt > 0, 'lift the front of your skirt', 'pull down the front of your pants') + ' to show off your panties. Most people don''t notice but a few do, some smile, others frown or shake their head in disgust.'
-		gs 'blackmailer', 'init_check', $ARGS[0], $ARGS[1]
-		'You ' + iif(PCloSkirt > 0, 'lower the skirt back in place', 'pull your pants back up') + ', feeling the thrill of excitement running down your spine.'
 
-		$flash_image = ''
-	elseif ARGS[3] = 2:
-		'<center><img <<$set_imgh>> src="<<$flash_image>>.jpg"></center>'
+	$flashVars['text_before'] = 'You glance around to see who  is in the area, then you ' + iif(PCloSkirt > 0, 'lift the front of your skirt', 'pull down the front of your pants') + ' to show off your panties. Most people don''t notice but a few do, some smile, others frown or shake their head in disgust.'
+	$flashVars['text_before'] = 'You ' + iif(PCloSkirt > 0, 'lower the skirt back in place', 'pull your pants back up') + ', feeling the thrill of excitement running down your spine.'
+
+	if ARGS[3] < 1:
+		$flash_text[0] = $flashVars['text_before']
+		$flash_text[1] = $flashVars['text_after']
 	end
 
-	if ARGS[3] ! 1: killvar 'flashVars'
+	gs 'flash', 'get_image', $ARGS[0], $ARGS[1]
+	if ARGS[4] ! 1: gs 'flash', 'display_image'
+
+	if $flash_text[0] ! '': '<<$flash_text[0]>>'
+	gs 'arousal', 'flash', ARGS[2]
+	if ARGS[4] ! 1: gs 'flash', 'events', $ARGS[1], $ARGS[2], ARGS[3], ARGS[4]
+	if $flash_text[1] ! '': '<<$flash_text[1]>>'
+	gs 'arousal', 'end'
+
+	gs 'flash', 'cleanup', ARGS[3]
 end
 
 if $ARGS[0] = 'pantyrear' or $ARGS[0] = 'panties_rear':
 	gs 'flash', 'exhibitionism', 2
-	gs 'arousal', 'flash', ARGS[2]
-	gs 'arousal', 'end'
-	gs 'flash', 'get_image', $ARGS[0], $ARGS[1]
-	if ARGS[3] < 1:
-		*clr
-		'<center><img <<$set_imgh>> src="<<$flash_image>>.jpg"></center>'
-		'You glance around to see who  is in the area, then you pull ' + iif(PCloSkirt > 0, 'up your skirt', 'down the back of your pants') + ' to show off your panty-clad butt. Most people don''t notice but a few do, some smile, others frown or shake their head in disgust.'
-		gs 'blackmailer', 'init_check', $ARGS[0], $ARGS[1]
-		'You ' + iif(PCloSkirt > 0, 'lower the skirt back in place', 'pull your pants back up') + ', feeling the thrill of excitement running down your spine.'
 
-		$flash_image = ''
-	elseif ARGS[3] = 2:
-		'<center><img <<$set_imgh>> src="<<$flash_image>>.jpg"></center>'
+	$flashVars['text_before'] = 'You glance around to see who  is in the area, then you pull ' + iif(PCloSkirt > 0, 'up your skirt', 'down the back of your pants') + ' to show off your panty-clad butt. Most people don''t notice but a few do, some smile, others frown or shake their head in disgust.'
+	$flashVars['text_before'] = 'You ' + iif(PCloSkirt > 0, 'lower the skirt back in place', 'pull your pants back up') + ', feeling the thrill of excitement running down your spine.'
+
+	if ARGS[3] < 1:
+		$flash_text[0] = $flashVars['text_before']
+		$flash_text[1] = $flashVars['text_after']
 	end
 
-	if ARGS[3] ! 1: killvar 'flashVars'
+	gs 'flash', 'get_image', $ARGS[0], $ARGS[1]
+	if ARGS[4] ! 1: gs 'flash', 'display_image'
+
+	if $flash_text[0] ! '': '<<$flash_text[0]>>'
+	gs 'arousal', 'flash', ARGS[2]
+	if ARGS[4] ! 1: gs 'flash', 'events', $ARGS[1], $ARGS[2], ARGS[3], ARGS[4]
+	if $flash_text[1] ! '': '<<$flash_text[1]>>'
+	gs 'arousal', 'end'
+
+	gs 'flash', 'cleanup', ARGS[3]
+end
+
+if $ARGS[0] = 'butt' or $ARGS[0] = 'butt_plug':
+	gs 'flash', 'exhibitionism', 2
+
+	$flashVars['text_before'] = 'You glance around to see who  is in the area, then you pull ' + iif(PCloSkirt > 0, 'up the back of your skirt', 'down the back of your pants') + ' to show off your butt. Most people don''t notice but a few do, some smile, others frown or shake their head in disgust.'
+	$flashVars['text_before'] = 'You ' + iif(PCloSkirt > 0, 'lower the skirt back in place', 'pull your pants back up') + ', feeling the thrill of excitement running down your spine.'
+
+	if ARGS[3] < 1:
+		$flash_text[0] = $flashVars['text_before']
+		$flash_text[1] = $flashVars['text_after']
+	end
+
+	gs 'flash', 'get_image', $ARGS[0], $ARGS[1]
+	if ARGS[4] ! 1: gs 'flash', 'display_image'
+
+	if $flash_text[0] ! '': '<<$flash_text[0]>>'
+	gs 'arousal', 'flash', ARGS[2]
+	if ARGS[4] ! 1: gs 'flash', 'events', $ARGS[1], $ARGS[2], ARGS[3], ARGS[4]
+	if $flash_text[1] ! '': '<<$flash_text[1]>>'
+	gs 'arousal', 'end'
+
+	gs 'flash', 'cleanup', ARGS[3]
 end
 
 if $ARGS[0] = 'pussy':
 	gs 'flash', 'exhibitionism', 3
-	gs 'arousal', 'flash', ARGS[2]
-	gs 'arousal', 'end'
-	gs 'flash', 'get_image', $ARGS[0], $ARGS[1]
-	if ARGS[3] < 1:
-		*clr
-		'<center><img <<$set_imgh>> src="<<$flash_image>>.jpg"></center>'
-		'You glance around to see who  is in the area, then you pull ' + iif(PCloSkirt > 0, 'up the front of your skirt', 'down the front of your pants') + ' to show off your pussy. Most people don''t notice but a few do, some smile, others frown or shake their head in disgust.'
-		gs 'blackmailer', 'init_check', $ARGS[0], $ARGS[1]
-		'You ' + iif(PCloSkirt > 0, 'lower the skirt back in place', 'pull your pants back up') + ', feeling the thrill of excitement running down your spine.'
 
-		$flash_image = ''
-	elseif ARGS[3] = 2:
-		'<center><img <<$set_imgh>> src="<<$flash_image>>.jpg"></center>'
+	$flashVars['text_before'] = 'You glance around to see who  is in the area, then you pull ' + iif(PCloSkirt > 0, 'up the front of your skirt', 'down the front of your pants') + ' to show off your pussy. Most people don''t notice but a few do, some smile, others frown or shake their head in disgust.'
+	$flashVars['text_before'] = 'You ' + iif(PCloSkirt > 0, 'lower the skirt back in place', 'pull your pants back up') + ', feeling the thrill of excitement running down your spine.'
+
+	if ARGS[3] < 1:
+		$flash_text[0] = $flashVars['text_before']
+		$flash_text[1] = $flashVars['text_after']
 	end
 
-	if ARGS[3] ! 1: killvar 'flashVars'
-end
-
-
-
-if $ARGS[0] = 'butt' or $ARGS[0] = 'butt_plug':
-	gs 'flash', 'exhibitionism', 2
-	gs 'arousal', 'flash', ARGS[2]
-	gs 'arousal', 'end'
 	gs 'flash', 'get_image', $ARGS[0], $ARGS[1]
-	if ARGS[3] < 1:
-		*clr
-		'<center><img <<$set_imgh>> src="<<$flash_image>>.jpg"></center>'
-		'You glance around to see who  is in the area, then you pull ' + iif(PCloSkirt > 0, 'up the back of your skirt', 'down the back of your pants') + ' to show off your butt. Most people don''t notice but a few do, some smile, others frown or shake their head in disgust.'
-		gs 'blackmailer', 'init_check', $ARGS[0], $ARGS[1]
-		'You ' + iif(PCloSkirt > 0, 'lower the skirt back in place', 'pull your pants back up') + ', feeling the thrill of excitement running down your spine.'
+	if ARGS[4] ! 1: gs 'flash', 'display_image'
 
-		$flash_image = ''
-	elseif ARGS[3] = 2:
-		'<center><img <<$set_imgh>> src="<<$flash_image>>.jpg"></center>'
-	end
+	if $flash_text[0] ! '': '<<$flash_text[0]>>'
+	gs 'arousal', 'flash', ARGS[2]
+	if ARGS[4] ! 1: gs 'flash', 'events', $ARGS[1], $ARGS[2], ARGS[3], ARGS[4]
+	if $flash_text[1] ! '': '<<$flash_text[1]>>'
+	gs 'arousal', 'end'
 
-	if ARGS[3] ! 1: killvar 'flashVars'
+	gs 'flash', 'cleanup', ARGS[3]
 end
 
 if $ARGS[0] = 'full':
 	gs 'flash', 'exhibitionism', 3
-	gs 'arousal', 'flash', ARGS[2]
-	gs 'arousal', 'end'
-	gs 'flash', 'get_image', $ARGS[0], $ARGS[1]
-	if ARGS[3] < 1:
-		*clr
-		'<center><img <<$set_imgh>> src="<<$flash_image>>.jpg"></center>'
-		'Making sure there are no children around and it''s not too busy you ' + iif(PCloSkirt > 0, 'lift your skirt and top', 'lower your pants and lift your top') + ' to expose both your pussy and breasts. Most people who see you are shocked but some look at you admiringly.'
-		gs 'blackmailer', 'init_check', $ARGS[0], $ARGS[1]
-		'You quickly cover up again enjoying a buzz of excitement.'
 
-		$flash_image = ''
-	elseif ARGS[3] = 2:
-		'<center><img <<$set_imgh>> src="<<$flash_image>>.jpg"></center>'
+	$flashflashVars['text_before'] = 'Making sure there are no children around and it''s not too busy you ' + iif(PCloSkirt > 0, 'lift your skirt and top', 'lower your pants and lift your top') + ' to expose both your pussy and breasts. Most people who see you are shocked but some look at you admiringly.'
+	$flashVars['text_before'] = 'You quickly cover up again enjoying a buzz of excitement.'
+
+	if ARGS[3] < 1:
+		$flash_text[0] = $flashVars['text_before']
+		$flash_text[1] = $flashVars['text_after']
 	end
 
-	if ARGS[3] ! 1: killvar 'flashVars'
+	gs 'flash', 'get_image', $ARGS[0], $ARGS[1]
+	if ARGS[4] ! 1: gs 'flash', 'display_image'
+
+	if $flash_text[0] ! '': '<<$flash_text[0]>>'
+	gs 'arousal', 'flash', ARGS[2]
+	if ARGS[4] ! 1: gs 'flash', 'events', $ARGS[1], $ARGS[2], ARGS[3], ARGS[4]
+	if $flash_text[1] ! '': '<<$flash_text[1]>>'
+	gs 'arousal', 'end'
+
+	gs 'flash', 'cleanup', ARGS[3]
 end
 
 !!For us only when Sveta chooses to flash
@@ -274,6 +322,31 @@ if $ARGS[0] = 'exhibitionism':
 	end
 
 	if pcs_exhib > 100: pcs_exhib = 100
+end
+
+
+if $ARGS[0] = 'cleanup':
+	if ARGS[1] ! 1: killvar 'flashVars'
+	killvar '$flash_image'
+	killvar '$flash_video'
+	killvar '$flash_text'
+end
+
+
+
+
+	!!=========================================================!!
+	!!                                                         !!
+	!!                         EVENTS                          !!
+	!!                                                         !!
+	!!=========================================================!!
+
+!! $ARGS[1] = type
+!! $ARGS[2] = location
+!!  ARGS[3] = time
+!!  ARGS[4] = option
+if $ARGS[0] = 'events':
+	gs 'blackmailer', 'init_check', $ARGS[0], $ARGS[1]
 end
 
 --- flash ---------------------------------
