@@ -1,13 +1,12 @@
-setup.qsp_func_overwrite ??= {};
 setup.qsp_func_statistics ??= {};
 setup.qsp_callStack ??= [];
 
 setup.qsp_func = (passage,...args) => {
     passage = passage.toLowerCase();
-    if(typeof setup.qsp_func_overwrite[passage] == "function"){
-        console.log("ALTER",passage);
-        return setup.qsp_func_overwrite[passage](args);
-    }
+
+    let overwrittenResult = setup.Overwrite.func(passage,args);
+    if(overwrittenResult !== undefined)
+		return overwrittenResult;
 
     const startTime = (new Date()).getTime();
 
