@@ -6,13 +6,12 @@ if $ARGS[0] = '':
 		Note: A huge part of PC's appearance is from base appearance, which is updated once a day. Because it's
 		a global variable, it does not show in this function in particular, but it's used in 'CalcAppearance'
 	}
-	if pcs_makeup = 6 and bimbolevel >= 2: extra_supnatvnesh = 2*bimbolevel - 2
 
 	clothingBonus = func('AppearanceSystem', 'CalcClothingBonus')
 	accessoriesBonus = func('AppearanceSystem', 'CalcAccessoriesBonus', bonusZ, PShoQuality)
 	groomingBonus = func('AppearanceSystem', 'CalcGroomingBonus')
 	groomingPenalty = func('AppearanceSystem', 'CalcGroomingPenalty')
-	pcs_apprnc = func('AppearanceSystem', 'CalcAppearance', (supnatvnesh + extra_supnatvnesh))
+	pcs_apprnc = func('AppearanceSystem', 'CalcAppearance', supnatvnesh)
 	pcs_hotcat = func('AppearanceSystem', 'ConvertToHotcat', pcs_apprnc)
 
 	killvar 'clothingBonus'
@@ -73,14 +72,14 @@ if $ARGS[0] = 'CalcFaceBonus':
 end
 
 if $ARGS[0] = 'CalcAttributeBonus':
-	tempAttributeBonus = (pcs_agil / 5) + (pcs_vital / 5)
+	tempAttributeBonus = (pcs_agil + pcs_vital) / 5
 
 	result = func('AppearanceSystem', 'AdjustFromBMI', tempAttributeBonus)
 	killvar 'tempAttributeBonus'
 end
 
 if $ARGS[0] = 'CalcVisibleAgePenalty':
-	if vidage < 20: tempAttributePenalty = func('shortgs','round_divide', (5*(20 - vidage)), 2)
+	if vidage < 20: tempAttributePenalty = (5*(20 - vidage) + 1) / 2
 
 	result = func('AppearanceSystem', 'AdjustFromBMI', tempAttributePenalty)
 	killvar 'tempAttributePenalty'
@@ -192,18 +191,22 @@ end
 if $ARGS[0] = 'CalcGroomingBonus':
 
 	makeupBonus = pcs_makupskl/5 - 5
-	if pcs_makeup = 0: makeupBonus = -5
-	if pcs_makeup = 1: makeupBonus = 0
-	if pcs_makeup = 5: makeupBonus = 30
+	if pcs_makeup = 0:
+		makeupBonus = -5
+	elseif pcs_makeup = 1:
+		makeupBonus = 0
+	elseif pcs_makeup = 5:
+		makeupBonus = 30
+	elseif pcs_makeup = 6 and bimbolevel >= 2:
+		makeupBonus += 2 * (bimbolevel - 1)
+	elseif pcs_makeup = 7:
+		makeupBonus += pcs_makeupskl / 10 - 50
+	end
 
-	breathBonus = pcs_breath * 5
+	breathBonus = 5 * pcs_breath
 
-	tempGroomingBonus = makeupBonus + breathBonus
+	result = func('AppearanceSystem', 'AdjustFromBMI', makeupBonus + breathBonus)
 
-	!result = tempGroomingBonus
-	result = func('AppearanceSystem', 'AdjustFromBMI', tempGroomingBonus)
-
-	killvar 'tempGroomingBonus'
 	killvar 'breathBonus'
 	killvar 'makeupBonus'
 end
