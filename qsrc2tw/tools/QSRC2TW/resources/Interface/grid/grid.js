@@ -1,4 +1,7 @@
-$(document).one(':passagedisplay', function (ev) {
+setup.uiGridCreate ??= () =>{
+
+//$(document).one(':passagedisplay', function (ev) {
+	$('#interface').addClass('grid-stack');
 
 	const layoutFromStorage = JSON.parse(localStorage.getItem("GridStack") ?? "{}");
 	$('.grid-stack .grid-stack-item:visible').toArray().forEach((element,index) => {
@@ -8,7 +11,7 @@ $(document).one(':passagedisplay', function (ev) {
 	});
 
 
-    GridStack.init();
+    setup.uiGrid = GridStack.init();
 
     let grid_stack = $('.grid-stack');
 
@@ -27,4 +30,15 @@ $(document).one(':passagedisplay', function (ev) {
         });
 		localStorage.setItem("GridStack", JSON.stringify(r));
     });
-});
+//});
+}
+
+setup.uiGridDestroy = () => {
+	//$(document).one(':passagedisplay', function (ev) {
+		if(!setup.uiGrid)
+			return;
+		setup.uiGrid.destroy(false);
+
+		$('#interface').removeClass('grid-stack');
+	//});
+}

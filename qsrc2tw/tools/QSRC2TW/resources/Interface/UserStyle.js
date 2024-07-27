@@ -22,6 +22,15 @@ class UserStyle{
 		this.saveToLocalStorage();
 		if($(UserStyle.#domId).length)
 			$(UserStyle.#domId).text(this.css);
+
+		if(this._grid && !this._gridIsCreated){
+			setup.uiGridCreate();
+			this._gridIsCreated = true;
+		}
+		else if(!this._grid && this._gridIsCreated){
+			setup.uiGridDestroy();
+			this._gridIsCreated = false;
+		}
 	}
 
 	get css(){
@@ -29,8 +38,15 @@ class UserStyle{
 					font-family:${this.font};
 					font-size:${this.fontSize}px;
 				}
-				
-				`+ this.toggleErrorsCSS + this.toggleNoticesCSS;
+
+				`+ this.toggleErrorsCSS + this.toggleNoticesCSS + this.gridCSS + this.customCSS;
+	}
+
+	_customCSS = '';
+	get customCSS(){return this._customCSS;}
+	set customCSS(v){
+		this._customCSS = v;
+		this.update();
 	}
 
 	_font = 'Helmet, Freesans, sans-serif';
@@ -45,6 +61,19 @@ class UserStyle{
 	set fontSize(v){
 		this._fontSize = v;
 		this.update();
+	}
+
+	_gridIsCreated = false;
+	_grid = false;
+	get grid(){return this._grid;}
+	set grid(v){
+		this._grid = v;
+		this.update();
+	}
+	get gridCSS(){
+		if(!this._grid)
+			return ".grid-stack-item{display: contents;} #interface>div>*{overflow:auto}"
+		return "";
 	}
 
 	_toggleErrors = false;
