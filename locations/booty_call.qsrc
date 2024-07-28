@@ -3,6 +3,7 @@ if $ARGS[0] = 'scheduler':
 	!! clear SMS
 	!! clear schedule
 	killvar 'booty_call_time'
+	killvar 'sugar_daddy_call'
 	killvar 'npc_booty_call'
 	killvar 'npc_booty_call_time'
 	gs 'booty_call', 'booty_call_scheduler'
@@ -13,6 +14,7 @@ if $ARGS[0] = 'booty_call_scheduler':
 	:bc_fb_sched_loop
 	if temp_bc_i < arrsize('$fuckbuddy'):
 		$temp_bc_id = $FuckBuddy[temp_bc_i]
+		gs 'telefon', 'ClearSMSSchedule', $temp_bc_id
 		gs 'booty_call', 'bc_npc_stat_update', $temp_bc_id
 !!		if (rand(1, 10) <= npc_sexdrive[$temp_bc_id] or npc_booty_call[$temp_bc_id] = daystart) and npc_rel[$temp_bc_id] > 0 and npc_no_booty_call[$temp_bc_id] ! daystart and npc_big_fight[$temp_bc_id] < daystart - 7:
 
@@ -20,10 +22,8 @@ if $ARGS[0] = 'booty_call_scheduler':
 
 !!		if (rand(1, 10) <= npc_sexdrive[$temp_bc_id] or npc_booty_call[$temp_bc_id] = daystart) and npc_no_booty_call[$temp_bc_id] ! daystart and (npc_big_fight[$temp_bc_id] < daystart - 7 and daystart > 7):
 
-		if npc_no_booty_call[$temp_bc_id] ! daystart and (npc_booty_call_date[$temp_bc_id] = daystart or rand(1, 10) <= npc_sexdrive[$temp_bc_id] or rand(1, 100) <= npc_rel[$temp_bc_id]):
-			gs 'booty_call', 'schedule_sms_time', $temp_bc_id
-		else
-			npc_no_booty_call[$temp_bc_id] = daystart
+		if daystart > npc_no_booty_call[$temp_bc_id] and (npc_booty_call_date[$temp_bc_id] = daystart or rand(1, 10) <= npc_sexdrive[$temp_bc_id] or rand(1, 100) <= npc_rel[$temp_bc_id]):
+			gs 'booty_call', 'schedule_sms', $temp_bc_id
 		end
 		temp_bc_i += 1
 		jump 'bc_fb_sched_loop'
@@ -34,6 +34,7 @@ if $ARGS[0] = 'booty_call_scheduler':
 	:bc_sd_sched_loop
 	if temp_bc_i < arrsize('$sugar_daddy'):
 		$temp_bc_id = $sugar_daddy[temp_bc_i]
+		gs 'telefon', 'ClearSMSSchedule', $temp_bc_id
 		gs 'booty_call', 'bc_npc_stat_update', $temp_bc_id
 !!		if (rand(1, 10) <= npc_sexdrive[$temp_bc_id] or npc_booty_call[$temp_bc_id] = daystart) and npc_rel[$temp_bc_id] > 0 and npc_no_booty_call[$temp_bc_id] ! daystart and npc_big_fight[$temp_bc_id] < daystart - 7:
 
@@ -41,14 +42,9 @@ if $ARGS[0] = 'booty_call_scheduler':
 
 !!		if (rand(1, 10) <= npc_sexdrive[$temp_bc_id] or npc_booty_call[$temp_bc_id] = daystart) and npc_no_booty_call[$temp_bc_id] ! daystart and (npc_big_fight[$temp_bc_id] < daystart - 7 and daystart > 7):
 
-		if daystart + npc_rel[$temp_bc_id] / 10 < npc_sugar_daddy_timer[$temp_bc_id]:
-			npc_no_booty_call[$temp_bc_id] = daystart
-
-		elseif npc_no_booty_call[$temp_bc_id] = daystart and (npc_booty_call_date[$temp_bc_id] = daystart or rand(1, 10) <= npc_sexdrive[$temp_bc_id] or rand(1, 100) <= npc_rel[$temp_bc_id]):
+		if daystart > npc_no_booty_call[$temp_bc_id] and (daystart + npc_rel[$temp_bc_id] / 10 >= npc_sugar_daddy_timer[$temp_bc_id]) and (npc_booty_call_date[$temp_bc_id] = daystart or rand(1, 10) <= npc_sexdrive[$temp_bc_id] or rand(1, 100) <= npc_rel[$temp_bc_id]):
 			sugar_daddy_call[$sugar_daddy[temp_bc_i]] = 1
-			gs 'booty_call', 'schedule_sms_time', $temp_bc_id
-		else
-			npc_no_booty_call[$temp_bc_id] = daystart
+			gs 'booty_call', 'schedule_sms', $temp_bc_id
 		end
 		temp_bc_i += 1
 		jump 'bc_sd_sched_loop'
@@ -59,15 +55,18 @@ if $ARGS[0] = 'booty_call_scheduler':
 end
 
 !! $ARGS[1] = $npc_id
-if $ARGS[0] = 'schedule_sms_time':
+if $ARGS[0] = 'schedule_sms':
 	if npc_booty_call[$ARGS[1]] = daystart:
-		booty_call_time[$ARGS[1]] = 60 * npc_booty_call_time[$ARGS[1]] + rand(0, 180)
+		gs 'telefon', 'SetSMSSchedule', $ARGS[1], "", "0", "gs 'booty_call_sms', 'start', '<<$ARGS[1]>>'", "totminut > <<totminut + 60 * (npc_booty_call_time[$ARGS[1]] - hour) + rand(0, 180) - minut>>"
+		!booty_call_time[$ARGS[1]] = 60 * npc_booty_call_time[$ARGS[1]] + rand(0, 180)
 	elseif week = npc_day_off[$ARGS[1]]:
-		booty_call_time[$ARGS[1]] = 600 + rand(0, 720)
+		gs 'telefon', 'SetSMSSchedule', $ARGS[1], "", "0", "gs 'booty_call_sms', 'start', '<<$ARGS[1]>>'", "totminut > <<totminut + 60 * (10 - hour) + rand(0, 240) + rand(0, 240) + rand(0, 240) - minut>>"
+		!booty_call_time[$ARGS[1]] = 600 + rand(0, 720)
 	elseif week ! npc_day_off[$ARGS[1]]:
-		booty_call_time[$ARGS[1]] = 60 * rand(npc_start_free_time[$ARGS[1]], (npc_end_free_time[$ARGS[1]] - 1)) + rand(0, 180)
+		gs 'telefon', 'SetSMSSchedule', $ARGS[1], "", "0", "gs 'booty_call_sms', 'start', '<<$ARGS[1]>>'", "totminut > <<totminut + 60 * (rand(npc_start_free_time[$ARGS[1]], npc_end_free_time[$ARGS[1]] - 1) - hour) + rand(0, 180) - minut>>"
+		!booty_call_time[$ARGS[1]] = 60 * rand(npc_start_free_time[$ARGS[1]], (npc_end_free_time[$ARGS[1]] - 1)) + rand(0, 180)
 	else
-		booty_call_time[$ARGS[1]] = 2000
+		!booty_call_time[$ARGS[1]] = 2000
 	end
 end
 
@@ -158,42 +157,6 @@ if $ARGS[0] = 'block_booty_calls':
 	elseif sex_ev['invite_tomorrow'] = 1:
 		npc_no_booty_call[$boy] = daystart + 1
 	end
-end
-
-if $ARGS[0] = 'SMS raiser':
-	temp_bc_i = 0
-	:fuckbuddy_sms_raiser_loop
-	if temp_bc_i < arrsize('$FuckBuddy'):
-		$temp_bc_id = $FuckBuddy[temp_bc_i]
-		if booty_call_time[$temp_bc_id] < ((hour * 60) + minut) and npc_no_booty_call[$temp_bc_id] ! daystart and npc_last_booty_call[$temp_bc_id] ! daystart:
-			!$booty_call_daily_id[temp_bc_i] = $temp_bc_id
-			gs 'booty_call_sms', 'start', $temp_bc_id
-			booty_call_time[$temp_bc_id] = 2399
-			!! this is a bit superfluous, but it makes the code run faster.
-			booty_call_invite[$temp_bc_id] = daystart
-		end
-		temp_bc_i += 1
-		jump 'fuckbuddy_sms_raiser_loop'
-	end
-
-
-	temp_bc_i = 0
-	:sugar_daddy_sms_raiser_loop
-	if temp_bc_i < arrsize('$sugar_daddy'):
-		$temp_bc_id = $sugar_daddy[temp_bc_i]
-		if booty_call_time[$temp_bc_id] < ((hour * 60) + minut) and npc_no_booty_call[$temp_bc_id] ! daystart and npc_last_booty_call[$temp_bc_id] ! daystart:
-			!$booty_call_daily_id[i] = $temp_bc_id
-			gs 'booty_call_sms', 'start', $temp_bc_id
-			booty_call_time[$temp_bc_id] = 2399
-			!! this is a bit superfluous, but it makes the code run faster.
-			booty_call_invite[$temp_bc_id] = daystart
-		end
-		temp_bc_i += 1
-		jump 'sugar_daddy_sms_raiser_loop'
-	end
-
-	killvar 'temp_bc_i'
-	killvar '$temp_bc_id'
 end
 
 if $ARGS[0] = 'home_links':
@@ -552,6 +515,43 @@ if $ARGS[0] = 'draw':
 		booty_call['A0'] = daystart
 	end
 	killvar 'temp_bc_i'
+end
+
+
+if $ARGS[0] = 'SMS raiser':
+	temp_bc_i = 0
+	:fuckbuddy_sms_raiser_loop
+	if temp_bc_i < arrsize('$FuckBuddy'):
+		$temp_bc_id = $FuckBuddy[temp_bc_i]
+		if booty_call_time[$temp_bc_id] < ((hour * 60) + minut) and npc_no_booty_call[$temp_bc_id] ! daystart and npc_last_booty_call[$temp_bc_id] ! daystart:
+			!$booty_call_daily_id[temp_bc_i] = $temp_bc_id
+			gs 'booty_call_sms', 'start', $temp_bc_id
+			booty_call_time[$temp_bc_id] = 2399
+			!! this is a bit superfluous, but it makes the code run faster.
+			booty_call_invite[$temp_bc_id] = daystart
+		end
+		temp_bc_i += 1
+		jump 'fuckbuddy_sms_raiser_loop'
+	end
+
+
+	temp_bc_i = 0
+	:sugar_daddy_sms_raiser_loop
+	if temp_bc_i < arrsize('$sugar_daddy'):
+		$temp_bc_id = $sugar_daddy[temp_bc_i]
+		if booty_call_time[$temp_bc_id] < ((hour * 60) + minut) and npc_no_booty_call[$temp_bc_id] ! daystart and npc_last_booty_call[$temp_bc_id] ! daystart:
+			!$booty_call_daily_id[i] = $temp_bc_id
+			gs 'booty_call_sms', 'start', $temp_bc_id
+			booty_call_time[$temp_bc_id] = 2399
+			!! this is a bit superfluous, but it makes the code run faster.
+			booty_call_invite[$temp_bc_id] = daystart
+		end
+		temp_bc_i += 1
+		jump 'sugar_daddy_sms_raiser_loop'
+	end
+
+	killvar 'temp_bc_i'
+	killvar '$temp_bc_id'
 end
 
 
