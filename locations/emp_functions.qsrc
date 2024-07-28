@@ -127,20 +127,26 @@ if $ARGS[0] = 'gen_schedule':
 	!! Create navigaton bars
 	if (mod_max_hour + 8) <= 48:
 		set_hour = ARGS[1] + 8
-		$msg_forward = '<a href="exec:gs ''emp_functions'', ''gen_schedule'', <<set_hour>>"><b>Forward 4 hours</b></a>'
+		$msg_forward = ' | <a href="exec:gs ''emp_functions'', ''gen_schedule'', <<set_hour>>"><b>Forward 4 hours</b></a>'
 	else
-		$msg_forward = 'End of Day'
+		$msg_forward = ' | End of Day'
 	end
-	if (mod_max_hour - 8) >0 :
+	if hour + 8 < 24 and hour - 8 >= 0:
+		set_hour = hour * 2
+		$msg_centre = ' | <a href="exec:gs ''emp_functions'', ''gen_schedule'', <<set_hour>>"><b>Jump to current time</b></a>'
+	else
+		msg_centre = ''
+	end
+	if (mod_max_hour - 8) > 0:
 		set_hour = ARGS[1] - 8
 		$msg_back = '<a href="exec:gs ''emp_functions'', ''gen_schedule'', <<set_hour>>"><b>Back 4 hours</b></a>'
 	else
 		$msg_back = 'Start of day'
 	end
-
 	!! Start the table constuction
 	'<center><table border=0 cellpadding=1 bgcolor="<<$body_theme>>" width="95%" align="center"><<$tableheader>><<$tablebody>></table>'
-	'<<$msg_back>> | <<$msg_forward>>'
+	'<<$msg_back>><<$msg_centre>><<$msg_forward>>'
+
 	killvar '$tablebody'
 	killvar '$tableheader'
 	killvar '$msg_back'
@@ -172,6 +178,33 @@ if $ARGS[0] = 'job_info':
 	killvar '$msg_body'
 end
 
+!! Helper QoL function show current job for the journal at right time slot and to deactivate stat_display icon when all jobs are finished
+if $ARGS[0] = 'job_alert':
+	!! loop indexes - internal
+	!! s_day - track day of week
+	s_day = week
+	!! s_hour - track hour
+	s_hour = 0
+	!! jmp_clear = end loop on qualification
+	jmp_clear = 0
+	!! reset job start and end hour for stat_display
+	job_start = 99
+	job_end = 99
+	!! Check if previous hour was booked - used to determine last working hour for stat_display
+	prev_hour = 99
+	:s_hour
+		if emp_rota_week['<<s_day>>_<<s_hour>>'] = 1:
+			prev_hour = s_hour
+			if job_start = 99: job_start = s_hour / 2
+		elseif emp_rota_week['<<s_day>>_<<s_hour>>'] = 0 and prev_hour ! 99:
+			if job_end = 99:
+				job_end = prev_hour / 2
+				jmp_clear = 1
+			end
+		end
+		s_hour += 1
+	if s_hour <= 24 or jmp_clear = 0 : jump 's_hour'
+end
 !! --------------------- Event Generator
 
 !! Author - Hooded Silence
