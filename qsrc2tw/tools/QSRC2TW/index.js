@@ -22,6 +22,7 @@ program
   .option('-fs, --multiple-files-from-file <path>','only converts the files specified in the input file')
   .option('-outff, --failed-files-output-path <path>','path of the failed files file')
   .option('-sff, --skip-failedfiles-file','skips creation of the failed files file')
+  .option('-ve, --verbose-errors','prints out complete error messages where possible')
   ;
 
 program.parse(process.argv);
@@ -60,6 +61,37 @@ fs.mkdir(path.join(outPath,generatedFilesPrefix), { recursive: true }, (err) => 
 //https://stackoverflow.com/a/25221100/7200161
 function baseFileName(fullpath){
     return fullpath.split('\\').pop().split('/').pop();
+}
+
+
+let consoleActive = true;
+consoleOverwrite();
+function consoleOverwrite(){
+    //https://stackoverflow.com/a/30197438/7200161
+    // define a new console
+    var consoleOverwrite=(function(oldCons){
+        return {
+            log: function(text){
+                if(consoleActive)
+                    oldCons.log(text);
+            },
+            info: function (text) {
+                if(consoleActive)
+                    oldCons.info(text);
+            },
+            warn: function (text) {
+                if(consoleActive)
+                    oldCons.warn(text);
+            },
+            error: function (text) {
+                if(consoleActive)
+                    oldCons.error(text);
+            }
+        };
+    }(console));
+
+    //Then redefine the old console
+    console = consoleOverwrite;
 }
 
 
@@ -103,10 +135,20 @@ async function convertFile(filePath){
 
 
             try{
-                const twineCode = qsrc2tw(data, true)
-                                    .split('\n')
-                                    .toSpliced(1,0,`<!--qsrc2twResult={"version":${VERSION},"code":"${codeHash}","time":"${(new Date().toISOString())}"}-->`)
-                                    .join('\n');
+                let twineCode = "";
+                consoleActive = options.verboseErrors;
+                try{
+                    twineCode = qsrc2tw(data, true)
+                                        .split('\n')
+                                        .toSpliced(1,0,`<!--qsrc2twResult={"version":${VERSION},"code":"${codeHash}","time":"${(new Date().toISOString())}"}-->`)
+                                        .join('\n');
+                }
+                catch(e){
+                    throw e;
+                }
+                finally{
+                    consoleActive = true;
+                }
 
                 fs.writeFile(outFilePath, twineCode, err => {
                     if (err) {
@@ -153,7 +195,9 @@ if(!options.skipFailedfilesFile){
     });
 }
 
-fs.cpSync("./resources", path.join(outPath,resourcesFilesPrefix), {recursive: true});
+const resourcesPath = path.join(outPath,resourcesFilesPrefix);
+fs.rmSync(resourcesPath, { recursive: true, force: true });
+fs.cpSync("./resources", resourcesPath, {recursive: true});
 
 
 const executionTime =  (new Date()).getTime() - startTime;
