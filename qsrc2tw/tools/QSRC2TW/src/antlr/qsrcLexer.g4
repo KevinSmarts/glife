@@ -16,17 +16,17 @@ Done:
 	*P
 	PL
 	*PL
-TODO:	
+TODO:
 	ADDLIB
 	ADDOBJ
 	ADDQST
-	
+
 	ARRCOMP
 	ARRPOS
 	ARRSIZE
 	$BACKIMAGE
 	BCOLOR
-	
+
 	CMDCLEAR
 	CMDCLR
 	COPYARR
@@ -95,8 +95,8 @@ TODO:
 	$ONOBJSEL
 	OPENGAME
 	OPENQST
-	
-	
+
+
 	PLAY
 	QSPVER
 	RAND
@@ -130,7 +130,7 @@ TODO:
 	VIEW
 	WAIT
 	XGOTO
-	XGT 
+	XGT
  */
 
 lexer grammar qsrcLexer;
@@ -160,7 +160,7 @@ GOSUB: (G S) | (G O S U B);
 GOTO: (G T) | (G O T O);
 XGOTO: X GOTO;
 
-INPUT: I N P U T;
+INPUT: '$'? I N P U T;
 
 JUMP: J U M P;
 
@@ -265,7 +265,7 @@ EXCLAMATIONMARK: '!';
 CommentStart: '!!' -> pushMode (COMMENT);
 AttachedComment: '&' ' '* '!' -> pushMode(COMMENT);
 Multilinecomment: '!!' WHITESPACE? '{' .*? '}';
-	
+
 ARRAYBRACKOPEN: '[';
 ARRAYBRACKCLOSE: ']';
 BRACK_OPEN: '{' -> pushMode(MultiLine);
