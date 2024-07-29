@@ -359,7 +359,7 @@ if $ARGS[0] = 'cikl':
 
 	!!MJ: Add some (daily) interest to the bank account.
 	!!Not very realistic but won''t make anyone too rich.
-	
+
 	if bankAccount = 1:
 		kartatotal = karta
 		:kartaloop
@@ -421,7 +421,24 @@ if $ARGS[0] = 'cikl':
 	!!	Payments
 	!!------------------------------------------------------------------------------------------------------------
 
-	if day = 25:
+	if day ! 25:
+		if paydayHusb = 1:paydayHusb = 0
+		if workKafe['job'] = 1 and paydayKafe = 1:paydayKafe = 0
+		if workSec = 1 and paydaySec = 1:paydaySec = 0
+		!! No idea what haday is, it does not show up anywhere else beyond this one line
+		!! All the checks for the whether Sveta owns certain properties make no sense, if it is the 25th, haday, electroday and
+		!! kabelday are set to 0. The fact that Sveta doesn''t own or rent properties only means that their value is meaningless
+		!! anyway.
+		if haday = 1: haday = 0
+		if electroday = 1: electroday = 0
+		if kabelday = 1: kabelday = 0
+		if scholarshipday = 1: scholarshipday = 0
+		if nopaytanwork = 1: nopaytanwork = 0
+		if nopaypoly = 1: nopaypoly = 0
+		if nopaysalon = 1: nopaysalon = 0
+		if paydaybistrosec = 1: paydaybistrosec = 0
+
+	else
 		!! meynold payment
 		if	mey_vika['mey_vika_qw'] >= 35 and mey_tamara['help_count'] < 10 and mey_tamara['qw_end'] = 0:
 			karta += 10000
@@ -552,69 +569,44 @@ if $ARGS[0] = 'cikl':
 				'<b><font color="red">Your card was declined during automatic debit of 300 <b>₽</b> for cable TV subscription.</font></b>'
 			end
 		end
-
-	end
-
-
-	if day ! 25:
-		if paydayHusb = 1:paydayHusb = 0
-		if workKafe['job'] = 1 and paydayKafe = 1:paydayKafe = 0
-		if workSec = 1 and paydaySec = 1:paydaySec = 0
-		!! No idea what haday is, it does not show up anywhere else beyond this one line
-		!! All the checks for the whether Sveta owns certain properties make no sense, if it is the 25th, haday, electroday and 
-		!! kabelday are set to 0. The fact that Sveta doesn''t own or rent properties only means that their value is meaningless
-		!! anyway.
-		if haday = 1: haday = 0
-		if electroday = 1: electroday = 0
-		if kabelday = 1: kabelday = 0
-		if scholarshipday = 1: scholarshipday = 0
-		if nopaytanwork = 1: nopaytanwork = 0
-		if nopaypoly = 1: nopaypoly = 0
-		if nopaysalon = 1: nopaysalon = 0
-		if paydaybistrosec = 1: paydaybistrosec = 0
 	end
 
 	!! Checking for tenants moving out
 	gs 'homes_properties', 'tenant_move_out_check'
-	
 
 	!!----------------------------------------
 	!! Rent
 	!!----------------------------------------
 	!! property_rent, property_days, $property_name, $property_display $property_code
 	gs 'homes_properties', 'get_rented_properties'
-	count = ARRSIZE('property_name')
-	if count > 0:
-		i = 0
+	bank_count = ARRSIZE('property_name')
+	if bank_count > 0:
+		bank_i = 0
 		:loop_rent_payments
-			if property_days[i] <= 2:
+			if property_days[bank_i] <= 2:
 				!From bank
-				if property_days[i] <= 0:
-					gs 'homes_properties', 'cancel_rent', $property_code[i]
-				elseif bankAccount = 1 and karta >= property_rent[i]:
-					'<b><font color="green">Your rent payment of <<property_rent[i]>> <b>₽</b> for your <<$property_name[i]>>, has automatically been deducted from your bank account.</font></b>'
-					gs 'homes_properties', 'pay_rent', $property_code[i], 'card'
-					!karta -= property_rent[i]
-					!gs 'homes_properties', 'add_rent_days', $property_code[i]
-				elseif bankAccount = 1 and karta + bankDebtLimit >= property_rent[i]:
-					'<b><font color="green">Your rent payment of <<property_rent[i]>> <b>₽</b> for your <<$property_name[i]>>, has automatically been deducted from your bank account and overdraw facility. Please contact your bank regarding your overdraw repayment.</font></b>'
-					gs 'homes_properties', 'pay_rent', $property_code[i], 'card'
-					!karta -= property_rent[i]
-					!gs 'homes_properties', 'add_rent_days', $property_code[i]
+				if bankAccount = 1 and karta + bankDebtLimit >= property_rent[bank_i]:
+					'<b><font color="green">Your rent payment of <<property_rent[bank_i]>> <b>₽</b> for your <<$property_name[bank_i]>>, has automatically been deducted from your bank account' + iif(kart >= 0, '', ' and overdraw facility. Please contact your bank regarding your overdraw repayment') + '.</font></b>'
+					gs 'homes_properties', 'pay_rent', $property_code[bank_i], 'card'
+					!karta -= property_rent[bank_i]
+					!gs 'homes_properties', 'add_rent_days', $property_code[bank_i]
+				elseif property_days[bank_i] <= 0:
+					gs 'homes_properties', 'cancel_rent', $property_code[bank_i]
 				elseif bankAccount = 0:
-					'<b><font color="red">You currently do not have a bank account setup for automatic rent deduction of <<property_rent[i]>> <b>₽</b> for your <<$property_name[i]>>. To avoid eviction, please make a manual payment as soon as possible.</font></b>'
+					'<b><font color="red">You currently do not have a bank account setup for automatic rent deduction of <<property_rent[bank_i]>> <b>₽</b> for your <<$property_name[bank_i]>>. To avoid eviction, please make a manual payment as soon as possible.</font></b>'
 				else
 					nl
-					'<b><b><font color="red">Your card was declined during automatic rent deduction of <<property_rent[i]>> <b>₽</b> for your <<$property_name[i]>>. To avoid eviction, please rectify as soon as possible.</font></b>'
+					'<b><b><font color="red">Your card was declined during automatic rent deduction of <<property_rent[bank_i]>> <b>₽</b> for your <<$property_name[bank_i]>>. To avoid eviction, please rectify as soon as possible.</font></b>'
 				end
 			end
-			i += 1
-		if i < count: jump 'loop_rent_payments'
+			bank_i += 1
+		if bank_i < bank_count: jump 'loop_rent_payments'
 		gs 'homes_properties', 'clean_up_property_data'
-		killvar 'i'
+		killvar 'bank_i'
 	end
+	killvar 'bank_count'
 	!!------------------------------------------------------------------------------------------------------------
-
 end
---- bank ---------------------------------
 
+
+--- bank ---------------------------------
