@@ -1,5 +1,6 @@
 import qsrc2tw from "./src/qsrc2tw.js";
 import npcInit from "./src/npcInit.js";
+import skillDefinitions from "./src/skillDefinitions.js";
 
 import {glob} from 'glob';
 import fs from 'node:fs';
@@ -159,6 +160,7 @@ async function convertFile(filePath){
             switch (convertMode) {
                 case "default": convertFunction = (code) => [qsrc2tw(code, true),null]; break;
                 case "npcInit": convertFunction = (code) => npcInit(code); break;
+                case "stat_sklattrib_lvlset": convertFunction = (code) => skillDefinitions(code); break;
                 default:
                     console.warn("Unreckognized Convert Mode");
                     break;
