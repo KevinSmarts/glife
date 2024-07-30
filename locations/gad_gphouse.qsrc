@@ -1,10 +1,14 @@
 # gad_gphouse
-!! Modified date:  June, 2024
-!! Version: 1.1 - initial refactor
-!! Author: Hooded Silence
+
+!! 2024/05/05	- Mira schedule introduced.
+!! 2024/06		- Version: 1.1 - Refactor by Myles Croft, code by Hooded Silence
 !!
 !! Sveta''s grandparents dacha in Gad
-!! use  gt ''gad_gphouse'', ''entry'', internal location and gs ''gad_gphouse'', ''exit'', leave_time to enter and leave dacha respectively, note time only increments on leaving with exit fnct
+!! Enter the location:
+!!		gt 'gad_gphouse', 'entry'
+!! Leave the location using
+!!		gs 'gad_gphouse', 'exit'
+!!		gt 'loc', 'loc_arg'
 !!
 !! 2024/05/05 - Mira schedule introduced.
 !! 2024/06/15 - scales moved to bathroom, full refactor of location, grandparents schedules, and addition of the kitchenette
@@ -47,30 +51,26 @@ if $ARGS[0] = 'setup':
 	!! check locations and chores on each scene change
 	!! gs $loc, 'boniface'
 	!! gs 'gad_gp_chores', 'start'
-	gs 'miroslava_schedule'
-	gs 'gp_elene_schedule'
-	gs 'gp_zlatek_schedule'
+	gs 'schedule', 'A31', 'A32', 'A60'
 
 	!! Job Tracker
 	!! gs 'gad_gpchores', 'init'
 	if gp_debug = 1:
-	!! test tracker
-		$locat['elene']
-		$locat['zlatek']
+		!! test tracker
+		locat['A31']
+		locat['A32']
 	end
 end
 
 !! leave location - reset vars and other housekeeping functions
 
 if $ARGS[0] = 'exit':
-	minut += leave_time
 	if $ARGS[1] ! $loc:
 		killvar '$setloc'
 		killvar 'leave_time'
 		killvar '$room_image'
 		killvar '$room_title'
 	end
-	gt $ARGS[1], $ARGS[2]
 end
 
 !! Start location content
@@ -117,7 +117,8 @@ if $ARGS[0] = 'main':
 	if $apparel['status'] ! 'nude' or $apparel['status'] ! 'pantyless' or $apparel['status'] ! 'braless':
 		act 'Go outside':
 			leave_time = 2
-			gt $loc, 'exit', 'gad_gpyard', 'start'
+			gs $loc, 'exit'
+			gt 'gad_gpyard', 'start'
 		end
 
 	!!Disable leaving nude - awaiting global punishment system?
@@ -149,8 +150,12 @@ if $ARGS[0] = 'main':
 	!!		act 'Continue': gt 'gad_gpyard', 'start'
 	!!	end
 	end
-	act 'Go to your room': leave_time = 2  & gt $loc, 'exit', 'gad_gpbarn', 'barn_room'
-	act 'Go to the kitchen': leave_time = 2  & gt $loc, 'exit', $loc, 'kitchen'
+	act 'Go to your room':
+		minut += 2
+		gs $loc, 'exit'
+		gt 'gad_gpbarn', 'barn_room'
+	end
+	act 'Go to the kitchen': minut += 2 & gt $loc, 'kitchen'
 end
 
 !! Small roughshod kitchenette attached to the building.
@@ -172,7 +177,7 @@ if $ARGS[0] = 'kitchen':
 		'You see your <a href="exec: gt ''gp_zlatek'', ''talk'' ">grandfather</a> in the kitchen reading a newspaper.'
 	end
 
-	act 'Return to the living room': leave_time = 1 & gt $loc, 'exit', $loc, 'main'
+	act 'Return to the living room': minut += 1 & gt $loc, 'main'
 	act 'Eat a hearty meal (0:20)': gs 'food', 'l_meal'
 	act 'Eat a normal meal (0:15)': gs 'food', 'm_meal'
 	act 'Eat a light meal (0:10)': gs 'food', 's_meal'
@@ -260,94 +265,6 @@ if $ARGS[0] = 'to_gadukino':
 
 	act 'Go to your grandparents house': gt 'gad_gphouse', 'entry'
 end
-
-
-
-
-
-
-!2024/05/05 - Mira schedule introduced.
-!! Quest Variables - Grandma
-!! -------------------------
-!! grandmaQW['chore_type']						Variable for storage of the rand() that picks which chore to assign.
-!!
-!! For all of the Grandma chores where 0/1/2/3 are possible values:
-!! 0 = not active
-!! 1 = assigned but not done yet
-!! 2 = done but not turned in/reported yet
-!! 3 = not done in time, triggers Grandma disappointment. cikl takes any chore in state 1 or 2 and turns it into state 3.
-!!
-!! grandmaQW['chore_clean_floor']				0/1/2/3 - is the "clean the floor" quest active?
-!! grandmaQW['chore_collect_fruit']				0/1/2/3 - is the "collect fruit" quest active?
-!! grandmaQW['chore_collect_strawberries']		0/1/2/3 - is the "collect strawberries" quest active?
-!! grandmaQW['chore_feed_chickens']				0/1/2/3 - is the "feed the chickens" quest active?
-!! grandmaQW['chore_harvest_garden']			0/1/2/3 - is the "harvest veggies from the garden" quest active?
-!! grandmaQW['chore_milk_cow']					0/1/2/3 - is the "milk the cow" quest active?
-!! grandmaQW['chore_wash_clothes']				0/1/2/3 - is the "wash Grandpa's clothes" quest active?
-!! grandmaQW['chore_water_garden']				0/1/2/3 - is the "water the garden" quest active?
-!! grandmaQW['chore_work_in_garden']			0/1/2/3 - is the "work in the garden" quest active?
-!! grandmaQW['chore_mushrooms_given']			How many kg of mushrooms has Sveta collected for Grandma? Used with chore_can_mushrooms.
-!! grandmaQW['chore_berries_given']				How many kg of berries has Sveta collected for Grandma? Used with chore_can_berries.
-!! grandmaQW['chore_harvest_done']				Has Sveta harvested veggies from the garden? Used with chore_can_veggies.
-!! grandmaQW['chore_gather_mushrooms']			0/1/2/3 - is the "gather mushrooms" quest active?
-!! grandmaQW['chore_gather_berries']			0/1/2/3 - is the "gather berries" quest active?
-!! grandmaQW['chore_gather_both']				0/1/2/3 - is the "gather mushrooms and berries" quest active?
-!! grandmaQW['chore_mushroom_quantity']			How many kg of mushrooms does Grandma want?
-!! grandmaQW['chore_berry_quantity']			How many kg of berries does Grandma want?
-
-!! Other Variables - Grandma
-!! -------------------------
-!! grandmaQW['help_amount']						Semi-abstract representation of how helpful Sveta has been. Longer, more arduous tasks get more points. Affects monthly allowance.
-!! grandmaQW['last_day_asked_for_story']		The most recent day Sveta asked Grandma to tell her a story. Checked against daystart (i.e. was it today?)
-!! grandmaQW['last_day_helped']					The most recent day Sveta asked Grandma if she could help her with anything.
-!! grandmaQW['last_day_talked']					The most recent day Sveta chatted with Grandma.
-!! grandmaQW['last_hour_talked']				The most recent hour Sveta chatted with Grandma. Checked against hour, allows for several chats through the day.
-!! grandmaQW['last_month_paid']					The most recent month Grandma paid Sveta for her help (i.e. was it the current month?)
-!! grandmaQW['nudity_trouble']					Semi-abstract representation of how annoyed Grandma is by Svetas exhibitionism. grandmaQW['nudity_trouble'] is subtracted from grandmaQW['help_amount'] and then reset to 0
-!! grandmaQW['nudity_trouble_limit']			Limit based on fame/reputation before Grandma reprimands Sveta about her behavior
-!! grandmaQW['nudity_trouble_base']				Base based on how many times Sveta has been reprimanded by Grandma about her behavior. Starts at 10. Goes up by 1 each time grandmaQW['nudity_trouble'] hits grandmaQW['nudity_trouble_limit']
-!! grandmaQW['block']							0/1 - has Sveta been caught sinning so much Grandma kicks her out
-!! grandmaQW['talked_about_gadukino']			0/1 - has Sveta asked Grandma about Gadukino? Makes the "Ask about Gadukino" option a one-time thing.
-!! grandmaQW['disappointment']					0/1 - marks if you failed a chore and Grandma is disappointed in you. Causes a lecture and -1 to help_amount
-!! grandmaQW['first_visit']						0/1 - triggers first converstion and gift from Grandma. Only get free money from Grandma once. Monthly payments are now only based on grandmaQW['help_amount']
-!!
-!! ------------------------------------------------------------------------
-!!
-!! Quest Variables - Grandpa
-!! -------------------------
-!! grandpaQW['chore_type']						Variable for storage of the rand() that picks which chore to assign.
-!!
-!! grandpaQW['chore_bale_hay']					0/1 - is the "bale hay in the field" quest active?
-!! grandpaQW['chore_bathe_horse']				0/1 - is the "bathe the horse in the river" quest active?
-!! grandpaQW['chore_bathe_horse_prog']			0/1/2 - progress of "bathe the horse in the river" quest
-!! grandpaQW['chore_brush_horse']				0/1 - is the "brush the horse" quest active?
-!! grandpaQW['chore_clean_yard']				0/1 - is the "clean the yard" quest active?
-!! grandpaQW['chore_feed_boar']					0/1 - is the "feed the pig" quest active?
-!! grandpaQW['chore_feed_cow']					0/1 - is the "feed the cow" quest active?
-!! grandpaQW['chore_feed_horse']				0/1 - is the "feed the horse" quest active?
-!! grandpaQW['chore_fetch_firewood']			0/1 - is the "fetch firewood from the barn" quest active?
-!! grandpaQW['chore_herd_cattle']				0/1 - is the "herd cows in the field" quest active?
-!! grandpaQW['chore_herd_cattle_experience']	Has Sveta ever done the "herd cows in the field" quest before? (Practically useless, barely changes a couple of action descriptions.)
-!! grandpaQW['chore_lead_cow_to_field']			0/1 - is the "just take the cow to the field and drop it off there" quest active?
-!! grandpaQW['chore_lead_horse_to_field']		0/1 - is the "take the horse to the field" quest active?
-!!
-!! grandpaQW['chore_gather_mushrooms']			0/1 - is the "gather mushrooms" quest active?
-!! grandpaQW['chore_gather_berries']			0/1 - is the "gather berries" quest active?
-!! grandpaQW['chore_gather_both']				0/1 - is the "gather mushrooms and berries" quest active?
-!! grandpaQW['chore_mushroom_quantity']			How many kg of mushrooms does Grandpa want?
-!! grandpaQW['chore_berry_quantity']			How many kg of berries does Grandpa want?
-!!
-!!
-!! Other Variables - Grandpa
-!! -------------------------
-!! grandpaQW['last_day_helped']					The most recent day Sveta asked Grandpa if she could help him with anything.
-!! grandpaQW['last_day_talked']					The most recent day Sveta chatted with Grandpa.
-!! grandpaQW['last_hour_talked']				The most recent hour Sveta chatted with Grandpa. Checked against hour, allows for several chats through the day.
-!! grandpaQW['talked_about_forest']				0/1 - has Sveta asked Grandpa about the forest? Makes the "Ask about forest" option a one-time thing.
-!! grandmaQW['disappointment']					0/1/2 - marks if you failed a chore and Grandpa is disappointed in you. Causes a lecture and -1 to help_amount. 2 is time extension to next day for berry and mushroom collecting in the forest
-!!
-!! VARIABLE LIST FOR GRANDPARENTS AND THEIR CHORES - END
-
 
 
 if $ARGS[0] = 'enter_events':
