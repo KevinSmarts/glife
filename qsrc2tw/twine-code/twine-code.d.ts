@@ -2,6 +2,17 @@ declare module "twine-sugarcube" {
     export interface SugarCubeSetupObject {
         Example: { new(): Example };
 
+        //#region Player Character
+            attributes: string[];
+            proficiencies: {[proficiencyId:string]: ProficiencyDefinition};
+            skills: {[skillId:string]: SkillDefinition};
+            PlayerCharacter: { new(): PlayerCharacter };
+            Skill: { new(): Skill };
+            Skills: {
+                new(): Skills;
+                createProxy: ((skills:Skills)=>{[skillId:string]:Skill});
+            };
+        //#endregion
 
         /**
          * Provides functions to overwrite behavior of functions and variables
@@ -39,6 +50,23 @@ declare module "twine-sugarcube" {
             )=>void
         };
     }
+
+    export interface SugarCubeStoryVariables{
+        PC: PlayerCharacter;
+
+    }
+}
+
+declare global {
+    interface Window { QSP: {[key:(string|number)]: any}; }
+}
+
+export interface ProficiencyDefinition{
+    calc: (attributs:{[skillId:string]:Skill}, skills: {[skillId:string]:Skill}) => number;
+}
+
+export interface SkillDefinition{
+    attributes: string[];
 }
 
 export {};
