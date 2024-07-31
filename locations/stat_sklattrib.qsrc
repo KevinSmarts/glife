@@ -267,49 +267,56 @@ x = 1
 	:advloop_inner
 		expadj = expadj_base
 		tl = 0
-		:trtadvloop
-			tltp = 0
-			:trtadvinsdlp
-				!!Note this loop is done with a flag set in the dynamic that is checked outside; this is because testing showed inconsistent results when jumping from inside the dynamic and with the whole loop in the dynamic.
-				dynamic "
-					if <<$traitattskl[tl]>>[0] > 0:
-						if <<$traitattskl[tl]>>[tltp + 1] = x and <<$traitattskl[tl]>>[tltp + 2] = i:
-							if <<$traitattskl[tl]>>[tltp + 3] ! 0: expadj += <<$traitattskl[tl]>>[tltp + 3]
-						end
-						if <<$traitattskl[tl]>>[tltp + 11] ! 0: insdlpflag = 1
-					end
-					"
-			if insdlpflag = 1: tltp += 10 & insdlpflag = 0 & jump 'trtadvinsdlp'
-			tl += 1
-		if tl < arrsize ('$traitattskl'): jump 'trtadvloop'
-		killvar 'tl' & killvar 'tltp' & killvar 'insdlpflag'
 
 		if x = 1:
 			$attskltmp = $att_name[i]
 		else
 			$attskltmp = $skl_name[i]
 		end
+		temp_expmem_flag = 0
 
 		dynamic "
-			if <<$attskltmp>>_lvl ! <<$attskltmp>>_lvlst: <<$attskltmp>>_lvl = <<$attskltmp>>_lvlst
-			if <<$attskltmp>>_lvl > 0: <<$attskltmp>>_xpprv = (expadj * 73 * (<<$attskltmp>>_lvl-1) * (<<$attskltmp>>_lvl-1) / 2730) + 1 else <<$attskltmp>>_xpprv = 0
-			<<$attskltmp>>_xpnxt = (expadj * 73 * <<$attskltmp>>_lvl * <<$attskltmp>>_lvl / 2730) + 1
+			if <<$attskltmp>>_exp ! <<$attskltmp>>_mem: temp_expmem_flag = 1
+		"
+		if temp_expmem_flag = 1:
+			:trtadvloop
+				tltp = 0
+				:trtadvinsdlp
+					!!Note this loop is done with a flag set in the dynamic that is checked outside; this is because testing showed inconsistent results when jumping from inside the dynamic and with the whole loop in the dynamic.
+					dynamic "
+						if <<$traitattskl[tl]>>[0] > 0:
+							if <<$traitattskl[tl]>>[tltp + 1] = x and <<$traitattskl[tl]>>[tltp + 2] = i:
+								if <<$traitattskl[tl]>>[tltp + 3] ! 0: expadj += <<$traitattskl[tl]>>[tltp + 3]
+							end
+							if <<$traitattskl[tl]>>[tltp + 11] ! 0: insdlpflag = 1
+						end
+						"
+				if insdlpflag = 1: tltp += 10 & insdlpflag = 0 & jump 'trtadvinsdlp'
+				tl += 1
+			if tl < arrsize ('$traitattskl'): jump 'trtadvloop'
+			killvar 'tl' & killvar 'tltp' & killvar 'insdlpflag'
 
-			if <<$attskltmp>>_exp > <<$attskltmp>>_xpnxt: <<$attskltmp>>_lvl += 1
-			if <<$attskltmp>>_exp < <<$attskltmp>>_xpprv and <<$attskltmp>>_lvl > <<$attskltmp>>_flr: <<$attskltmp>>_lvl -= 1
-			<<$attskltmp>>_lvlst = <<$attskltmp>>_lvl
+			dynamic "
+				if <<$attskltmp>>_lvl ! <<$attskltmp>>_lvlst: <<$attskltmp>>_lvl = <<$attskltmp>>_lvlst
+				if <<$attskltmp>>_lvl > 0: <<$attskltmp>>_xpprv = (expadj * 73 * (<<$attskltmp>>_lvl-1) * (<<$attskltmp>>_lvl-1) / 2730) + 1 else <<$attskltmp>>_xpprv = 0
+				<<$attskltmp>>_xpnxt = (expadj * 73 * <<$attskltmp>>_lvl * <<$attskltmp>>_lvl / 2730) + 1
 
-			if <<$attskltmp>>_lvl / 5 > <<$attskltmp>>_flr: <<$attskltmp>>_flr = <<$attskltmp>>_lvl / 5
-			if <<$attskltmp>>_lvl > (100 + (<<$attskltmp>>_muta * 50)): <<$attskltmp>>_lvl = (100 + (<<$attskltmp>>_muta * 50))
+				if <<$attskltmp>>_exp > <<$attskltmp>>_xpnxt: <<$attskltmp>>_lvl += 1
+				if <<$attskltmp>>_exp < <<$attskltmp>>_xpprv: <<$attskltmp>>_lvl -= 1
+				<<$attskltmp>>_lvlst = <<$attskltmp>>_lvl
 
-			if <<$attskltmp>>_lvl > 0: <<$attskltmp>>_xpprv = (expadj * 73 * (<<$attskltmp>>_lvl-1) * (<<$attskltmp>>_lvl-1) / 2730) + 1 else <<$attskltmp>>_xpprv = 0
-			<<$attskltmp>>_xpnxt = (expadj * 73 * <<$attskltmp>>_lvl * <<$attskltmp>>_lvl / 2730) + 1
-			"
-		!! removed by rachels 17/10/23 to correct the "marksman" bug - belongs into preceding dynamic code
-		!!	if <<$attskltmp>>_exp > (expadj * (<<$attskltmp>>_lvl + 1) * (<<$attskltmp>>_lvl + 1) / 180) - 1:
-		!!		<<$attskltmp>>_exp = (expadj * (<<$attskltmp>>_lvl + 1) * (<<$attskltmp>>_lvl + 1) / 180) - 1
-		!!		<<$attskltmp>>_mem = <<$attskltmp>>_exp
-		!!	end
+				if <<$attskltmp>>_lvl / 5 > <<$attskltmp>>_flr: <<$attskltmp>>_flr = <<$attskltmp>>_lvl / 5
+				if <<$attskltmp>>_lvl > (100 + (<<$attskltmp>>_muta * 50)): <<$attskltmp>>_lvl = (100 + (<<$attskltmp>>_muta * 50))
+
+				if <<$attskltmp>>_lvl > 0: <<$attskltmp>>_xpprv = (expadj * 73 * (<<$attskltmp>>_lvl-1) * (<<$attskltmp>>_lvl-1) / 2730) + 1 else <<$attskltmp>>_xpprv = 0
+				<<$attskltmp>>_xpnxt = (expadj * 73 * <<$attskltmp>>_lvl * <<$attskltmp>>_lvl / 2730) + 1
+				"
+			!! removed by rachels 17/10/23 to correct the "marksman" bug - belongs into preceding dynamic code
+			!!	if <<$attskltmp>>_exp > (expadj * (<<$attskltmp>>_lvl + 1) * (<<$attskltmp>>_lvl + 1) / 180) - 1:
+			!!		<<$attskltmp>>_exp = (expadj * (<<$attskltmp>>_lvl + 1) * (<<$attskltmp>>_lvl + 1) / 180) - 1
+			!!		<<$attskltmp>>_mem = <<$attskltmp>>_exp
+			!!	end
+		end
 
 
 		killvar 'expadj' & killvar '$attskltmp'
@@ -321,6 +328,7 @@ if x < 3: jump 'advloop_outer'
 killvar 'i'
 killvar 'x'
 killvar 'expadj_base'
+killvar 'temp_expmem_flag'
 
 gs 'stat_sklattrib_lvlset'
 
