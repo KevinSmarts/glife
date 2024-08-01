@@ -73,7 +73,7 @@ for(const skillName of Object.keys(setup.skills)){
 
 	setup.Overwrite.varRegister(
 		"pcs_"+skillName,
-		(index)=>window.QSP['attsklupdate'][0] == 1 ? State.variables.PC.proficiencies[skillName].level : (State.variables["QSPVAR_n_pcs_"+skillName]?.[index ?? 0] ?? 0),
+		(index)=>window.QSP['attsklupdate'][0] == 1 ? Math.floor(State.variables.PC.proficiencies[skillName].level) : (State.variables["QSPVAR_n_pcs_"+skillName]?.[index ?? 0] ?? 0),
 		(index,val:number)=>State.variables["QSPVAR_n_pcs_"+skillName] = [val],
 	);
 
