@@ -1,26 +1,20 @@
-class Example{
+/// <reference path="../core/common/GameObject.ts" />
+
+
+
+/**
+ * You might need to update the path (first line of this file) and replace every mention of `Example` with your class name
+ */
+class Example extends GameObject{
     //#region SYSTEM
-		constructor(){}
-
-		_init(playerCharacter: { [x: string]: any; }){
-			Object.keys(playerCharacter).forEach(function (pn) {
-				this[pn] = clone(playerCharacter[pn]);
-			}, this);
-
-			return this;
-		}
+		constructor(){super()}
 
 		clone = function () {
-			return (new setup.Example())._init(this);
+			return (new setup.Example())._init(this.clonableFields);
 		};
 
 		toJSON = function () {
-			var ownData = {};
-			Object.keys(this).forEach(function (pn) {
-				if(typeof this[pn] !== "function")
-					ownData[pn] = clone(this[pn]);
-			}, this);
-			return JSON.reviveWrapper('(new setup.Example())._init($ReviveData$)', ownData);
+			return JSON.reviveWrapper('(new setup.Example())._init($ReviveData$)', this.ownData);
 		};
 	//#endregion
 }
