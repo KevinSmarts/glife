@@ -23,6 +23,7 @@ export default class QsrcVisitor extends qsrcParserVisitor{
 
     visitArrayIndex(ctx){
         if(ctx.value()) return `[${this.visitValue(ctx.value())}]`;
+        return "[-1]";
     }
 
     visitAssignment(ctx){

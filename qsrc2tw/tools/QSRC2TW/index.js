@@ -9,7 +9,7 @@ import path from "path";
 import { Command } from "commander";
 import md5 from "./src/misc/md5.js";
 
-const VERSION = 1;
+const VERSION = 2;
 const generatedFilesPrefix = '-generated';
 const resourcesFilesPrefix = '+resources';
 
