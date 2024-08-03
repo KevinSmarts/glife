@@ -3,7 +3,7 @@ setup.CURRENT_ARGS = function(emptyValue){ return new Proxy({}, {
         const index = parseInt(prop);
         const argsSet = State.variables.ARGSstack.last();
         //console.log("ARGS GET",prop,argsSet);
-        if(argsSet.length > index)
+        if(argsSet.length > index && typeof emptyValue == typeof argsSet[index])
             return argsSet[index];
         return emptyValue;
     },
