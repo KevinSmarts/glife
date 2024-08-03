@@ -111,6 +111,11 @@ window.QSP = new Proxy({},{
                 if(value2 === false)
                     value2 = 0;
 
+                //Insert this as a new value at the end of the array. Used where QSP would do it with `arr[] = "new value"`
+                if(prop2 == -1){
+                    prop2 = value.length;
+                }
+
                 if(setup.userStyle?.logAssignments)
                     console.log("SET",prop,prop2,value2,clone(setup.qsp_callStack));
 

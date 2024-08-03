@@ -49,6 +49,8 @@ declare module "twine-sugarcube" {
                 set:((index:number,val:number|string)=>any)|undefined,
             )=>void
         };
+
+        qsp_func: (passage:string,...arguments:(string|number)[]) => string|number;
     }
 
     export interface SugarCubeStoryVariables{
