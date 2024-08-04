@@ -45,20 +45,47 @@ declare module "twine-sugarcube" {
              *
              */
             varRegister: (varname:string,
-                get:number|string|((index?:number)=>any)|undefined,
-                set:((index:number,val:number|string)=>any)|undefined,
+                get:number|string|((index?:number|string)=>any)|undefined,
+                set:((index:number|string,val:number|string)=>any)|undefined,
+            )=>void
+
+            varRegisterByPrefix: (varname:string,
+                get:number|string|((varname:string,index?:number|string)=>any)|undefined,
+                set:((varname:string,index:number|string,val:number|string)=>any)|undefined,
             )=>void
         };
+
+        NPCs: {new(): NPCs};
+        NPCAccessor: {new(): NPCAccessor};
+        npcsInit: (npcIds: string[]) => void;
+        npcInit: (npcId: string) => void;
+        npcStatic: {[npcID:string]: NPCStaticObject};
+
+        qsp_dyneval: (code:string, ...args : (string|number)[]) => string|number;
+        qsp_func: (passage:string,...arguments:(string|number)[]) => string|number;
     }
 
     export interface SugarCubeStoryVariables{
         PC: PlayerCharacter;
 
+        /**
+         * The dynamic storage for NPC-data.
+         *
+         * @type {{[npcID:string]: {[field:string]:any}}}
+         */
+        npcDynamic: {[npcID:string]: {[field:string]:any}};
+
+        npcs: NPCs;
     }
 }
 
 declare global {
     interface Window { QSP: {[key:(string|number)]: any}; }
+}
+
+export interface NPCStaticObject{
+    _defaults: string[];
+    [field: string]: string | number | string[];
 }
 
 export interface ProficiencyDefinition{

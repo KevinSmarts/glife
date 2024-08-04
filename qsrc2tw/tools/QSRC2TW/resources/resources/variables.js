@@ -3,7 +3,7 @@ setup.CURRENT_ARGS = function(emptyValue){ return new Proxy({}, {
         const index = parseInt(prop);
         const argsSet = State.variables.ARGSstack.last();
         //console.log("ARGS GET",prop,argsSet);
-        if(argsSet.length > index)
+        if(argsSet.length > index && typeof emptyValue == typeof argsSet[index])
             return argsSet[index];
         return emptyValue;
     },
@@ -110,6 +110,11 @@ window.QSP = new Proxy({},{
                     value2 = 1;
                 if(value2 === false)
                     value2 = 0;
+
+                //Insert this as a new value at the end of the array. Used where QSP would do it with `arr[] = "new value"`
+                if(prop2 == -1){
+                    prop2 = value.length;
+                }
 
                 if(setup.userStyle?.logAssignments)
                     console.log("SET",prop,prop2,value2,clone(setup.qsp_callStack));

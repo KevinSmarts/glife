@@ -29,17 +29,60 @@ class Overwrite{
     }
 
     _var = {};
+    _varByPrefix = {};
     varGet(id,index){
-        if(this._var[id] === undefined || this._var[id].get === undefined)
+        let overwrite = null;
+
+        for(const [prefix, ow] of Object.entries(this._varByPrefix)){
+            if(id.startsWith(prefix)){
+
+                overwrite = ow;
+                if(typeof overwrite.get == "function")
+                    return overwrite.get(id.substring(prefix.length),index);
+                break;
+            }else if(id.startsWith("$"+prefix)){
+
+                overwrite = ow;
+                if(typeof overwrite.get == "function")
+                    return overwrite.get(id.substring(prefix.length+1),index);
+                break;
+            }
+        }
+
+        if(this._var[id] !== undefined && this._var[id].get !== undefined)
+            overwrite = this._var[id];
+
+        if(!overwrite)
             return undefined;
-        if(typeof this._var[id].get == "function")
-            return this._var[id].get(index);
-        if(Array.isArray(this._var[id].get) && typeof index == "number")
-            return this._var[id].get[index];
-        return this._var[id].get;
+
+        if(typeof overwrite.get == "function")
+            return overwrite.get(index);
+
+
+        if(Array.isArray(overwrite.get) && typeof index == "number")
+            return overwrite.get[index];
+        return overwrite.get;
     }
 
     varSet(id,index,val){
+        let overwrite = null;
+        for(const [prefix, ow] of Object.entries(this._varByPrefix)){
+            if(id.startsWith(prefix)){
+                overwrite = ow;
+                if(typeof overwrite.set == "function")
+                    return overwrite.set(id.substring(prefix.length),index,val);
+                break;
+            }
+
+            else if(id.startsWith("$"+prefix)){
+                overwrite = ow;
+                if(typeof overwrite.set == "function")
+                    return overwrite.set(id.substring(prefix.length+1),index,val);
+                break;
+            }
+        }
+
+
         if(this._var[id] === undefined || this._var[id].set === undefined)
             return undefined;
         if(typeof this._var[id].set == "function")
@@ -49,6 +92,10 @@ class Overwrite{
 
     varRegister(id,get,set){
         this._var[id.toLowerCase()] = {get:get, set:set};
+    }
+
+    varRegisterByPrefix(prefix,get,set){
+        this._varByPrefix[prefix.toLowerCase()] = {get:get, set:set};
     }
 
 }
