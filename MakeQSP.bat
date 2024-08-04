@@ -75,16 +75,16 @@ set /p action=Choose an action:
 
 if defined QSPFILE (
 	if %action% == b goto build
-	if %action% == d goto build_debug
-	if %action% == r goto run
-	if %action% == f goto build
-	if %action% == v goto parser
-	if %action% == q goto qgen
 	if %action% == B goto build
+	if %action% == d goto build_debug
 	if %action% == D goto build_debug
+	if %action% == r goto run
 	if %action% == R goto run
+	if %action% == f goto build
 	if %action% == F goto build
+	if %action% == v goto parser
 	if %action% == V goto parser
+	if %action% == q goto qgen
 	if %action% == Q goto qgen
 )
 
@@ -132,7 +132,8 @@ goto menu
 echo.
 echo Running ...
 if defined CP_TO ( start %QGEN% %CP_TO%\%QSPFILE% ) else ( start %QGEN% %QSPFILE% )
-goto exit
+pause
+goto menu
 
 :parser
 echo.
@@ -141,9 +142,8 @@ echo validating...
 @ECHO ON
 "%BATDir%%QSPParser%" --level warn "%BATDir%glife.txt" > "%BATDir%validation.log"
 @ECHO off
-echo Done - Exiting.
 pause
-goto exit
+goto menu
 
 :run
 echo.
