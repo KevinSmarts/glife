@@ -3194,7 +3194,12 @@ if $ARGS[0] = 'bdimdisplay':
 		*nl
 		func('Cheatmenu_din', 'get_bodyimg_desc_link', 800 + cm_temp_str_class)
 	else
+		'"Edit image" allows you to set the image file name (only use .jpg images)'
+		'"Edit description" allows you to set the description of the image'
+
 		'Folder: <<$cheatVars[''fix_biset_<<ARGS[1]>>_folder'']>>'
+
+
 		$temp_base_folder = 'images/pc/body/shape/<<$cheatVars[''fix_biset_<<ARGS[1]>>_folder'']>>'
 
 		'Descriptors: (Displayed as "You are:")'
@@ -3226,21 +3231,29 @@ if $ARGS[0] = 'get_bodyimg_desc_link':
 end
 
 if $ARGS[0] = 'get_custom_bodyimg_desc_link':
-	$temp_img_name = $cheatVars['fix_biset_<<ARGS[1]>>_img_<<ARGS[2]>>']
+	$temp_cmd_img_name = $cheatVars['fix_biset_<<ARGS[1]>>_img_<<ARGS[2]>>']
+	$temp_cmd_desc = $cheatVars['fix_biset_<<ARGS[1]>>_desc_<<ARGS[2]>>']
 
-	if $temp_img_name = '':
-		$result = func('cheatmenu_din', 'get_bodyimg_desc_link', ARGS[2] * 100) + ' -- Currently using: Default image'
+	if $temp_cmd_img_name = '':
+		$temp_cmd_image = func('body_structure', 'body_img_from_class', ARGS[2] * 100, 0)
+		$temp_cmd_img_addon = 'Currently using: Default image'
 	else
 		$temp_base_folder = 'images/pc/body/shape/<<$cheatVars[''fix_biset_<<ARGS[1]>>_folder'']>>'
-		$temp_description = $cheatVars['fix_biset_<<ARGS[1]>>_desc_<<ARGS[2]>>']
-		$result = '<a href="exec: view ''<<$temp_base_folder>>/<<$temp_img_name>>.jpg''"><<$temp_description>></a> -- Currently using: <<$temp_img_name>>.jpg -- <a href="exec: gs ''Cheatmenu_din'', ''bdimcstimgdefault'', <<ARGS[2]>>">Use default image</a>'
-
+		$temp_cmd_image = '<<$temp_base_folder>>/<<$temp_cmd_img_name>>.jpg'
+		$temp_cmd_img_addon = 'Currently using: <<$temp_cmd_img_name>>.jpg -- <a href="exec: gs ''Cheatmenu_din'', ''bdimcstimgdefault'', <<ARGS[2]>>">Use default image</a>'
 		killvar '$temp_base_folder'
-		killvar '$temp_description'
 	end
 
-	$result += ' -- <a href="exec: gs ''Cheatmenu_din'', ''bdimcstimged'', <<ARGS[1]>>, <<ARGS[2]>>">Edit image</a> -- <a href="exec: gs ''Cheatmenu_din'', ''bdimcstdesed'', <<ARGS[1]>>, <<ARGS[2]>>">Edit description</a>'
-	killvar '$temp_img_name'
+	if $temp_cmd_desc = '':
+		$temp_cmd_desc = func('body_structure', 'body_desc_from_class', ARGS[2] * 100)
+	end
+
+	$result = '<a href="exec: view ''<<$temp_cmd_image>>''"><<$temp_cmd_desc>></a> -- <<$temp_cmd_img_addon>>  -- <a href="exec: gs ''Cheatmenu_din'', ''bdimcstimged'', <<ARGS[1]>>, <<ARGS[2]>>">Edit image</a> -- <a href="exec: gs ''Cheatmenu_din'', ''bdimcstdesed'', <<ARGS[1]>>, <<ARGS[2]>>">Edit description</a>'
+
+	killvar '$temp_cmd_image'
+	killvar '$temp_cmd_desc'
+	killvar '$temp_cmd_img_addon'
+	killvar '$temp_cmd_img_name'
 end
 
 
@@ -3251,7 +3264,7 @@ if $ARGS[0] = 'bdimcstadd':
 	'<a href="exec:killvar ''klsetask'' & gs ''cheatmenu_din'', ''bdimmain''"><b>Go Back</b></a>'
 	*nl
 	'This is where you can add a new image set to a game.'
-	'To add an image set, create a folder in images/pc/body/shape/ and name it anything you want (shorter will be easier to remember). Then put in it any images you want named 1.jpg, 2.jpg, etc. up 5, 6, or 7. Just make sure it contains images 1 to 5. Once you have done that, click the link below and put in your folder name to add that set.'
+	'To add an image set, create a folder in images/pc/body/shape/ and name it anything you want (shorter will be easier to remember). Then put in it any images you want. Once you have done that, click the link below and put in your folder name to add that set.'
 	'Note: This will only be for this instance/save of the game and you will have to redo the click the link step if you want to add the same folder to a different instance/save.'
 	*nl
 	'<a href="exec: gs ''Cheatmenu_din'', ''bdimcstaddpro''">Add Image Set</a>'
@@ -3274,6 +3287,10 @@ if $ARGS[0] = 'bdimcstaddpro':
 		end
 		ARGS[1] = cyci1
 
+		if mid($tmpstrg, len($tmpstrg)) = '/' or mid($tmpstrg, len($tmpstrg)) = '\':
+			$tmpstrg = mid($tmpstrg, 1, len($tmpstrg)-1)
+		end
+
 		cyci1 = 0
 		:addcyc2
 			$cheatVars['fix_biset_<<ARGS[1]>>_desc_<<cyci1>>'] = func('body_structure', 'body_desc_from_class', cyci1 * 100)
@@ -3291,7 +3308,10 @@ end
 $cheatmenu['bdimcstdesed'] = "gs 'Cheatmenu_din', 'bdimcstdesed', ARGS[0], ARGS[1]"
 if $ARGS[0] = 'bdimcstdesed':
 	$tmpstrg = input("Enter a new descriptor")
-	if $tmpstrg ! '': $cheatVars['fix_biset_<<ARGS[1]>>_desc_<<ARGS[2]>>'] = $tmpstrg
+	if $tmpstrg ! '':
+		$cheatVars['fix_biset_<<ARGS[1]>>_desc_<<ARGS[2]>>'] = $tmpstrg
+		if cheatVars['fix_bi_set'] = ARGS[1]: gs 'body', 'UpdateBodyImage'
+	end
 
 	killvar '$tmpstrg'
 	gs 'Cheatmenu_din', 'bdimdisplay', ARGS[1]
@@ -3299,7 +3319,13 @@ end
 
 if $ARGS[0] = 'bdimcstimged':
 	$tmpstrg = input("Enter a new image name (Leave empty to not change the image. Example: 1). Exclude the '.jpg'")
-	if $tmpstrg ! '': $cheatVars['fix_biset_<<ARGS[1]>>_img_<<ARGS[2]>>'] = $tmpstrg
+	if $tmpstrg ! '':
+		if mid($tmpstrg, len($tmpstrg)-3) = '.jpg':
+			$tmpstrg = mid($tmpstrg, 1, len($tmpstrg)-4)
+		end
+		$cheatVars['fix_biset_<<ARGS[1]>>_img_<<ARGS[2]>>'] = $tmpstrg
+		if cheatVars['fix_bi_set'] = ARGS[1]: gs 'body', 'UpdateBodyImage'
+	end
 
 	killvar '$tmpstrg'
 	gs 'Cheatmenu_din', 'bdimdisplay', ARGS[1]
