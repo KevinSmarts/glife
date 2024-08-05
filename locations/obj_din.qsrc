@@ -430,7 +430,7 @@ if $ARGS[0] = 'skills':
 		$temp_table += func('obj_din', 'skill_format_func', '<b>Rea</b>ction',		'react',	'Your reaction is never modified', 1)
 		$temp_table += func('obj_din', 'skill_format_func', '<b>Cha</b>risma',		'chrsm',	'Your charisma is never modified', 1)
 		$temp_table += func('obj_din', 'skill_format_func', '<b>Per</b>ception',	'prcptn',	'Your perception is never modified', 1)
-		if $start_type[1] ! 'nomagic': $temp_table += func('obj_din', 'skill_format_func', '<b>Mag</b>ic', 'magik',	'Your magic is never modified', 1)
+		if $start_type['magic'] ! 'nomagic': $temp_table += func('obj_din', 'skill_format_func', '<b>Mag</b>ic', 'magik',	'Your magic is never modified', 1)
 		$temp_table += '</table>'
 		'<<$temp_table>>'
 		'Attractiveness - <<pcs_apprnc>>'
@@ -439,7 +439,7 @@ if $ARGS[0] = 'skills':
 		if pcs_splcstng + pcs_humint + pcs_persuas + pcs_observ > 0:
 			'<h2>Mental Skills</h2>'
 			$temp_table = '<table><tr><th align="left">Skill</th><td>-</td><th align="center"><font color="grey">base / mod</font></th><td>-</td><td>|</td><th>Progress</th><td>|</td></tr>'
-			if $start_type[1] ! 'nomagic' and pcs_splcstng > 0:	$temp_table += func('obj_din', 'skill_format_func', 'Spell Casting',	'splcstng',	'Your spell casting (<<pcs_splcstng>>) = (Base spell casting (<<splcstng_lvl>>) + (Int (<<pcs_intel>>) + Rea (<<pcs_react>>)) / 2) / 2')
+			if $start_type['magic'] ! 'nomagic' and pcs_splcstng > 0:	$temp_table += func('obj_din', 'skill_format_func', 'Spell Casting',	'splcstng',	'Your spell casting (<<pcs_splcstng>>) = (Base spell casting (<<splcstng_lvl>>) + (Int (<<pcs_intel>>) + Rea (<<pcs_react>>)) / 2) / 2')
 			if pcs_humint > 0:		$temp_table += func('obj_din', 'skill_format_func', 'People Skills',	'humint',	'Your people skills (<<pcs_humint>>) = (Base people skills (<<humint_lvl>>) + (Per (<<pcs_prcptn>>) + Cha (<<pcs_chrsm>>) + Rea (<<pcs_react>>)) / 3) / 2 + charming trait (<< 5 * chrmng>>) - mean trait (<<5 * meantrt>>)')
 			if pcs_persuas > 0:		$temp_table += func('obj_din', 'skill_format_func', 'Persuasion',		'persuas',	'Your persuasion (<<pcs_persuas>>) = (Base persuasion (<<persuas_lvl>>) + (Per (<<pcs_prcptn>>) + Cha (<<pcs_chrsm>>)) / 2) / 2 + charming trait (<< 5 * chrmng>>) - mean trait (<<5 * meantrt>>)')
 			if pcs_observ > 0:		$temp_table += func('obj_din', 'skill_format_func', 'Observation',		'observ',	'Your observation (<<pcs_persuas>>) = (Base observation (<<observ_lvl>>) + (Per (<<pcs_prcptn>>) + Rea (<<pcs_react>>) + Int (<<pcs_intel>>)) / 3) / 2')
@@ -575,25 +575,21 @@ if $ARGS[0] = 'skill_format_func':
 	$result += '<td>|</td>'
 	if temp['skl_lvl'] >= 100:
 		if $ARGS[2] ! 'stren' or temp['skl_lvl'] >= 200 or temp['skl_lvl'] = 100:
-			$result += '<td align="center">Max Level</td>'
+			$result += '<td align="center">Max Level</td><td>|</td></tr>'
+			killvar 'temp'
+			exit
 		else
-			temp['skl_exp'] = stren_plus_exp
-			temp['skl_xpprv'] = stren_plus_xpprv
-			temp['skl_xpnxt'] = stren_plus_xpnxt
-			temp['exp_into_level'] = temp['skl_exp']-temp['skl_xpprv']
-			temp['level_exp_width'] = temp['skl_xpnxt']-temp['skl_xpprv']
-
-			$result += '<td align="center">' + func('indiktab', 3, iif(temp['level_exp_width'] = 0, 0, temp['exp_into_level']*100 / temp['level_exp_width']), '<<temp[''exp_into_level'']>> / <<temp[''level_exp_width'']>>') + '</td>'
+			$ARGS[2] = stren_plus
 		end
-	else
-		temp['skl_exp'] = dyneval('result = <<$ARGS[2]>>_exp')
-		temp['skl_xpprv'] = dyneval('result = <<$ARGS[2]>>_xpprv')
-		temp['skl_xpnxt'] = dyneval('result = <<$ARGS[2]>>_xpnxt')
-		temp['exp_into_level'] = temp['skl_exp']-temp['skl_xpprv']
-		temp['level_exp_width'] = temp['skl_xpnxt']-temp['skl_xpprv']
-
-		$result += '<td align="center">' + func('indiktab', 3, iif(temp['level_exp_width'] = 0, 0, temp['exp_into_level']*100 / temp['level_exp_width']), '<<temp[''exp_into_level'']>> / <<temp[''level_exp_width'']>>') + '</td>'
 	end
+
+	temp['skl_exp'] = dyneval('result = <<$ARGS[2]>>_exp')
+	temp['skl_xpprv'] = dyneval('result = <<$ARGS[2]>>_xpprv')
+	temp['skl_xpnxt'] = dyneval('result = <<$ARGS[2]>>_xpnxt')
+	temp['exp_into_level'] = temp['skl_exp']-temp['skl_xpprv']
+	temp['level_exp_width'] = temp['skl_xpnxt']-temp['skl_xpprv']
+
+	$result += '<td align="center">' + func('indiktab', 3, iif(temp['level_exp_width'] = 0, 0, temp['exp_into_level'] * 100 / temp['level_exp_width']), '<<temp[''exp_into_level'']>> / <<temp[''level_exp_width'']>>') + '</td>'
 	$result += '<td>|</td></tr>'
 
 	killvar 'temp'
