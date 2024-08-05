@@ -62,7 +62,7 @@ export default class QsrcVisitor extends qsrcParserVisitor{
                 )
             );
         }
-        
+
         if(!result.length)
             return "";
         return result.join("\n");
@@ -155,11 +155,13 @@ export default class QsrcVisitor extends qsrcParserVisitor{
                     case "''":
                     case '""':
                         return String.raw`\'`;
+                    case '\\':
+                        return '\\\\';
                 }
             }
             return text;
         }
-        
+
 
         for(let i = 0; getAtom(ctx,i) != null; i++){
             const atomText = getAtom(ctx,i).getText();
@@ -178,93 +180,8 @@ export default class QsrcVisitor extends qsrcParserVisitor{
             }
         }
 
-        /*for(let i = 0; ctx[templateSuffix](i) != null; i++){
-            const visitedValue = this.visitValue(ctx[templateSuffix](i).value());
-            if(inPrintContext)
-                result += `<<=${visitedValue}>>`;
-            else
-                result += `'+(${visitedValue})+'`;
-            //const atomText = ctx[atomFunction](i).getText();
-            //result += atomText;
-        }
-
-
-        /*if(ctx.stringTemplateVarSuffix(0) || ctx.stringDQTemplateVarSuffix(0))
-            inPrintContext = false;
-
-        //Single Escaped String
-        if(ctx.stringAtom(0) != null || ctx.stringTemplateVarSuffix(0) != null){
-            for(let i = 0; ctx.stringAtom(i) != null; i++){
-                let text = ctx.stringAtom(i).getText();
-                if(text == "''"){
-                    if(inPrintContext)
-                        text = "'";
-                    else
-                        text = String.raw`\'`;
-                }
-                result += text;
-            }
-
-            for(let h = 0; ctx.stringTemplateVarSuffix(h) != null; h++){
-                const stringTemplateVarSuffix = ctx.stringTemplateVarSuffix(h);
-                let s = stringTemplateVarSuffix.stringTemplateVar().value();
-                //result += "'+("+ this.visitValue(s,{inPrintContext: inPrintContext})+")+'";
-                const visitedValue = this.visitValue(s,{inPrintContext: inPrintContext});
-                if(inPrintContext)
-                    result += `<<=${visitedValue}>>`;
-                else
-                    result += `'+(${visitedValue})+'`;
-                for(let i = 0; stringTemplateVarSuffix.stringAtom(i) != null; i++){
-                    let text = stringTemplateVarSuffix.stringAtom(i).getText();
-                    if(text == "''")
-                        text = String.raw`\'`;
-                    result += text;
-                }
-            }
-        }
-
-        //Double Escaped String
-        if(ctx.doubleQuoteAtom(0) != null || ctx.stringDQTemplateVarSuffix(0) != null){
-            for(let i = 0; ctx.doubleQuoteAtom(i) != null; i++){
-                let text = ctx.doubleQuoteAtom(i).getText();
-                if(text == '""'){
-                    if(inPrintContext)
-                        text += '"';
-                    else
-                        text = String.raw`\"`;
-                }
-                result += text;
-            }
-
-            for(let h = 0; ctx.stringDQTemplateVarSuffix(h) != null; h++){
-                const stringDQTemplateVarSuffix = ctx.stringDQTemplateVarSuffix(h);
-                let s = stringDQTemplateVarSuffix.stringTemplateVarDQ().value();
-                //result += "'+"+ this.visitValue(s,{inPrintContext: inPrintContext})+"+'";
-                const visitedValue = this.visitValue(s,{inPrintContext: inPrintContext});
-                if(inPrintContext)
-                    result += `<<=${visitedValue}>>`;
-                else
-                    result += `'+(${visitedValue})+'`;
-                for(let i = 0; stringDQTemplateVarSuffix.DQStringAtom(i) != null; i++){
-                    let text = stringDQTemplateVarSuffix.DQStringAtom(i).getText();
-                    if(text == "'")
-                        text = String.raw`\'`;
-                    result += text;
-                }
-            }
-        }
-
-        if(ctx.TemplateDoubleSingleQuote(0) != null){
-            for(let i = 0; ctx.InEscapedStringAtom(i) != null; i++){
-                let text = ctx.InEscapedStringAtom(i).getText();
-                if(text == "'")
-                    text = String.raw`\'`;
-                result += text;
-            }
-        }
-*/ 
         if(inPrintContext)
-            return `''>>${result}<<=''`;   
+            return `''>>${result}<<=''`;
 
         return `${stringBoundaries}${result}${stringBoundaries}`;
     }
@@ -284,7 +201,7 @@ export default class QsrcVisitor extends qsrcParserVisitor{
         return `setup.qsp_${ctx.WORD().getText().toLowerCase()}(${this.visitFunctionArguments(ctx.functionArguments())})`;
     }
 
-    
+
 
     visitIdentifierNumber(ctx){
         if(ctx.arrayIndex())
@@ -356,7 +273,7 @@ export default class QsrcVisitor extends qsrcParserVisitor{
             return `-${ctx.NumberLiteral().getText()}`;
         return ctx.NumberLiteral().getText();
     }
-    
+
 
     visitNumberOperator(ctx){
         switch (ctx.getText().trim().toUpperCase()) {
@@ -412,18 +329,18 @@ export default class QsrcVisitor extends qsrcParserVisitor{
                 if(!jumpMarkerName) continue;
                 const jumpCommand = `<<JUMP '${jumpMarkerName}'`;
 
-                
+
 
                 const c = countOccurrences(code,jumpCommand);
-                
+
                 if(c != 1) continue; //Either an orphan JUMPMARKER or a complex situation with several JUMPs
-                
+
                 for(let searchForJumpLineIndex = index + 1; searchForJumpLineIndex < codeLines.length; searchForJumpLineIndex++){
 
 
                     const searchForJumpLineCodeLine = codeLines[searchForJumpLineIndex];
                     const indentOfSeachForJumpLine = searchForJumpLineCodeLine.search(/\S/);
-                    
+
                     if(searchForJumpLineCodeLine.trim() == "")  continue;
                     if(indentOfSeachForJumpLine < indentOfJumpMarker) continue outerLoop;
 
@@ -464,7 +381,7 @@ export default class QsrcVisitor extends qsrcParserVisitor{
                                     codeLines[searchIfIndex] += "###";
                                     continue;
                                 }
-                                
+
                                 codeLines[searchIfIndex] += `\n${indent}<</for>>`;
 
                                 for(let j = searchForJumpLineIndex + 1; j <= searchIfIndex; j++)
@@ -483,7 +400,7 @@ export default class QsrcVisitor extends qsrcParserVisitor{
                         for(let j = index+1; j < searchForJumpLineIndex; j++)
                             codeLines[j] = "\t"+codeLines[j];
                     }
-                    
+
                     //codeLines[searchForJumpLineIndex] = "\t".repeat(indentOfJumpMarker) + "<</for>>";
 
                     continue outerLoop;
@@ -554,7 +471,7 @@ export default class QsrcVisitor extends qsrcParserVisitor{
                 return `${left} || ${right}`;
                 //return `(setup.logic_or(${left},${right}))`
             else
-                return `${left} ${op} ${right}`;   
+                return `${left} ${op} ${right}`;
         }
 
         if(ctx.escapedString()) return this.visitEscapedString(ctx.escapedString(),{inPrintContext: inPrintContext});

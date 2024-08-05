@@ -7,7 +7,7 @@ import { Command } from "commander";
 import WorkerPool from './worker_pool.js';
 import os from 'node:os';
 
-const VERSION = 3;
+const VERSION = 6;
 const generatedFilesPrefix = '-generated';
 const resourcesFilesPrefix = '+resources';
 
@@ -15,7 +15,7 @@ const program = new Command();
 program
   .name('QSP TO Sugarcube')
   .description('CLI to Convert Quest Soft sourcecode to Twine Sugarcube')
-  .version('0.0.1')
+  .version('0.0.6')
   .option('-in, --input-file-path <path>','the path where the qsrc-files are')
   .option('-out, --output-file-path <path>','the path where the tw-files go')
   .option('-f, --single-file <path>','only converts the specified file')
