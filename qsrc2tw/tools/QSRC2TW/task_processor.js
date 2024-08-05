@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import md5 from "./src/misc/md5.js";
 import path from "path";
 
-import qsrc2tw from "./src/qsrc2tw.js";
+import defaultProcess from "./src/defaultProcess.js";
 import npcInit from "./src/npcInit.js";
 import skillDefinitions from "./src/skillDefinitions.js";
 
@@ -75,7 +75,7 @@ function convertFile(task){
 		 */
 		var convertFunction = (code)=>[null,null];
 		switch (convertMode) {
-			case "default": convertFunction = (code) => [qsrc2tw(code, true),null]; break;
+			case "default": convertFunction = (code) => [defaultProcess(code),null]; break;
 			case "npcInit": convertFunction = (code) => npcInit(code); break;
 			case "stat_sklattrib_lvlset": convertFunction = (code) => skillDefinitions(code); break;
 			default:
