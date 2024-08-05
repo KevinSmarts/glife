@@ -1,4 +1,4 @@
-import qsrc2tw from "./qsrc2tw.js";
+
 
 export default function npcInit(code){
     let firstLine = code.split("\n")[0];
