@@ -1,5 +1,10 @@
 setup.qsp_gs_statistics ??= {};
 
+
+setup.qsp_performAnal ??= {entries: []};
+setup.qsp_performAnal_current ??= setup.qsp_performAnal;
+
+
 setup.qsp_gs = function(output,...args){
 	const startTime = (new Date()).getTime();
 
@@ -18,6 +23,11 @@ setup.qsp_gs = function(output,...args){
 
 	if(setup.Overwrite.gs(destination.toLowerCase(),destinationArgs) !== undefined)
 		return;
+
+	const oldScope = setup.qsp_performAnal_current;
+	const myScope = {type:'gs',destination:destination,args:clone(destinationArgs),entries: []};
+	oldScope.entries.push(myScope);
+	setup.qsp_performAnal_current = myScope;
 
 	State.variables.ARGSstack.push(destinationArgs);
 
@@ -42,6 +52,7 @@ setup.qsp_gs = function(output,...args){
 		console.error(e);
 	}
 	finally{
+		setup.qsp_performAnal_current = oldScope;
 		State.variables.ARGSstack.pop();
 		setup.qsp_callStack.pop();
 	}
@@ -50,6 +61,8 @@ setup.qsp_gs = function(output,...args){
 
 	const endTime = (new Date()).getTime();
 	const executionTime = endTime - startTime;
+
+	myScope.executionTime = executionTime;
 
 	if(setup.userStyle?.logGS){
 		setup.qsp_gs_statistics[destination.toLowerCase()] ??= [];

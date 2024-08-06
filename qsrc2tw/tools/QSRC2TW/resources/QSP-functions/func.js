@@ -20,6 +20,11 @@ setup.qsp_func = (passage,...args) => {
 
     setup.qsp_callStack.push({type:"func",passage:passage,args:args});
 
+    const oldScope = setup.qsp_performAnal_current;
+	const myScope = {type:'func',destination:passage,args:clone(args),entries: []};
+	oldScope.entries.push(myScope);
+	setup.qsp_performAnal_current = myScope;
+
 	try{
 		$.wiki(`<<include '${passage}'>>`);
 	}
@@ -27,6 +32,7 @@ setup.qsp_func = (passage,...args) => {
         console.warn("FUNC ERROR",passage,e);
     }
 	finally{
+        setup.qsp_performAnal_current = oldScope;
 		State.variables.ARGSstack.pop();
         setup.qsp_callStack.pop();
 	}
@@ -39,6 +45,8 @@ setup.qsp_func = (passage,...args) => {
 
     const endTime = (new Date()).getTime();
     const executionTime = endTime - startTime;
+
+    myScope.executionTime = executionTime;
 
     if(setup.userStyle?.logFUNC){
         setup.qsp_func_statistics[passage] ??= [];

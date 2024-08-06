@@ -7,6 +7,8 @@ import { Command } from "commander";
 import WorkerPool from './worker_pool.js';
 import os from 'node:os';
 
+import { execSync } from 'node:child_process';
+
 const VERSION = 6;
 const generatedFilesPrefix = '-generated';
 const resourcesFilesPrefix = '+resources';
@@ -125,6 +127,26 @@ fs.cpSync("./resources", resourcesPath, {recursive: true});
 
 const executionTime =  (new Date()).getTime() - startTime;
 console.log('ENDED CONVERSION'.padEnd(30,'.')+ ' '+executionTime+' ms'+` (${filePaths.length-failedFiles.length} of ${filePaths.length} successful)`);
+
+//#region Versioning File
+    const pathOfVersioningFile = path.join(outPath,generatedFilesPrefix,'version.js');
+    let version = 'Unknown';
+
+    try{
+        //https://stackoverflow.com/a/35778030/7200161
+        version = execSync('git rev-parse HEAD')
+                                .toString().trim();
+    }
+    catch(e){
+        //We didn't get the version. Not too bad.
+    }
+
+    const versionFileData = `setup.version = '${version}';\n`;
+
+    fs.writeFileSync(pathOfVersioningFile,versionFileData);
+
+
+//#endregion
 
 //https://stackoverflow.com/a/25221100/7200161
 function baseFileName(fullpath){
