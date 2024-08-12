@@ -160,41 +160,32 @@ if $shoplocation = 'ATM':
 	if bankAccount = 0:
 		'You don''t have a bank account yet!'
 	else
-		if karta >= 0:
-			'You have <<karta>> <b>₽</b> in your account.'
+		if karta >= bankDebtLimit:
+			'You have <<karta - bankDebtLimit>> <b>₽</b> in your account.'
 			'You have an overdraft limit of <font color="blue"><<bankDebtLimit>></font>!'
 		else
-			'You are overdrawn by <font color="red"><<-1 * karta>> <b>₽</b></font>.'
-			'You have a remaining credit limit of <font color="blue"><<bankDebtLimit + karta>></font>!'
+			'You are overdrawn by <font color="red"><<bankDebtLimit - karta>> <b>₽</b></font>.'
+			'You have a remaining credit limit of <font color="blue"><<karta>></font>!'
 		end
 
 		'<br>ATM Deposit Fee: 100 <b>₽</b>'
 
-		if atmDeposit ! 0:
-			'<br>★ Processing deposit of <<atmDeposit>> <b>₽</b> in <<atmDepositDate - daystart>> days.'
-		else
-			act 'Deposit money':
+		if bankAccount = 1 and money > 0:
+			act 'Deposit money into your bank account':
 				cla
+				menu_off = 1
 				minut += 5
-
-				kartaINATM = input ('How much money do you want to deposit into the account? Note: A service charge of 100 <b>₽</b> will be deducted from the amount deposited.')
-				if kartaINATM < 100 or kartaINATM > money:
-					'This is not a valid input.'
-				else
-					karta += kartaINATM - 100
-					atmDepositDate = daystart + 2
-					money -= kartaINATM
-
-					'<br>You deposit <<kartaINATM>> <b>₽</b> into your account.'
-					'It will take 2 days for funds to be available. Your new balance will be <<karta+atmDeposit>> <b>₽</b>.'
-				end
-
 				gs 'stat'
+
+				gs 'bank', 'deposit_cash'
+
+				'"Is there anything else I can do for you?"'
+
 				act 'Move away': gt 'shop', 'start'
 			end
 		end
 
-		if karta + bankDebtLimit < 0:
+		if karta <= 0:
 			'You have maxed out your overdraft.'
 		else
 			act 'Withdraw money from the ATM':
@@ -202,17 +193,17 @@ if $shoplocation = 'ATM':
 				minut += 5
 
 				kartaOUT = input ("How much money do you want to withdraw?")
-				if kartaOUT <= 0 or kartaOUT > karta + bankDebtLimit:
+				if kartaOUT <= 0 or kartaOUT > karta:
 					'<br>Invalid operation.'
 				else
 					karta -= kartaOUT
 					money += kartaOUT
-					if karta > 0:
-						'<br>You withdraw <<kartaOUT>> <b>₽</b>. You have <<karta>> <b>₽</b> left in your bank account.'
+					if karta > bankDebtLimit:
+						'<br>You withdraw <<kartaOUT>> <b>₽</b>. You have <<karta - bankDebtLimit>> <b>₽</b> left in your bank account.'
 					elseif karta = 0:
 						'<br>You withdraw <<kartaOUT>> <b>₽</b>. You have no money left in your bank account.'
 					else
-						'<br>You withdraw <<kartaOUT>> <b>₽</b>. <font color="red">Your bank account is overdrawn by <b><<karta>> ₽</b>.</font>'
+						'<br>You withdraw <<kartaOUT>> <b>₽</b>. <font color="red">Your bank account is overdrawn by <b><<bankDebtLimit - karta>> ₽</b>.</font>'
 					end
 				end
 
@@ -585,7 +576,7 @@ if $shoplocation = 'megafon':
 
 		if bankAccount = 0:
 			$line += '<td style="padding-left: 10px; padding-right: 10px;">No bank account</td></tr>'
-		elseif karta+bankDebtLimit >= price:
+		elseif karta >= price:
 			$line += '<td style="padding-left: 10px; padding-right: 10px;"><a href="exec: gs ''internet_mobile'', ''buy_subscription'', ''<<$home[''current'']>>'', <<price>>, 0 & minut += 30 & karta -= <<price>> & gs ''stat'' & gt ''shop'' ">Pay with Card</a></td></tr>'
 		else
 			$line += '<td style="padding-left: 10px; padding-right: 10px;">Insufficient balance</td></tr>'
@@ -613,7 +604,7 @@ if $shoplocation = 'megafon':
 					$line += '<tr><td style="padding-left: 10px; padding-right: 10px; align: left; ">Monthly internet subscription for <<price>> <b>₽</b> at <<LCASE($property_name[i])>>. Automatically renews every month</td>'
 					if bankAccount = 0:
 						$line += '<td style="padding-left: 10px; padding-right: 10px;">No bank account</td></tr>'
-					elseif karta+bankDebtLimit >= price:
+					elseif karta >= price:
 						$line += '<td style="padding-left: 10px; padding-right: 10px;"><a href="exec: gs ''internet_mobile'', ''buy_subscription'', ''<<$property_code[i]>>'', <<price>>, 0 & minut += 30 & karta -= <<price>> & gs ''stat'' & gt ''shop'' ">Pay with card</a></td></tr>'
 					else
 						$line += '<td style="padding-left: 10px; padding-right: 10px;">Insufficient balance</td></tr>'
@@ -649,9 +640,15 @@ if $shoplocation = 'megafon':
 		end
 		$line += '<tr><td style="padding-left: 10px; padding-right: 10px; align: left; ">Monthly mobile internet subscription for'+iif(discount > 0, ' <s><<price>></s><<price-discount>>', ' <<price>>')+'<b>₽</b>. Automatically renews every month</td>'
 
-		if bankAccount = 1 and karta + bankDebtLimit >= (price - discount): $line += '<td style="padding-left: 10px; padding-right: 10px;"><a href="exec: gs ''internet_mobile'', ''buy_subscription'', ''mobile'', <<price>>, <<discount_left>> & gs ''internet_mobile'', ''cancel_subscription'', ''metered_mobile'' & minut += 30 & karta -= <<price-discount>> & gs ''stat'' & gt ''shop'' ">Pay with card</a></td></tr>'
-		if bankAccount = 1 and karta + bankDebtLimit < (price - discount): $line += '<td style="padding-left: 10px; padding-right: 10px;">Insufficient funds</td></tr>'
-		if bankAccount = 0: $line += '<td style="padding-left: 10px; padding-right: 10px;">No bank account</td></tr>'
+		if bankAccount = 0:
+			$line += '<td style="padding-left: 10px; padding-right: 10px;">No bank account</td></tr>'
+		else
+			if karta < (price - discount):
+				$line += '<td style="padding-left: 10px; padding-right: 10px;">Insufficient funds</td></tr>'
+			else
+				$line += '<td style="padding-left: 10px; padding-right: 10px;"><a href="exec: gs ''internet_mobile'', ''buy_subscription'', ''mobile'', <<price>>, <<discount_left>> & gs ''internet_mobile'', ''cancel_subscription'', ''metered_mobile'' & minut += 30 & karta -= <<price-discount>> & gs ''stat'' & gt ''shop'' ">Pay with card</a></td></tr>'
+			end
+		end
 	end
 
 	'<<$title>><<$tables>><<$line>><<$tablec>>'
@@ -679,7 +676,7 @@ if $shoplocation = 'megafon':
 
 		if bankAccount = 0:
 			$line += '<td style="padding-left: 10px; padding-right: 10px;">No bank account</td></tr>'
-		elseif karta+bankDebtLimit >= 80:
+		elseif karta >= 80:
 			$line += '<td style="padding-left: 10px; padding-right: 10px;"><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_mobile'', 300 & karta -= 80 & minut += 10 & gt ''shop'' ">Pay with card</a></td></tr>'
 		else
 			$line += '<td style="padding-left: 10px; padding-right: 10px;">Insufficient balance</td></tr>'
@@ -695,7 +692,7 @@ if $shoplocation = 'megafon':
 
 		if bankAccount = 0:
 			$line += '<td style="padding-left: 10px; padding-right: 10px;">No bank account</td></tr>'
-		elseif karta+bankDebtLimit >= 155:
+		elseif karta >= 155:
 			$line += '<td style="padding-left: 10px; padding-right: 10px;"><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_mobile'', 600 & karta -= 155 & minut += 10 & gt ''shop'' ">Pay with card</a></td></tr>'
 		else
 			$line += '<td style="padding-left: 10px; padding-right: 10px;">Insufficient balance</td></tr>'
@@ -711,7 +708,7 @@ if $shoplocation = 'megafon':
 
 		if bankAccount = 0:
 			$line += '<td style="padding-left: 10px; padding-right: 10px;">No bank account</td></tr>'
-		elseif karta+bankDebtLimit >= 295:
+		elseif karta >= 295:
 			$line += '<td style="padding-left: 10px; padding-right: 10px;"><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_mobile'', 1200 & karta -= 295 & minut += 10 & gt ''shop'' ">Pay with card</a></td></tr>'
 		else
 			$line += '<td style="padding-left: 10px; padding-right: 10px;">Insufficient balance</td></tr>'
@@ -727,7 +724,7 @@ if $shoplocation = 'megafon':
 
 		if bankAccount = 0:
 			$line += '<td style="padding-left: 10px; padding-right: 10px;">No bank account</td></tr>'
-		elseif karta+bankDebtLimit >= 695:
+		elseif karta >= 695:
 			$line += '<td style="padding-left: 10px; padding-right: 10px;"><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_mobile'', 3000 & karta -= 695 & minut += 10 & gt ''shop'' ">Pay with card</a></td></tr>'
 		else
 			$line += '<td style="padding-left: 10px; padding-right: 10px;">Insufficient balance</td></tr>'
@@ -753,9 +750,16 @@ if $shoplocation = 'megafon':
 		end
 		$line += '<tr><td style="padding-left: 10px; padding-right: 10px; align: left;">Monthly mobile subscription that allows you to make calls and send text messages for'+iif(discount > 0, '<b><s><<price>></s></b> <span color="red"><b><<price-discount>></b></span>', ' <b><<price>></b>')+'<b>₽</b> Automatically renews every month</td>'
 
-		if bankAccount = 1 and karta + bankDebtLimit >= (price - discount): $line += '<td style="padding-left: 10px; padding-right: 10px;"><a href="exec: gs ''internet_mobile'', ''buy_subscription'', ''monthly_calls'', <<price>>, <<discount_left>> & gs ''internet_mobile'', ''cancel_subscription'', ''metered_calls'' & minut += 30 & karta -= <<price>> & gs ''stat'' & gt ''shop'' ">Pay with card</a></td></tr>'
-		if bankAccount = 1 and karta + bankDebtLimit < (price - discount): $line += '<td style="padding-left: 10px; padding-right: 10px;">Insufficient funds</td></tr>'
-		if bankAccount = 0: $line += '<td style="padding-left: 10px; padding-right: 10px;">No bank account</td></tr>'
+
+		if bankAccount = 0:
+			$line += '<td style="padding-left: 10px; padding-right: 10px;">No bank account</td></tr>'
+		else
+			if karta < (price - discount):
+				$line += '<td style="padding-left: 10px; padding-right: 10px;">Insufficient funds</td></tr>'
+			else
+				$line += '<td style="padding-left: 10px; padding-right: 10px;"><a href="exec: gs ''internet_mobile'', ''buy_subscription'', ''monthly_calls'', <<price>>, <<discount_left>> & gs ''internet_mobile'', ''cancel_subscription'', ''metered_calls'' & minut += 30 & karta -= <<price>> & gs ''stat'' & gt ''shop'' ">Pay with card</a></td></tr>'
+			end
+		end
 	end
 	'<<$title>><<$tables>><<$line>><<$tablec>>'
 	killvar 'title'
@@ -777,7 +781,7 @@ if $shoplocation = 'megafon':
 
 		if bankAccount = 0:
 			$line += '<td style="padding-left: 10px; padding-right: 10px;">No bank account</td></tr>'
-		elseif bankAccount = 1 and karta+bankDebtLimit >= 60:
+		elseif bankAccount = 1 and karta >= 60:
 			$line += '<td style="padding-left: 10px; padding-right: 10px;"><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_calls'', 60, 120 & karta -= 60 & minut += 10 & gt ''shop'' ">Pay with card</a></td></tr>'
 		else
 			$line += '<td style="padding-left: 10px; padding-right: 10px;">Insufficient balance</td></tr>'
@@ -793,7 +797,7 @@ if $shoplocation = 'megafon':
 
 		if bankAccount = 0:
 			$line += '<td style="padding-left: 10px; padding-right: 10px;">No bank account</td></tr>'
-		elseif bankAccount = 1 and karta + bankDebtLimit >= 115:
+		elseif bankAccount = 1 and karta >= 115:
 			$line += '<td style="padding-left: 10px; padding-right: 10px;"><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_calls'', 120, 240 & karta -= 115 & minut += 10 & gt ''shop'' ">Pay with card</a></td></tr>'
 		else
 			$line += '<td style="padding-left: 10px; padding-right: 10px;">Insufficient balance</td></tr>'
@@ -808,7 +812,7 @@ if $shoplocation = 'megafon':
 
 		if bankAccount = 0:
 			$line += '<td style="padding-left: 10px; padding-right: 10px;">No bank account</td></tr>'
-		elseif bankAccount = 1 and karta + bankDebtLimit >= 170:
+		elseif bankAccount = 1 and karta >= 170:
 			$line += '<td style="padding-left: 10px; padding-right: 10px;"><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_calls'', 180, 360 & karta -= 170 & minut += 10 & gt ''shop'' ">Pay with card</a></td></tr>'
 		else
 			$line += '<td style="padding-left: 10px; padding-right: 10px;">Insufficient balance</td></tr>'
@@ -824,7 +828,7 @@ if $shoplocation = 'megafon':
 
 		if bankAccount = 0:
 			$line += '<td style="padding-left: 10px; padding-right: 10px;">No bank account</td></tr>'
-		elseif bankAccount = 1 and karta + bankDebtLimit >= 225:
+		elseif bankAccount = 1 and karta >= 225:
 			$line += '<td style="padding-left: 10px; padding-right: 10px;"><a href="exec: gs ''internet_mobile'', ''top_up_metered'', ''metered_calls'', 240, 480 & karta -=225 & minut += 10 & gt ''shop'' ">Pay with card</a></td></tr>'
 		else
 			$line += '<td style="padding-left: 10px; padding-right: 10px;">Insufficient balance</td></tr>'
