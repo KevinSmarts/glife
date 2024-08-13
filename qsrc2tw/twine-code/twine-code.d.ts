@@ -63,6 +63,13 @@ declare module "twine-sugarcube" {
 
         qsp_dyneval: (code:string, ...args : (string|number)[]) => string|number;
         qsp_func: (passage:string,...arguments:(string|number)[]) => string|number;
+
+
+        //#region External Code
+            externalCodeURLs: {[key:string]:{code:string[],style:string[]}};
+            externalCodePromises: {[key:string]:Promise<any>};
+            externalCodePromise: (promiseId:string)=>Promise<any>;
+        //#endregion
     }
 
     export interface SugarCubeStoryVariables{
