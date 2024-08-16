@@ -1,0 +1,121 @@
+:: editor
+
+<<set _changedFiles = JSON.parse(localStorage.getItem("SweetCube.Modifications") ?? '{}')>>
+
+<div id="editorToolbar">
+	<<=$editor.passage>>
+
+	<<button 'Save'>>
+		<<run setup.editorSave($editor.passage,setup.editor.getValue())>>
+	<</button>>
+	<<button 'Return'>>
+		<<gt $editor.returnPassage $editor.returnArgs[0]>>
+	<</button>>
+
+	<<set _allPassageNames = Story.lookupWith((p)=>true).map((p)=>p.title)>>
+	<<autocomplete "_openPassageName" _allPassageNames>>
+		<<set $editor.passage = _openPassageName>>
+		<<goto 'editor'>>
+	<</autocomplete>>
+</div>
+
+<div id="editor">
+
+</div>
+
+<div id="commonTasks" class="collapsable collapsed">
+	<h2>Common Tasks</h2>
+	<div class="comment">
+		This is an example of help that could be provided here.
+	</div>
+	<h3>Passage Links</h3>
+	<h4>Goto</h4>
+	<div>
+		You use a goto-command to get from one passage to another.
+		Each goto-command creates a new entry in the history.
+		The player can navigate between these steps using the arrow-buttons in the Topbar (if this isn't disabled).
+		This system breaks if goto-commands are chained.
+		<b>You should therefore avoid executing a goto-commands without user-input!</b>
+	</div>
+	<div>
+		<code>&lt;&lt;goto 'passage2'&gt;&gt;</code><br/>
+		This is the SugarCube-native way to execute a goto-command. Use it if no arguments have to be sent to the next passage.
+	</div>
+	<div>
+		<code>&lt;&lt;gt 'passage2' 'arg0' 'arg1'&gt;&gt;</code><br/>
+		This command behaves as it does in QSP: send the user to a passage and set some arguments for the receiving passage.
+		Not that the <b>arguments are not separated by commas</b>.
+	</div>
+	<div>
+		<code>&lt;&lt;run setup.qsp_gt('passage2' , 'arg0' , 'arg1')&gt;&gt;</code><br/>
+		This is the syntax you'll find in the auto-translated files.
+		It provides support for some weird edge cases (mostly concerning dynamic code).
+		If you don't need that, use one of the two previous approaches.
+	</div>
+</div>
+
+<div id="passageLinks" class="collapsable collapsed">
+	<h2>Passage Links</h2>
+	<<set _passageLinks = setup.getPassageLinks($editor.passage)>>
+
+	<<for _passageId, _passageLinkArray range _passageLinks>>
+		<<capture _passageId>>
+		<div>
+			<<link _passageId>>
+				<<set $editor.passage = _passageId>>
+				<<goto 'editor'>>
+			<</link>>: <<=_passageLinkArray.length>>x
+		</div>
+		<</capture>>
+	<</for>>
+
+	<h2>Links to this passage</h2>
+	<<set _passageLinksToCurrentPassage = setup.getPassageLinksToPassage($editor.passage)>>
+	<<for _passageId range _passageLinksToCurrentPassage>>
+		<<capture _passageId>>
+		<div>
+			<<link _passageId>>
+				<<set $editor.passage = _passageId>>
+				<<goto 'editor'>>
+			<</link>>
+		</div>
+		<</capture>>
+	<</for>>
+
+	<div class="comment">
+		These lists might be incomplete. Some connections can not be detected automatically or it isn't efficient to do so.
+	</div>
+</div>
+
+<div id="changedFiles" class="collapsable collapsed">
+	<h2>Changed Files</h2>
+	<div class="changedPassages">
+		<<for _passage, _changes range _changedFiles>>
+			<<set _diffId = "diff_"+_passage>>
+			<<capture _passage _changes _diffId>>
+				<div class="changedPassage">
+					<h3 class="passageName">_passage</h3>
+					<<link "Open">>
+						<<set $editor.passage=_passage>>
+						<<goto 'editor'>>
+					<</link>>
+					<<linkreplace "Diff">>
+						<<run setup.placeDiffInDom(_passage,window.SweetCube.originalPassageContents[_passage],_changes,"#"+_diffId)>>
+					<</linkreplace>>
+					<<link "Delete">>
+						<<set _changedFiles[_passage] = undefined>>
+						<<run localStorage.setItem("SweetCube.Modifications",JSON.stringify(_changedFiles))>>
+						<<goto 'editor'>>
+					<</link>>
+					<code @id=_diffId class="diff"></code>
+				</div>
+			<</capture>>
+		<</for>>
+	</div>
+</div>
+
+<<done>>
+	<<run setup.startEditor('editor',Story.get($editor.passage).text)>>
+	<<run $(".collapsable > h2:first-of-type").on("click",function() {$(this).parent('.collapsable').toggleClass('collapsed');})>>
+<</done>>
+
