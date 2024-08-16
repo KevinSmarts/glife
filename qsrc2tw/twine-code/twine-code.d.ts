@@ -70,6 +70,9 @@ declare module "twine-sugarcube" {
             externalCodePromises: {[key:string]:Promise<any>};
             externalCodePromise: (promiseId:string)=>Promise<any>;
         //#endregion
+
+        getPassageLinks: (passageId:string) => {[passageId:string]:{type:string;line:number}[]};
+        getPassageLinksToPassage: (passageId:string) => string[];
     }
 
     export interface SugarCubeStoryVariables{
