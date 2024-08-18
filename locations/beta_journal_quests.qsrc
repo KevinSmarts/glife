@@ -11,13 +11,14 @@
 !! 💕 Relationship
 !! 📌 Location
 !! ✨ Magic
+!! 🔎 Hints
 !! Quest progress icons:
 !! <font color = "green">✓</font> - green tick
 !! <font color = "red">🗴</font> Red cross
 
 if $ARGS[0] = 'init':
 	*clr & cla
-	$loc_id = beta_journal_quests
+	$loc_id = 'beta_journal_quests'
 	act 'Put your journal down': gt $menu_loc, $menu_arg
 	act 'Return to top journal page': gt 'journal', 'records'
 	$jumploc = 'questtab'
@@ -27,6 +28,10 @@ if $ARGS[0] = 'init':
 		'<h2><font color = "red">Error with:</font> <<$debug[''journal'']>></h2>'
 		$debug['journal'] = ''
 	end
+		!! TEST
+		act 'Test vcard': gs $loc_id, 'vcard', 274
+		act 'Test Glossary': gs $loc_id, 'rel_pavlovsk'
+		!!TEST
 	if journal['alert'] = 1:
 		'<div>'
 		'<center><h3><font color = "orange">⚠ Todays Quests and Tasks</font></h3></center>'
@@ -43,7 +48,12 @@ if $ARGS[0] = 'init':
 	end
 end
 
+!! Friends and Relations
 if $ARGS[0] = 'rel_pavlovsk':
+	gs $loc_id, 'pavlovsk_array'
+	$table_gen_max = 6
+	gs $loc_id, 'table_gen'
+
 end
 if $ARGS[0] = 'rel_city':
 end
@@ -51,9 +61,30 @@ if $ARGS[0] = 'rel_gad':
 end
 if $ARGS[0] = 'rel_pushkin':
 	!! Ballet Maya
+
+
 end
 
+!! Game locations - quests
 if $ARGS[0] = 'geo_pavlovsk':
+	!!5/8 Estate
+	!!Commercial
+	!!Industrial
+	!!Market
+	!!Park
+	!!Train Station
+
+	if $ARGS[1] = '58_estate':
+		!!Parents apartment
+		!!Garages
+		!1Luda''s apartment
+		!!Shulgin''s Apartment
+	elseif $ARGS[1]= 'commercial':
+	elseif $ARGS[1]= 'industrial':
+	elseif $ARGS[1] = 'market':
+	elseif $ARGS[1] = 'park':
+	elseif $ARGS[1] = 'train_station':
+	end
 end
 if $ARGS[0] = 'geo_city':
 end
@@ -67,24 +98,40 @@ if $ARGS[0] = 'geo_village':
 end
 if $ARGS[0] = 'vcard':
 	*clr & cla
-	!! Section used to generate the user quests and other pertinent information
-	if $firstname['A<<ARGS[1]>>'] = '':
-		gs $loc_id, 'failure',  'id'
+	$quest_id = 'A' + ARGS[1]
+	$loc_id = 'beta_journal_quests'
+	!! Debug Section
+	if ARGS[1] = 0:
+		gt $loc_id, 'failure',  'id'
 	end
-	!! Initiate NPC data.
-	gs 'quest_data_a<<ARGS[1]>>', 'init'
-	$display_dob = func('shortgs', 'convert_dob', ARGS[1])
-
+		!! Initiate NPC data.
+	if $npc_quest['q_next'] = '':
+		!! qstage = current stage index
+		qstage = 1
+	end
+	gs 'quest_data_<<$quest_id>>', 'init'
+	!! Reset to correct location
+	$loc_id = 'beta_journal_quests'
+	!! Ensure quest data fields are populated
+	if $npc_quest['body'] ='':
+		gt $loc_id, 'failure', 'quest_body'
+	end
+	if $npc_quest['q_next'] = '':
+		gt $loc_id, 'failure', 'nav_forward'
+	end
+	if $npc_quest['q_back'] = '':
+		gt $loc_id, 'failure', 'nav_back'
+	end
+	!! Section used to generate the user quests and other pertinent information
 	!! Start vcard construction
-	$vard = ''
 	$vcard += '<center><h3>Ballet Quests - Characters</h3></center>'
 	$vcard += '<br>'
 	$vcard += '<div width="80%">'
-	$vcard += '<div style="width: 120px; padding: 0; float:left"><img style="height:100px;"  src="<<$npc_img_path[''A<<ARGS[1]>>'']>>/<<ARGS[1]>>_profile.jpg"></div>'
+	$vcard += '<div style="width: 120px; padding: 0; float:left"><img style="height:100px;"  src="<<$npc_img_path[''<<$quest_id>>'']>>/<<ARGS[1]>>_profile.jpg"></div>'
 	$vcard += '<div style="padding: 0;">'
-	$vcard += '<p><ul style="margin:0; padding:0;">Name: <<$npc_firstname[''A<<ARGS[1]>>'']>> "<<$npc_nickname[''A<<ARGS[1]>>'']>>" <<$npc_lastname[''A<<ARGS[1]>>'']>></ul>'
-	$vcard += '<ul style="margin:0; padding:0;">Date of Birth: <<$display_dob>> </ul>'
-	$vcard += '<ul style="margin:0; padding:0;">Home: <<$npc_home[''A<<ARGS[1]>>'']>></ul>'
+	$vcard += '<p><ul style="margin:0; padding:0;">Name: <<$npc_firstname[''<<quest_id>>'']>> "<<$npc_nickname[''<<$quest_id>>'']>>" <<$npc_lastname[''<<$quest_id>>'']>></ul>'
+	$vcard += '<ul style="margin:0; padding:0;">Date of Birth: ' + func('shortgs', 'convert_dob', ARGS[1])  +  ' </ul>'
+	$vcard += '<ul style="margin:0; padding:0;">Home: <<$npc_home[''<<$quest_id>>'']>></ul>'
 	$vcard += '<ul style="margin:0; padding:0;">Location: Unknown</ul>'
 
 	!! if debug is enabled show pop up msg:
@@ -99,41 +146,37 @@ if $ARGS[0] = 'vcard':
 	!! Output
 	$vcard
 
-	!! Ensure quest data fields are populated
-	if $npc_quest['q_body'] ='':
-		gs $loc_id, 'Failure', 'quest_body'
-	end
-	if $npc_quest['q_next'] = '':
-		gs $loc_id, 'Failure', 'nav_forward'
-	end
-	if $npc_quest['q_back'] = '':
-		gs $loc_id, 'Failure', 'nav_back'
-	end
-
 	!! Start quest body construction
 	$qsteps +=	'<div width = "80%">'
 	$qsteps +=	'<div style="padding: 10px;">'
-	$qsteps +=	'<h4>💕 Relationship Quest hints:</h4>'
-	$qsteps +=	$npc_quest['q_body']
+	$qsteps +=	'<h4>🔎 Quest hints:</h4>'
+	if journal_hints = 0:
+		$qsteps +=	'<a href="exec: journal_hints = 1 & gt ''<<$loc_id>>'', ''vcard'', <<ARGS[1]>>" >Enable hints</a><font color = "red"><b> Spoilers!</b></font> '
+	else
+		$qsteps +=	$npc_quest['hints']
+		$qsteps += '<br> <br>'
+		$qsteps +=	'<a href="exec: journal_hints = 0 & gt ''<<$loc_id>>'', ''vcard'', <<ARGS[1]>>">Disable hints</a> '
+	end
 	$qsteps +=	'<br>'
-	$qsteps +=	'<h4>Quest requisites:</h4>'
-	$qsteps +=	'<p><<$npc_[''quest_body'']>></p>'
+	$qsteps +=	'<h4>🧭 Quest requisites:</h4>'
+	$qsteps +=	'<p><<$npc_quest[''body'']>></p>'
 	$qsteps +=	'<br>'
 	$qsteps +=	'</div>'
 	$qsteps +=	'<div style="padding:5px; align: center;">'
 	$qsteps += 	'<center><h5>Quest History</h5></center>'
 
-	if $npc_quest['q_next'] ! 'null':
+	if $npc_quest['q_next'] = 'null':
 		$next_nav = 'Current Stage'
 	else
-		$next_nav = '<a href="gs ''quest_data_a<<ARGS[1]>>'', ''<<$npc_quest[''q_next'']>>''" >Next Stage</a> '
+		$next_nav = '<a href="gs ''<<$loc_id>>'', ''navigation'', ''next'' "" >Next Stage</a> <b>→</b>'
+		gs
 	end
-	if $npc_quest['q_back'] ! 'null':
+	if $npc_quest['q_back'] = 'null':
 		$back_nav = 'Quest Start'
 	else
-		$back_nav = '<a href="gs ''quest_data_a<<ARGS[1]>>'', ''<<$npc_quest[''q_next'']>>''" >Previous Stage</a> '
+		$back_nav = '<b>←</b> <a href="gs ''<<$loc_id>>'', ''navigation'', ''back'' " >Previous Stage</a> '
 	end
-	$qsteps +=	'<center><b>←</b> <<$back_nav>> |  <<$next_nav>> <b>→</b></center>'
+	$qsteps +=	'<center><<$back_nav>> | <<$next_nav>></center>'
 	$qsteps +=	'</div>'
 	$qsteps +=	'</div>'
 	$qsteps +=	'<br>'
@@ -145,19 +188,31 @@ if $ARGS[0] = 'vcard':
 	!! Clean up
 	killvar '$vcard'
 	killvar '$qsteps'
-	killvar 'birthday'
-	killvar '$birthday'
-	killvar 'birthmonth'
-	killvar '$birthmonth'
-	killvar 'birthyear'
+	killvar 'quest_id'
 	killvar '$evt_suffix'
+end
+
+!! Navigation
+if $ARGS[0] = 'navigation':
+	$nav_click = $ARGS[1]
+	if $ARGS[1] ! '' and qstage = 1:
+		$npc_quest['q_back'] = 'null'
+	elseif qstage > 1 and $nav_click = 'next':
+		qstage += 1
+	elseif qstage >= 2 and $nav_click ='back':
+		qstage -= 1
+	else
+		$debug['journal'] = 'Navigation failed to be set.'
+	end
+	killvar '$nav_click'
+	gs 'quest_data_<<$quest_id>>', 'init'
+	gs 'beta_journal_quests', 'init'
 end
 
 if $ARGS[0] = 'failure':
 	!! Debug sections
 	if $ARGS[1] = 'id':
 		$debug['journal'] = 'NPC ID not set, vcard not generated.'
-		gt $loc_id, 'start'
 	elseif $ARGS[1] = 'quest_body':
 		$debug['journal'] = 'Quest body not set, quests details was not display.'
 	elseif $ARGS[1] = 'nav_forward':
@@ -165,22 +220,118 @@ if $ARGS[0] = 'failure':
 	elseif $ARGS[1] = 'nav_back':
 		$debug['journal'] = 'No back navigation set - please ensure you have set the var in quest_data'
 	end
+	'vcard failed to initialise: ' + $debug['journal']
 end
 
 if $ARGS[0] = 'gametips':
 
-	if ARGS[1] = 1:
+	if $ARGS[1] = '1':
 		'If you have 50 skill in modern dance and Albina likes you might get a chance to join Starlets.'
-	elseif ARGS[1] = 2:
+	elseif $ARGS[1] = '2':
 		'Mon Cheri is the most prestigious clothing store in St. Petersburg, with a price tag to match.'
-	elseif ARGS[1] = 3:
+	elseif $ARGS[1] = '3':
 		'There is some parts of the game restricted to over-18s such as doing driving lessons, gambling at the casino and other areas. There is rumours that there is studios who are less fussy about sticking to the law.'
-	elseif ARGS[1] = 4:
-	elseif ARGS[1] = 5:
-	elseif ARGS[1] = 6:
-	elseif ARGS[1] = 7:
-	elseif ARGS[1] = 8:
-	elseif ARGS[1] = 9:
+	elseif $ARGS[1] = '4':
+	elseif $ARGS[1] = '5':
+	elseif $ARGS[1] = '6':
+	elseif $ARGS[1] = '7':
+	elseif $ARGS[1] = '8':
+	elseif $ARGS[1] = '9':
 	end
+end
+
+!! Table Generator for npcs and locations
+
+if $ARGS[0] = 'table_gen':
+
+	!! Original code by Anjuna
+	entry_counter_i = 1
+	entry_counter_j = 1
+	table_counter = 0
+	if ARGS[1] = 0:
+		table_columns = 3
+	else
+		table_columns = ARGS[1]
+	end
+
+	$bjq_temp_table = '<center><table cellspacing="3" bgcolor="<<$theme[''table_bg_alt'']>>" width="80%" align="center">'
+
+	:jmp_table_gen
+						!! CREATE ROW
+
+		$bjq_temp_table +=	'<tr width="100px">'
+		:jmp_table_gen2
+							!! CREATE CELL
+			$bjq_temp_table +=		'<td align="left">'
+			$bjq_temp_table +=			'<a href="exec: gt ''<<$loc_id>>'' ,''<<$loc_shortname[entry_counter_i]>>''">'
+			$bjq_temp_table +=				'<img height="100" src="<<$loc_path[entry_counter_i]>>">'
+			$bjq_temp_table +=			'</a>'
+			$bjq_temp_table += 		'</td>'
+							!! END CELL
+			entry_counter_i += 1
+		if entry_counter_i <= table_gen_max and (entry_counter_i mod table_columns) ! 0: jump 'jmp_table_gen2'
+		$bjq_temp_table +=	'</tr>'
+						!! END ROW
+
+						!! CREATE ROW
+		$bjq_temp_table +=	'<tr width="100px">'
+		:jmp_table_gen3
+								!! CREATE CELL
+			$bjq_temp_table += 		'<td align="left">'
+			$bjq_temp_table +=			$loc_name[entry_counter_j]
+			$bjq_temp_table +=		'</td>'
+								!! END CELL
+			entry_counter_j += 1
+		if entry_counter_j <= table_gen_max and (entry_counter_j mod table_columns) ! 0: jump 'jmp_table_gen3'
+		$bjq_temp_table +=	'</tr>'
+						!! END ROW
+
+		table_counter += 1
+		if table_counter = 5:
+						!! ADD BLANK ROW
+			$bjq_temp_table += '<tr></tr>'
+			table_counter = 0
+		end
+
+	if entry_counter_i < table_gen_max: jump 'jmp_table_gen'
+
+	$bjq_temp_table += '</table></center>'
+	'<<$bjq_temp_table>>'
+
+	killvar '$bjq_temp_table'
+	killvar 'entry_counter_i'
+	killvar 'entry_counter_j'
+	killvar 'table_columns'
+	killvar 'table_counter'
+	killvar 'table_gen_max'
+end
+
+!! Set up locations for image paths for the loop
+if $ARGS[0] = 'pavlovsk_array':
+	!! Set up locations for image paths for the loop
+	loc_gen = 1
+	$loc_name[loc_gen] = 'Five Eight Estate'
+	$loc_shortname[loc_gen] = '58_estate'
+	$loc_path[loc_gen] = 'images/locations/pavlovsk/resident/apartment/complex.jpg'
+	loc_gen = 2
+	$loc_name[loc_gen] = 'Commercial'
+	$loc_shortname[loc_gen] = 'commercial'
+	$loc_path[loc_gen] = 'images/locations/pavlovsk/gorodok.jpg'
+	loc_gen = 3
+	$loc_name[loc_gen] = 'Industrial'
+	$loc_shortname[loc_gen] = 'industrial'
+	$loc_path[loc_gen] = 'images/locations/pavlovsk/factory/pav_factory.jpg'
+	loc_gen = 4
+	$loc_name[loc_gen] = 'Market'
+	$loc_shortname[loc_gen] = 'market'
+	$loc_path[loc_gen] = 'images/locations/pavlovsk/pav_market_day.jpg'
+	loc_gen = 5
+	$loc_name[loc_gen] = 'Park'
+	$loc_shortname[loc_gen] = 'park'
+	$loc_path[loc_gen] = 'images/locations/pavlovsk/park/skver.jpg'
+	loc_gen = 6
+	$loc_name[loc_gen] = 'Train Station'
+	$loc_shortname[loc_gen] = 'train_station'
+	$loc_path[loc_gen] = 'images/locations/pavlovsk/trainstation/vokzal.jpg'
 end
 --- beta_journal_quests ---------------------------------
