@@ -269,9 +269,11 @@ export default class QsrcVisitor extends qsrcParserVisitor{
     }
 
     visitNumberLiteralWithOptionalSign(ctx){
+        const numberText = ctx.NumberLiteral().getText();
+        const number = Number(numberText); //Catch the edge cases where a number is prefixed with 0
         if(ctx.MINUS())
-            return `-${ctx.NumberLiteral().getText()}`;
-        return ctx.NumberLiteral().getText();
+            return `-${number}`;
+        return `${number}`;
     }
 
 

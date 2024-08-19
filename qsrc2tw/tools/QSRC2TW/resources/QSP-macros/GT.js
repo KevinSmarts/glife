@@ -88,7 +88,7 @@ Macro.add('gt', {
 	skipArgs : false,
 	handler  : function () {
 		try{
-			setup.gt(...this.args);
+			setup.qsp_gt(...this.args);
 		}
 		catch (ex) {
 			return this.error('ERROR in gt-widget: ' + ex.message);

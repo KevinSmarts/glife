@@ -9,7 +9,7 @@ import os from 'node:os';
 
 import { execSync } from 'node:child_process';
 
-const VERSION = 6;
+const VERSION = 8;
 const generatedFilesPrefix = '-generated';
 const resourcesFilesPrefix = '+resources';
 
@@ -17,7 +17,7 @@ const program = new Command();
 program
   .name('QSP TO Sugarcube')
   .description('CLI to Convert Quest Soft sourcecode to Twine Sugarcube')
-  .version('0.0.6')
+  .version('0.0.8')
   .option('-in, --input-file-path <path>','the path where the qsrc-files are')
   .option('-out, --output-file-path <path>','the path where the tw-files go')
   .option('-f, --single-file <path>','only converts the specified file')
@@ -126,7 +126,8 @@ fs.cpSync("./resources", resourcesPath, {recursive: true});
 
 
 const executionTime =  (new Date()).getTime() - startTime;
-console.log('ENDED CONVERSION'.padEnd(30,'.')+ ' '+executionTime+' ms'+` (${filePaths.length-failedFiles.length} of ${filePaths.length} successful)`);
+const executionTimeString = `${Math.floor(executionTime/3600000).toString().padStart(2,'0')}:${Math.floor(executionTime % 3600000 / 60000).toString().padStart(2,'0')}:${Math.floor(executionTime % 60000 /1000).toString().padStart(2,'0')}.${(executionTime % 1000).toString().padStart(4,'0')}`;
+console.log('ENDED CONVERSION'.padEnd(30,'.')+ ' '+executionTimeString+` (${filePaths.length-failedFiles.length} of ${filePaths.length} successful)`);
 
 //#region Versioning File
     const pathOfVersioningFile = path.join(outPath,generatedFilesPrefix,'version.js');
