@@ -9,7 +9,7 @@ import os from 'node:os';
 
 import { execSync } from 'node:child_process';
 
-const VERSION = 7;
+const VERSION = 8;
 const generatedFilesPrefix = '-generated';
 const resourcesFilesPrefix = '+resources';
 
@@ -17,7 +17,7 @@ const program = new Command();
 program
   .name('QSP TO Sugarcube')
   .description('CLI to Convert Quest Soft sourcecode to Twine Sugarcube')
-  .version('0.0.7')
+  .version('0.0.8')
   .option('-in, --input-file-path <path>','the path where the qsrc-files are')
   .option('-out, --output-file-path <path>','the path where the tw-files go')
   .option('-f, --single-file <path>','only converts the specified file')
