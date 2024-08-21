@@ -4,7 +4,7 @@
 !! Refactored 24 Aug 22
 !! Amended by Hooded Silence
 !! Game Character Journal - central core game data area for players.
-!! V .01 Refactored to enable menu bar navigation for UI consistency. 
+!! V .01 Refactored to enable menu bar navigation for UI consistency.
 !! V .02 Redesign and integration of content areas.
 !! V .03 Bug fixes.
 !!
@@ -14,7 +14,7 @@
 !! 2 Work - calls in journal_work
 !! 3 Quests - calls in journal_quest section
 !! 4 Relations / Current Group - pulls in various elements refactored from other areas to make tracking relationships easier. To be expanded on.
-!! 5 General Information 
+!! 5 General Information
 !! 6 User Notes - custom function
 !!
 !! Menu Variables
@@ -31,7 +31,7 @@ if $ARGS[0] = 'records':
 	*clr & cla
 	$BACKIMAGE = ''
 	gs 'housing', 'rent'
-    gs 'journal', 'journalmenu'
+	gs 'journal', 'journalmenu'
 ! records
 end
 
@@ -44,7 +44,7 @@ if $ARGS[0]='journalmenu':
 	if $start_type[1] ! 'nomagic': $tablebody += '<th><a href="exec:menutrack = 0 & gs ''journal'', ''magictab''">Magic</a></th>'
 	$tablebody += '<th><a href="exec:menutrack = 1 & gs ''journal'', ''housingtab''">Housing</a></th>'
 	$tablebody += '<th><a href="exec:menutrack = 2 & gs ''journal_work'', ''start''">Work</a></th>'
-	$tablebody += '<th><a href="exec:menutrack = 2 & gs ''journal_quests'', ''start''">Quests</a></th>'
+	$tablebody += '<th><a href="exec:menutrack = 3 & gs ''journal_quests'', ''start''">Quests</a></th>'
 	$tablebody += '<th><a href="exec:menutrack = 4 & gs ''journal'', ''relationstab''">Relations</a></th>'
 	$tablebody += '<th><a href="exec:menutrack = 5 & gs ''journal'', ''generaltab''">Game Information</a></th>'
 	$tablebody += '<th><a href="exec:menutrack = 6 & gs ''journal'', ''notestab''">Notes</a></th>'
@@ -52,19 +52,23 @@ if $ARGS[0]='journalmenu':
 	$tablebody += '</tr>'
 
 	!display the table here.
-	
+
 	'<center><table width="90%" align="center" width="90%" cellspacing="0" cellpadding="0" valign="top"><tr><<$tablebody>></tr></table></center>'
 	killvar '$tablebody'
-	
-	if $jumploc = '' or jclose = 1: 
-		if $start_type[1] ! 'nomagic': 
+
+
+	if $jumploc = 'worktab' and jclose = 1:
+		jclose = 0
+		menutrack = 2
+		gt 'journal_work', 'start'
+	elseif $jumploc = '' or jclose = 1:
+		jclose = 0
+		if $start_type[1] ! 'nomagic':
 			menutrack = 0
-			jclose = 0
 			gt 'journal', 'magictab'
 		else
 			menutrack = 1
-			jclose = 0
-			gt 'journal', 'housingtab'  
+			gt 'journal', 'housingtab'
 		end
 	end
 	gs 'journal', 'leaveactions'
@@ -83,19 +87,19 @@ end
 if $ARGS[0] = 'magictab':
 	$jumploc = 'magictab'
 	gs 'journal', 'journalmenu'
-	
+
 	'<center><h2>Spells</h2></center><br>'
 	'<center><h2>Spells to Cast</h2></center><br>'
-	func('spellBook','cast','$nonComSpells', 'gt ''journal'', ''magictab''', 'jclose = 1') 
+	func('spellBook','cast','$nonComSpells', 'gt ''journal'', ''magictab''', 'jclose = 1')
 	!!''''
 	'<br><center><h2>Spell Learning</h2></center><br>'
 	'<br><center><h3>Combat</h3></center><br>'
-	func('spellBook','learn','$combatSpells') 
+	func('spellBook','learn','$combatSpells')
 	'<br><center><h3>Non-Combat</h3></center><br>'
-	func('spellBook','learn','$nonComSpells') 
+	func('spellBook','learn','$nonComSpells')
 	delact 'Never mind'
-	
-	
+
+
 ! magic
 end
 
@@ -111,15 +115,15 @@ if $ARGS[0] = 'housingtab':
 	gs 'journal', 'journalmenu'
 
 	'<center><h2>Housing</h2></center>'
-	
+
 	*nl
 	if accessible_property['shared_apartment'] = 4: 'You share an apartment with three others in Pavlovsk. Your bills are paid by the other tenants in exchange for your house services.'
-	if accessible_property['city_apartment'] = 1: 'You rent a two bedroom apartment in the city residential area. Your rent for the apartment is subtracted automatically in sum of <<accessible_property[''city_apartment-rent'']>> <b>₽</b> us electric bill on 25th of each month. You are currently paid up for <b><<accessible_property[''city_apartment-days-left'']>></b> days.'
+	if accessible_property['city_apartment'] = 1: 'You rent a two bedroom apartment in the city residential area. Your rent for the apartment is subtracted automatically in sum of <<func(''homes_properties'', ''get_rent_amount'', ''city_apartment'')>> <b>₽</b> us electric bill on 25th of each month. You are currently paid up for <b><<func(''homes_properties'', ''get_rent_days'', ''city_apartment'')>></b> days.'
 	if accessible_property['city_apartment'] = 2: 'You own a two bedroom apartment in the city residential area. Your utility bills are due on the 25th of each month.'
 	if accessible_property['city_apartment'] = 3: 'You own a two bedroom apartment in the city residential area. It''s currently occupied by your tenants.'
 	if accessible_property['parents_home'] = 4: 'You live with your parents and siblings in a two bedroom apartment in Pavlovsk.'
 	if accessible_property['village_cottage']= 2 : 'You own a small holiday cottage with an adjacent allotment in the communal village.'
-	if accessible_property['old_town_apartment'] = 1: 'You rent a two bedroom apartment in Pushkin. Your rent for the apartment is subtracted automatically in the sum of <<accessible_property[''old_town_apartment-rent'']>> <b>₽</b> us electric bill on the 25th of each month. You are currently paid up for <b><<accessible_property[''old_town_apartment-days-left'']>></b> days.'
+	if accessible_property['old_town_apartment'] = 1: 'You rent a two bedroom apartment in Pushkin. Your rent for the apartment is subtracted automatically in the sum of <<func(''homes_properties'', ''get_rent_amount'', ''old_town_apartment'')>> <b>₽</b> us electric bill on the 25th of each month. You are currently paid up for <b><<func(''homes_properties'', ''get_rent_days'', ''old_town_apartment'')>></b> days.'
 	if accessible_property['matryona_mansion'] = 2 and constructionstatus = 0: 'You own a vacant block in the city suburbs.'
 	if accessible_property['matryona_mansion'] = 2 and constructionstatus = 1: 'You own a plot of land in the city suburbs upon which you are building a house.' + iif(banaMansion = 1, 'Your utility bills are due on the 25th of each month.', '')
 	if accessible_property['matryona_mansion'] = 2 and constructionstatus = 2: 'You own an impressive mansion in the city suburbs. ' + iif(banaMansion = 1, 'Your utility bills are due on the 25th of each month.', '')
@@ -171,26 +175,26 @@ if $ARGS[0] = 'relationstab':
 
 	'<center><h2>Relationships</h2></center>'
 	'<h2>Family</h2>'
-		
+
 	'Mother:'
-		
+
 	gs 'journal', 'relindex', 'A29'
-	
+
 	'Stepfather:'
-	
+
 	gs 'journal', 'relindex', 'A28'
-	
+
 	'Sister:'
 
 	gs 'journal', 'relindex', 'A33'
-	
+
 	'Brother:'
-	
+
 	gs 'journal', 'relindex', 'A34'
 
-	
+
 	if mid($start_type,1,2) = 'sg' and SchoolAtestat = 0 and SchoolBlock = 0:
-	
+
 		'<center><h2>Standings by Social Group</h2></center>'
 
 		if grupTipe < 5 and grupvalue[grupTipe] > 700:
@@ -217,7 +221,7 @@ if $ARGS[0] = 'relationstab':
 			'Your school social group consists of losers, teacher''s pets, sluts and the ugly.'
 		end
 		*nl
-		
+
 		'Cool Kids'
 
 		gs 'indik', '4', grupvalue[1]/10, grupvalue[1], 1 & '<<$ind>>'
@@ -230,94 +234,94 @@ if $ARGS[0] = 'relationstab':
 
 		'Gopnik'
 		gs 'indik', '4', grupvalue[4]/10, grupvalue[4], 4 & '<<$ind>>'
-			
+
 		'<center><h2>Popular Kids Relations</h2></center>'
-		
-		if npc_rel['A1']   > 0: 'Friendship with Dimka:'    & gs 'journal', 'relindex', 'A1' 
-		if npc_rel['A4']   > 0: 'Friendship with Igor:'     & gs 'journal', 'relindex', 'A4' 
-		if npc_rel['A14']  > 0: 'Friendship with Katja:'    & gs 'journal', 'relindex', 'A14' 
-		if npc_rel['A15']  > 0: 'Friendship with Vicky:'    & gs 'journal', 'relindex', 'A15' 
+
+		if npc_rel['A1']   > 0: 'Friendship with Dimka:'    & gs 'journal', 'relindex', 'A1'
+		if npc_rel['A4']   > 0: 'Friendship with Igor:'     & gs 'journal', 'relindex', 'A4'
+		if npc_rel['A14']  > 0: 'Friendship with Katja:'    & gs 'journal', 'relindex', 'A14'
+		if npc_rel['A15']  > 0: 'Friendship with Vicky:'    & gs 'journal', 'relindex', 'A15'
 		if npc_rel['A17']  > 0: 'Friendship with Irina:'    & gs 'journal', 'relindex', 'A17'
-		if npc_rel['A22']  > 0: 'Friendship with Bella:'    & gs 'journal', 'relindex', 'A22' 
-		if npc_rel['A146'] > 0: 'Friendship with Marcus:'   & gs 'journal', 'relindex', 'A146' 
-		if npc_rel['A147'] > 0: 'Friendship with Andrey:'   & gs 'journal', 'relindex', 'A147' 
-		if npc_rel['A148'] > 0: 'Friendship with Mefodiy:'  & gs 'journal', 'relindex', 'A148' 
-		if soniaPS = 0 and npc_rel['A25'] > 0: 'Friendship with Sonia:' & gs 'journal', 'relindex', 'A25' 
-		if npc_rel['A139'] > 0: 'Friendship with Stasya:'   & gs 'journal', 'relindex', 'A139' 
-		if npc_rel['A140'] > 0: 'Friendship with Lizaveta:' & gs 'journal', 'relindex', 'A140' 
-		
+		if npc_rel['A22']  > 0: 'Friendship with Bella:'    & gs 'journal', 'relindex', 'A22'
+		if npc_rel['A146'] > 0: 'Friendship with Marcus:'   & gs 'journal', 'relindex', 'A146'
+		if npc_rel['A147'] > 0: 'Friendship with Andrey:'   & gs 'journal', 'relindex', 'A147'
+		if npc_rel['A148'] > 0: 'Friendship with Mefodiy:'  & gs 'journal', 'relindex', 'A148'
+		if soniaQW['slut'] = 0 and npc_rel['A25'] > 0: 'Friendship with Sonia:' & gs 'journal', 'relindex', 'A25'
+		if npc_rel['A139'] > 0: 'Friendship with Stasya:'   & gs 'journal', 'relindex', 'A139'
+		if npc_rel['A140'] > 0: 'Friendship with Lizaveta:' & gs 'journal', 'relindex', 'A140'
+
 		'<center><h2>Jocks Relations</h2></center>'
-		
-		if npc_rel['A3']   > 0: 'Friendship with Ivan:'       & gs 'journal', 'relindex', 'A3' 
-		if fedormasha = 0 and npc_rel['A5'] > 0: 'Friendship with Fedor:' & gs 'journal', 'relindex', 'A5' 
-		if npc_rel['A8']   > 0: 'Friendship with Svyatoslav:' & gs 'journal', 'relindex', 'A8' 
-		if npc_rel['A13']  > 0: 'Friendship with Lariska:'    & gs 'journal', 'relindex', 'A13' 
+
+		if npc_rel['A3']   > 0: 'Friendship with Ivan:'       & gs 'journal', 'relindex', 'A3'
+		if fedormasha = 0 and npc_rel['A5'] > 0: 'Friendship with Fedor:' & gs 'journal', 'relindex', 'A5'
+		if npc_rel['A8']   > 0: 'Friendship with Svyatoslav:' & gs 'journal', 'relindex', 'A8'
+		if npc_rel['A13']  > 0: 'Friendship with Lariska:'    & gs 'journal', 'relindex', 'A13'
 		if npc_rel['A18']  > 0: 'Friendship with Christina:'  & gs 'journal', 'relindex', 'A18'
 		if npc_rel['A19']  > 0: 'Friendship with Lina:'       & gs 'journal', 'relindex', 'A19'
-		if npc_rel['A23']  > 0: 'Friendship with Albina:'     & gs 'journal', 'relindex', 'A23' 
-		if npc_rel['A149'] > 0: 'Friendship with Lazar:'      & gs 'journal', 'relindex', 'A149' 
-		if npc_rel['A150'] > 0: 'Friendship with Erast:'      & gs 'journal', 'relindex', 'A150' 
-		if npc_rel['A141'] > 0: 'Friendship with Veronika:'   & gs 'journal', 'relindex', 'A141' 
-		if npc_rel['A165'] > 0: 'Friendship with Vanya:'      & gs 'journal', 'relindex', 'A165' 
-		
+		if npc_rel['A23']  > 0: 'Friendship with Albina:'     & gs 'journal', 'relindex', 'A23'
+		if npc_rel['A149'] > 0: 'Friendship with Lazar:'      & gs 'journal', 'relindex', 'A149'
+		if npc_rel['A150'] > 0: 'Friendship with Erast:'      & gs 'journal', 'relindex', 'A150'
+		if npc_rel['A141'] > 0: 'Friendship with Veronika:'   & gs 'journal', 'relindex', 'A141'
+		if npc_rel['A165'] > 0: 'Friendship with Vanya:'      & gs 'journal', 'relindex', 'A165'
+
 		'<center><h2>Nerds Relations</h2></center>'
-		
-		if npc_rel['A2']   > 0: 'Friendship with Artem:'   & gs 'journal', 'relindex', 'A2' 
-		if npc_rel['A6']   > 0: 'Friendship with Petka:'   & gs 'journal', 'relindex', 'A6' 
-		if npc_rel['A12']  > 0: 'Friendship with Julia:'   & gs 'journal', 'relindex', 'A12' 
-		if npc_rel['A16']  > 0: 'Friendship with Natasha:' & gs 'journal', 'relindex', 'A16' 
+
+		if npc_rel['A2']   > 0: 'Friendship with Artem:'   & gs 'journal', 'relindex', 'A2'
+		if npc_rel['A6']   > 0: 'Friendship with Petka:'   & gs 'journal', 'relindex', 'A6'
+		if npc_rel['A12']  > 0: 'Friendship with Julia:'   & gs 'journal', 'relindex', 'A12'
+		if npc_rel['A16']  > 0: 'Friendship with Natasha:' & gs 'journal', 'relindex', 'A16'
 		if npc_rel['A151'] > 0: 'Friendship with Evgeny:'  & gs 'journal', 'relindex', 'A151'
 		if npc_rel['A152'] > 0: 'Friendship with Feofan:'  & gs 'journal', 'relindex', 'A152'
-		if npc_rel['A153'] > 0: 'Friendship with Gerasim:' & gs 'journal', 'relindex', 'A153' 
-		if npc_rel['A142'] > 0: 'Friendship with Zinaida:' & gs 'journal', 'relindex', 'A142' 
-		if npc_rel['A240'] > 0: 'Friendship with Natalia:' & gs 'journal', 'relindex', 'A240' 
-		
+		if npc_rel['A153'] > 0: 'Friendship with Gerasim:' & gs 'journal', 'relindex', 'A153'
+		if npc_rel['A142'] > 0: 'Friendship with Zinaida:' & gs 'journal', 'relindex', 'A142'
+		if npc_rel['A240'] > 0: 'Friendship with Natalia:' & gs 'journal', 'relindex', 'A240'
+
 		'<center><h2>Gopnik Relations</h2></center>'
-		
-		if npc_rel['A9']   > 0: 'Friendship with Vitek:'     & gs 'journal', 'relindex', 'A9' 
-		if npc_rel['A10']  > 0: 'Friendship with Dan:'       & gs 'journal', 'relindex', 'A10' 
-		if npc_rel['A11']  > 0: 'Friendship with Vasily:'    & gs 'journal', 'relindex', 'A11' 
-		if npc_rel['A20']  > 0: 'Friendship with Lena:'      & gs 'journal', 'relindex', 'A20' 
+
+		if npc_rel['A9']   > 0: 'Friendship with Vitek:'     & gs 'journal', 'relindex', 'A9'
+		if npc_rel['A10']  > 0: 'Friendship with Dan:'       & gs 'journal', 'relindex', 'A10'
+		if npc_rel['A11']  > 0: 'Friendship with Vasily:'    & gs 'journal', 'relindex', 'A11'
+		if npc_rel['A20']  > 0: 'Friendship with Lena:'      & gs 'journal', 'relindex', 'A20'
 		if npc_rel['A21']  > 0: 'Friendship with Lera:'      & gs 'journal', 'relindex', 'A21'
-		if npc_rel['A24']  > 0: 'Friendship with Pauline:'   & gs 'journal', 'relindex', 'A24' 
-		if npc_rel['A154'] > 0: 'Friendship with Radomir:'   & gs 'journal', 'relindex', 'A154' 
-		if npc_rel['A155'] > 0: 'Friendship with Lavrenti:'  & gs 'journal', 'relindex', 'A155' 
-		if npc_rel['A156'] > 0: 'Friendship with Arkadi:'    & gs 'journal', 'relindex', 'A156' 
-		if npc_rel['A157'] > 0: 'Friendship with Roman:'     & gs 'journal', 'relindex', 'A157' 
-		if npc_rel['A158'] > 0: 'Friendship with Valentin:'  & gs 'journal', 'relindex', 'A158' 
-		if npc_rel['A143'] > 0: 'Friendship with Alyona:'    & gs 'journal', 'relindex', 'A143' 
-		if npc_rel['A144'] > 0: 'Friendship with Anushka:'   & gs 'journal', 'relindex', 'A144' 
-		if npc_rel['A145'] > 0: 'Friendship with Ekaterina:' & gs 'journal', 'relindex', 'A145' 
-		if npc_rel['A189'] > 0: 'Friendship with Niko:'      & gs 'journal', 'relindex', 'A189' 
-		
+		if npc_rel['A24']  > 0: 'Friendship with Pauline:'   & gs 'journal', 'relindex', 'A24'
+		if npc_rel['A154'] > 0: 'Friendship with Radomir:'   & gs 'journal', 'relindex', 'A154'
+		if npc_rel['A155'] > 0: 'Friendship with Lavrenti:'  & gs 'journal', 'relindex', 'A155'
+		if npc_rel['A156'] > 0: 'Friendship with Arkadi:'    & gs 'journal', 'relindex', 'A156'
+		if npc_rel['A157'] > 0: 'Friendship with Roman:'     & gs 'journal', 'relindex', 'A157'
+		if npc_rel['A158'] > 0: 'Friendship with Valentin:'  & gs 'journal', 'relindex', 'A158'
+		if npc_rel['A143'] > 0: 'Friendship with Alyona:'    & gs 'journal', 'relindex', 'A143'
+		if npc_rel['A144'] > 0: 'Friendship with Anushka:'   & gs 'journal', 'relindex', 'A144'
+		if npc_rel['A145'] > 0: 'Friendship with Ekaterina:' & gs 'journal', 'relindex', 'A145'
+		if npc_rel['A189'] > 0: 'Friendship with Niko:'      & gs 'journal', 'relindex', 'A189'
+
 		'<center><h2>Outcast/Loner Relations</h2></center>'
-		
-		if npc_rel['A7']   > 0: 'Friendship with Lesco:' & gs 'journal', 'relindex', 'A7' 
-		if npc_rel['A159'] > 0: 'Friendship with Petia:' & gs 'journal', 'relindex', 'A159' 
-		if soniaPS    > 0 and npc_rel['A25'] > 0: 'Friendship with Sonia:' & gs 'journal', 'relindex', 'A25' 
-		if fedormasha = 1 and npc_rel['A5']  > 0: 'Friendship with Fedor:' & gs 'journal', 'relindex', 'A5' 
-		
+
+		if npc_rel['A7']   > 0: 'Friendship with Lesco:' & gs 'journal', 'relindex', 'A7'
+		if npc_rel['A159'] > 0: 'Friendship with Petia:' & gs 'journal', 'relindex', 'A159'
+		if soniaQW['slut']    > 0 and npc_rel['A25'] > 0: 'Friendship with Sonia:' & gs 'journal', 'relindex', 'A25'
+		if fedormasha = 1 and npc_rel['A5']  > 0: 'Friendship with Fedor:' & gs 'journal', 'relindex', 'A5'
+
 		'<center><h2>Teachers/Coaches/School Staff Relations</h2></center>'
-		
-		if npc_rel['A26']  > 0: 'Friendship with Anatoly Tsarev (Math Teacher):'             & gs 'journal', 'relindex', 'A26' 
-		if npc_rel['A69']  > 0: 'Friendship with Mikhail Nikolaevich (Volleyball Coach):'    & gs 'journal', 'relindex', 'A69' 
-		if npc_rel['A128'] > 0: 'Friendship with Makar Vasilyev (Art Teacher):'              & gs 'journal', 'relindex', 'A128' 
+
+		if npc_rel['A26']  > 0: 'Friendship with Anatoly Tsarev (Math Teacher):'             & gs 'journal', 'relindex', 'A26'
+		if npc_rel['A69']  > 0: 'Friendship with Mikhail Nikolaevich (Volleyball Coach):'    & gs 'journal', 'relindex', 'A69'
+		if npc_rel['A128'] > 0: 'Friendship with Makar Vasilyev (Art Teacher):'              & gs 'journal', 'relindex', 'A128'
 		if npc_rel['A129'] > 0: 'Friendship with Serafim Ivanov (Computer Science Teacher):' & gs 'journal', 'relindex', 'A129'
-		if npc_rel['A130'] > 0: 'Friendship with Ilya Yenotin (Literature Teacher):'         & gs 'journal', 'relindex', 'A130' 
+		if npc_rel['A130'] > 0: 'Friendship with Ilya Yenotin (Literature Teacher):'         & gs 'journal', 'relindex', 'A130'
 		if npc_rel['A131'] > 0: 'Friendship with Viktor Pavlovich (P.E. Teacher):'           & gs 'journal', 'relindex', 'A131'
-		if npc_rel['A132'] > 0: 'Friendship with Ruslan Kuznetsov (Shop Teacher):'           & gs 'journal', 'relindex', 'A132' 
-		if npc_rel['A133'] > 0: 'Friendship with Rolan Metveev (Janitor):'                   & gs 'journal', 'relindex', 'A133' 
-		if npc_rel['A134'] > 0: 'Friendship with Aleksandrina Volkov (Headmistress):'        & gs 'journal', 'relindex', 'A134' 
+		if npc_rel['A132'] > 0: 'Friendship with Ruslan Kuznetsov (Shop Teacher):'           & gs 'journal', 'relindex', 'A132'
+		if npc_rel['A133'] > 0: 'Friendship with Rolan Metveev (Janitor):'                   & gs 'journal', 'relindex', 'A133'
+		if npc_rel['A134'] > 0: 'Friendship with Aleksandrina Volkov (Headmistress):'        & gs 'journal', 'relindex', 'A134'
 		if npc_rel['A135'] > 0: 'Friendship with Yeva Sokoloff (Geography Teacher):'         & gs 'journal', 'relindex', 'A135'
-		if npc_rel['A136'] > 0: 'Friendship with Olga Aleksandrov (School Nurse):'           & gs 'journal', 'relindex', 'A136' 
-		if npc_rel['A137'] > 0: 'Friendship with Raven Braakman (English Teacher):'          & gs 'journal', 'relindex', 'A137' 
+		if npc_rel['A136'] > 0: 'Friendship with Olga Aleksandrov (School Nurse):'           & gs 'journal', 'relindex', 'A136'
+		if npc_rel['A137'] > 0: 'Friendship with Raven Braakman (English Teacher):'          & gs 'journal', 'relindex', 'A137'
 		if npc_rel['A138'] > 0: 'Friendship with Arina Orlov (Biology Teacher):'             & gs 'journal', 'relindex', 'A138'
-		
+
 
 		!!!WD: Formatting
 		if (npc_rel['A93'] + npc_rel['A41'] + npc_rel['A42'] + npc_rel['A43'] + gosh + npc_rel['A220'] + npc_rel['A219'] + npc_QW['A192'] + npc_rel['A218']) > 0:*nl
 		*nl
-		
+
 	end
 
 	'<center><h2>Pavlovsk Relations</h2></center>'
@@ -326,7 +330,7 @@ if $ARGS[0] = 'relationstab':
 	if npc_rel['A217'] > 0: 'Friendship with Pavlin:'         & gs 'journal', 'relindex', 'A217'
 	if npc_rel['A112'] > 0: 'Friendship with Sergey Shulgin:' & gs 'journal', 'relindex', 'A112'
 	if npc_rel['A119'] > 0: 'Friendship with Borislav:'       & gs 'journal', 'relindex', 'A119'
-		
+
 	'<center><h2>Gadukino Relations</h2></center>'
 	if npc_rel['A31']  > 0: 'Friendship with Elena (your great-grandmother):'  & gs 'journal', 'relindex', 'A31'
 	if npc_rel['A32']  > 0: 'Friendship with Zlatek (your great-grandfather):' & gs 'journal', 'relindex', 'A32'
@@ -340,7 +344,7 @@ if $ARGS[0] = 'relationstab':
 	if npc_rel['A172'] > 0: 'Friendship with Andrei (hunter):' & gs 'journal', 'relindex', 'A172'
 	if npc_rel['A173'] > 0: 'Friendship with Igor (hunter):'   & gs 'journal', 'relindex', 'A173'
 	if npc_rel['A174'] > 0: 'Friendship with Sergei (hunter):' & gs 'journal', 'relindex', 'A174'
-	
+
 	'<center><h2>Saint Petersburg Relations</h2></center>'
 	if npc_QW['A192']  > 0: 'Friendship with Nastya:'  & gs 'journal', 'relindex', 'A192'
 	if npc_rel['A218'] > 0: 'Friendship with Tanya:'   & gs 'journal', 'relindex', 'A218'
@@ -348,11 +352,11 @@ if $ARGS[0] = 'relationstab':
 	if npc_rel['A220'] > 0: 'Friendship with Vika:'    & gs 'journal', 'relindex', 'A220'
 	if npc_rel['A93']  > 0: 'Friendship with Ira:'     & gs 'journal', 'relindex', 'A93'
 	if npc_rel['A43']  > 0: 'Friendship with Tamara:'  & gs 'journal', 'relindex', 'A43'
-	if npc_rel['A35']  > 0: 'Friendship with Mikhail Kuznetsov (your biological father):' & gs 'journal', 'relindex', 'A35' 
+	if npc_rel['A35']  > 0: 'Friendship with Mikhail Kuznetsov (your biological father):' & gs 'journal', 'relindex', 'A35'
 	if npc_rel['A169'] > 0: 'Friendship with Dima:'    & gs 'journal', 'relindex', 'A169'
 	if npc_rel['A89']  > 0: 'Friendship with Eugene:'  & gs 'journal', 'relindex', 'A89'
 	if npc_rel['A216'] > 0: 'Friendship with Martin:'  & gs 'journal', 'relindex', 'A216'
-	
+
 	! '<center><h2>Other Relations</h2></center>'
 	! Uncomment if re-introduced into the game ensure you use NPC ID to update them
 	! if alla > 0: 'Friendship with Alla <<alla>>'
@@ -381,42 +385,35 @@ if $ARGS[0] = 'relationstab':
 !! This has some sex info but also weirdness like npc number and smilie face is dick the right length. Its about first time with a random lover
 !! if $bfsex > 0:'<<$bfsex>>'
 	*nl
-	if loverGender[0] = 0:
-		$obj_loverintro = 'Your boyfriend'
-		$obj_loverpron  = 'He'
+	i = 0
+	:loverjournalloop
+	if i < arrsize('lover'):
+		$temp_npcid = $lover[i]
 
-	else
-		$obj_loverintro = 'Your girlfriend'
-		$obj_loverpron  = 'She'
-	end
-	if pcs_lovers[0] = 1:'<<$obj_loverintro>> <<$loverdesc[0]>> is <<$loverbody[0]>> height and <<$loverbod[0]>> build with <<$loverface[0]>> hair. <<$loverdesc[0]>> is <<$loverClo[0]>>. Your relationship is <<loverrelation[0]>> after <<loverdays[0]>> days dating.'
-	if haraklover[0] = 0 and loverrelation[0] > 1:'<<$obj_loverpron>>''s timid and lacks confidence.'
-	if haraklover[0] = 1 and loverrelation[0] > 1:'<<$obj_loverpron>> has a cheerful and sociable personality.'
-	if haraklover[0] = 2 and loverrelation[0] > 1:'<<$obj_loverpron>>''s short-tempered and strict.'
+		if npcgender[$temp_npcid] = 0:
+			$obj_loverintro = 'Your boyfriend'
+			$obj_loverpron  = 'He'
+		else
+			$obj_loverintro = 'Your girlfriend'
+			$obj_loverpron  = 'She'
+		end
 
-	if loverGender[1] = 0:
-		$obj_loverintro = 'Your boyfriend'
-		$obj_loverpron  = 'He'
-	else
-		$obj_loverintro = 'Your girlfriend'
-		$obj_loverpron  = 'She'
+		if pcs_lovers[i] = 1: '<<$obj_loverintro>> <<$npc_usedname[$temp_npcid]>> is <<$loverbody[i]>> height and <<$loverbod[i]>> build with <<$loverface[i]>> hair. <<$loverdesc[i]>> is <<$loverClo[i]>>. Your relationship is <<loverrelation[i]>> after <<loverdays[i]>> days dating.'
+		if loverrelation[i] > 1:
+			if haraklover[i] = 0:
+				'<<$obj_loverpron>>''s timid and lacks confidence.'
+			elseif haraklover[i] = 1:
+				'<<$obj_loverpron>> has a cheerful and sociable personality.'
+			elseif haraklover[i] = 2:
+				'<<$obj_loverpron>>''s short-tempered and strict.'
+			end
+		end
+		killvar '$temp_npcid'
+		i += 1
 	end
-	if pcs_lovers[1] = 1:'<<$obj_loverintro>> <<$loverdesc[1]>> is <<$loverbody[1]>> height and <<$loverbod[1]>> build with <<$loverface[1]>> hair. <<$loverdesc[1]>> is <<$loverClo[1]>>. Your relationship is <<loverrelation[1]>> after <<loverdays[1]>> days dating.'
-	if haraklover[1] = 0 and loverrelation[1] > 1:'<<$obj_loverpron>>''s timid and lacks confidence.'
-	if haraklover[1] = 1 and loverrelation[1] > 1:'<<$obj_loverpron>> has a cheerful and sociable personality.'
-	if haraklover[1] = 2 and loverrelation[1] > 1:'<<$obj_loverpron>>''s short-tempered and strict.'
-
-	if loverGender[2] = 0:
-		$obj_loverintro = 'Your boyfriend'
-		$obj_loverpron  = 'He'
-	else
-		$obj_loverintro = 'Your girlfriend'
-		$obj_loverpron  = 'She'
-	end
-	if pcs_lovers[2] = 1:'<<$obj_loverintro>> <<$loverdesc[2]>> is <<$loverbody[2]>> height and <<$loverbod[2]>> build with <<$loverface[2]>> hair. <<$loverdesc[2]>> is <<$loverClo[2]>>. Your relationship is <<loverrelation[2]>> after <<loverdays[2]>> days dating.'
-	if haraklover[2] = 0 and loverrelation[2] > 1:'<<$obj_loverpron>>''s timid and lacks confidence.'
-	if haraklover[2] = 1 and loverrelation[2] > 1:'<<$obj_loverpron>> has a cheerful and sociable personality.'
-	if haraklover[2] = 2 and loverrelation[2] > 1:'<<$obj_loverpron>>''s short-tempered and strict.'
+	killvar 'i'
+	killvar '$obj_loverintro'
+	killvar '$obj_loverpron'
 	*nl
 
 !! relations
@@ -432,11 +429,11 @@ end
 if $ARGS[0] = 'generaltab':
 	$jumploc = 'generaltab'
 	gs 'journal', 'journalmenu'
-	
+
 !! generaltab
 	'<center><h2>General Information</h2></center>'
-	
-	if ARRSIZE('$portfolio_locations') > 0 or ARRSIZE('$portfolio_people') > 0:
+
+	if arrsize('$portfolio_locations') > 0 or arrsize('$portfolio_people') > 0:
 		act 'View your photography portfolio': gt 'journal_portfolio'
 	end
 
@@ -447,13 +444,13 @@ if $ARGS[0] = 'generaltab':
 	'<br><center><a href="exec: gs ''journal'', ''city_res''">City Residents</a></center>'
 	if mod_ballet['blocker'] >  0 or balletqw['school'] > 0: '<br><center><a href="exec: gs ''journal'', ''ballet''">Ballet Career</a></center>'
 
-	if SchoolAtestat = 0 and mid($start_type, 1, 2) = 'sg' and SchoolBlock = 0: 
+	if SchoolAtestat = 0 and mid($start_type, 1, 2) = 'sg' and SchoolBlock = 0:
 		'<br><center><a href="exec: gs ''journal_school'', ''school''">School</a></center>
 		<br><center><a href="exec: gs ''journal_school'', ''coursesinfo''">School Courses and Grades</a></center>'
 	end
 
 	!!Make this an elseif, add a third option to see where our friends end up in city-life??
-	if university['student'] = 1: 
+	if university['student'] = 1:
 		'<br><center><a href="exec: gs ''journal'', ''uni''">University</a></center>'
 	end
 
@@ -470,9 +467,8 @@ end
 if $ARGS[0] = 'notestab':
 	$jumploc = 'notestab'
 	gs 'journal', 'journalmenu'
-	'<center><h2>Notes</h2></center>' 
+	'<center><h2>Notes</h2></center>'
 
-	'Your Current Start is: ' + $start_type['cat']
 	'Create notes to keep track of any information you need.'
 	*nl
 
@@ -486,7 +482,7 @@ if $ARGS[0] = 'notestab':
 		jump 'jur_loop'
 	end
 	killvar 'jur_temp'
-	
+
 !! notes
 end
 
@@ -522,23 +518,23 @@ if $ARGS[0] = 'ballet':
 	gs 'journal', 'journalmenu'
 	'<center><h1>Ballet Career</h1></center>'
 	'<center><img <<$set_imgh>> src="mod/img_ballet/system/readme.jpg"></center>'
-	
+
 	'Пан или пропал (You become the master or, leave).'
-	
+
 	'A narrative based mod and activities for the Dancer start. The MC has been given a grant to attend an intensive 6 day summer class with an assessment that, if passed, can lead to a weekly rehearsal and a Winter dance show in December.'
-	
+
 	'Note: This storyline will play out over a long time span and your actions will have consequences that won''t initially be obvious. Some of this is dependent on the development of the main Girl Life codebase.'
-	
+
 	 'Current and planned features:'
-	
+
 		'• A new dancer start option, with other starts being granted access later or uni/city years paying to join.'
 		'• A 6 day intensive course during the school summer break - look for the letter in your parents kitchen to notify you.'
 		'• New pen friend(s), with meet ups and theatre or ballet nights with family or partner.'
 		'• A new dance instructor, whose intentions may prevent MC from joining the Pushkin Ballet Company or could have far ranging consequences on both herself and NPC characters.'
 		'• New dance gigs. At each rehearsal, there''s a chance that you may get a dance job for the local theatre or the city if you pass with merit.'
-	
+
 	'NB: There is no sex acts in this mod at present. If you wish to write such scenes based on the content, then contact me on the Girl Life Discord.'
-	
+
 	'<center><h2>In Memoriam — Hooded Silence.</h2></center>'
 	*nl
 	'This content is being maintained as part of Hooded Silence''s legacy. I have approximately 1-2 years of original content to add but if you wish to contribute, then note that there is no sexual content in this mod until at least year 3 as per his notes.'
@@ -550,10 +546,10 @@ if $ARGS[0] = 'ballet':
 
 	*nl
 	'These are the obvious repercussions, but there will be subtle consequences for your interactions with NPCs. This mod is meant to be played blind for your initial playthrough and the only feedback will be the varying conversations.'
-	
+
 end
 
-!! ---- Other Sections ---- 
+!! ---- Other Sections ----
 
 
 !! --- General Information -- Clothing
@@ -610,13 +606,13 @@ if $ARGS[0] = 'uni':
 					'<<$class_list_name[k]>>: <<$class[''<<$class_list_institution[k]>>_<<$class_list_name[k]>>_grade'']>>'
 				end
 				k += 1
-				if ARRSIZE('class_list_institution') >= k: jump 'class_loop'
+				if arrsize('class_list_institution') >= k: jump 'class_loop'
 			killvar 'k'
 		end
 		j += 1
 		if j < 8: jump 'semester_loop'
 	killvar 'j'
-	
+
 	if university['semester_passed'] = university['enrolled_in_semester'] and university['diploma'] = 0:
 		*nl
 		'You need to register for your next semester at the university administration building.'
@@ -658,24 +654,62 @@ if $ARGS[0] = 'uni':
 		j = 0
 		:grade_loop
 			if $class_list_institution[j] = 'uni_<<$university[''enrolled_in'']>>_semester_<<university[''enrolled_in_semester'']>>':
-				if     dyneval( 'RESULT = class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_grade'']') >= dyneval( 'RESULT = (4*<<university[''semester_week'']>> + 32)'):
+				if dyneval( 'RESULT = class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_grade'']') >= dyneval( 'RESULT = (3*<<university[''semester_week'']>> + 52)'):
 					'You think you''re doing great in <<$class_list_name[j]>> and will probably pass with a top grade if you keep this up.'
-
+					if dyneval ('RESULT = class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain''] +  class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_optional_weekly_grade_gain'']') < dyneval('RESULT = class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain_breakeven_point'']'):
+						'So far you have not done enough work this week an if you don''t go to more classes and are active there or study more outside classes, you will not just fail to keep up, you will actually make your chances of getting good grade  worse.'
+					elseif dyneval ('RESULT = 3*(class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain''] +  class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_optional_weekly_grade_gain''] -  class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain_breakeven_point''])') < dyneval('RESULT = 3*(class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain_max''] - class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain_breakeven_point''])'):
+						'The work you have put in this week so far is not enough to keep up, but at least you are not falling to much behind.'
+					else
+						'You have so far put in the amount of work this week to keep up.'
+					end
 				elseif dyneval( 'RESULT = class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_grade'']') >  dyneval( 'RESULT = (2*<<university[''semester_week'']>> + 32)'):
 					'You''re following the <<$class_list_name[j]>> class well and will probably pass with a good grade if you keep this up, but to get the top mark you''ll need to put in some more effort.'
-
+					if dyneval ('RESULT = class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain''] +  class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_optional_weekly_grade_gain'']') < dyneval('RESULT = class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain_breakeven_point'']'):
+						'So far you have not done enough work this week an if you don''t go to more classes and are active there or study more outside classes, you will not just fail to keep up, you will actually make your chances of getting good grade  worse.'
+					elseif dyneval ('RESULT = 3*(class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain''] +  class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_optional_weekly_grade_gain''] -  class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain_breakeven_point''])') < dyneval('RESULT = 2*(class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain_max''] - class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain_breakeven_point''])'):
+						'The work you have put in this week so far is not enough to keep up, but at least you are not falling to much behind.'
+					elseif dyneval ('RESULT = 3*(class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain''] +  class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_optional_weekly_grade_gain''] -  class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain_breakeven_point''])') >= dyneval('RESULT = 4*(class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain_max''] - class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain_breakeven_point''])'):
+						'You have so far put in more than enough work this week, and you situation is improving you keeping this up and you might end with good grade intead of a decent one.'
+					else
+						'You have so far put in the amount of work this week to keep up.'
+					end
 				elseif dyneval( 'RESULT = class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_grade'']') >= dyneval( 'RESULT = (1*<<university[''semester_week'']>> + 32)'):
 					'You have trouble following the <<$class_list_name[j]>> class, but will probably still pass. If you want a good grade, then you''ll really need to do something about it.'
-
+					if dyneval ('RESULT = class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain''] +  class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_optional_weekly_grade_gain'']') < dyneval('RESULT = class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain_breakeven_point'']'):
+						'So far you have not done enough work this week an if you don''t go to more classes and are active there or study more outside classes, you will not just fail to keep up, you will actually make your chances of getting good grade  worse.'
+					elseif dyneval ('RESULT = 3*(class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain''] +  class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_optional_weekly_grade_gain''] -  class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain_breakeven_point''])') < dyneval('RESULT = (class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain_max''] - class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain_breakeven_point''])'):
+						'The work you have put in this week so far is not enough to keep up, but at least you are not falling to much behind.'
+					elseif dyneval ('RESULT = 3*(class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain''] +  class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_optional_weekly_grade_gain''] -  class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain_breakeven_point''])') >= dyneval('RESULT = 3*(class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain_max''] - class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain_breakeven_point''])'):
+						'You have so far put in more than enough work this week, and you situation is improving you might soon not have trouble following the class anymore.'
+					else
+						'You have so far put in the amount of work this week to keep up.'
+					end
 				elseif dyneval( 'RESULT = class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_grade'']') < 40:
 					'You will fail your <<$class_list_name[j]>> class unless you do something about it right now. It might even be too late to catch up.'
-
+					if dyneval ('RESULT = class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain''] +  class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_optional_weekly_grade_gain'']') < dyneval('RESULT = class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain_breakeven_point'']'):
+						'So far you have not done enough work this week an if you don''t go to more classes and are active there or study more outside classes, you be even further from passing the class.'
+					elseif dyneval ('RESULT = 3*(class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain''] +  class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_optional_weekly_grade_gain''] -  class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain_breakeven_point''])/(class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain_max''] - class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain_breakeven_point'']') >= dyneval('RESULT = 40 - class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_grade'']'):
+						'You have put in enough work so far this week that you think you can pass the class if you keep this up for the rest of the semester.'
+					else
+						'The amount of work you have put in this week so far will improve your chance, but it is still not enough to guarantee that you pass the class.'
+					end
 				else
 					'You are hopelessly behind in your <<$class_list_name[j]>> class, but can probably still pass. Any hope of getting a good grade will require that you start doing something about it right now.'
+					if dyneval ('RESULT = class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain''] +  class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_optional_weekly_grade_gain'']') < dyneval('RESULT = class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain_breakeven_point'']'):
+						'So far you have not done enough work this week an if you don''t go to more classes and are active there or study more outside classes, you will not just fail to keep up, you will actually make your chances of even passing the class  worse.'
+					elseif dyneval ('RESULT = 3*(class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain''] +  class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_optional_weekly_grade_gain''] -  class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain_breakeven_point''])') < dyneval('RESULT = (class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain_max''] - class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain_breakeven_point''])'):
+						'The work you have put in this week so far is not enough to keep up, but at least you are not falling to much behind.'
+					elseif dyneval ('RESULT = 3*(class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain''] +  class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_optional_weekly_grade_gain''] -  class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain_breakeven_point''])') >= dyneval('RESULT = 3*(class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain_max''] - class[''<<$class_list_institution[j]>>_<<$class_list_name[j]>>_weekly_grade_gain_breakeven_point''])'):
+						'The work you have put in so far is more than enough work this week, and you situation is improving.'
+					else
+						'You have so far put in the amount of work this week to keep up, but not really improve which is not good in your situation.'
+					end
+
 				end
 			end
 			j += 1
-			if ARRSIZE('class_list_institution') >= j: jump 'grade_loop'
+			if arrsize('class_list_institution') >= j: jump 'grade_loop'
 		killvar 'j'
 
 	elseif university['exam_week'] > 0:
@@ -711,10 +745,10 @@ if $ARGS[0] = 'uni':
 				end
 			end
 			j += 1
-			if ARRSIZE('class_list_institution') >= j: jump 'exam_loop'
+			if arrsize('class_list_institution') >= j: jump 'exam_loop'
 		killvar 'j'
 	end
-	
+
 	*nl
 	!!Added a link to the various Character Journal entries for location: journal_uni.
 	!!Should probably be put somewhere else.                                           Blame Anjuna and Nutluck
@@ -725,7 +759,7 @@ if $ARGS[0] = 'uni':
 	*nl
 	'<br><center><a href="exec: gs ''journal_uni'', ''former_pavlovsk_students''">Former Pavlovsk Students</a></center>'
 
-	
+
 	act 'Go back': gt 'journal', 'generaltab'
 	gs 'journal', 'leaveactions'
 end
@@ -797,7 +831,7 @@ if $ARGS[0] = 'family':
 elseif $ARGS[0] = 'pav_res':
 	$jumploc = 'generalsub'
 	gs 'journal', 'journalmenu'
-	
+
 	'<center><h2>Pavlovsk Residents</h2></center>'
 
 	!! Post Secondary school !!
@@ -813,25 +847,25 @@ elseif $ARGS[0] = 'pav_res':
 		*nl
 		!!Erast Vagin
 		gs 'journal_NPC_information', 'A150', 'uni'
-		*nl	
+		*nl
 		!!Veronika
 		gs 'journal_NPC_information', 'A141', 'uni'
-		*nl	
+		*nl
 		!!Evgany
 		gs 'journal_NPC_information', 'A151', 'uni'
 		*nl
 		!!Natalia
 		gs 'journal_NPC_information', 'A240', 'uni'
-		*nl	
+		*nl
 		!!Vitek
 		gs 'journal_NPC_information', 'A9',   'uni'
 		*nl
 		!!Dan
 		gs 'journal_NPC_information', 'A10',  'uni'
-		*nl	
+		*nl
 		!!Vasily
 		gs 'journal_NPC_information', 'A11',  'uni'
-		*nl	
+		*nl
 		!!Roman
 		gs 'journal_NPC_information', 'A157', 'uni'
 		*nl
@@ -865,7 +899,7 @@ elseif $ARGS[0] = 'pav_res':
 elseif $ARGS[0] = 'gad_res':
 	$jumploc = 'generalsub'
 	gs 'journal', 'journalmenu'
-	
+
 	'<center><h2>Gadukino Residents</h2></center>'
 	!!Grandpa
 	gs 'journal_NPC_information', 'A31'
@@ -874,7 +908,7 @@ elseif $ARGS[0] = 'gad_res':
 	gs 'journal_NPC_information', 'A32'
 	*nl
 	!!Mira
-	if npc_known['A60'] = 1: 
+	if npc_known['A60'] = 1:
 		gs 'journal_NPC_information', 'A60'
 		*nl
 	end
@@ -892,12 +926,12 @@ elseif $ARGS[0] = 'gad_res':
 		*nl
 	end
 	!!Afanasiy (Mira''s father)
-	if npc_known['A60'] = 1: 
+	if npc_known['A60'] = 1:
 		gs 'journal_NPC_information', 'A64'
 		*nl
 	end
 	!!Vtialiy (Mira''s brother)
-	if npc_known['A60'] = 1: 
+	if npc_known['A60'] = 1:
 		gs 'journal_NPC_information', 'A64'
 		*nl
 	end
@@ -905,7 +939,7 @@ elseif $ARGS[0] = 'gad_res':
 	if npc_qw['A221'] > 0:
 		gs 'journal_NPC_information', 'A221'
 		*nl
-	end 
+	end
 	!!Hunters
 	if hunters_were_met > 0:
 		gs 'journal_NPC_information', 'A172'
@@ -915,7 +949,7 @@ elseif $ARGS[0] = 'gad_res':
 		gs 'journal_NPC_information', 'A174'
 		*nl
 	end
-	
+
 	act 'Go back': gt 'journal', 'generaltab'
 	gs 'journal', 'leaveactions'
 
@@ -923,7 +957,7 @@ elseif $ARGS[0] = 'gad_res':
 elseif $ARGS[0] = 'city_res':
 	$jumploc = 'generalsub'
 	gs 'journal', 'journalmenu'
-	
+
 	'<center><h2>City Residents</h2></center>'
 
 	!! Post Secondary school !!
@@ -937,7 +971,7 @@ elseif $ARGS[0] = 'city_res':
 		!!Valentin
 		gs 'journal_NPC_information', 'A154', 'uni'
 	end
-	
+
 	act 'Go back': gt 'journal', 'generaltab'
 	gs 'journal', 'leaveactions'
 end
@@ -951,13 +985,12 @@ if $ARGS[0] = 'relindex':
 
 
 elseif $ARGS[0] = 'leaveactions':
-	act 'Put your notebook down': 		 
+	act 'Put your notebook down':
 		killvar 'jumploc'
 		jclose = 1
 		gt $loc, $loc_arg
-	end	
+	end
 end
 
 
 --- journal ---------------------------------
-

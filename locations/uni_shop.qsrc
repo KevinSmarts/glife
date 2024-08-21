@@ -13,7 +13,7 @@ if $ARGS[0] = 'start' or $ARGS[0] = '':
 	menu_off = 0
 	gs 'themes', 'indoors'
 	if sound = 0:PLAY 'sound/shop.mp3',30
-	gs 'stat' 
+	gs 'stat'
 	*clr & cla
 
 
@@ -26,7 +26,7 @@ if $ARGS[0] = 'start' or $ARGS[0] = '':
 	'In the store is an <a href="exec: gt ''uni_shop'', ''atm''">ATM</a>, from which you can withdraw money and deposit money into your bank account.'
 
 	act 'Browse the aisles': gt 'uni_shop', 'cart'
-	
+
 
 	act 'Leave the store':minut += 2 & gt 'city_island'
 end
@@ -36,52 +36,44 @@ if $ARGS[0] = 'atm':
 	'<center><img <<$set_imgh>> src="images/locations/shared/store/atm.jpg"></center>'
 
 	if bankAccount = 1:
-		if karta >= 0:
-			'You have <<karta>> <b>₽</b> in your account.'
+		if karta >= bankDebtLimit:
+			'You have <<karta - bankDebtLimit>> <b>₽</b> in your account.'
 			'You have an overdraft limit of <font color="blue"><<bankDebtLimit>></font>!'
 		else
-			'You are overdrawn by <font color="red"><<-1 * karta>> <b>₽</b></font>.'
-			'You have a remaining credit limit of <font color="blue"><<bankDebtLimit + karta>></font>!'
+			'You are overdrawn by <font color="red"><<bankDebtLimit - karta>> <b>₽</b></font>.'
+			'You have a remaining credit limit of <font color="blue"><<karta>></font>!'
 		end
 
 		'<br>ATM Deposit Fee: 100 <b>₽</b>'
 
-		if atmDeposit = 0:
-			act 'Deposit money':
+		if bankAccount = 1 and money > 0:
+			act 'Deposit money into your bank account':
 				cla
+				menu_off = 1
 				minut += 5
-
-				kartaINATM = input ("How much money do you want to deposit into the account? Note: A service charge of 100 <b>₽</b> will be deducted from the amount deposited.")
-				if kartaINATM < 100 or kartaINATM > money:
-					'This is not a valid input.'
-				else
-					atmDeposit += kartaINATM - 100
-					atmDepositDate = daystart + 2
-					money -= kartaINATM
-					'<br>You deposit <<kartaINATM>> <b>₽</b> into your account.'
-					'It will take 2 days for funds to be available. Your new balance will be <<karta+atmDeposit>> <b>₽</b>.'
-				end
-
 				gs 'stat'
+
+				gs 'bank', 'deposit_cash'
+
+				'"Is there anything else I can do for you?"'
+
 				act 'Move away': gt 'uni_shop', 'start'
 			end
-		else
-			'<br>★ Processing deposit of <<atmDeposit>> <b>₽</b> in <<atmDepositDate - daystart>> days.'
 		end
 
-		if karta + bankDebtLimit > 0:
+		if karta > 0:
 			act 'Withdraw money from the ATM':
 				cla
 				minut += 5
 
 				kartaOUT = input ("How much money do you want to withdraw?")
-				if kartaOUT <= 0 or kartaOUT > karta + bankDebtLimit:
+				if kartaOUT <= 0 or kartaOUT > karta:
 					'<br>Invalid operation.'
 				else
 					karta -= kartaOUT
 					money += kartaOUT
 					if karta > 0:
-						'<br>You withdraw <<kartaOUT>> <b>₽</b>. You have <<karta>> <b>₽</b> left in your bank account.'
+						'<br>You withdraw <<kartaOUT>> <b>₽</b>. You have <<karta - bankDebtLimit>> <b>₽</b> left in your bank account.'
 					elseif karta = 0:
 						'<br>You withdraw <<kartaOUT>> <b>₽</b>. You have no money left in your bank account.'
 					else

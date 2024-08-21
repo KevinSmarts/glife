@@ -39,30 +39,44 @@ $telefon['header'] = {
 	else
 		$telefon['SMSstatus'] = ''
 	end
-	$result = '<center>
-	<b><<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>></b><br>
-	<TABLE cellspacing="0" width="80%">
-		<TR>
-			<TD><img src="images/system/icons/icon_statusbar_left.png"></TD>
-			<TD><<$telefon[''SMSstatus'']>></TD>
-			<TD align="right"><img src="images/system/icons/icon_statusbar_right.png"></TD>
-		</TR>
-	</TABLE><br>'
+	if 1:
+		$result = '<center>
+		<b><<$mid(100 + hour, 2, 2)>>:<<$mid(100 + minut, 2, 2)>></b><br>
+		<table cellspacing="0" width="80%">
+			<tr>
+				<td><img src="images/system/icons/icon_statusbar_left.png"></td>
+				<td><<$telefon[''SMSstatus'']>></td>
+				<td align="right"><img src="images/system/icons/icon_statusbar_right.png"></td>
+				end
+			</tr>
+		</table><br>'
+	else
+		$result = '<center>
+		<b><<$mid(100 + hour, 2, 2)>>:<<$mid(100 + minut, 2, 2)>></b><br>
+		<table cellspacing="0" width="80%">
+			<tr>
+				<td><img src="images/system/icons/icon_statusbar_left.png"></td>
+				<td><<$telefon[''SMSstatus'']>></td>
+				<td align="right"><img src="images/system/icons/icon_statusbar_right<<min(max(0, (pcs_sleep + 10) / 20), 5)>>.png"></td>
+			</tr>
+		</table><br>'
+	end
 }
 
 !! Footer for phone screen.  Body should be between these two
 $telefon['footer'] = {
-	if $telefon['backButton'] = '': $telefon['backButton'] = 'gs ''telefon'', ''Phone_menu'''
+	if $telefon['backButton'] = '': $telefon['backButton'] = 'gs ''telefon'', ''Phone_menu'' '
 	$result = '	<a href="exec:<<$telefon[''backButton'']>>"><img src="images/system/icons/back.png"></a><br><br>
 		<a href="exec:gs''stat''">Put Phone Away.</a><br>
 	</center>'
-	$telefon['backButton'] = 'gs ''telefon'', ''Phone_menu'''
+	$telefon['backButton'] = 'gs ''telefon'', ''Phone_menu'' '
 }
 
 !! ''''This is how we print the screen on to the Additional Dscription window
 $telefon['print'] = {
 	clr
 	if menu_off = 0:
+		if ARGS[0] ! 0: $telefon['backButton'] = 'gs ''stat'' '
 		pl func('cleanHTML', dyneval($telefon['header']) + $telefon['body'] + dyneval($telefon['footer']))
 	else
 		pl func('cleanHTML', dyneval($telefon['header']) + $telefon['body'])
@@ -92,11 +106,11 @@ $telefon['contact'] = {
 	if dyneval('result = iif(<<$telefon["ContactCallSchedule"]>>,1,0)') = 0:
 		$telefon['ContactCallCode'] = "gs 'telefon', 'phone_call_reject'"
 	end
-	$result = '<TR>
-		<TD><img src="<<$telefon[''ContactIcon'']>>" width="75"></TD>
-		<TD><<$telefon[''ContactNickName'']>></TD>
-		<TD align="right"><a href="exec:$callerid = ''<<$telefon[''ContactIcon'']>>'' & <<$telefon[''ContactCallCode'']>>"><b>Call</b></a></TD>
-	</TR>'
+	$result = '<tr>
+		<td><img src="<<$telefon[''ContactIcon'']>>" width="75"></td>
+		<td><<$telefon[''ContactNickName'']>></td>
+		<td align="right"><a href="exec:$callerid = ''<<$telefon[''ContactIcon'']>>'' & <<$telefon[''ContactCallCode'']>>"><b>Call</b></a></td>
+	</tr>'
 }
 
 
@@ -235,7 +249,7 @@ if $ARGS[0] = 'ContactList':
 	$telefon['body'] = '
 	<font size=6>Contacts</font><br>
 	<img src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/icon_call.png" height="80" width="80"><br><br>
-	<TABLE cellspacing="0" width="80%">'
+	<table cellspacing="0" width="80%">'
 
 	!!iterating all Contacts
 	i=0
@@ -265,7 +279,7 @@ if $ARGS[0] = 'ContactList':
 	lover_number += 1
 	if lover_number < arrsize('pcs_lovers'): jump 'loverloop2'
 
-	$telefon['body'] += '</TABLE><br>'
+	$telefon['body'] += '</table><br>'
 	dynamic $telefon['print']
 	killvar 'i'
 	killvar 'lover_number'
@@ -506,251 +520,26 @@ end &! --- Phone_notebook ---
 
 !!----------------------------------------Camera-------------------------------------------------
 
+!!for taking photos - only selfies for now
+if $ARGS[0] = 'Phone_camera':
+	gs 'phone_selfies', 'open_camera'
+	dynamic $telefon['print']
+end
+
 !!for viewing photos on your phone
 if $ARGS[0] = 'Phone_pictures':
-	gt 'phone_selfies', 'selfies'
-end
-
-!!picking the selfie image when taking photos, this sets the location variable
-!{
-	$ARGS[1] is phone location if left blank it is a generic selfie	(one of the locations in $selfieLoc[])
-	$ARGS[2] is for flashing when clothed if left blank then it is not flashing
-}
-if $ARGS[0] = 'Phone_camera_selfie':
-	minut += rand(5,7)
-	if $ARGS[1] ! '':
-		gs 'telefon', 'Phone_selfie_image', $ARGS[1], $ARGS[2]
-	else
-		phone_rand = RAND(1,selfieClotot[0])
-		dynamic '<<$selfieLoc[0]>>_closelfie[<<phone_rand>>] = 1'
-		gs 'stat'
-		if usePopUps = 1:
-			msg '<img src="images/pc/activities/phone/selfies/<<$selfieLoc[0]>>/clothed/<<$selfieFilePrefix[0]>><<phone_rand>>.jpg">'
-		else
-			view 'images/pc/activities/phone/selfies/<<$selfieLoc[0]>>/clothed/<<$selfieFilePrefix[0]>><<phone_rand>>.jpg'
-		end
-	end
-	!if cumsumbod-cumsumvag-cumsumass > 0: phone_rand = RAND (m,n) - for SELF in the semen
-	!if photo_event_pic = x: phone_rand = RAND (x,y) - for photos during the events (by heart)
-	!msg '<img src="images/system/phone/phone_selfie<<phone_rand>>.jpg">'
-end
-
-!!taking selfies, this chooses a random image for the location for clothed, underwear and nude
-!{
-	$ARGS[1] is phone location (one of the locations in $selfieLoc[])
-	$ARGS[2] is for flashing when clothed if left blank then it is not flashing
-}
-if $ARGS[0] = 'Phone_selfie_image':
-	if $ARGS[2] = '':
-		if PCloswimwear = 1:
-			!!changing to and unmixed variable so the rng will work
-			if Enable_Android = 1:
-				temp_swim = selfieSwimtot[arrpos('$selfieLoc', $ARGS[1], 1)]
-			else
-				temp_swim = selfieSwimtot[arrpos(1, '$selfieLoc', $ARGS[1])]
-			end
-			if temp_swim > 0:
-				phone_rand = rand(1, temp_swim)
-				!!Setting the image owned flag to 1
-				dynamic '<<$ARGS[1]>>_swim[<<phone_rand>>] = 1'
-				gs 'stat'
-				if usePopUps = 1:
-					msg '<img src="images/pc/activities/phone/selfies/<<$ARGS[1]>>/bikini/<<phone_rand>>.jpg">'
-				else
-					view 'images/pc/activities/phone/selfies/<<$ARGS[1]>>/bikini/<<phone_rand>>.jpg'
-				end
-			end
-		elseif $clothingworntype ! 'nude':
-			!!changing to and unmixed variable so the rng will work
-			if Enable_Android = 1:
-				temp_clotot = selfieClotot[arrpos('$selfieLoc', $ARGS[1], 1)]
-			else
-				temp_clotot = selfieClotot[arrpos(1, '$selfieLoc', $ARGS[1])]
-			end
-			if temp_clotot > 0:
-				phone_rand = rand(1, temp_clotot)
-				!!Setting the image owned flag to 1
-				dynamic '<<$ARGS[1]>>_closelfie[<<phone_rand>>] = 1'
-				gs 'stat'
-				if usePopUps = 1:
-					msg '<img src="images/pc/activities/phone/selfies/<<$ARGS[1]>>/clothed/<<phone_rand>>.jpg">'
-				else
-					view 'images/pc/activities/phone/selfies/<<$ARGS[1]>>/clothed/<<phone_rand>>.jpg'
-				end
-			end
-		elseif $pantyworntype ! 'none':
-			if Enable_Android = 1:
-				temp_undtot = selfieUndtot[arrpos('$selfieLoc', $ARGS[1], 1)]
-			else
-				temp_undtot = selfieUndtot[arrpos(1, '$selfieLoc', $ARGS[1])]
-			end
-			if temp_undtot > 0:
-				phone_rand = rand(1, temp_undtot)
-				dynamic '<<$ARGS[1]>>_undselfie[<<phone_rand>>] = 1'
-				gs 'stat'
-				if usePopUps = 1:
-					msg '<img src="images/pc/activities/phone/selfies/<<$ARGS[1]>>/underwear/<<phone_rand>>.jpg">'
-				else
-					view 'images/pc/activities/phone/selfies/<<$ARGS[1]>>/underwear/<<phone_rand>>.jpg'
-				end
-			end
-		else
-			if Enable_Android = 1:
-				temp_nudtot = selfieNudtot[arrpos('$selfieLoc', $ARGS[1], 1)]
-			else
-				temp_nudtot = selfieNudtot[arrpos(1, '$selfieLoc', $ARGS[1])]
-			end
-			if temp_nudtot > 0:
-				phone_rand = rand(1, temp_nudtot)
-				dynamic '<<$ARGS[1]>>_nudselfie[<<phone_rand>>] = 1'
-				gs 'stat'
-				if usePopUps = 1:
-					msg '<img src="images/pc/activities/phone/selfies/<<$ARGS[1]>>/nude/<<phone_rand>>.jpg">'
-				else
-					view 'images/pc/activities/phone/selfies/<<$ARGS[1]>>/nude/<<phone_rand>>.jpg'
-				end
-			end
-		end
-	else
-		if $ARGS[2] = 'tits':
-			if Enable_Android = 1:
-				temp_titflash = selfieTitflash[arrpos('$selfieLoc', $ARGS[1], 1)]
-			else
-				temp_titflash = selfieTitflash[arrpos(1, '$selfieLoc', $ARGS[1])]
-			end
-			if temp_titflash > 0:
-				phone_rand = rand(1, temp_titflash)
-				dynamic '<<$ARGS[1]>>_titflash[<<phone_rand>>] = 1'
-				gs 'stat'
-				if usePopUps = 1:
-					msg '<img src="images/pc/activities/phone/selfies/<<$ARGS[1]>>/titflash/<<phone_rand>>.jpg">'
-				else
-					view 'images/pc/activities/phone/selfies/<<$ARGS[1]>>/titflash/<<phone_rand>>.jpg'
-				end
-			end
-		elseif $ARGS[2] = 'ass':
-			if Enable_Android = 1:
-				temp_assflash = selfieAssflash[arrpos('$selfieLoc', $ARGS[1], 1)]
-			else
-				temp_assflash = selfieAssflash[arrpos(1, '$selfieLoc', $ARGS[1])]
-			end
-			if temp_assflash > 0:
-				phone_rand = rand(1, temp_assflash)
-				dynamic '<<$ARGS[1]>>_assflash[<<phone_rand>>] = 1'
-				gs 'stat'
-				if usePopUps = 1:
-					msg '<img src="images/pc/activities/phone/selfies/<<$ARGS[1]>>/assflash/<<phone_rand>>.jpg">'
-				else
-					view 'images/pc/activities/phone/selfies/<<$ARGS[1]>>/assflash/<<phone_rand>>.jpg'
-				end
-			end
-		elseif $ARGS[2] = 'pussy':
-			if Enable_Android = 1:
-				temp_pussyflash = selfiePussyflash[arrpos('$selfieLoc', $ARGS[1], 1)]
-			else
-				temp_pussyflash = selfiePussyflash[arrpos(1, '$selfieLoc', $ARGS[1])]
-			end
-			if temp_pussyflash > 0:
-				phone_rand = rand(1, temp_pussyflash)
-				dynamic '<<$ARGS[1]>>_pussyflash[<<phone_rand>>] = 1'
-				gs 'stat'
-				if usePopUps = 1:
-					msg '<img src="images/pc/activities/phone/selfies/<<$ARGS[1]>>/pussyflash/<<phone_rand>>.jpg">'
-				else
-					view 'images/pc/activities/phone/selfies/<<$ARGS[1]>>/pussyflash/<<phone_rand>>.jpg'
-				end
-			end
-		end
-	end
+	gt 'phone_selfies', 'view_selfies'
 end
 
 !!taking selfies in the shower or bath
 if $ARGS[0] = 'Phone_selfie_image_bathing':
-	minut += rand(5,7)
-	if $ARGS[1] = 'shower':
-		!!changing to and unmixed variable so the rng will work
-		if Enable_Android = 1:
-			temp_showertot = selfieShowertot[arrpos('$selfieLoc', 'bathroom', 1)]
-		else
-			temp_showertot = selfieShowertot[arrpos(1, '$selfieLoc', 'bathroom')]
-		end
-		phone_rand = rand(1, temp_showertot)
-		!!Setting the image owned flag to 1
-		bathroom_showerselfie[phone_rand] = 1
-		gs 'stat'
-		if usePopUps = 1:
-			msg '<img src="images/pc/activities/phone/selfies/bathroom/shower/<<phone_rand>>.jpg">'
-		else
-			view 'images/pc/activities/phone/selfies/bathroom/shower/<<phone_rand>>.jpg'
-		end
-	elseif $ARGS[1] = 'bath':
-		if Enable_Android = 1:
-			temp_bathtot = selfieBathtot[arrpos('$selfieLoc', 'bathroom', 1)]
-		else
-			temp_bathtot = selfieBathtot[arrpos(1, '$selfieLoc', 'bathroom')]
-		end
-		phone_rand = rand(1, temp_bathtot)
-		bathroom_bathselfie[phone_rand] = 1
-		gs 'stat'
-		if usePopUps = 1:
-			msg '<img src="images/pc/activities/phone/selfies/bathroom/bath/<<phone_rand>>.jpg">'
-		else
-			view 'images/pc/activities/phone/selfies/bathroom/bath/<<phone_rand>>.jpg'
-		end
+	if $ARGS[1] = 'bath':
+		gs 'phone_selfies', 'camera_selfie_image_bathing'
+	elseif $ARGS[1] = 'shower':
+		gs 'phone_selfies', 'camera_selfie_image_shower'
 	end
 end
 
-!!for taking photos - only selfies for now
-if $ARGS[0] = 'Phone_camera':
-	gs 'phone_selfies', 'Phone_selfie_totals'
-	if $locclass = 'bedr':
-		$phone_loc = 'bedroom'
-	elseif $locclass = 'kitr':
-		$phone_loc = 'kitchen'
-	elseif $locclass = 'livingr':
-		$phone_loc = 'livingroom'
-	elseif $locclass = 'changingroom':
-		$phone_loc = 'changingroom'
-	elseif $locclass = 'city_park':
-		$phone_loc = 'park'
-	elseif $locclass = 'locker':
-		$phone_loc = 'locker'
-	elseif $locclass = 'beach':
-		$phone_loc = 'beach'
-	elseif $locclass = 'classroom':
-		$phone_loc = 'classroom'
-	elseif $locclass = 'school_bathroom':
-		$phone_loc = 'school_bathroom'
-	elseif $locclass = 'restroom':
-		$phone_loc = 'restroom'
-	elseif $location_type = 'bathroom':
-		$phone_loc = 'bathroom'
-	else
-		$phone_loc = ''
-	end
-	$telefon['body'] = '<font size=6>Camera</font><br>
-	<img src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/icon_camera.png" height="80" width="80"><br><br>'
-	!! Take a selfie depending on which clothes you are wearing
-	$telefon['body'] += '<a href="exec:gs ''exp_gain'', ''photoskl'', 1 & gs ''telefon'', ''Phone_camera_selfie'', ''<<$phone_loc>>'' "><b>Take a selfie</b></a><br>'
-	!! Flashing selfie
-	if $clothingworntype ! 'nude' and $phone_loc <> '':
-		if Enable_Android = 1:
-			locIndex = arrpos('$selfieLoc', $phone_loc,1)
-		else
-			locIndex = arrpos(1, '$selfieLoc', $phone_loc)
-		end
-		if (pcs_inhib >= 35 or exhibitionist_lvl > 0 or $phone_loc = 'bedroom') and selfieTitflash[locIndex] > 0:
-			$telefon['body'] += '<a href="exec:gs ''exp_gain'', ''photoskl'', 1 & gs ''telefon'', ''Phone_camera_selfie'', ''<<$phone_loc>>'', ''tits'' "><b>Flash your tits for a selfie</b></a><br>'
-		end
-		if (exhibitionist_lvl > 0 or $phone_loc = 'bedroom') and selfieAssflash[locIndex] > 0:
-			$telefon['body'] += '<a href="exec:gs ''exp_gain'', ''photoskl'', 1 & gs ''telefon'', ''Phone_camera_selfie'', ''<<$phone_loc>>'', ''ass'' "><b>Flash your ass for a selfie</b></a><br>'
-		end
-		if (exhibitionist_lvl > 1 or $phone_loc = 'bedroom') and selfiePussyflash[locIndex] > 0:
-			$telefon['body'] += '<a href="exec:gs ''exp_gain'', ''photoskl'', 1 & gs ''telefon'', ''Phone_camera_selfie'', ''<<$phone_loc>>'', ''pussy'' "><b>Flash your pussy for a selfie</b></a><br>'
-		end
-	end
-	dynamic $telefon['print']
-end
 
 !!-----------------------------------end of Camera------------------------------------------
 
@@ -798,7 +587,7 @@ if $ARGS[0] = 'Phone_sms':
 	<img src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/<<iif(telefon[''UnreadSMS'']=0,''icon_sms.png'',''icon_sms_new.gif'')>>" height="80" width="80"><br>'
 
 	$telefon['body'] += '<b><a href="exec:gs ''telefon'', ''send_sms''">Send new SMS</a></b><br>'
-	$telefon['body'] += '<TABLE cellspacing="0" width="80%"><TR><TH>Icon</TH><TH>Name</TH><TH align="right">Received</TH><TH></TH></TR>'
+	$telefon['body'] += '<table cellspacing="0" width="80%"><tr><th>Icon</th><th>Name</th><th align="right">Received</th><th></th></tr>'
 
 	!!iterating all Messages
 	!!reset and recalculate unread messages count, in case they get out of sync
@@ -822,7 +611,7 @@ if $ARGS[0] = 'Phone_sms':
 		jump 'smsloop'
 	end
 	$telefon['body'] += '<b><a href="exec:gs ''telefon'', ''delete_sms'',''0'',''all''">Delete All</a></b><br>'
-	$telefon['body'] += '</TABLE><br>'
+	$telefon['body'] += '</table><br>'
 
 	dynamic $telefon['print']
 	killvar 'i'
@@ -959,12 +748,12 @@ $telefon['SMS'] = {
 		$telefon['SMSstyle2'] = ''
 	end
 
-	$result = '<TR>
-		<TD><img height=100 src="<<$telefon[''ContactIcon'']>>"></TD>
-		<TD><<$telefon[''SMSstyle1'']>><<$telefon[''ContactNickName'']>><<$telefon[''SMSstyle2'']>></TD>
-		<TD align="right"><<$telefon[''SMSstyle1'']>><a href="exec:gs ''telefon'', ''show_sms'', <<telefon[''SMSid'']>>"><<$telefon[''SMSTime'']>></a><<$telefon[''SMSstyle2'']>></TD>
-		<TD><<$telefon[''SMSstyle1'']>><a href="exec:gs ''telefon'', ''delete_sms'', <<telefon[''SMSid'']>>">Delete</a><<$telefon[''SMSstyle2'']>></TD>
-	</TR>'
+	$result = '<tr>
+		<td><img height=100 src="<<$telefon[''ContactIcon'']>>"></td>
+		<td><<$telefon[''SMSstyle1'']>><<$telefon[''ContactNickName'']>><<$telefon[''SMSstyle2'']>></td>
+		<td align="right"><<$telefon[''SMSstyle1'']>><a href="exec:gs ''telefon'', ''show_sms'', <<telefon[''SMSid'']>>"><<$telefon[''SMSTime'']>></a><<$telefon[''SMSstyle2'']>></td>
+		<td><<$telefon[''SMSstyle1'']>><a href="exec:gs ''telefon'', ''delete_sms'', <<telefon[''SMSid'']>>">Delete</a><<$telefon[''SMSstyle2'']>></td>
+	</tr>'
 }
 
 !! List of Contacts that you can send sms messages to
@@ -979,7 +768,7 @@ if $ARGS[0] = 'send_sms':
 	end
 !! Colour correction for editor ''''
 
-	$telefon['body'] += '<TABLE cellspacing="0" width="80%">'
+	$telefon['body'] += '<table cellspacing="0" width="80%">'
 	!!iterating all Contacts
 	i=0
 	:smscontactloop
@@ -990,7 +779,7 @@ if $ARGS[0] = 'send_sms':
 		i += 1
 		jump 'smscontactloop'
 	end
-	$telefon['body'] += '</TABLE><br>'
+	$telefon['body'] += '</table><br>'
 
 	dynamic $telefon['print']
 	killvar 'i'
@@ -1012,11 +801,11 @@ $telefon['contactsms'] = {
 	end
 
 	$result = '
-	<TR>
-		<TD><img src="<<$telefon[''ContactIcon'']>>" width="75"></TD>
-		<TD><<$npc_nickname[$telefon[''ContactNPCcode'']]>></TD>
-		<TD><a href="exec:gs ''telefon'', ''npcSendListSms'', ''<<$telefon[''ContactNPCcode'']>>''">New Message</a></TD>
-	</TR>'
+	<tr>
+		<td><img src="<<$telefon[''ContactIcon'']>>" width="75"></td>
+		<td><<$npc_nickname[$telefon[''ContactNPCcode'']]>></td>
+		<td><a href="exec:gs ''telefon'', ''npcSendListSms'', ''<<$telefon[''ContactNPCcode'']>>''">New Message</a></td>
+	</tr>'
 }
 
 !! List of SMS messages available to be sent to an NPC
@@ -1027,7 +816,7 @@ if $ARGS[0] = 'npcSendListSms':
 	<font size=6>Send SMS</font><br>
 	<img src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/<<iif(telefon[''UnreadSMS'']=0,''icon_sms.png'',''icon_sms_new.gif'')>>" height="80" width="80"><br>'
 
-	$telefon['body'] += '<TABLE cellspacing="0" width="80%">'
+	$telefon['body'] += '<table cellspacing="0" width="80%">'
 	!!iterating all send sms messages
 	i=0
 	:npcSendListSmsLoop
@@ -1038,7 +827,7 @@ if $ARGS[0] = 'npcSendListSms':
 		i += 1
 		jump 'npcSendListSmsLoop'
 	end
-	$telefon['body'] += '</TABLE><br>'
+	$telefon['body'] += '</table><br>'
 
 	dynamic $telefon['print']
 	killvar 'i'
@@ -1049,10 +838,10 @@ end
 $telefon['smsMessageToSend'] = {
 	$telefon['ContactNPCcode'] = $SMSSendContact[ARGS[0]]
 	$result = '
-	<TR>
-		<TD><<$npc_nickname[$telefon[''ContactNPCcode'']]>></TD>
-		<TD><a href="exec: gs ''telefon'', ''smsSendMessage'', ''<<ARGS[0]>>''"><<$SMSSendMessage[ARGS[0]]>></a></TD>
-	</TR>'
+	<tr>
+		<td><<$npc_nickname[$telefon[''ContactNPCcode'']]>></td>
+		<td><a href="exec: gs ''telefon'', ''smsSendMessage'', ''<<ARGS[0]>>''"><<$SMSSendMessage[ARGS[0]]>></a></td>
+	</tr>'
 }
 
 if $ARGS[0] = 'smsSendMessage':
@@ -1159,7 +948,11 @@ if $ARGS[0] = 'Phone_media':
 end &! --- Phone_media ---
 
 if $ARGS[0] = 'Phone_menu':
-	if phone_off = 0:
+	if phone_off = 1:
+		'<font color="red"><b>Your phone is disabled for this event</b></font>'
+	elseif menu_off = 1 and phone_on = 0:
+		gs 'obj_din', 'menu_disabled'
+	else
 		$telefon['body'] = '
 		<a href="exec:gs ''telefon'', ''Phone_camera'' "><img src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/icon_camera.png" height="80" width="80"></a>
 		<a href="exec:gs ''telefon'', ''Phone_calendar'' "><img src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/icon_calendar.png" height="80" width="80"></a>
@@ -1178,9 +971,7 @@ if $ARGS[0] = 'Phone_menu':
 		else
 			$telefon['body'] += '<a href="exec:killvar ''menu_page'' & gs ''Cheatmenu_din'' & dynamic $cheatmenu[''setting'']"><img src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/icon_settings.png" height="80" width="80"></a><br>'
 		end
-		dynamic $telefon['print']
-	else
-		'<font color="red"><b>Your phone is disabled for this event</b></font>'
+		dynamic $telefon['print'], 1
 	end
 end &! --- Phone_menu ---
 

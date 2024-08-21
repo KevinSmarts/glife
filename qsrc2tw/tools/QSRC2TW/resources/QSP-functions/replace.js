@@ -1,0 +1,1 @@
+setup.qsp_replace = (s,search,replace) => s.replaceAll(search,replace);

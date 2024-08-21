@@ -1,0 +1,284 @@
+# shop_moncheri
+!!2022/06/08
+
+if $ARGS[0] = 'start':
+	killvar 'clothingfilter'
+	gs 'shortgs', 'setloc', 'shop_moncheri', 'start'
+	$location_type = 'public_indoors'
+	menu_off = 0
+	gs 'stat'
+
+	gs 'themes', 'indoors'
+
+	'<center><b><font color="maroon">Mon Chéri</font></b></center>'
+	'<center><img <<$set_imgh>> src="images/locations/city/citycenter/mall/boutique/butik.jpg"></center>'
+	*nl
+	'You''re inside the boutique only a few seconds before a tall, slender brunette woman saunters up to you. Everything about her is poised and perfect, from the beautiful silver dress she''s wearing to her unblemished skin and pearly white teeth. "Welcome to Mon Chéri, dear. We sell only the most beautifully luxurious items here. Come, take a look! You won''t be disappointed," she smiles as she ushers you further inside with a small flourish. Everything in the boutique is high-end, definitely not for the average shopper, but the items on display are simply stunning.'
+	*nl
+	if RimmaSex > 0:
+		if rimmaday ! daystart:
+			'<a href="exec:gt ''RimmaSexQW''">Rima</a> smiles at you. She bites her lip and looks longingly in your direction.'
+		else
+			'Rima smiles at you and continues to do her business.'
+		end
+	end
+
+	'The boutique sells designer winter coats, formal clothing, beautiful shoes and exquisite handbags.'
+
+	act 'Leave the boutique': minut += 3 & gt 'city_mall'
+
+	act 'View shoes': minut += 5 & gt 'shop_moncheri', 'shoes'
+	act 'View purses': minut += 5 & gt 'shop_moncheri', 'purses'
+	act 'View coats': minut += 5 & gt 'shop_moncheri', 'coats'
+
+	if $pantyworntype ! 'none':
+		act 'Enter changing room (strip to underwear)':
+			*clr & cla
+			'<center><img <<$set_imgh>> src="images/locations/city/citycenter/mall/fashionista/underwear.jpg"</center>'
+			gs 'clothing', 'strip'
+			changingroom_underwear = 1
+			gs 'shop_moncheri', 'changingroom', 1
+		end
+	end
+
+	act 'Enter changing room (strip naked)':
+		*clr & cla
+		'<center><img <<$set_imgh>> src="images/locations/city/citycenter/mall/fashionista/nude.jpg"</center>'
+		gs 'clothing', 'strip_all'
+		gs 'shop_moncheri', 'changingroom', 1
+	end
+
+	if rand(1, 100) >= 80 and pcs_skin >= 20 and lesbiQW = 0:
+		'In the boutique you see a stylish and slender woman, about forty years old.'
+
+		act 'Stare at the woman': gt 'event', 'lesbi'
+	end
+end
+
+if $ARGS[0] = 'changingroom':
+	gs 'shortgs', 'setloc', 'shop_moncheri', 'changingroom'
+	$locclass = 'changingroom'
+	menu_off = 0
+	gs 'stat'
+
+	if $ARGS[1] = '':
+		*clr & cla
+		'<center><img <<$set_imgh>> src="images/locations/city/citycenter/mall/fashionista/changingroom.jpg"</center>'
+		'You are in the changing rooms in Mon Chéri with several outfits available to try on.'
+	else
+		'As you walk through the store you notice that there''s nobody in the changing rooms. Feeling a bit bored, you go look at some clothes and grab several items to try on before heading into one of the changing rooms.'
+	end
+	*nl
+
+	gs 'shortgs', 'clothing_state'
+
+	act 'Try on dresses': gt 'shop_moncheri', 'dresses'
+	act 'Try on gowns': gt 'shop_moncheri', 'gowns'
+	act 'try on bodysuits': gt 'shop_moncheri', 'bodysuit'
+	if $pantyworntype = 'none':
+		act 'Put on underwear':
+			gs 'underwear', 'wear'
+			gt 'shop_moncheri', 'changingroom'
+		end
+	end
+	if $pantyworntype ! 'none':
+		act 'Get naked':
+			gs 'clothing', 'strip_all'
+			gt 'shop_moncheri', 'changingroom'
+		end
+	end
+	act 'Get dressed and go back to the store': gt 'shop_moncheri', 'changingend'
+end
+
+if $ARGS[0] = 'changingend':
+	!! Sveta dresses again
+	if changingroom_underwear = 1:
+		changingroom_underwear = 0
+	else
+		gs 'underwear', 'wear'
+	end
+	gs 'clothing', 'wear_last_worn'
+	gt 'shop_moncheri', 'start'
+end
+
+
+if $ARGS[0] = 'gowns':
+	gs 'shortgs', 'setloc', 'shop_moncheri', 'gowns'
+	menu_off = 0
+	gs 'stat'
+
+	'<center><b><font color="maroon">Viewing Mon Chéri outfits</font></b></center>'
+	*nl
+
+	act 'Return': minut += 1 & gt 'shop_moncheri', 'changingroom'
+
+	gs 'clothing_QV', 'shop_filter_header'
+	gs 'clothing', 'totals', 'moncheri_gown'
+
+	!!To filter just this set
+	clo_i = 0
+	:loopmoncheri_gown_filter
+		i = 1 + Clothingstock mod 3
+		:loopmoncheri_gown
+			if moncheri_gown[i] = 0:
+				gs 'clothing_attributes', 'moncheri_gown', i
+				gs 'clothing_QV', 'shop_filter'
+
+				!!sort by filter
+				if (clothingfilter['quality'] = 0 and CloQuality = clo_i) or (clothingfilter['inhibition'] = 0 and CloInhibit = clo_i) or clothingfilter['number'] = 0:
+					if clothingfilter['inc'] = 1 and clothingfilter['only'] = 1: *p '<a href="exec: i = <<i>> & gt ''shop_moncheri'', ''moncheri_gown''"><img src="images/pc/items/moncheri/gown/<<i>>.jpg"	 height="250" /></a>'
+				end
+			end
+			i += 3
+		if i <= total:jump 'loopmoncheri_gown'
+		clo_i += 1
+	if clothingfilter['quality'] = 0 and clo_i <= 7 or clothingfilter['inhibition'] = 0 and clo_i <= 50:
+		jump 'loopmoncheri_gown_filter'
+	end
+end
+
+if $ARGS[0] = 'moncheri_gown': gt 'clothing', 'view_clothing_item', 'moncheri_gown', i, 20000, 'shop'
+
+if $ARGS[0] = 'dresses':
+	gs 'shortgs', 'setloc', 'shop_moncheri', 'dresses'
+	menu_off = 0
+	gs 'stat'
+
+	'<center><b><font color="maroon">Viewing Mon Chéri outfits</font></b></center>'
+	*nl
+
+	gs 'clothing_QV', 'shop_filter_header'
+	gs 'clothing', 'totals', 'moncheri_dress'
+
+	act 'Return': minut += 1 & gt 'shop_moncheri', 'changingroom'
+
+	!!To filter just this set
+	clo_i = 0
+	:loopmoncheri_dress_filter
+		i = 1 + (Clothingstock / 3) mod 2
+		:loopmoncheri_dress
+			if moncheri_dress[i] = 0:
+				gs 'clothing_attributes', 'moncheri_dress', i
+				gs 'clothing_QV', 'shop_filter'
+
+				!!sort by filter
+				if (clothingfilter['quality'] = 0 and CloQuality = clo_i) or (clothingfilter['inhibition'] = 0 and CloInhibit = clo_i) or clothingfilter['number'] = 0:
+					if clothingfilter['inc'] = 1 and clothingfilter['only'] = 1: *p '<a href="exec: i = <<i>> & gt ''shop_moncheri'', ''moncheri_dress''"><img src="images/pc/items/moncheri/dress/<<i>>.jpg"	 height="250" /></a>'
+				end
+			end
+			i += 2
+		if i <= total: jump 'loopmoncheri_dress'
+		clo_i += 1
+	if clothingfilter['quality'] = 0 and clo_i <= 7 or clothingfilter['inhibition'] = 0 and clo_i <= 50:
+		jump 'loopmoncheri_dress_filter'
+	end
+end
+
+if $ARGS[0] = 'moncheri_dress': gt 'clothing', 'view_clothing_item', 'moncheri_dress',i, 20000, 'shop'
+
+if $ARGS[0] = 'bodysuit':
+	gs 'shortgs', 'setloc', 'shop_moncheri', 'bodysuit'
+	menu_off = 0
+	gs 'stat'
+
+	act 'Return': minut += 1 & gt 'shop_moncheri', 'changingroom'
+
+	gs 'underwear_bodysuits', 'shop_filter_header'
+	gs 'underwear_bodysuits', 'totals', 'moncheri_bodysuits'
+
+	!!To filter just this set
+	clo_i = 0
+	:loopbodysuitquality_filter
+		i = 1 + (Clothingstock / 6) mod 2
+		:loopmoncheri_bodysuit
+			if moncheri_bodysuits[i] = 0:
+				gs 'underwear_attributes', 'moncheri_bodysuits', i
+				if (clothingfilter['quality'] = 0 and BraQuality = clo_i) or clothingfilter['number'] = 0:
+					*p '<a href="exec: i = <<i>> & gt ''shop_moncheri'', ''bodysuit2''"><img src="images/pc/items/moncheri/bodysuits/<<i>>.jpg"	 height="250" /></a> '
+				end
+			end
+			i += 2
+		if i <= total: jump 'loopmoncheri_bodysuit'
+		clo_i += 1
+	if clothingfilter['quality'] = 0 and clo_i <= 6:
+		jump 'loopbodysuitquality_filter'
+	end
+end
+
+if $ARGS[0] = 'bodysuit2': gt 'underwear_bodysuits', 'view_bodysuit_item', 'shop', 'moncheri',i, 2000
+
+if $ARGS[0] = 'shoes':
+	gs 'shortgs', 'setloc', 'shop_moncheri', 'shoes'
+	menu_off = 0
+	gs 'stat'
+
+	'<center><b><font color="maroon">Viewing G&M shoes</font></b></center>'
+	*nl
+
+	act 'Return': minut += 1 & gt 'shop_moncheri', 'start'
+
+	gs 'shoes', 'shop_filter_header'
+	gs 'shoes', 'totals', 'moncheri_shoes'
+
+	!!To filter just this set
+	clo_i = 0
+	:loopshoequality_filter
+		i = 1 + (Clothingstock / 4) mod 3
+		:loopmoncheri_shoes
+			if moncheri_shoe[i] = 0:
+				gs 'shoe_attributes', 'moncheri', i
+				gs 'shoes', 'shoe_filter'
+				if (Shofilter['quality'] = 0 and ShoQuality = clo_i) or Shofilter['number'] = 0:
+					if Shofilter['inc'] = 1 and Shofilter['only'] = 1:
+						*p '<a href="exec: i = <<i>> & gt ''shop_moncheri'', ''moncheri_shoes''"><img src="images/pc/items/moncheri/shoes/<<i>>.jpg" height="250" /></a>'
+					end
+				end
+			end
+			i += 3
+		if i <= total: jump 'loopmoncheri_shoes'
+		clo_i += 1
+	if Shofilter['quality'] = 0 and clo_i <= 7:
+		jump 'loopshoequality_filter'
+	end
+end
+
+if $ARGS[0] = 'moncheri_shoes':	gt 'shoes', 'view_shoe_item', 'shop', 'moncheri',i, 5000
+
+if $ARGS[0] = 'purses':
+	gs 'shortgs', 'setloc', 'shop_moncheri', 'purses'
+	menu_off = 0
+	gs 'stat'
+
+	act 'Return': minut += 1 & gt 'shop_moncheri', 'start'
+
+	gs 'purses', 'totals', 'moncheri_purses'
+
+	i = 1
+	:loopmoncheri_purses
+		if moncheri_purses[i] = 0: *p '<a href="exec: i = <<i>> & gt ''shop_moncheri'', ''purses2''"><img src="images/pc/items/moncheri/purses/<<i>>.jpg"	 height="150" /></a> '
+		i += 1
+	if i <= total: jump 'loopmoncheri_purses'
+end
+
+if $ARGS[0] = 'purses2': gt 'purses', 'view_purse_item', 'shop', 'moncheri',i, 4000
+
+if $ARGS[0] = 'coats':
+	gs 'shortgs', 'setloc', 'shop_moncheri', 'coats'
+	menu_off = 0
+	gs 'stat'
+
+	act 'Return': minut += 1 & gt 'shop_moncheri', 'start'
+
+	gs 'coats', 'totals', 'moncheri_coats'
+
+	i = 1
+	:loopmoncheri_coats
+		if moncheri_coats[i] = 0:*p '<a href="exec: i = <<i>> & gt ''shop_moncheri'', ''coats2''"><img src="images/pc/items/moncheri/coats/<<i>>.jpg"	 height="250" /></a> '
+		i += 1
+	if i <= 20: jump 'loopmoncheri_coats'
+end
+
+if $ARGS[0] = 'coats2': gt 'coats', 'view_coat_item', 'shop', 'moncheri', i, 4000
+
+--- moncheri ---------------------------------
+

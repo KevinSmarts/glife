@@ -1,0 +1,1 @@
+setup.qsp_lcase = (s)=>s.toLowerCase();

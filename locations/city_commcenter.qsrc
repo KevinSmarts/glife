@@ -1,0 +1,388 @@
+# city_commcenter
+! Refactored 24 Aug 22
+! Amended by Hooded Silence
+! Author Validation:
+! Industrial Community center - used for gaining life skills
+! Events - Driving Lessons, Singing classes, Secretarial Training & Masseuse.
+! V .01 - Refactored to break down into event sections and expand on content, and to create hot links for city_industrial navigation.
+! v .02 - Added variable index documentation and minor text tweaks.
+!
+! - Introduction to Alexei as singing teacher and music agent
+!
+! - Quest/Logic variables-
+!
+! --- Game Variables ---
+! daystart = daily game clock counter, used to track interactions and calendar functions.
+! week - week day
+! minut = track game clock time
+! money = used to pay for lessons
+! karta = used to pay for lessons
+! $loc, $loc_arg = navigation to various locations/acts.
+! age - character age
+! linked location(s): city_industrial.
+!
+! --- Driving ---
+! skulday = Course lock to prevent repeat same day visits.
+! prava = driving licence
+! avtoskul = Driving lessons tracker.
+!
+! --- Secretary ---
+! masseuse_lesson = Course lock to prevent repeat same day visits.
+! secrDiplom = Secretarial diploma, used for the following locations (s): burger, office
+! sekrObu = Secretarial lessons tracker.
+!
+! --- Masseuse ---
+ ! masseuse_lesson = Course lock to prevent repeat same day visits.
+! masseuse[''certification''] = tracker for the masseuse course. Used for the following location(s): salon
+! Notes -  There is no diploma for this course. Possible future change if the masseuse role is extended.
+!
+! --- Singing---
+! vokalday = Course lock to prevent repeat same day visits.
+! alexeyQW = Alexei quest - Work in progress for character developments.
+! vokal_exp = increase singing trait experience global stat.
+!
+! ---  End ---
+
+if $ARGS[0] = 'start':
+	$loc = 'city_commcenter'
+	$loc_arg = 'start'
+	$menu_loc = 'city_commcenter'
+	$menu_arg = 'start'
+	$location_type = 'public_indoors'
+	menu_off = 0
+	gs 'stat'
+	gs 'city_commcenter', 'lessons'
+	act 'Leave the center': minut += 5 & gt 'city_industrial'
+end
+
+
+if $ARGS[0] = 'lessons':
+	'<center><b>The Vladimir Lenin community center</b></center>'
+	'<center><img <<$set_imgh>> src="images/locations/city/industrial/community/dk1.jpg"></center>'
+	*nl
+	'Vladimir Lenin is open from 9am through to 5pm on weekdays, and closed on weekends.
+	 It''s available to teach essential life skills such as driving, life coaching or finding new job skills this is the place to learn. '
+	*nl
+	'<B><center>Currently available courses:</center></B>'
+	'<center>'
+	'<table border=0 align="center">'
+	'<TR>'
+	if	prava = 0 and avtoskul = 0:
+		'<TR><TD>Driving lessons - 30,000 <b>₽</b>.</TD><TD>10 classes</TD><TD><a href="exec:gt ''city_commcenter'', ''drivingschool''">Book a driving course.</a></TD></TR>'
+	elseif avtoskul  < 11 and prava = 0 and skulday ! daystart:
+		'<TR><TD>Driving lessons -</TD><TD></TD><TD><a href="exec:gt ''city_commcenter'', ''drivingschool''">Attend your driving lesson.</a></TD></TR>'
+	elseif avtoskul  < 12 and prava = 0 and skulday ! daystart:
+		'<TR><TD>Driving lessons -</TD><TD></TD><TD><a href="exec:gt ''city_commcenter'', ''drivingschool''">Attend driving theory lesson.</a></TD></TR>'
+	elseif avtoskul  <= 12 and prava = 0 and skulday ! daystart:
+		'<TR><TD>Driving lessons -</TD><TD></TD><TD><a href="exec:gt ''city_commcenter'', ''drivingschool''">Attend your driving test.</a></TD></TR>'
+	elseif prava = 0 and skulday = daystart:
+		'<TR><TD>Driving lessons - You have already attended your driving lesson for today.</TD></TR>'
+	end
+	'<TR><TD>Secretarial diploma - 15,000 <b>₽</b>.</TD><TD>10 classes</TD><TD><a href="exec:gt ''city_commcenter'', ''secretarialschool''">Classes in room 204.</a></TD></TR>'
+	'<TR><TD>Massage lessons - 10,000 <b>₽</b>.</TD><TD>10 classes</TD><TD><a href="exec:gt ''city_commcenter'', ''masseuse''">Classes in room 203. </a></TD></TR>'
+	'<TR><TD>Singing lessons - 500 <b>₽</b>.</TD><TD>Per class</TD><TD><a href="exec:gt ''city_commcenter'', ''singingtutor''">Classes in room 213. </TD></a></TR>'
+	!!'<TR><TD>Personal development - 1,000 <b>₽</b>.</TD><TD>Per class</TD><TD>Classes in room 201 (Learn to assert yourself)</TD></TR>'
+	!!'Medium for new opportunities - only here only freebie.'
+	'</TR>'
+	'</table>'
+	'</center>'
+	'<center><B>Lessons Completed:</B>'
+	*nl
+	if masseuse['certification'] = -1:
+		'You''ve enrolled into the masseuse class but still have to attend your first lesson.'
+	end
+	if masseuse['certification'] > 0 and masseuse['certification'] < 10:
+		'You have completed <<masseuse[''certification'']>> out of 10 massage therapist lessons.'
+	end
+	if secrDiplom = 0 and sekrObu > 1 and sekrObu <11:
+		sekrObuA = sekrObu - 1 & 'Secretarial training - <<sekrObuA>> of 10 sessions completed.'
+	elseif secrDiplom = 0 and sekrObu = 1:
+		'You need to attend your first Secretarial Class'
+	elseif  secrDiplom = 0 and sekrObu > 10:
+		'You''ve completed the course, it''s time to collect your diploma.'
+	end
+
+	if prava = 0 and avtoskul = 1:
+		'You''ve registered with the driving school and still have to take your first lesson.'
+	elseif prava = 0 and avtoskul > 1 and avtoskul < 11:
+		'You have taken <<avtoskul-1>> driving lesson(s).'
+	elseif  prava = 0 and avtoskul = 11:
+		'Time to take your driving theory exam.'
+	elseif  prava = 0 and avtoskul = 12:
+		'Time to take your driving exam.'
+	end
+	'</center>'
+end
+
+
+!! Payment processor pass three variables: Lesson Type, Payment Type and amount.
+if $ARGS[0] = 'payments':
+
+	if $ARGS[2] = 'money': money -= ARGS[3]
+	if $ARGS[2] = 'karta': karta -= ARGS[3]
+
+	'<center>You pay for your <<$ARGS[1]>> course and are now booked in for your first lesson. Please refer to the noticeboard for class times and rooms.</center>'
+	gs 'stat'
+
+	act 'Return': gt $loc, $loc_arg
+end
+
+if $ARGS[0] = 'drivingschool':
+	'<center><img <<$set_imgh>> src="images/locations/city/industrial/community/dk2.jpg"></center>'
+	*nl
+	'You enter the community center with excitement with your thoughts full about getting your driving licence and the freedom to achieve your dreams.'
+	'The driving school is government run and they check personal details against state registration database. As such a fake ID will not work, you have to be 18 or above.'
+	*nl
+
+	if prava ! 0:
+		'You''ve already got your driving licence.'
+		act 'Return': gt $loc, $loc_arg
+		exit
+	end
+
+	if avtoskul = 0 and age >= 18 and (money >= 30000 or karta >= 30000):
+		act 'Book a driving training course (30,000 <b>₽</b>)':
+			cla
+			menu_off = 1
+			!! This text should be rewritten
+			'You briefly look around for information about driving lessons, and approach the receptionist who gives you the necessary papers to fill in and she warns you that they will be checked by the agency to prevent fraud. You pay her the money and she gives you a small information pack about the driving lessons and you quickly skim through them to see you can now take a 2-hour driving lessons on each workday.'
+
+			if money >= 30000:
+				act 'Pay with for lessons with cash':
+					avtoskul = 1
+					gt 'city_commcenter', 'payments', 'driving lessons ', 'money', 30000
+				end
+			end
+			if karta >= 30000:
+				act 'Pay with your card':
+					avtoskul = 1
+					gt 'city_commcenter', 'payments', 'driving lessons', 'karta', 30000
+				end
+			end
+
+			act 'Return': gt $loc, $loc_arg
+		end
+
+	elseif skulday = daystart:
+		'You''ve taken your driving lesson for today.'
+
+	elseif hour >= 9 and hour <= 17 and week < 6:
+		if avtoskul >= 1 and avtoskul < 11:
+			act 'Driving lesson':
+				*clr & cla
+				skulday = daystart
+				avtoskul += 1
+				minut += 120
+				gs 'stat'
+				'<center><img <<$set_imgh>> src="images/locations/city/industrial/community/dk2.jpg"></center>'
+				'You spend two hours following your driving instructor''s orders and listening to suggestions on how to handle a car.'
+				'By the end of the lesson, you feel like you are a little more competent at driving.'
+
+				act 'Return': gt $loc, $loc_arg
+			end
+
+		elseif avtoskul = 11:
+			act 'Driving theory':
+				*clr & cla
+				menu_off = 1
+				skulday = daystart
+				avtoskul = 12
+				minut += 120
+				'<center><img <<$set_imgh>> src="images/locations/city/industrial/community/dk2.jpg"></center>'
+				'You dedicate two hours to a boring but necessary lecture on traffic signs, regulations, scenarios and some information on how to keep a car in working order.'
+
+				act 'Return': gt $loc, $loc_arg
+				!!if nikpravaQW = 1:end
+			end
+
+		elseif avtoskul = 12:
+			act 'Driving test':
+				*clr & cla
+				menu_off = 1
+				minut += 120
+				avtoskul = 0
+				prava = 1
+				minut += 120
+				'<center><img <<$set_imgh>> src="images/locations/city/industrial/community/dk3.jpg"></center>'
+				'You feel nervous as you enter this car for, hopefully, the last time. The traffic officer is a man who can look jovial at one moment and stern the next.'
+				'For 2 hours, you follow his directions around the city, park the car where he tells you to and feel your heart stop at every tiny mistake you make, wondering if you messed it up. But he lets you continue without comment and at the end, he seems satisfied and claims that you will get better with experience.'
+				'"So, congratulations, you''ve passed! Here is your license", he smiles and hands you your brand new driver''s license. Now, all you need is a car...'
+
+				act 'Return': gt $loc, $loc_arg
+			end
+		end
+	end
+
+
+	!! corrupt instructor idea, chance of instructor deliberately failing the test based on player stats, or is a bimbo and is open to bribes.
+	act 'Return': gt $loc, $loc_arg
+end
+
+
+if $ARGS[0] = 'secretarialschool':
+	'<center><img <<$set_imgh>> src="images/locations/city/industrial/community/kurs.jpg"></center>'
+	'<center><b>Secretarial Training</b></center>'
+	'The center offers a wide range of business related skills including computer training, secretarial work, PA, management and accounting'
+
+	if secrDiplom ! 0:
+		'You''ve already got your secretarial diploma.'
+		act 'Return': gt $loc, $loc_arg
+		exit
+	end
+
+	if sekrObu = 0:
+		if money >= 15000 or karta >= 15000:
+			act 'Book a secretarial course (15,000 <b>₽</b>)':
+				cla
+				menu_off = 1
+				!! This text should be rewritten
+				'You pay the money for the course, once you''ve filled in the blanks on an application paper, and can now attend secretary training each day for 2 hours. You need to attend 10 training lessons to earn a diploma.'
+				if money >= 15000:
+					act 'Pay with for lessons with cash':
+						sekrObu = 1
+						gt 'city_commcenter', 'payments', 'secretarial class', 'money', 15000
+					end
+				end
+				if karta >= 15000:
+					act 'Pay with your card':
+						sekrObu = 1
+						gt 'city_commcenter', 'payments', 'secretarial class', 'karta', 15000
+					end
+				end
+				act 'Return': gt $loc, $loc_arg
+			end
+		else
+			'You could take lessons here if you had sufficient funds with you. '
+		end
+
+	elseif secrday = daystart:
+		'You''ve had your lesson for today, come back another day.'
+
+	elseif sekrObu > 0 and sekrObu < 11:
+		act 'Secretarial class':
+			*clr & cla
+			menu_off = 1
+			secrday = daystart
+			sekrObu += 1
+			minut += 120
+			'<center><img <<$set_imgh>> src="images/locations/city/industrial/community/kurs.jpg"></center>'
+			'You go into a classroom with many computers. Unsurprisingly, most students in this course are women. The teacher - a woman in a sharp office dress - enters the class and starts lecturing you on the intricacies of secretarial work and the basics of computer programs used in offices today.'
+			if (cumloc[6] = 1 or cumloc[7] = 1):pcs_horny += 10 & 'You nervously shift around on your chair, trying to hide the semen stains on your clothes, but anything you do to remove or cover them only seems to make them more obvious. By the end of the class, you''ve earned pitying or disgusted looks from just about everybody in the room, including the teacher.'
+
+			act 'Return': gt $loc, $loc_arg
+		end
+
+	elseif sekrObu >= 11:
+		act 'Secretarial diploma':
+			*clr & cla
+			menu_off = 1
+			secrday = daystart
+			sekrObu = 0
+			minut += 15
+			secrDiplom = 1
+			'<center><img <<$set_imgh>> src="images/locations/city/industrial/community/kurs.jpg"></center>'
+			'You go into a classroom with many computers. Unsurprisingly, most students in this course are women. The teacher - a woman in a sharp office dress - enters the class and starts lecturing you on the intricacies of secretarial work and the basics of computer programs used in offices today.'
+			'At the end of it, as the teacher goes through her attendance list as usual, she looks at you and gives you an approving, professional look.'
+			'"Congratulations, <<$pcs_nickname>>. It seems that you have earned your diploma."'
+			'She pulls a document out of her briefcase, fills in your name, signs it and sends you to reception with it.'
+			'With the receptionists'' signature and the community center''s seal, you are now officially qualified for secretary work!'
+
+			act 'Return': gt $loc, $loc_arg
+		end
+	end
+
+	act 'Return': gt $loc, $loc_arg
+end
+
+if $ARGS[0] = 'masseuse':
+	'<center><img <<$set_imgh>> src="images/locations/city/industrial/community/masseuse_training.jpg"></center>'
+	*nl
+
+	if masseuse['certification'] = 0:
+		if money >= 10000 or karta >= 10000:
+			'You enter a room and are greeted with by a young lady, she looks are you with a welcoming smile and asks "Are you here for the lessons?" You reply and she quickly gives you the course details of the course and a pamphlet to read.'
+			*nl
+			'The basic course is 10 lessons, and the  class costs 10,000 <b>₽</b>'
+			if money >= 10000:
+				act 'Pay with for lessons with cash':
+					masseuse['certification'] = -1
+					gt 'city_commcenter', 'payments', 'masseuse class', 'money', 10000
+				end
+			end
+			if karta >= 10000:
+				act 'Pay with your card':
+					masseuse['certification'] = -1
+					gt 'city_commcenter', 'payments', 'masseuse class', 'karta', 10000
+				end
+			end
+		else
+
+		end
+	elseif masseuse_lesson = daystart:
+		'You look around the empty room and realised you''ve had your lesson today and the class instructor has left.'
+	elseif masseuse['certification'] <= 10:
+		masseuse_lesson = daystart
+		if masseuse['certification'] < 0:
+			masseuse['certification'] = 1
+		else
+			masseuse['certification'] += 1
+		end
+		minut += 120
+		gs 'stat'
+		'You enter the room and see the tables laid out for your lesson. The instructor welcomes you and takes down your name. You notice some people coming in for a free massage from your course.'
+		'The next two hours are dedicated to reading detailed guides to how to relieve pain or tension in certain muscles and to putting these guides into practice with partners attending the course and some local students looking for a freebie.'
+		*nl
+		if masseuse['certification'] >= 10:
+			'Congratulations that was your final lesson! You''ve completed the basic course, you are issued a certificate that shows you are a certified masseuse.This is your first step in providing a wonderful service to your clients.'
+		end
+	elseif masseuse['certification'] >= 10:
+		'Sorry we don''t have any new classes to offer yet. You could speak to Xian at the Galleria''s Beauty Bar if you''re looking for work as she usually has openings for new staff.'
+	end
+
+	act 'Return': gt $loc, $loc_arg
+	!! Advanced Wellness or Massage expansion either through the city sauna or the beauty bar for poor performance or to get better money.
+end
+
+if $ARGS[0] = 'singingtutor':
+	if vokalday = daystart:
+		'The classroom is empty, you play on the piano for a few minutes before heading back to the hall. Maybe come back another time to see if there''s more classes.'
+
+	elseif money < 500:
+		'You see Alexei in the classroom, but you don''t have enough cash to take a lesson.'
+
+	else
+		'The center offers singing lessons with Alexei, an established local singer and musician who works with up and coming talent. Unlike the centers other classes he only ever accepts cash for his lessons.'
+		act 'Singing lessons (500 <b>₽</b>)':
+			*clr & cla
+			menu_off = 1
+			minut += 60
+			alexeyQW += 1
+			gs 'exp_gain', 'vokal', rand(5,10)
+			vokalday = daystart
+			money -= 500
+			gs 'stat'
+
+			if alexeyQW = 1:
+				'When you enter the office, you see a middle aged man with long hair that''s been pulled back in a ponytail. He gives you a confident look and says, with a particularly well-modulated voice: "Are you here to learn how to sing, Miss?" You nod and hand him 500 <b>₽</b>.'
+				'He pockets it and introduces himself: "I''m Alexei. What is your name?" You respond that your name is <<$pcs_nickname>>. Acknowledging  your answer with little more than a nod, the man immediately moves on to the lesson. Before you even notice, an hour has passed. You head out and the man politely wishes you goodbye.'
+
+			elseif alexeyQW = 2:
+				'You enter the small classroom eager to your lesson, Alexei is sitting at a piano and indicates you should sit on a chair to it. He asks you practice the scales as he plays each note on the piano. You quickly gain confidence and he touches your knee whenever you do well. '
+				'After an hour you feel drained but feel that you have learned more about singing. You have a good voice Alexei says, but you still need to practice breathing and control, touching your breasts and throat as he says each word.'
+				gs 'arousal', 'foreplay', 15
+				gs 'stat'
+
+			else
+				'You enter the small classroom eager to start your next lesson, Alexei is sitting at his normal place by the piano and waves hand to your chair. He asks you practice the warm up scales as he plays the notes on the piano. You are fairly accomplished now and quickly finish the warm up.'
+				'Halfway through the lesson Alexei gives you another music sheet to sing from and starts playing the piano indicating you should start, after the lesson you feel exhausted from the class but keen to attend your next lesson.'
+			end
+
+			act 'Return': gt $loc, $loc_arg
+		end
+	end
+
+	act 'Return': gt $loc, $loc_arg
+end
+
+--- city_commcenter ---------------------------------
+

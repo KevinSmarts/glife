@@ -1,0 +1,1 @@
+setup.qsp_val = (n) => parseInt(n);

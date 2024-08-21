@@ -1,0 +1,1 @@
+setup.qsp_min = (n1,n2) => Math.min(n1,n2);

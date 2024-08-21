@@ -1,15 +1,15 @@
 # salon
-!! Salon migrated to new payments system 22-12-01 
+!! Salon migrated to new payments system 22-12-01
 !! Refactoring of services code and other additions.
-!! Additional functions: salon, discount calculates staff discount and outputs salon_rate 
+!! Additional functions: salon, discount calculates staff discount and outputs salon_rate
 !! salon, cleanvar clears transitory variables.
 
 if $ARGS[0] = 'start':
 	cla & *clr
 	menu_off = 0
-	salonrand = rand(0, 9)	
+	salonrand = rand(0, 9)
 	gs 'shortgs', 'setloc', 'salon', $ARGS[0]
-	$location_type = 'public_indoors'	
+	$location_type = 'public_indoors'
 	$sexloc = $CURLOC
 	gs 'family_schedule'
 	gs 'themes', 'indoors'
@@ -23,7 +23,7 @@ if $ARGS[0] = 'start':
 		masseuse['warning'] = 3 - masseuse['missed shifts']
 		if masseuse['warning'] = 0:gt 'salon', 'fired'
 	end
-	
+
 	if ((masseuse['<<week>>_shift_1'] = 1 and hour = 9) or (masseuse['<<week>>_shift_2'] = 1 and hour = 13) or (masseuse['<<week>>_shift_3'] = 1 and hour = 17)) and masseuse['uniform'] ! 1:
 		masseuse['weeks_pay'] -= 1
 		'"Hey!" Xian yells at you from the front desk. "You''re late! You''re being docked an hour''s pay for that! Now get changed and get in there!"'
@@ -38,20 +38,20 @@ if $ARGS[0] = 'start':
 		end
 		masseuse['missed_shift'] += masseuse['missed_shift2']
 		masseuse['missed_shift2'] = 0
-		
+
 	end
 	act 'Leave':
 		if masseuse['uniform'] = 1:
 			msg'You should to change back into your clothes before you leave.'
 		else
-			gt 'torgcentr'
+			gt 'city_mall'
 		end
 	end
 	act 'Approach the receptionist':gt 'salon','receptionist'
 	if hour < 8 or hour > 20 and masseuse['jobtype'] = 0:
 		cls
 		'The salon is closing you are politely asked to leave and come again.'
-		act 'Leave':minut += 3 & gt 'torgcentr'
+		act 'Leave':minut += 3 & gt 'city_mall'
 	end
 	if masseuse['jobtype'] > 0:
 		act 'Locker room':gt 'salon', 'lockers'
@@ -69,14 +69,14 @@ if $ARGS[0] = 'receptionist':
 	gs 'shortgs', 'setloc', 'salon', $ARGS[0]
 	cla & *clr
 	'<center><img <<$set_imgh>> src="images/locations/city/citycenter/mall/salon/xian.jpg"></center>'
-	
+
 	if masseuse['jobtype'] = 0:
 		'You walk over to the reception desk to speak to the pretty young asian woman who sits behind it.'
 		'"Hello! What can I help you with today?" Her Russian has a heavy accent to it.'
 	else
 		'You walk over to the reception desk to speak to Xian.'
 	end
-	
+
 	if hour >= 21:
 		'"It''s after hours <<$pcs_firstname>>. You should go home."'
 	elseif masseuse['jobtype'] = -6:
@@ -108,7 +108,7 @@ end
 
 if $ARGS[0] = 'discount':
 		!! Set staff discount
-		if masseuse['jobtype'] > 0: 
+		if masseuse['jobtype'] > 0:
 			salon_rate = ARGS[1] / 2
 		else
 			salon_rate = ARGS[1]
@@ -123,16 +123,16 @@ if $ARGS[0] = 'services':
 
 	$epayments['method'] = ''
 	$epayments['item_variable'] = ''
-	epayments['quantity'] = ''
+	epayments['quantity'] = 0
 	$epayments['loc'] = 'salon'
 	$epayments['banner']  = 'locations/city/citycenter/mall/salon/xian.jpg'
 
 	act 'Move away':gs 'salon', 'cleanvar' & gt 'salon', 'start'
 	gs 'salon', 'discount', 1000
-	if money >= salon_rate or karta + bankDebtLimit >= salon_rate:
+	if money >= salon_rate or karta >= salon_rate:
 		act 'Tanning booth <<func(''agentned'', ''format_price_string'', salon_rate)>> <b>₽</b>':
 			gs 'salon', 'discount', 1000
-			if masseuse['jobtype'] > 0:  
+			if masseuse['jobtype'] > 0:
 				epayments['value'] = salon_rate
 			else
 				epayments['value'] = salon_rate
@@ -146,16 +146,16 @@ if $ARGS[0] = 'services':
 			msg'You don''t have enough money for this!'
 		end
 	end
-	
+
 	act 'Massage services':gt 'salon', 'massage'
-	
+
 	act 'See the eyelash specialist':gt 'salon', 'eyelashes'
-	
+
 	gs 'salon', 'discount', 5000
-	if (money >= salon_rate or karta + bankDebtLimit >= salon_rate) and salon['skin_care_day'] < max(daystart - 7,1):	
+	if (money >= salon_rate or karta >= salon_rate) and salon['skin_care_day'] < max(daystart - 7,1):
 		act 'Skin care <<func(''agentned'', ''format_price_string'', salon_rate)>> <b>₽</b>':
 			gs 'salon', 'discount', 5000
-			if masseuse['jobtype'] > 0:  
+			if masseuse['jobtype'] > 0:
 				epayments['value'] = salon_rate
 			else
 				epayments['value'] = salon_rate
@@ -164,22 +164,22 @@ if $ARGS[0] = 'services':
 			$epayments['loc_arg'] = 'skin_care'
 			$epayments['description'] = 'skin care pampering'
 			gs 'shortgs', 'payments'
-		end	
+		end
 	elseif salon['skin_care_day'] < max(daystart - 7,1):
 		act 'Skin care (<font color="red"> <<func(''agentned'', ''format_price_string'', salon_rate)>> <b>₽</b> </font>)':
 			msg'You don''t have enough money for this!'
-		end	
+		end
 	else
 		act 'Skin care (<font color="red"> <<func(''agentned'', ''format_price_string'', salon_rate)>> <b>₽</b> </font>)':
 			msg'You need to wait a week since you last skin care treatment for a new to have any effect.'
 		end
 	end
-	
-	gs 'salon', 'discount', 25000	
-	if money >= salon_rate or karta + bankDebtLimit >= salon_rate:
+
+	gs 'salon', 'discount', 25000
+	if money >= salon_rate or karta >= salon_rate:
 		act 'Full body rejuvination <<func(''agentned'', ''format_price_string'', salon_rate)>> <b>₽</b>':
-			gs 'salon', 'discount', 25000			
-			if masseuse['jobtype'] > 0:  
+			gs 'salon', 'discount', 25000
+			if masseuse['jobtype'] > 0:
 				epayments['value'] = salon_rate
 			else
 				epayments['value'] = salon_rate
@@ -193,16 +193,16 @@ if $ARGS[0] = 'services':
 			msg'You don''t have enough money for this!'
 		end
 	end
-	
+
 	if lashair ! 1:
 		gs 'salon', 'discount', 1000
 		if  pcs_pubes > 2 or pcs_leghair > 2:
 			gs 'salon', 'discount', 1000
-			if money >= salon_rate or karta + bankDebtLimit >= salon_rate:
-				act 'Partial or full body hair removal up to <<func(''agentned'', ''format_price_string'', salon_rate)>> <b>₽</b>':				
+			if money >= salon_rate or karta >= salon_rate:
+				act 'Partial or full body hair removal up to <<func(''agentned'', ''format_price_string'', salon_rate)>> <b>₽</b>':
 					gt 'salon', 'hair_removal'
 				end
-			elseif  money < salon_rate and karta + bankDebtLimit  < salon_rate:
+			elseif  money < salon_rate and karta < salon_rate:
 				act 'Body hair removal <font color="red"><<func(''agentned'', ''format_price_string'', salon_rate)>> <b>₽</b> </font>':
 					msg'You don''t have enough money for this!'
 				end
@@ -214,10 +214,10 @@ if $ARGS[0] = 'services':
 		end
 
 		gs 'salon', 'discount', 500
-		if pcs_pubes > 20 and money >= salon_rate or karta + bankDebtLimit >= salon_rate:
+		if pcs_pubes > 20 and money >= salon_rate or karta >= salon_rate:
 			act 'Dye your pubic hair <<func(''agentned'', ''format_price_string'', salon_rate)>> <b>₽</b>':
-				gs 'salon', 'discount', 500			
-				if masseuse['jobtype'] > 0:  
+				gs 'salon', 'discount', 500
+				if masseuse['jobtype'] > 0:
 					epayments['value'] = salon_rate
 				else
 					epayments['value'] = salon_rate
@@ -225,8 +225,8 @@ if $ARGS[0] = 'services':
 				$epayments['loc_arg'] = 'pubes'
 				$epayments['description'] = 'dye your pubic hair'
 				gs 'shortgs', 'payments'
-			end		
-		elseif pcs_pubes > 20  and (money < salon_rate and karta + bankDebtLimit  < salon_rate):
+			end
+		elseif pcs_pubes > 20  and (money < salon_rate and karta < salon_rate):
 			act 'Dye your pubic hair <font color="red"><<func(''agentned'', ''format_price_string'', salon_rate)>> <b>₽</b> </font>':
 				msg'You don''t have enough money for this!'
 			end
@@ -238,7 +238,7 @@ if $ARGS[0] = 'services':
 	end
 
 	gs 'salon', 'discount', 1000
-	if money >= salon_rate or karta + bankDebtLimit >= salon_rate:
+	if money >= salon_rate or karta >= salon_rate:
 		act 'Professional makeup <<func(''agentned'', ''format_price_string'', salon_rate)>> <b>₽</b>':
 			gs 'salon', 'discount', 1000
 			if masseuse['jobtype'] > 0:
@@ -316,7 +316,7 @@ if $ARGS[0] = 'job_offer':
 			gs 'salon', 'whore_offer'
 		end
 	end
-	
+
 	act 'Sounds fine':
 		cla & *clr
 		'<center><img <<$set_imgh>> src="images/locations/city/citycenter/mall/salon/xian.jpg"></center>'
@@ -352,7 +352,7 @@ if $ARGS[0] = 'whore_offer':
 			act 'Just leave':gt 'salon', 'start'
 			act 'Take a look while you''re here':gt 'salon', 'services'
 		end
-		
+
 		act 'I''d rather just work as a masseuse':
 			cla & *clr
 			'<center><img <<$set_imgh>> src="images/locations/city/citycenter/mall/salon/xian.jpg"></center>'
@@ -371,14 +371,14 @@ if $ARGS[0] = 'whore_offer':
 				act 'Leave':gt 'salon', 'start'
 			end
 		end
-		
+
 		act 'Well...':
 			cla & *nl
 			'"Well..." you say. The money is pretty tempting. "I guess you could tell me more about working as a whore to find out if I''m really interested or not..."'
 			gs 'salon', 'whore_offer2'
 		end
 	end
-	
+
 	act 'Tell me more':
 		cla & *clr
 		'<center><img <<$set_imgh>> src="images/locations/city/citycenter/mall/salon/xian.jpg"></center>'
@@ -386,7 +386,7 @@ if $ARGS[0] = 'whore_offer':
 		gs 'salon', 'whore_offer2'
 	end
 end
-		
+
 if $ARGS[0] = 'whore_offer2':
 	'"Let me explain. If you want the highest pay as a whore you will be expected to do any of the work we have on the menu. That includes basic body massages, massages given while you are naked, handjobs, blowjobs, and of course, sex. But each customer pays for a different service, we don''t have any all included packages. If you aren''t comfortable with going so far, you can choose to perform only lesser services, but for less pay of course. You can just do oral and handjobs if you prefer with no fucking, or just performing normal massages while naked. It''s no problem for us, we''ll just pay you less.'
 	*nl
@@ -408,13 +408,13 @@ if $ARGS[0] = 'whore_offer2':
 			act 'Sure, let me look':gt 'salon', 'services'
 		end
 		act 'I guess that''s fine':
-			masseuse['jobtype'] = 1
-			masseuse['hourly'] = 100
 			cla & *clr
 			'<center><img <<$set_imgh>> src="images/locations/city/citycenter/mall/salon/xian.jpg"></center>'
 			'"I guess that''s fine."'
 			'"So, are you a certified massage therapist?"'
 			if masseuse['certification'] >= 10:
+				masseuse['jobtype'] = 1
+				masseuse['hourly'] = 100
 				'"Yes I am."'
 				'"Okay, can I see your certificate?" You pull out the paper that certifies you as a massage therapist.'
 				'"Great. I''ll just get your contract set up for you," she says, typing something out on her computer.'
@@ -426,7 +426,7 @@ if $ARGS[0] = 'whore_offer2':
 			end
 		end
 	end
-	
+
 	act 'Rather just be a regular masseuse':
 		cla & *clr
 		'<center><img <<$set_imgh>> src="images/locations/city/citycenter/mall/salon/xian.jpg"></center>'
@@ -445,7 +445,7 @@ if $ARGS[0] = 'whore_offer2':
 			act 'Leave':gt 'salon', 'start'
 		end
 	end
-	
+
 	act 'I wouldn''t mind being a naked masseuse':
 		cla & *clr
 		'<center><img <<$set_imgh>> src="images/locations/city/citycenter/mall/salon/xian.jpg"></center>'
@@ -466,7 +466,7 @@ if $ARGS[0] = 'whore_offer2':
 			act 'Leave':gt 'salon', 'start'
 		end
 	end
-	
+
 	act 'I can give handjobs':
 		cla & *clr
 		'<center><img <<$set_imgh>> src="images/locations/city/citycenter/mall/salon/xian.jpg"></center>'
@@ -487,7 +487,7 @@ if $ARGS[0] = 'whore_offer2':
 			act 'Leave':gt 'salon', 'start'
 		end
 	end
-	
+
 	act 'I can give blowjobs':
 		cla & *clr
 		'<center><img <<$set_imgh>> src="images/locations/city/citycenter/mall/salon/xian.jpg"></center>'
@@ -508,7 +508,7 @@ if $ARGS[0] = 'whore_offer2':
 			act 'Leave':gt 'salon', 'start'
 		end
 	end
-	
+
 	act 'Sure, I''ll be a whore':
 		cla & *clr
 		'<center><img <<$set_imgh>> src="images/locations/city/citycenter/mall/salon/xian.jpg"></center>'
@@ -549,7 +549,7 @@ if $ARGS[0] = 'part_time_full_time':
 			end
 		end
 	end
-	
+
 	act 'Full time':
 		masseuse['shifts_required'] = 10
 		cla & *clr
@@ -750,7 +750,7 @@ if $ARGS[0] = 'massage_room':
 	'<center><img <<$set_imgh>> src="images/locations/city/citycenter/mall/salon/work/room.jpg"></center>'
 	'One of the massage rooms in which you serve clientele.'
 	act 'Leave':gt 'salon','start'
-	
+
 	if (masseuse['<<week>>_shift_1'] = 1 and hour < 10) or (masseuse['<<week>>_shift_2'] = 1 and ((hour > 12 and hour < 14 and minut >= 30) or hour < 14)) or (masseuse['<<week>>_shift_3'] = 1 and ((hour > 16 and minut >= 30) or hour < 18)):
 		act 'Start your shift':
 			if $clothingworntype = 'nude' and robe = 1:
@@ -838,7 +838,7 @@ if $ARGS[0] = 'job_change':
 			'"Alright, sure thing. I''ll make a note of it. Anything else?"'
 		end
 	end
-	
+
 	if masseuse['jobtype'] ! 1:
 		act 'Change jobtype to a normal masseuse':
 			*clr
@@ -849,7 +849,7 @@ if $ARGS[0] = 'job_change':
 			masseuse['hourly'] = 100
 		end
 	end
-	
+
 	if masseuse['jobtype'] ! 2:
 		act 'Change jobtype to nude masseuse':
 			*clr
@@ -860,7 +860,7 @@ if $ARGS[0] = 'job_change':
 			masseuse['hourly'] = 125
 		end
 	end
-		
+
 	if masseuse['jobtype'] ! 3:
 		act 'Change jobtype to handjob masseuse':
 			*clr
@@ -871,7 +871,7 @@ if $ARGS[0] = 'job_change':
 			masseuse['hourly'] = 150
 		end
 	end
-	
+
 	if masseuse['jobtype'] ! 4:
 		act 'Change jobtype to oral masseuse':
 			*clr
@@ -882,7 +882,7 @@ if $ARGS[0] = 'job_change':
 			masseuse['hourly'] = 175
 		end
 	end
-	
+
 	if masseuse['jobtype'] ! 5:
 		act 'Change jobtype to whore':
 			*clr
@@ -918,7 +918,7 @@ if $ARGS[0] = 'payday':
 	'"I''m here to pick up my pay for this week Xian."'
 	'"Okay!" She opens up a drawer and thumbs through a few different labels before reaching into one and picking up an envelope. She hands it over to you.'
 	if masseuse['hired_day'] <= daystart - 7:
-	
+
 	!!	gs 'salon', 'first_week'
 	elseif masseuse['shifts_worked'] < masseuse['shifts_required']:
 		masseuse['warning'] - 1
@@ -932,7 +932,7 @@ if $ARGS[0] = 'payday':
 			'"By the way, thank you for covering those extra shifts this week <<$pcs_firstname>>. Really helpful for us."'
 			'"No problem Xian," you say, taking the envelope. "I could use the extra cash."'
 		end
-	end	
+	end
 	gs 'salon','payday_end'
 	act 'Leave':gt 'salon', 'start'
 end
@@ -993,7 +993,7 @@ if $ARGS[0] = 'rehire1':
 			act 'Next':gt 'salon', 'rehire2'
 		end
 	end
-	
+
 	act 'Normal masseuse':
 		cla & *clr
 		'<center><img <<$set_imgh>> src="images/locations/city/citycenter/mall/salon/xian.jpg"></center>'
@@ -1003,23 +1003,23 @@ if $ARGS[0] = 'rehire1':
 		masseuse['hourly'] = 100
 		act 'Next':gt 'salon', 'rehire2'
 	end
-	
+
 	act 'Nude masseuse':
 		cla & *clr
 		'<center><img <<$set_imgh>> src="images/locations/city/citycenter/mall/salon/xian.jpg"></center>'
 		'"I wanted to work as a nude masseuse."'
-		'"Okay," she clacks a few times on a laptop in front of her. "There. Officially rehired as a nude masseuse. Payment at 400 <b>₽</b> per shift."'
+		'"Okay," she clacks a few times on a laptop in front of her. "There. Officially rehired as a nude masseuse. Payment at 500 <b>₽</b> per shift."'
 		masseuse['jobtype'] = 2
 		masseuse['hourly'] = 125
 		act 'Next':gt 'salon', 'rehire2'
 
 	end
-	
+
 	act 'Handjob masseuse':
 		cla & *clr
 		'<center><img <<$set_imgh>> src="images/locations/city/citycenter/mall/salon/xian.jpg"></center>'
 		'"I wanted to work as a handjob masseuse."'
-		'"Okay," she clacks a few times on a laptop in front of her. "There. Officially rehired as a handjob masseuse. Payment at 400 <b>₽</b> per shift."'
+		'"Okay," she clacks a few times on a laptop in front of her. "There. Officially rehired as a handjob masseuse. Payment at 600 <b>₽</b> per shift."'
 		masseuse['jobtype'] = 3
 		masseuse['hourly'] = 150
 		act 'Next':gt 'salon', 'rehire2'
@@ -1029,7 +1029,7 @@ if $ARGS[0] = 'rehire1':
 		*clr
 		'<center><img <<$set_imgh>> src="images/locations/city/citycenter/mall/salon/xian.jpg"></center>'
 		'"I wanted to work as an oral masseuse."'
-		'"Okay," she clacks a few times on a laptop in front of her. "There. Officially rehired as an oral masseuse. Payment at 400 <b>₽</b> per shift."'
+		'"Okay," she clacks a few times on a laptop in front of her. "There. Officially rehired as an oral masseuse. Payment at 700 <b>₽</b> per shift."'
 		masseuse['jobtype'] = 4
 		masseuse['hourly'] = 175
 		act 'Next':gt 'salon', 'rehire2'
@@ -1040,7 +1040,7 @@ if $ARGS[0] = 'rehire1':
 		*clr
 		'<center><img <<$set_imgh>> src="images/locations/city/citycenter/mall/salon/xian.jpg"></center>'
 		'"I wanted to start working as a whore."'
-		'"Okay," she clacks a few times on a laptop in front of her. "There. Officially rehired as a whore. Payment at 400 <b>₽</b> per shift."'
+		'"Okay," she clacks a few times on a laptop in front of her. "There. Officially rehired as a whore. Payment at 1000 <b>₽</b> per shift."'
 		masseuse['jobtype'] = 5
 		masseuse['hourly'] = 250
 		act 'Next':gt 'salon', 'rehire2'
@@ -1063,7 +1063,7 @@ if $ARGS[0] = 'rehire2':
 			'"Okay, just let me know.'
 			act 'Leave':gt 'salon', 'start'
 		end
-		
+
 		act 'Sure':
 			cla & *clr
 			'<center><img <<$set_imgh>> src="images/locations/city/citycenter/mall/salon/xian.jpg"></center>'
@@ -1072,7 +1072,7 @@ if $ARGS[0] = 'rehire2':
 			act 'Take a look':gt 'masseuse_schedule', 'start'
 		end
 	end
-	
+
 	act 'Full time':
 		masseuse['shifts_required'] = 10
 		cla & *clr
@@ -1086,7 +1086,7 @@ if $ARGS[0] = 'rehire2':
 			'"Okay, just let me know.'
 			act 'Leave':gt 'salon', 'start'
 		end
-		
+
 		act 'Sure':
 			cla & *clr
 			'<center><img <<$set_imgh>> src="images/locations/city/citycenter/mall/salon/xian.jpg"></center>'
@@ -1124,7 +1124,7 @@ end
 
 if $ARGS[0] = 'eyelashes':
 	$epayments['banner']  = 'locations/city/citycenter/mall/salon/eyelash_salon.jpg'
-	'<center><img <<$set_imgh>> src="images/locations/city/citycenter/mall/salon/eyelash_salon.jpg"></center>'	
+	'<center><img <<$set_imgh>> src="images/locations/city/citycenter/mall/salon/eyelash_salon.jpg"></center>'
 
 	'You are met by a young, dolled-up woman who explains the various lash treatments she can perform:'
 	'"Well," she says, "I can put on temporary false lashes for you if you''re just going out for the night; you''ll look great, but they won''t last much longer than that."'
@@ -1133,10 +1133,10 @@ if $ARGS[0] = 'eyelashes':
 	'"I guess I could also manually remove your eyelash extensions if you ever needed me to," she muses, but seems to hesitate before saying, "but... I really wouldn''t recommend it. Better to let them grow out naturally."'
 
 	gs 'salon', 'discount', 5000
-	if ( money >= salon_rate or karta + bankDebtLimit >= salon_rate) and pcs_naturallashes < 2:
-		act 'Eyelash growth treatment</a> - <<func(''agentned'', ''format_price_string'', salon_rate)>><b> ₽</b>': 
+	if ( money >= salon_rate or karta >= salon_rate) and pcs_naturallashes < 2:
+		act 'Eyelash growth treatment</a> - <<func(''agentned'', ''format_price_string'', salon_rate)>><b> ₽</b>':
 			gs 'salon', 'discount', 5000
-			if masseuse['jobtype'] > 0:  
+			if masseuse['jobtype'] > 0:
 				epayments['value'] = salon_rate
 			else
 				epayments['value'] = salon_rate
@@ -1145,17 +1145,17 @@ if $ARGS[0] = 'eyelashes':
 			$epayments['description'] = 'eyelash growth treatment'
 			gs 'shortgs', 'payments'
 		end
-	elseif  money < salon_rate or karta + bankDebtLimit < salon_rate:
+	elseif  money < salon_rate or karta < salon_rate:
 		act 'Eyelash growth treatment <font color="red"><<func(''agentned'', ''format_price_string'', salon_rate)>> <b>₽</b> </font>': msg 'You don''t have enough money for this!'
 	else
 		act 'Eyelash growth treatment <font color="red"><<func(''agentned'', ''format_price_string'', salon_rate)>> <b>₽</b> </font>': msg 'You don''t need this service!'
 	end
 
 	gs 'salon', 'discount', 500
-	if ( money >= salon_rate or karta + bankDebtLimit >= salon_rate) and pcs_lashes < 3 and false_lashes <= 0:
+	if ( money >= salon_rate or karta >= salon_rate) and pcs_lashes < 3 and false_lashes <= 0:
 		act 'Simple false lashes':
 			gs 'salon', 'discount', 500
-			if masseuse['jobtype'] > 0:  
+			if masseuse['jobtype'] > 0:
 				epayments['value'] = salon_rate
 			else
 				epayments['value'] = salon_rate
@@ -1165,17 +1165,17 @@ if $ARGS[0] = 'eyelashes':
 			lashfalsiesstyle = 1
 			gs 'shortgs', 'payments'
 		end
-	elseif  money < salon_rate or karta + bankDebtLimit < salon_rate:
+	elseif  money < salon_rate or karta < salon_rate:
 		act 'Simple false lashes <font color="red"><<func(''agentned'', ''format_price_string'', salon_rate)>> <b>₽</b> </font>': msg 'You don''t have enough money for this!'
 	else
 		act 'Simple false lashes <font color="red"><<func(''agentned'', ''format_price_string'', salon_rate)>> <b>₽</b> </font>': msg 'You don''t need this service!'
 	end
 
 	gs 'salon', 'discount', 1000
-	if (money >= salon_rate or karta + bankDebtLimit >= salon_rate) and pcs_lashes < 4 and false_lashes <= 0:
+	if (money >= salon_rate or karta >= salon_rate) and pcs_lashes < 4 and false_lashes <= 0:
 		act 'Dramatic false lashes':
 			gs 'salon', 'discount', 1000
-			if masseuse['jobtype'] > 0:  
+			if masseuse['jobtype'] > 0:
 				epayments['value'] = salon_rate
 			else
 				epayments['value'] = salon_rate
@@ -1185,39 +1185,39 @@ if $ARGS[0] = 'eyelashes':
 			lashfalsiesstyle = 2
 			gs 'shortgs', 'payments'
 		end
-	elseif  money < salon_rate or karta + bankDebtLimit < salon_rate:
+	elseif  money < salon_rate or karta < salon_rate:
 		act 'Dramatic false lashes<font color="red"><<func(''agentned'', ''format_price_string'', salon_rate)>> <b>₽</b> </font>': msg 'You don''t have enough money for this!'
 	else
 		act 'Dramatic false lashes <font color="red"><<func(''agentned'', ''format_price_string'', salon_rate)>> <b>₽</b> </font>': msg 'You don''t need this service!'
 	end
 
 	gs 'salon', 'discount', 2000
-	if (money >= salon_rate or karta + bankDebtLimit >= salon_rate) and lashextensionduration <= 0:
+	if (money >= salon_rate or karta >= salon_rate) and lashextensionduration <= 0:
 		act '2D volume eyelash extensions':
 			gs 'salon', 'discount', 2000
-			if masseuse['jobtype'] > 0:  
+			if masseuse['jobtype'] > 0:
 				epayments['value'] = salon_rate
 			else
 				epayments['value'] = salon_rate
 			end
 			$epayments['loc_arg'] = 'lashExtension'
 			$epayments['description'] = '2D volume eyelash extensions'
-			lashextensionstyle = 2 
-			lashextensionnew = 1 
+			lashextensionstyle = 2
+			lashextensionnew = 1
 			gs 'shortgs', 'payments'
 			'<a href="exec:lashextensionstyle = 2 & lashextensionnew = 1 & gs ''shortgs'', ''payments''">2D volume eyelash extensions</a> -<<func(''agentned'', ''format_price_string'', salon_rate)>><b> ₽</b>'
 		end
-	elseif  money < salon_rate or karta + bankDebtLimit < salon_rate:
+	elseif  money < salon_rate or karta < salon_rate:
 		act '2D volume eyelash extensions <font color="red"><<func(''agentned'', ''format_price_string'', salon_rate)>> <b>₽</b> </font>': msg 'You don''t have enough money for this!'
 	else
 		act '2D volume eyelash extensions <font color="red"><<func(''agentned'', ''format_price_string'', salon_rate)>> <b>₽</b> </font>': msg 'You don''t need this service!'
 	end
 
 	gs 'salon', 'discount', 5000
-	if (money >= salon_rate or karta + bankDebtLimit >= salon_rate) and lashextensionduration <= 0:
+	if (money >= salon_rate or karta >= salon_rate) and lashextensionduration <= 0:
 		act '4D volume eyelash extensions':
 			gs 'salon', 'discount', 5000
-			if masseuse['jobtype'] > 0:  
+			if masseuse['jobtype'] > 0:
 				epayments['value'] = salon_rate
 			else
 				epayments['value'] = salon_rate
@@ -1228,38 +1228,38 @@ if $ARGS[0] = 'eyelashes':
 			lashextensionnew = 1
 			gs 'shortgs', 'payments'
 		end
-	elseif  money < salon_rate or karta + bankDebtLimit < salon_rate:
+	elseif  money < salon_rate or karta < salon_rate:
 		act '4D volume eyelash extensions <font color="red"><<func(''agentned'', ''format_price_string'', salon_rate)>> <b>₽</b> </font>': msg 'You don''t have enough money for this!'
 	else
 		act '4D volume eyelash extensions <font color="red"><<func(''agentned'', ''format_price_string'', salon_rate)>> <b>₽</b> </font>': msg 'You don''t need this service!'
 	end
 
 	gs 'salon', 'discount', 10000
-	if ( money >= salon_rate or karta + bankDebtLimit >= salon_rate) and lashextensionduration <= 0:
+	if ( money >= salon_rate or karta >= salon_rate) and lashextensionduration <= 0:
 		act '6D volume eyelash extensions':
 			gs 'salon', 'discount', 10000
-			if masseuse['jobtype'] > 0:  
+			if masseuse['jobtype'] > 0:
 				epayments['value'] = salon_rate
 			else
 				epayments['value'] = salon_rate
 			end
 			$epayments['loc_arg'] = 'lashExtension'
 			$epayments['description'] = '6D volume eyelash extensions'
-			lashextensionstyle = 6 
+			lashextensionstyle = 6
 			lashextensionnew = 1
 			gs 'shortgs', 'payments'
 		end
-	elseif  money < salon_rate or karta + bankDebtLimit < salon_rate:
+	elseif  money < salon_rate or karta < salon_rate:
 		act '6D volume eyelash extensions <font color="red"><<func(''agentned'', ''format_price_string'', salon_rate)>> <b>₽</b> </font>': msg 'You don''t have enough money for this!'
 	else
 		act '6D volume eyelash extensions <font color="red"><<func(''agentned'', ''format_price_string'', salon_rate)>> <b>₽</b> </font>': msg 'You don''t need this service!'
 	end
 
 	gs 'salon', 'discount', 1000
-	if (money >= salon_rate or karta + bankDebtLimit >= salon_rate) and lashextensionduration >= 1 and lashextensionduration <= 4 and lashextensionstyle = 2:
+	if (money >= salon_rate or karta >= salon_rate) and lashextensionduration >= 1 and lashextensionduration <= 4 and lashextensionstyle = 2:
 		act 'Refill your 2D lash extension':
 			gs 'salon', 'discount', 1000
-			if masseuse['jobtype'] > 0:  
+			if masseuse['jobtype'] > 0:
 				epayments['value'] = salon_rate
 			else
 				epayments['value'] = salon_rate
@@ -1269,17 +1269,17 @@ if $ARGS[0] = 'eyelashes':
 			lashextensionnew = 0
 			gs 'shortgs', 'payments'
 		end
-	elseif  money < salon_rate or karta + bankDebtLimit < salon_rate:
+	elseif  money < salon_rate or karta < salon_rate:
 		act 'Refill your 2D lash extension <font color="red"><<func(''agentned'', ''format_price_string'', salon_rate)>> <b>₽</b> </font>': msg 'You don''t have enough money for this!'
 	else
-		act 'Refill your 2D lash extension <font color="red"><<func(''agentned'', ''format_price_string'', salon_rate)>> <b>₽</b> </font>': msg 'You don''t need this service!'	
+		act 'Refill your 2D lash extension <font color="red"><<func(''agentned'', ''format_price_string'', salon_rate)>> <b>₽</b> </font>': msg 'You don''t need this service!'
 	end
 
 	gs 'salon', 'discount', 2500
-	if (money >= salon_rate or karta + bankDebtLimit >= salon_rate)and lashextensionduration >= 1 and lashextensionduration <= 4 and lashextensionstyle = 4:
+	if (money >= salon_rate or karta >= salon_rate)and lashextensionduration >= 1 and lashextensionduration <= 4 and lashextensionstyle = 4:
 		act 'Refill your 4D lash extension':
 			gs 'salon', 'discount', 2500
-			if masseuse['jobtype'] > 0:  
+			if masseuse['jobtype'] > 0:
 				epayments['value'] = salon_rate
 			else
 				epayments['value'] = salon_rate
@@ -1289,17 +1289,17 @@ if $ARGS[0] = 'eyelashes':
 			gs 'shortgs', 'payments'
 			$epayments['description'] = 'refill your 4D lash extensions'
 		end
-	elseif  money < salon_rate or karta + bankDebtLimit < salon_rate:
+	elseif  money < salon_rate or karta < salon_rate:
 		act 'Refill your 4D lash extension <font color="red"><<func(''agentned'', ''format_price_string'', salon_rate)>> <b>₽</b> </font>': msg 'You don''t have enough money for this!'
 	else
 		act 'Refill your 4D lash extension <font color="red"><<func(''agentned'', ''format_price_string'', salon_rate)>> <b>₽</b> </font>': msg 'You don''t need this service!'
 	end
 
 	gs 'salon', 'discount', 5000
-	if (money >= salon_rate or karta + bankDebtLimit >= salon_rate)and lashextensionduration >= 1 and lashextensionduration <= 4 and lashextensionstyle = 6:
+	if (money >= salon_rate or karta >= salon_rate)and lashextensionduration >= 1 and lashextensionduration <= 4 and lashextensionstyle = 6:
 		act 'Refill your 6D lash extension':
 			gs 'salon', 'discount', 5000
-			if masseuse['jobtype'] > 0:  
+			if masseuse['jobtype'] > 0:
 				epayments['value'] = salon_rate
 			else
 				epayments['value'] = salon_rate
@@ -1307,33 +1307,33 @@ if $ARGS[0] = 'eyelashes':
 			$epayments['loc_arg'] = 'lashExtension'
 			$epayments['description'] = 'refill your 6D lash extensions'
 			lashextensionnew = 0
-			gs 'shortgs', 'payments'	
+			gs 'shortgs', 'payments'
 		end
-	elseif  money < salon_rate or karta + bankDebtLimit < salon_rate:
+	elseif  money < salon_rate or karta < salon_rate:
 		act 'Refill your 6D lash extension <font color="red"><<func(''agentned'', ''format_price_string'', salon_rate)>> <b>₽</b> </font>': msg 'You don''t have enough money for this!'
 	else
 		act 'Refill your 6D lash extension <font color="red"><<func(''agentned'', ''format_price_string'', salon_rate)>> <b>₽</b> </font>': msg 'You don''t need this service!'
 	end
 	gs 'salon', 'discount', 500
-	if (money >= salon_rate or karta + bankDebtLimit >= salon_rate) and lashextensionduration > 0:
+	if (money >= salon_rate or karta >= salon_rate) and lashextensionduration > 0:
 		act 'Remove your eyelash extensions':
 			gs 'salon', 'discount', 500
-			if masseuse['jobtype'] > 0:  
+			if masseuse['jobtype'] > 0:
 				epayments['value'] = salon_rate
 			else
 				epayments['value'] = salon_rate
 			end
 			$epayments['loc_arg'] = 'lashExtension'
 			$epayments['description'] = 'remove your eyelash extensions'
-			lashextensionnew = -1 
-			gs 'shortgs', 'payments'			
+			lashextensionnew = -1
+			gs 'shortgs', 'payments'
 		end
-	elseif  money < salon_rate or karta + bankDebtLimit < salon_rate:
+	elseif  money < salon_rate or karta < salon_rate:
 		act 'Remove your eyelash extensions <font color="red"><<func(''agentned'', ''format_price_string'', salon_rate)>> <b>₽</b> </font>':	msg 'You don''t have enough money for this!'
 	else
 		act 'Remove your eyelash extensions <font color="red"><<func(''agentned'', ''format_price_string'', salon_rate)>> <b>₽</b> </font>': msg 'You don''t need this service!'
 	end
-	
+
 	act 'back': minut += 1 & gt 'salon','start'
 end
 
@@ -1344,7 +1344,7 @@ if $ARGS[0] = 'lashTreatment':
 	if pcs_naturallashes < 2:pcs_naturallashes += 1
 	inhib_exp += rand(1,5)
 	gs 'AppearanceSystem', 'UpdateBaseAppearance'
-	
+
 	gs 'stat'
 	'<center><img <<$set_imgh>> src="images/locations/city/citycenter/mall/salon/eyelash_salon.jpg"></center>'
 	'The specialist collects your payment and moves you over to a chair with a headrest, which she has you tilt your head back up against.'
@@ -1403,7 +1403,7 @@ if $ARGS[0] = 'lashExtension':
 			minut += 210
 		end
 		'"Alright!" she says, expelling a deep breath after her hard work. "Now, just be sure to come in every two weeks or so for your lash fills; if you let most of them fall out, I''m going to charge you for a whole new set, okay?"'
-		lashextensionduration = 16	
+		lashextensionduration = 16
 	end
 	if lashextensionnew = 0:
 		!! Actually, this should not even be possible to do, but just in case...
@@ -1431,7 +1431,7 @@ if $ARGS[0] = 'lashExtension':
 			minut += 120
 		end
 		'"Alright!" she says, expelling a deep breath after her lengthy maintenance. "You''re back to being beautiful! See you in another two weeks or so?"'
-		lashextensionduration = 16	
+		lashextensionduration = 16
 	end
 	if lashextensionnew = -1:
 		if false_lashes >= 1:
@@ -1479,7 +1479,7 @@ if $ARGS[0] = 'hair_removal':
 	!! Set payment variables
 
 	$epayments['description'] = 'Waxing Service'
-	
+
     if masseuse['jobtype'] > 0:
 		partialservice = 500
         fullservice = 1000
@@ -1492,14 +1492,14 @@ if $ARGS[0] = 'hair_removal':
 
 	*pl  'We can do legs, pubic or full body waxes. Which service would you like?<br>'
 
-    if pcs_leghair > 2:	
+    if pcs_leghair > 2:
 		'Get your legs waxed <a href="exec: $epayments[''loc_arg''] = ''waxlegs'' & epayments[''value''] = <<partialservice>> & gs ''shortgs'', ''payments'' "><<partialservice>><b> ₽</b></a> '
     end
-    if pcs_pubes > 2:		
+    if pcs_pubes > 2:
 		'Get your pubic area waxed <a href="exec: $epayments[''loc_arg''] = ''waxpubic'' & epayments[''value''] = <<partialservice>> & gs ''shortgs'', ''payments''  "><<partialservice>><b> ₽</b></a> '
     end
     if pcs_pubes > 2 and pcs_leghair > 2:
-		'Get your your body waxed <a href="exec:  $epayments[''loc_arg''] = ''waxbody'' & epayments[''value''] = <<fullservice>> & gs ''shortgs'', ''payments''"><<fullservice>><b> ₽</b></a> '  
+		'Get your your body waxed <a href="exec:  $epayments[''loc_arg''] = ''waxbody'' & epayments[''value''] = <<fullservice>> & gs ''shortgs'', ''payments''"><<fullservice>><b> ₽</b></a> '
     end
 
 	act 'Leave': gs 'salon', 'cleanvar' & gt 'salon', 'start'
@@ -1511,11 +1511,11 @@ if $ARGS[0] = 'waxlegs':
 	inhib_exp += rand(1,5)
 	gs 'pain', 5, 'legL', 'pull'
 	gs 'pain', 5, 'legR', 'pull'
-	gs 'stat'		
+	gs 'stat'
 	*nl
 	'<center><img <<$set_imgh>> src="images/locations/city/citycenter/mall/salon/depilation.jpg"></center>'
 	'You get your legs waxed, leaving them feeling silky smooth and completely hair free.'
-		
+
 	act 'Leave': gs 'salon', 'cleanvar' & gt 'salon', 'start'
 end
 
@@ -1559,7 +1559,7 @@ if $ARGS[0] = 'pubes':
 	if pcs_pubecol[2] ! pcs_pubecol:
 		act 'Return to natural colour':
 			cla
-			'"I''m looking to reverse the change of pube colour, I''d like my natural colour back."' 
+			'"I''m looking to reverse the change of pube colour, I''d like my natural colour back."'
 			'"Sure thing!", she says in a cheerful way and leads you to a private room, "Why don''t you take a seat and pull down your clothes?"'
 			'"We''ll be done in no time!", she says and points your over to sit down on one of the seats.'
 
@@ -1569,7 +1569,7 @@ if $ARGS[0] = 'pubes':
 				minut += 45
 				money -= 500
 				pcs_pubecol[2] = pcs_pubecol
-				'<center><img <<$set_imgh>> src="<<FUNC(''$pube_image'')>>"></center>'
+				'<center><img <<$set_imgh>> src="<<func(''$body_image'', ''pubes'')>>"></center>'
 				'45 minutes later, the dye has taken and dried in.'
 				'The beauty technician checks that everything is OK. "All done, you can get dressed."'
 				'You pull your clothes back up and pay her 500 <b>₽</b>.'
@@ -1577,7 +1577,7 @@ if $ARGS[0] = 'pubes':
 				act 'Move away':gt 'salon', 'start'
 			end
 		end
-	end	
+	end
 	if pcs_pubecol[2] ! 0:
 		act 'Black':
 			cla
@@ -1591,7 +1591,7 @@ if $ARGS[0] = 'pubes':
 				minut += 45
 				pcs_pubecol[2] = 0
 				pcs_pubecol[3] = pcs_pubes*2
-				'<center><img <<$set_imgh>> src="<<FUNC(''$pube_image'')>>"></center>'
+				'<center><img <<$set_imgh>> src="<<func(''$body_image'', ''pubes'')>>"></center>'
 				'45 minutes later, the dye has taken and dried in.'
 				'The beauty technician checks that everything is OK. "All done, you can get dressed."'
 				'You pull your clothes back up and pay her 500 <b>₽</b>.'
@@ -1614,7 +1614,7 @@ if $ARGS[0] = 'pubes':
 				minut += 45
 				pcs_pubecol[2] = 1
 				pcs_pubecol[3] = rand(35,42)
-				'<center><img <<$set_imgh>> src="<<FUNC(''$pube_image'')>>"></center>'
+				'<center><img <<$set_imgh>> src="<<func(''$body_image'', ''pubes'')>>"></center>'
 				'45 minutes later, the dye has taken and dried in.'
 				'The beauty technician checks that everything is OK. "All done, you can get dressed."'
 				'You pull your clothes back up and pay her 500 <b>₽</b>.'
@@ -1637,7 +1637,7 @@ if $ARGS[0] = 'pubes':
 				minut += 45
 				pcs_pubecol[2] = 2
 				pcs_pubecol[3] = pcs_pubes*2
-				'<center><img <<$set_imgh>> src="<<FUNC(''$pube_image'')>>"></center>'
+				'<center><img <<$set_imgh>> src="<<func(''$body_image'', ''pubes'')>>"></center>'
 				'45 minutes later, the dye has taken and dried in.'
 				'The beauty technician checks that everything is OK. "All done, you can get dressed."'
 				'You pull your clothes back up and pay her 500 <b>₽</b>.'
@@ -1660,7 +1660,7 @@ if $ARGS[0] = 'pubes':
 				minut += 45
 				pcs_pubecol[2] = 3
 				pcs_pubecol[3] = pcs_pubes*2
-				'<center><img <<$set_imgh>> src="<<FUNC(''$pube_image'')>>"></center>'
+				'<center><img <<$set_imgh>> src="<<func(''$body_image'', ''pubes'')>>"></center>'
 				'45 minutes later, the dye has taken and dried in.'
 				'The beauty technician checks that everything is OK. "All done, you can get dressed."'
 				'You pull your clothes back up and pay her 500 <b>₽</b>.'
@@ -1685,7 +1685,7 @@ if $ARGS[0] = 'pubes':
 				pcs_pubecol[2] = 4
 				pcs_pubecol[3] = pcs_pubes*2
 				gs 'stat'
-				'<center><img <<$set_imgh>> src="<<FUNC(''$pube_image'')>>"></center>'
+				'<center><img <<$set_imgh>> src="<<func(''$body_image'', ''pubes'')>>"></center>'
 				'45 minutes later, the dye has taken and dried in.'
 				'The beauty technician checks that everything is OK. "All done, you can get dressed."'
 				'You pull your clothes back up and pay her 500 <b>₽</b>.'
@@ -1709,7 +1709,7 @@ if $ARGS[0] = 'pubes':
 				pcs_pubecol[2] = 5
 				pcs_pubecol[3] = pcs_pubes*2
 				gs 'stat'
-				'<center><img <<$set_imgh>> src="<<FUNC(''$pube_image'')>>"></center>'
+				'<center><img <<$set_imgh>> src="<<func(''$body_image'', ''pubes'')>>"></center>'
 				'45 minutes later, the dye has taken and dried in.'
 				'The beauty technician checks that everything is OK. "All done, you can get dressed."'
 				'You pull your clothes back up and pay her 500 <b>₽</b>.'
@@ -1735,7 +1735,7 @@ if $ARGS[0] = 'pubes':
 				pcs_pubecol[2] = 6
 				pcs_pubecol[3] = pcs_pubes*2
 				gs 'stat'
-				'<center><img <<$set_imgh>> src="<<FUNC(''$pube_image'')>>"></center>'
+				'<center><img <<$set_imgh>> src="<<func(''$body_image'', ''pubes'')>>"></center>'
 				'45 minutes later, the dye has taken and dried in.'
 				'The beauty technician checks that everything is OK. "All done, you can get dressed."'
 				'You pull your clothes back up and pay her 500 <b>₽</b>.'
@@ -1759,7 +1759,7 @@ if $ARGS[0] = 'pubes':
 				pcs_pubecol[2] = 7
 				pcs_pubecol[3] = pcs_pubes*2
 				gs 'stat'
-				'<center><img <<$set_imgh>> src="<<FUNC(''$pube_image'')>>"></center>'
+				'<center><img <<$set_imgh>> src="<<func(''$body_image'', ''pubes'')>>"></center>'
 				'45 minutes later, the dye has taken and dried in.'
 				'The beauty technician checks that everything is OK. "All done, you can get dressed."'
 				'You pull your clothes back up and pay her 500 <b>₽</b>.'
@@ -1783,7 +1783,7 @@ if $ARGS[0] = 'pubes':
 				pcs_pubecol[2] = 8
 				pcs_pubecol[3] = pcs_pubes*2
 				gs 'stat'
-				'<center><img <<$set_imgh>> src="<<FUNC(''$pube_image'')>>"></center>'
+				'<center><img <<$set_imgh>> src="<<func(''$body_image'', ''pubes'')>>"></center>'
 				'45 minutes later, the dye has taken and dried in.'
 				'The beauty technician checks that everything is OK. "All done, you can get dressed."'
 				'You pull your clothes back up and pay her 500 <b>₽</b>.'
@@ -1801,13 +1801,13 @@ if $ARGS[0] = 'skin_care':
 	salon['skin_care_day'] = daystart
 	if pcs_skin < 200:
 		pcs_skin += 50
-	elseif pcs_skin <= 400: 
+	elseif pcs_skin <= 400:
 		pcs_skin += 25
 	elseif pcs_skin <= 600:
 		pcs_skin += 15
 	elseif pcs_skin <= 800:
 		pcs_skin += 10
-	elseif pcs_skin <=995: 
+	elseif pcs_skin <=995:
 		pcs_skin += 5
 	else
 		pcs_skin = 1000
@@ -1879,7 +1879,7 @@ if $ARGS[0] = 'massage':
 				msg'You don''t have enough money for this!'
 			end
 		end
-		
+
 		if money >= 2000:
 			act 'Magic finger massage 2,000 <b>₽</b>':
 				cla & *clr
@@ -1894,7 +1894,7 @@ if $ARGS[0] = 'massage':
 				msg'You don''t have enough money for this!'
 			end
 		end
-		
+
 		if money >= 1500:
 			act 'Throat massage 1,500 <b>₽</b>':
 				cla & *clr
@@ -1909,7 +1909,7 @@ if $ARGS[0] = 'massage':
 				msg'You don''t have enough money for this!'
 			end
 		end
-		
+
 		if money >= 2500:
 			act 'Hardcore massage 2,500 <b>₽</b>':
 				cla & *clr
@@ -1924,7 +1924,7 @@ if $ARGS[0] = 'massage':
 				msg'You don''t have enough money for this!'
 			end
 		end
-		
+
 		if money >= 2500:
 			act 'Double hardcore massage 3,000 <b>₽</b>':
 				cla & *clr
@@ -1939,7 +1939,7 @@ if $ARGS[0] = 'massage':
 				msg'You don''t have enough money for this!'
 			end
 		end
-		
+
 		if money >= 2500:
 			act 'Gentle massage 2,500 <b>₽</b>':
 				cla & *clr
@@ -1985,7 +1985,7 @@ if $ARGS[0] = 'massage':
 				msg'You don''t have enough money for this!'
 			end
 		end
-		
+
 		if money >= 1000:
 			act 'Magic finger massage 1,000 <b>₽</b>':
 				cla & *clr
@@ -2000,7 +2000,7 @@ if $ARGS[0] = 'massage':
 				msg'You don''t have enough money for this!'
 			end
 		end
-		
+
 		if money >= 750:
 			act 'Throat massage 750 <b>₽</b>':
 				cla & *clr
@@ -2015,7 +2015,7 @@ if $ARGS[0] = 'massage':
 				msg'You don''t have enough money for this!'
 			end
 		end
-		
+
 		if money >= 1250:
 			act 'Hardcore massage 1,250 <b>₽</b>':
 				cla & *clr
@@ -2030,7 +2030,7 @@ if $ARGS[0] = 'massage':
 				msg'You don''t have enough money for this!'
 			end
 		end
-		
+
 		if money >= 1500:
 			act 'Double hardcore massage 1,500 <b>₽</b>':
 				cla & *clr
@@ -2045,7 +2045,7 @@ if $ARGS[0] = 'massage':
 				msg'You don''t have enough money for this!'
 			end
 		end
-		
+
 		if money >= 1250:
 			act 'Gentle massage 1,250 <b>₽</b>':
 				cla & *clr
@@ -2193,7 +2193,7 @@ if $ARGS[0] = 'throat_massage':
 			gt 'salon', 'start'
 		end
 	end
-	
+
 	act '"Mmrph mrr mrrrph" (on my face)':
 		cla & *clr
 		gs 'cum_call', 'face','masseur'
@@ -2211,7 +2211,7 @@ if $ARGS[0] = 'throat_massage':
 				gt 'salon', 'start'
 			end
 		end
-		
+
 		act 'Leave with it':
 			cla & *clr
 			'<center><img <<$set_imgh>> src="images/locations/city/citycenter/mall/salon/work/room.jpg"></center>'
@@ -2260,7 +2260,7 @@ if $ARGS[0] = 'hardcore_massage':
 			act 'Get dressed and leave':gt 'salon', 'massage_end'
 		end
 	end
-	
+
 	act 'Inside! Inside!':
 		cla & *clr
 		gs'cum_call','','masseur'
@@ -2279,7 +2279,7 @@ if $ARGS[0] = 'hardcore_massage':
 			act 'Get dressed and leave':gt 'salon', 'massage_end'
 		end
 	end
-	
+
 	act 'Face! Face! Face!':
 		cla & *clr
 		gs 'cum_call', 'face','masseur'
@@ -2323,7 +2323,7 @@ if $ARGS[0] = 'double_hardcore_massage':
 	'You have no idea how long it''s been since you started. Twenty minutes? Half an hour? The only thing you know is how much you have been enjoying being pistoned back and forth between these two cocks. And they guys attached to them know exactly what they''re doing. Every thrust fills you up just right, and the one you''ve been sucking on has the perfect shape and flavor for a girl''s enjoyment. You could stay between thes cocks forever...'
 	*nl
 	'But all good things must come to an end. Eventually one of them says, "Time is almost up ma''am. Would you like us to cum inside you or give you a double facial?"'
-	
+
 	act '"Mm-mm mmm" (inside please)':
 		gs'cum_call','','masseur'
 		gs 'cum_call', 'mouth','masseur'
@@ -2341,7 +2341,7 @@ if $ARGS[0] = 'double_hardcore_massage':
 			act 'Get dressed and leave':gt 'salon', 'massage_end'
 		end
 	end
-	
+
 	act '"Mmm mmm mm mmmmph" (give me the facial)':
 		gs 'cum_call', 'face','masseur'
 		gs 'cum_call', 'face','masseur'
@@ -2426,7 +2426,7 @@ if $ARGS[0] = 'gentle_massage':
 				gs 'cum_cleanup'
 				gt 'salon','massage_end'
 			end
-		end		
+		end
 	end
 end
 
@@ -2447,16 +2447,16 @@ end
 
 if $ARGS[0] = 'cosmetic_tattoo_start':
 	cla & *clr
-	
+
 	'<br>We currently offer five levels of cosmetic tattoos: light, vibrant, sultry, professional and celebrity.<br>Please keep in mind that these procedures are permanent.<br>Also, be aware that after procedure using regular cosmetics will be difficult.<br>Price is set at <<func(''agentned'', ''format_price_string'', salon_rate)>><b>₽</b>'
-	if money >= salon_rate or karta + bankDebtLimit >= salon_rate:
+	if money >= salon_rate or karta >= salon_rate:
 		gs 'salon', 'discount', 2000
-		if masseuse['jobtype'] > 0:  
+		if masseuse['jobtype'] > 0:
 			epayments['value'] = 1000
 		else
 			epayments['value'] = 2000
 		end
-		
+
 		if cosmetic_tattoo = 5:
 			'You already have the heaviest cosmetic tattoo that is on offer.'
 		elseif bimbolevel > 0 or inhib_lvl >= 10:
@@ -2500,7 +2500,7 @@ if $ARGS[0] = 'cosmetic_tattoo_start':
 					gs 'shortgs', 'payments'
 				end
 			end
-		else 
+		else
 			'<br>You dont feel confident enough to get one of these.'
 		end
 	else
@@ -2515,7 +2515,7 @@ if $ARGS[0] = 'cosmetic_tattoo_operation':
 	'The technician works away with the needle for 45 minutes until your <<$epayments[''description'']>> is completed.'
 	cosmetic_tattoo = temp_tattoo
 	killvar 'temp_tattoo'
-	minut += 45	
+	minut += 45
 	gs 'stat'
 	act 'Continue':gt 'salon', 'services'
 end
@@ -2526,9 +2526,9 @@ if $ARGS[0] = 'mom':
 	gs'stat'
 	'<center><img <<$set_imgh>> src="images/characters/pavlovsk/resident/mom/salon.jpg"></center>'
 	'As you enter the salon you see you <<$npc_nickname[''A29'']>> waiting with your Aunt Luda. They haven''t seen you yet, they seem to just be chatting as they wait for their turn. The place seems to be fairly busy today.'
-	
-	act 'Ignore them and leave':gt 'torgcentr'
-	
+
+	act 'Ignore them and leave': gt 'city_mall'
+
 	act 'Go talk to them':
 		*clr & cla
 		minut += 5
@@ -2537,7 +2537,7 @@ if $ARGS[0] = 'mom':
 		'You walk over to your <<$npc_nickname[''A29'']>> and Luda. "Hi <<$npc_nickname[''A29'']>>, Luda. You guys getting your hair cut?"'
 		'Your <<$npc_nickname[''A29'']>> looks up at you and seems a little surprised to see you. "Yes and we are going to get a manicure as well, you should join us. I''ll pay."'
 		'Luda speaks up as well. "Yes dear you should join us." Just then your <<$npc_nickname[''A29'']>> name is called and she gets up and takes a seat to get her hair styled. A free manicure would be nice, but that also means having to spend time with them and listening to them talk about boring stuff.'
-		
+
 		act 'Tell her your busy':
 			*clr & cla
 			npc_rel['A29'] -= 1
@@ -2546,9 +2546,9 @@ if $ARGS[0] = 'mom':
 			'<center><img <<$set_imgh>> src="images/characters/pavlovsk/resident/mom/salon.jpg"></center>'
 			'You shakes your head. "Sorry I can''t, I already have plans."'
 			'Your <<$npc_nickname[''A29'']>> sighs a little, obviously disappointed. "Well ok then, don''t stay out to late." You tell them bye and the say the same back to you, With that her and Luda go back to talking again as you leave.'
-			act 'Leave':gt 'torgcentr'
+			act 'Leave': gt 'city_mall'
 		end
-		
+
 		act 'Agree':
 			*clr & cla
 			npc_rel['A29'] += 1
@@ -2560,7 +2560,7 @@ if $ARGS[0] = 'mom':
 			'You sit down next to Luda but only for a moment when her name is called and she gets up and gets her hair done. Next they are both taken to have a manicure done and you are called over to join them. The three of you sit near each other as you get manicures. Luda and your mom talk about a variety of topics, mostly gossip about what''s going on in Pavlovsk of the people they both know or stories about what happened at their work.'
 			'You chime in occasionally telling them about some stuff you have been up to of late. All and all it is a surprisingly fun time and you got a nice manicure out of it. Once you are finished, your <<$npc_nickname[''A29'']>> pays for both of you and Luda pays for herself. You all walk out together, Luda says. "Well I should get back and make dinner for me and Olu."'
 			'You <<$npc_nickname[''A29'']>> and Luda share a brief hug. "Same here, Vlad wouldn''t know what to do and would likely starve if I don''t get dinner started soon." The both laugh at that, Luda tells you bye as she walks off and your mothers starts for home as well, as she says to you. "Diner will be ready in about half a hour, you should come home and join us." You tell her you might and with that she walks off as well.'
-			act 'Leave':gt 'torgcentr'
+			act 'Leave': gt 'city_mall'
 		end
 	end
 end

@@ -63,7 +63,7 @@ if $ARGS[0] = 'gen_schedule':
 			$tableheader += '<th style="padding: 10px;"><font color="<<$font_theme>>">' + iif(display_hour < 10, '0<<display_hour >>', display_hour) + ':00</font></th>'
 		elseif header_switch=2:
 			header_switch = 1
-			$tableheader += '<th style="padding: 10px;"><font color="<<$font_theme>>">' + iif(display_hour < 10, '0<< display_hour>>', display_hour) + ':30</font></th>'
+			$tableheader += '<th style="padding: 10px;"><font color="<<$font_theme>>">' + iif(display_hour < 10, '0<<display_hour>>', display_hour) + ':30</font></th>'
 		end
 		i_hour += 1
 	if i_hour <= mod_max_hour: jump 'jmp_header_create'
@@ -127,20 +127,26 @@ if $ARGS[0] = 'gen_schedule':
 	!! Create navigaton bars
 	if (mod_max_hour + 8) <= 48:
 		set_hour = ARGS[1] + 8
-		$msg_forward = '<a href="exec:gs ''emp_functions'', ''gen_schedule'', <<set_hour>>"><b>Forward 4 hours</b></a>'
+		$msg_forward = ' | <a href="exec:gs ''emp_functions'', ''gen_schedule'', <<set_hour>>"><b>Forward 4 hours</b></a>'
 	else
-		$msg_forward = 'End of Day'
+		$msg_forward = ' | End of Day'
 	end
-	if (mod_max_hour - 8) >0 :
+	if hour + 8 < 24 and hour - 8 >= 0:
+		set_hour = hour * 2
+		$msg_centre = ' | <a href="exec:gs ''emp_functions'', ''gen_schedule'', <<set_hour>>"><b>Jump to current time</b></a>'
+	else
+		msg_centre = ''
+	end
+	if (mod_max_hour - 8) > 0:
 		set_hour = ARGS[1] - 8
 		$msg_back = '<a href="exec:gs ''emp_functions'', ''gen_schedule'', <<set_hour>>"><b>Back 4 hours</b></a>'
 	else
 		$msg_back = 'Start of day'
 	end
-
 	!! Start the table constuction
 	'<center><table border=0 cellpadding=1 bgcolor="<<$body_theme>>" width="95%" align="center"><<$tableheader>><<$tablebody>></table>'
-	'<<$msg_back>> | <<$msg_forward>>'
+	'<<$msg_back>><<$msg_centre>><<$msg_forward>>'
+
 	killvar '$tablebody'
 	killvar '$tableheader'
 	killvar '$msg_back'
@@ -168,10 +174,37 @@ if $ARGS[0] = 'job_info':
 	$msg_body += '<p>Notes: ' + $emp_job_notes[j_id]+ '</p>'
 	$msg_body += '<p>Wages: ' + func('agentned', 'format_price_string', emp_job_wages[j_id]) + '<b>₽</b></p>'
 
-	msg '<<$msg_body>>'
+	msg $msg_body
 	killvar '$msg_body'
 end
 
+!! Helper QoL function show current job for the journal at right time slot and to deactivate stat_display icon when all jobs are finished
+if $ARGS[0] = 'job_alert':
+	!! loop indexes - internal
+	!! s_day - track day of week
+	s_day = week
+	!! s_hour - track hour
+	s_hour = 0
+	!! jmp_clear = end loop on qualification
+	jmp_clear = 0
+	!! reset job start and end hour for stat_display
+	job_start = 99
+	job_end = 99
+	!! Check if previous hour was booked - used to determine last working hour for stat_display
+	prev_hour = 99
+	:s_hour
+		if emp_rota_week['<<s_day>>_<<s_hour>>'] = 1:
+			prev_hour = s_hour
+			if job_start = 99: job_start = s_hour / 2
+		elseif emp_rota_week['<<s_day>>_<<s_hour>>'] = 0 and prev_hour ! 99:
+			if job_end = 99:
+				job_end = prev_hour / 2
+				jmp_clear = 1
+			end
+		end
+		s_hour += 1
+	if s_hour <= 24 and jmp_clear = 0: jump 's_hour'
+end
 !! --------------------- Event Generator
 
 !! Author - Hooded Silence
@@ -189,7 +222,7 @@ end
 
 if $ARGS[0] = 'disp_evt':
 	if ARGS[1] = 1:
-		gs 'emp_functions','evt_day_suffix'
+		$evt_suffix = func('shortgs', 'get_number_suffix', transient_evt_day)
 
 		'I have this job for you do you want to acccept it?'
 		*nl
@@ -216,7 +249,7 @@ if $ARGS[0] = 'disp_evt':
 			*nl
 			:jmp_list_create
 				if evt_silent[job_idx] = 1:
-					gs 'emp_functions','evt_day_suffix',evt_day[job_idx]
+					$evt_suffix = func('shortgs', 'get_number_suffix', evt_day[job_idx])
 					$evtbody += '<tr><td>' +$week[evt_dow[job_idx]]+' '+ evt_day[job_idx] + $evt_suffix + ', '+ $monthName[evt_month[job_idx]] +' 20'+ evt_year[job_idx] + '</td><td>' + $evt_job[evt_event[job_idx]] + '</td>'
 					$evtbody += '<td>' + func('agentned', 'format_price_string', evt_wages[job_idx]) + '₽</td><td>' + evt_hour[job_idx] + ':' + iif(evt_minutes[job_idx] >= 0 and evt_minutes[job_idx] <= 4, '00', '30') + '</td>'
 					$evtbody += '<td>' + evt_duration[job_idx] + iif(evt_duration[job_idx] = 1, ' hour', ' hours') + '</td><td>' + $evt_journal[job_idx] + '</td>'
@@ -300,17 +333,14 @@ if $ARGS[0] = 'gen_evt':
 	transient_evt_minutes = rand(0, 9)
 
 	!! Set as multiples of 60
-	if transient_evt_duration = '':
-		transient_evt_duration = rand(1,8)
-	end
-	!! logic check for when randomising event duration
+	if transient_evt_duration <= 0: transient_evt_duration = rand(1,8)
 
+	!! logic check for when randomising event duration
 	if transient_evt_duration + transient_evt_hour >= 22:
 		transient_evt_hour = 22 - transient_evt_duration
 	end
 
 	!! find a suitable date
-
 	srch_day_u = rnd_day + 7
 	if srch_day_u >= monthsend[transient_evt_month]:
 		srch_day_u = monthsend[transient_evt_month]
@@ -472,48 +502,6 @@ if $ARGS[0] = 'del_evt':
 			'<<evt_idx>> - Invalid record - please check your index'
 		end
 	end
-end
-
-if $ARGS[0] = 'evt_day_suffix':
-
-	if ARGS[1] ! '':
-		query_day = ARGS[1]
-	else
-		query_day = transient_evt_day
-	end
-	if query_day => 20 and query_day < 30:
-		test_day = query_day - 20
-	else
-		test_day = query_day
-	end
-	if transient_evt_day ! '':
-		if test_day => 4 and test_day <= 10:
-			$evt_suffix = 'th'
-		elseif test_day = 1 or test_day = 31:
-			$evt_suffix = 'st'
-		elseif test_day = 2:
-			$evt_suffix = 'nd'
-		elseif test_day= 3:
-			$evt_suffix = 'rd'
-		else
-			$evt_suffix = 'th'
-		end
-	end
-	if day => 4 and day <=10:
-		$date_suffix = 'th'
-	elseif day = 1 or day = 21 or day = 31:
-		$date_suffix = 'st'
-	elseif day = 2 or day = 22:
-		$date_suffix = 'nd'
-	elseif test_day= 3:
-		$date_suffix = 'rd'
-	else
-		$date_suffix = 'th'
-	end
-
-
-	killvar 'test_day'
-	killvar 'query_day'
 end
 
 if $ARGS[0] = 'evt_day_chk':

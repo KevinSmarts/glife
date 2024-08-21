@@ -34,27 +34,18 @@ if $ARGS[0] = 'bodytabs':
 	!0: Face
 	!1: Body
 	!2: Clothes
-	!3: Bra
-	!4: Panties
-	!5: Shoes
-	!6: Tattoos
-	!7: Magic
+	!3: Tattoos
+	!4: Piercings
 	$tabsname[] = 'Looks'
 	$tabsaction[] = 'menu_page = 0 & gs ''obj_din'', ''face'''
 	$tabsname[] = 'Body'
 	$tabsaction[] = 'menu_page = 1 & gs ''obj_din'', ''body'''
 	$tabsname[] = 'Clothes'
 	$tabsaction[] = 'menu_page = 2 & gs ''obj_din'', ''clothes'''
-	$tabsname[] = 'Bra'
-	$tabsaction[] = 'menu_page = 3 & gs ''obj_din'', ''bra'''
-	$tabsname[] = 'Panties'
-	$tabsaction[] = 'menu_page = 4 & gs ''obj_din'', ''panties'''
-	$tabsname[] = 'Shoes'
-	$tabsaction[] = 'menu_page = 5 & gs ''obj_din'', ''shoes'''
 	$tabsname[] = 'Tattoos'
-	$tabsaction[] = 'menu_page = 6 & gs ''obj_din'', ''tattoos'''
+	$tabsaction[] = 'menu_page = 3 & gs ''obj_din'', ''tattoos'''
 	$tabsname[] = 'Piercings'
-	$tabsaction[] = 'menu_page = 7 & gs ''obj_din'', ''piercing'''
+	$tabsaction[] = 'menu_page = 4 & gs ''obj_din'', ''piercing'''
 	gs 'tabhead',menu_page
 	act 'Exit the menu': gs 'obj_din', 'menu_exit' & gt $menu_loc, $menu_arg
 end
@@ -270,7 +261,7 @@ if $ARGS[0] = 'description':
 		'Your friends call you <<$pcs_nickname>>.'
 	end
 
-	'Your start background is: ' + $start_type['cat']
+	'Your start background is: ' +  $ucase(mid($start_type['cat'], 1, 1)) + mid($start_type['cat'], 2)
 	!!!
 	*nl
 	if func('homes_properties', 'get_accessible_property_count') = 0:
@@ -303,8 +294,8 @@ if $ARGS[0] = 'description':
 	*nl
 	'<<$pcs_apprnc>>'
 	*nl
-	'You are <<pcs_hgt>>cm tall and <a href="exec:gs ''obj_din'', ''show_body''"><<$bodyVars[''desc'']>></a>.'
-	'Your breasts would be considered an EU <a href="exec:gs ''obj_din'', ''show_tits''"><<$titsize>></a>.'
+	'You are <<pcs_hgt>>cm tall and <a href="exec:view func(''$body_image'', ''body'')"><<$bodyVars[''desc'']>></a>.'
+	'Your breasts would be considered an EU <a href="exec:view func(''$body_image'', ''tits'')"><<$titsize>></a>.'
 	'<<$nipplesize>>'
 	*nl
 	if preg = 1:
@@ -335,15 +326,15 @@ if $ARGS[0] = 'description':
 		end
 	end
 
-	'<<$lip>>'
-	'<<$pcs_throat>>'
-	'<<$skin>>'
-	'<<$glaza>>'
-	'<<$pcs_makeup>>.'
+	'<<$pc_descFull[''lip'']>>'
+	'<<$pc_descFull[''throat'']>>'
+	'<<$pc_descFull[''skin'']>>'
+	'<<$pc_descFull[''eyes'']>>'
+	'<<$pc_descFull[''makeup'']>>.'
 	'<<$pcs_leghair>>'
 	'<<$pcs_pubes>>'
 	'<<$pcs_vag>>'
-	'<<$pcs_butt>>'
+	'<<$pc_descFull[''butt'']>>'
 	'<<$pcs_ass>>'
 	*nl
 	if $face_style['avatar_hair'] ! '':
@@ -358,12 +349,13 @@ if $ARGS[0] = 'description':
 	if pcs_mass['body'] < 10 and strenbuf > 0 and dounspell = 0: '<b><font color="red">You are showing signs of malnourishment. You should probably eat more and more often.</font></b>'
 	if pcs_mass['body'] < 10 and strenbuf = 0 and dounspell = 0: '<b><font color="red">You are dangerously malnourished, which has led to a loss in muscle mass. You''re in a critical condition and likely to pass out!</font></b>'
 	if pcs_missing_teeth = 1:
-		 'You have lost <<pcs_missing_teeth>> <a href="exec:gs ''obj_din'', ''show_missing_teeth''">tooth</a>.'
+		'You have lost <<pcs_missing_teeth>> <a href="exec:gs ''obj_din'', ''show_missing_teeth''">tooth</a>.'
 	elseif pcs_missing_teeth >= 2:
 		'You have lost <<pcs_missing_teeth>>  <a href="exec:gs ''obj_din'', ''show_missing_teeth''">teeth</a>.'
 	end
 	if pcs_brace = 1:
-		'You are wearing a brace on your <a href="exec:gs ''obj_din'', ''show_teeth''">teeth</a> .'
+		gs 'time', 'to_date', dentistday
+		'You are wearing a brace on your <a href="exec:gs ''obj_din'', ''show_teeth''">teeth</a>, you can remove them on or after the <<dateVars[''day'']>><<$dateVars[''suffix'']>> <<$monthName[dateVars[''month'']]>>, <<dateVars[''year'']>>.'
 	elseif pcs_teeth = -1:
 		'You have a perfect white <a href="exec:gs ''obj_din'', ''show_teeth''">smile</a>.'
 	elseif pcs_teeth > 0:
@@ -426,96 +418,181 @@ if $ARGS[0] = 'skills':
 	gs 'obj_din','chartabs'
 	!'<center><img src="images/system/icons/stats.png"><br></center>'
 	'<center><h1>Character Skills</h1></center>'
-	'<center><table width="90%" cellspacing="0" cellpadding="20" valign="top"><tr>'
-	'<td width="25%" cellspacing="0" cellpadding="10" valign="top">'
-	'<b>Base Skills</b>'
-	*nl
-	'<font color="grey">base / modified</font>'
-	*nl
-	'Strength - <<pcs_stren>> / <<stren_lvl>>'
-	'Agility - <<pcs_agil>> / <<agil_lvl>>'
-	'Endurance - <<pcs_vital>> / <<vital_lvl>>'
-	'Intelligence - <<pcs_intel>> / <<intel_lvl>>'
-	'Spirit - <<pcs_sprt>> / <<sprt_lvl>>'
-	'Reaction - <<pcs_react>> / <<react_lvl>>'
-	'Charisma - <<pcs_chrsm>> / <<chrsm_lvl>>'
-	'Perception - <<pcs_prcptn>> / <<prcptn_lvl>>'
-	if $start_type[1] ! 'nomagic': 'Magic - <<pcs_magik>>'
-	'Attractiveness - <<pcs_apprnc>>'
-	!'Speed <<speed>>' - not used
-	*nl
-	'<b>Mental Skills</b>'
-	*nl
-	if pcs_splcstng > 0: 'Spell Casting - <<pcs_splcstng>>'
-	if pcs_humint > 0:'People skills - <<pcs_humint>>'
-	if pcs_persuas > 0:'Persuasion - <<pcs_persuas>>'
-	if pcs_observ > 0:'Observation - <<pcs_observ>>'
+	'<center><table width="95%" cellspacing="0" cellpadding="5" valign="top"><tr>'
+	'<td width="50%" cellspacing="0" cellpadding="5" valign="top">'
+		'<h2>Base Attributes</h2>'
+		$temp_table = '<table><tr><th align="left">Attribute</th><td>-</td><th align="center"><font color="grey">base / modified</font></th><td>-</td><td>|</td><th>Progress</th><td>|</td></tr>'
+		$temp_table += func('obj_din', 'skill_format_func', '<b>Str</b>ength',		'stren',	'Your strength (<<pcs_stren>>) = Base strength (<<stren_lvl>>) + Musculature (<<stren_plus_lvl>>)')
+		$temp_table += func('obj_din', 'skill_format_func', '<b>Agi</b>lity',		'agil',		'Your agility is never modified', 1)
+		$temp_table += func('obj_din', 'skill_format_func', '<b>End</b>urance',		'vital',	'Your endurance is never modified', 1)
+		$temp_table += func('obj_din', 'skill_format_func', '<b>Int</b>elligence',	'intel',	'Your intelligence (<<pcs_intel>>) = Base intelligence (<<intel_lvl>>) - bimbostupidity (<<bimbostupidity>>) - noorgasm (<<5 * noorgasm>>)')
+		$temp_table += func('obj_din', 'skill_format_func', '<b>Spi</b>rit',		'sprt',		'Your spirit is never modified', 1)
+		$temp_table += func('obj_din', 'skill_format_func', '<b>Rea</b>ction',		'react',	'Your reaction is never modified', 1)
+		$temp_table += func('obj_din', 'skill_format_func', '<b>Cha</b>risma',		'chrsm',	'Your charisma is never modified', 1)
+		$temp_table += func('obj_din', 'skill_format_func', '<b>Per</b>ception',	'prcptn',	'Your perception is never modified', 1)
+		if $start_type['magic'] ! 'nomagic': $temp_table += func('obj_din', 'skill_format_func', '<b>Mag</b>ic', 'magik',	'Your magic is never modified', 1)
+		$temp_table += '</table>'
+		'<<$temp_table>>'
+		'Attractiveness - <<pcs_apprnc>>'
+		!'Speed <<speed>>' - not used
 
-	'</td><td width="25%" cellspacing="0" cellpadding="10" valign="top">'
-	'<b>Sport Skills</b>'
-	*nl
-	if pcs_jab > 0: 'Jabs - <<pcs_jab>>'
-	if pcs_punch > 0: 'Power Strikes - <<pcs_punch>>'
-	if pcs_kick > 0: 'Kicks - <<pcs_kick>>'
-	if pcs_def > 0: 'Defense - <<pcs_def>>'
-	if pcs_run > 0: 'Running - <<pcs_run>>'
-	if pcs_vball > 0: 'Volleyball - <<pcs_vball>>'
-	if pcs_ftbll > 0: 'Football - <<pcs_ftbll>>'
-	if pcs_wrstlng > 0: 'Wrestling - <<pcs_wrstlng>>'
-	if pcs_shoot > 0: 'Shooting Accuracy - <<pcs_shoot>>'
-	if pcs_bushcraft > 0: 'Bushcraft - <<pcs_bushcraft>>'
-	if pcs_chess > 0: 'Chess - <<pcs_chess>>'
-	if pcs_icesktng > 0: 'Ice Skating - <<pcs_icesktng>>'
-	if pcs_gaming > 0: 'Gaming - <<pcs_gaming>>'
-	if pcs_pool > 0: 'Pool - <<pcs_pool>>'
-	*nl
-	'<b>Artistic Skills</b>'
-	*nl
-	if pcs_vokal > 0: 'Singing <<pcs_vokal>>'
-	if pcs_instrmusic > 0: 'Instrumental Music - <<pcs_instrmusic>>'
-	if pcs_photoskl > 0: 'Photography - <<pcs_photoskl>>'
-	if pcs_artskls > 0: 'Artistic Skills - <<pcs_artskls>>'
-	if pcs_perform > 0: 'Performance - <<pcs_perform>>'
-	if pcs_musicprod > 0: 'Music Production - <<pcs_musicprod>>'
+		if pcs_splcstng + pcs_humint + pcs_persuas + pcs_observ > 0:
+			'<h2>Mental Skills</h2>'
+			$temp_table = '<table><tr><th align="left">Skill</th><td>-</td><th align="center"><font color="grey">base / mod</font></th><td>-</td><td>|</td><th>Progress</th><td>|</td></tr>'
+			if $start_type['magic'] ! 'nomagic' and pcs_splcstng > 0:	$temp_table += func('obj_din', 'skill_format_func', 'Spell Casting',	'splcstng',	'Your spell casting (<<pcs_splcstng>>) = (Base spell casting (<<splcstng_lvl>>) + (Int (<<pcs_intel>>) + Rea (<<pcs_react>>)) / 2) / 2')
+			if pcs_humint > 0:		$temp_table += func('obj_din', 'skill_format_func', 'People Skills',	'humint',	'Your people skills (<<pcs_humint>>) = (Base people skills (<<humint_lvl>>) + (Per (<<pcs_prcptn>>) + Cha (<<pcs_chrsm>>) + Rea (<<pcs_react>>)) / 3) / 2 + charming trait (<< 5 * chrmng>>) - mean trait (<<5 * meantrt>>)')
+			if pcs_persuas > 0:		$temp_table += func('obj_din', 'skill_format_func', 'Persuasion',		'persuas',	'Your persuasion (<<pcs_persuas>>) = (Base persuasion (<<persuas_lvl>>) + (Per (<<pcs_prcptn>>) + Cha (<<pcs_chrsm>>)) / 2) / 2 + charming trait (<< 5 * chrmng>>) - mean trait (<<5 * meantrt>>)')
+			if pcs_observ > 0:		$temp_table += func('obj_din', 'skill_format_func', 'Observation',		'observ',	'Your observation (<<pcs_persuas>>) = (Base observation (<<observ_lvl>>) + (Per (<<pcs_prcptn>>) + Rea (<<pcs_react>>) + Int (<<pcs_intel>>)) / 3) / 2')
+			$temp_table += '</table>'
+			'<<$temp_table>>'
+		end
 
-	'</td><td width="25%" cellspacing="0" cellpadding="10" valign="top">'
-	'<b>Job Skills</b>'
-	*nl
-	if pcs_compskl > 0: 'Computer Skill - <<pcs_compskl>>'
-	if pcs_comphckng > 0: 'Hacking - <<pcs_comphckng>>'
-	if pcs_hndiwrk > 0: 'Handy-work - <<pcs_hndiwrk>>'
-	if pcs_sewng > 0: 'Tailoring - <<pcs_sewng>>'
-	if pcs_servng > 0: 'Serving - <<pcs_servng>>'
-	if pcs_medcn > 0: 'Medicine - <<pcs_medcn>>'
-	if teachlevel > 0: 'Teacher - credibility <<teachlevel>>'
-	*nl
-	'<b>Other Skills</b>'
-	*nl
-	if SchoolAtestat = 0 and mid($start_type,1,2) = 'sg':
-		if schoolprogul > 0: 'School absenteeism - <<schoolprogul>> days'
-	end
-	'</td><td width="25%" cellspacing="0" cellpadding="10" valign="top">'
-	'<b>Beauty Skills</b>'
-	*nl
-	if pcs_makeup > 0: 'Makeup Skill - <<pcs_makupskl>>'
-	if pcs_danc > 0: 'Modern Dancing - <<pcs_danc>>'
-	if pcs_dancero > 0: 'Erotic Dancing - <<pcs_dancero>>'
-	if pcs_dancpol > 0: 'Pole Dancing - <<pcs_dancpol>>'
-	if pcs_cheer > 0: 'Cheerleading - <<pcs_cheer>>'
-	if pcs_mdlng > 0: 'Modelling - <<pcs_mdlng>>'
-	*nl
-	'<b>Sexual Skills</b>'
-	*nl
-	'Inhibition <<100-pcs_inhib>>'
-	'Exhibitionist preference: <<exhibitionism[''pref'']>>'
-	'Exhibitionist sex: <<exhibitionism[''exp'']>>'
-	if SUB > 0: 'Submissiveness <<SUB>>'
-	if pcs_dom > 0: 'Dominance <<pcs_dom>>'
-	'Submissive sex: <<sub[''exp'']>>'
-	'Dominant sex: <<dom[''exp'']>>'
-	'Lesbian sex preference: <<lesbian[''pref'']>>'
-	'Lesbian sex: <<lesbian[''exp'']>>'
+		if pcs_compskl + pcs_comphckng + pcs_hndiwrk + pcs_sewng + pcs_servng + pcs_medcn + pcs_mdlng + pcs_cleaning > 0:
+			'<h2>Job Skills</h2>'
+			$temp_table = '<table><tr><th align="left">Skill</th><td>-</td><th align="center"><font color="grey">base / mod</font></th><td>-</td><td>|</td><th>Progress</th><td>|</td></tr>'
+			if pcs_compskl > 0:		$temp_table += func('obj_din', 'skill_format_func', 'Computer Skill',	'compskl',		'Your computer skills (<<pcs_compskl>>) = (Base computer skills (<<compskl_lvl>>) + Int (<<pcs_intel>>)) / 2 + logic trait (<< 5 * logictrt>>)')
+			if pcs_comphckng > 0:	$temp_table += func('obj_din', 'skill_format_func', 'Hacking',			'comphckng',	'Your hacking (<<pcs_comphckng>>) = (Base hacking (<<comphckng_lvl>>) + (Int (<<pcs_intel>>) + Rea (<<pcs_react>>)) / 2) / 2 + logic trait (<< 5 * logictrt>>)')
+			if pcs_hndiwrk > 0:		$temp_table += func('obj_din', 'skill_format_func', 'Handiwork',		'hndiwrk',		'Your handiwork (<<pcs_hndiwrk>>) = (Base handiwork (<<hndiwrk_lvl>>) + (Int (<<pcs_intel>>) + 2 * Agi (<<pcs_agil>>)) / 3) / 2')
+			if pcs_sewng > 0:		$temp_table += func('obj_din', 'skill_format_func', 'Tailoring',		'sewng',		'Your tailoring (<<pcs_sewng>>) = (Base tailoring (<<sewng_lvl>>) + (Int (<<pcs_intel>>) + Agi (<<pcs_agil>>)) / 2) / 2')
+			if pcs_servng > 0:		$temp_table += func('obj_din', 'skill_format_func', 'Serving',			'servng',		'Your serving (<<pcs_servng>>) = (Base serving (<<servng_lvl>>) + (Int (<<pcs_intel>>) + End (<<pcs_vital>>)) / 2) / 2')
+			if pcs_medcn > 0:		$temp_table += func('obj_din', 'skill_format_func', 'Medicine',			'medcn',		'Your medicine (<<pcs_medcn>>) = (Base medicine (<<medcn_lvl>>) + (Int (<<pcs_intel>>) + Rea (<<pcs_react>>) + Per (<<pcs_prcptn>>)) / 3) / 2')
+			if pcs_cleaning > 0:	$temp_table += func('obj_din', 'skill_format_func', 'Cleaning',			'cleaning',		'Your cleaning (<<pcs_cleaning>>) = (Base cleaning (<<cleaning_lvl>>) + (Int (<<pcs_intel>>) + End (<<pcs_vital>>)) / 2) / 2')
+			if pcs_mdlng > 0:		$temp_table += func('obj_din', 'skill_format_func', 'Modelling',		'mdlng',		'Your modeling (<<pcs_mdlng>>) = (Base modeling (<<mdlng_lvl>>) * 3 / 2 + (End (<<pcs_vital>>) + Agi (<<pcs_agil>>)) / 4) / 2')
+			$temp_table += '</table>'
+			'<<$temp_table>>'
+			if teachlevel > 0: 'Teacher - credibility <<teachlevel>>'
+		elseif teachlevel > 0:
+			'<h2>Job Skills</h2>'
+			'Teacher - credibility <<teachlevel>>'
+		end
+		if pcs_vokal + pcs_instrmusic + pcs_photoskl + pcs_artskls + pcs_perform + pcs_musicprod > 0:
+			'<h2>Artistic Skills</h2>'
+			$temp_table = '<table><tr><th align="left">Skill</th><td>-</td><th align="center"><font color="grey">base / mod</font></th><td>-</td><td>|</td><th>Progress</th><td>|</td></tr>'
+			if pcs_vokal > 0:		$temp_table += func('obj_din', 'skill_format_func', 'Singing',				'vokal',		'Your singing (<<pcs_vokal>>) = (Base singing (<<vokal_lvl>>) + (Int (<<pcs_intel>>) + Cha (<<pcs_chrsm>>)) / 2) / 2')
+			if pcs_instrmusic > 0:	$temp_table += func('obj_din', 'skill_format_func', 'Instrumental Music',	'instrmusic',	'Your instrumental music (<<pcs_instrmusic>>) = (Base instrumental music (<<instrmusic_lvl>>) + (Int (<<pcs_intel>>) + 2 * Agi (<<pcs_agil>>)) / 3) / 2')
+			if pcs_photoskl > 0:	$temp_table += func('obj_din', 'skill_format_func', 'Photography',			'photoskl',		'Your photography (<<pcs_photoskl>>) = (Base photography (<<photoskl_lvl>>) + (2 * Int (<<pcs_intel>>) + Rea (<<pcs_react>>)) / 3) / 2')
+			if pcs_artskls > 0:		$temp_table += func('obj_din', 'skill_format_func', 'Artistic Skills',		'artskls',		'Your artistic skills (<<pcs_artskls>>) = (Base artistic skills (<<artskls_lvl>>) + (Int (<<pcs_intel>>) + Agi (<<pcs_agil>>) + Rea (<<pcs_react>>)) / 3) / 2')
+			if pcs_perform > 0:		$temp_table += func('obj_din', 'skill_format_func', 'Performance',			'perform',		'Your performance (<<pcs_perform>>) = (Base performance (<<perform_lvl>>) + (Cha (<<pcs_chrsm>>) + Per (<<pcs_prcptn>>)) / 2) / 2')
+			if pcs_musicprod > 0:	$temp_table += func('obj_din', 'skill_format_func', 'Music Production',		'musicprod',	'Your music production (<<pcs_musicprod>>) = (Base music production (<<musicprod_lvl>>) + (Int (<<pcs_intel>>) + Per (<<pcs_prcptn>>) + Spi (<<pcs_sprt>>)) / 3) / 2')
+			$temp_table += '</table>'
+			'<<$temp_table>>'
+		end
+		if schoolprogul > 0:
+			'<h2>Other Skills</h2>'
+			if SchoolAtestat = 0 and mid($start_type,1,2) = 'sg':
+				if schoolprogul > 0: 'School absenteeism - <<schoolprogul>> days'
+			end
+		end
+
+	'</td><td width="50%" cellspacing="0" cellpadding="5" valign="top">'
+		if pcs_run + pcs_vball + pcs_ftbll + pcs_wrstlng + pcs_chess + pcs_icesktng + pcs_gaming + pcs_pool > 0:
+			'<h2>Sport Skills</h2>'
+			$temp_table = '<table><tr><th align="left">Skill</th><td>-</td><th align="center"><font color="grey">base / mod</font></th><td>-</td><td>|</td><th>Progress</th><td>|</td></tr>'
+			if pcs_run > 0:			$temp_table += func('obj_din', 'skill_format_func', 'Running',		'run',		'Your running (<<pcs_run>>) = (Base running (<<run_lvl>>) + (2 * (Agi (<<pcs_agil>>) + Str (<<pcs_stren>>)) + End (<<pcs_vital>>)) / 5) / 2')
+			if pcs_vball > 0:		$temp_table += func('obj_din', 'skill_format_func', 'Volleyball',	'vball',	'Your volleyball (<<pcs_vball>>) = (Base volleyball (<<vball_lvl>>) + (2 * Agi (<<pcs_agil>>) + Str (<<pcs_stren>>) + End (<<pcs_vital>>) + Rea (<<pcs_react>>)) / 5) / 2')
+			if pcs_ftbll > 0:		$temp_table += func('obj_din', 'skill_format_func', 'Football',		'ftbll',	'Your football (<<pcs_ftbll>>) = (Base football (<<ftbll_lvl>>) + (Agi (<<pcs_agil>>) + Str (<<pcs_stren>>) + End (<<pcs_vital>>)) / 3) / 2')
+			if pcs_bkbll > 0:		$temp_table += func('obj_din', 'skill_format_func', 'Basketball',	'bkbll',	'Your basketball (<<pcs_bkbll>>) = (Base basketball (<<bkbll_lvl>>) + (Agi (<<pcs_agil>>) + End (<<pcs_vital>>) + Rea (<<pcs_react>>)) / 3) / 2')
+			if pcs_wrstlng > 0:		$temp_table += func('obj_din', 'skill_format_func', 'Wrestling',	'wrstlng',	'Your wrestling (<<pcs_wrstlng>>) = (Base wrestling (<<bkbll_lvl>>) + (Agi (<<pcs_agil>>) + 2 * Str (<<pcs_stren>>) + End (<<pcs_vital>>)) / 4) / 2')
+			if pcs_icesktng > 0:	$temp_table += func('obj_din', 'skill_format_func', 'Ice Skating',	'icesktng',	'Your ice skating (<<pcs_icesktng>>) = (Base ice skating (<<icesktng_lvl>>) + (2 * Agi (<<pcs_agil>>) + Str (<<pcs_stren>>)) / 3) / 2')
+			if pcs_gaming > 0:		$temp_table += func('obj_din', 'skill_format_func', 'Gaming',		'gaming',	'Your gaming (<<pcs_gaming>>) = (Base gaming (<<gaming_lvl>>) + (2 * Int (<<pcs_intel>>) + Rea (<<pcs_react>>)) / 3) / 2')
+			if pcs_chess > 0:		$temp_table += func('obj_din', 'skill_format_func', 'Chess',		'chess',	'Your chess (<<pcs_chess>>) = (Base chess (<<chess_lvl>>) + Int (<<pcs_intel>>)) / 2 + logic trait (<<5 * logictrt>>)')
+			if pcs_pool > 0:		$temp_table += func('obj_din', 'skill_format_func', 'Pool',			'pool',		'Your pool (<<pcs_pool>>) = (Base pool (<<pool_lvl>>) * 3 + Int (<<pcs_intel>>)) / 4')
+			$temp_table += '</table>'
+			'<<$temp_table>>'
+		end
+		if pcs_jab + pcs_punch + pcs_kick + pcs_def + pcs_shoot + pcs_bushcraft > 0:
+			'<h2>Combat Skills</h2>'
+			$temp_table = '<table><tr><th align="left">Skill</th><td>-</td><th align="center"><font color="grey">base / mod</font></th><td>-</td><td>|</td><th>Progress</th><td>|</td></tr>'
+			if pcs_jab > 0:			$temp_table += func('obj_din', 'skill_format_func', 'Jabs',					'jab',			'Your jabs (<<pcs_jab>>) = (Base jabs (<<jab_lvl>>) + (Str (<<pcs_stren>>) + 2 * Agi (<<pcs_agil>>)) / 3) / 2')
+			if pcs_punch > 0:		$temp_table += func('obj_din', 'skill_format_func', 'Power Strikes',		'punch',		'Your power strikes (<<pcs_punch>>) = (Base power strikes (<<punch_lvl>>) + (2 * Str (<<pcs_stren>>) + Agi (<<pcs_agil>>)) / 3) / 2')
+			if pcs_kick > 0:		$temp_table += func('obj_din', 'skill_format_func', 'Kicks',				'kick',			'Your kicks (<<pcs_kick>>) = (Base kicks (<<kick_lvl>>) + (3 * Str (<<pcs_stren>>) + Agi (<<pcs_agil>>)) / 4) / 2')
+			if pcs_def > 0:			$temp_table += func('obj_din', 'skill_format_func', 'Defense',				'def',			'Your defense (<<pcs_def>>) = (Base defense (<<def_lvl>>) + (Str (<<pcs_stren>>) + Agi (<<pcs_agil>>) + Rea (<<pcs_react>>)) / 3) / 2')
+			if pcs_shoot > 0:		$temp_table += func('obj_din', 'skill_format_func', 'Shooting Accuracy',	'shoot',		'Your shooting accuracy (<<pcs_shoot>>) = (Base accuracy (<<shoot_lvl>>) + (Agi (<<pcs_agil>>) + Rea (<<pcs_react>>)) / 2) / 2')
+			if pcs_bushcraft > 0:	$temp_table += func('obj_din', 'skill_format_func', 'Bushcraft',			'bushcraft',	'Your bushcraft (<<pcs_bushcraft>>) = (Base bushcraft (<<bushcraft_lvl>>) + (Str (<<pcs_stren>>) + Agi (<<pcs_agil>>) + Int (<<pcs_intel>>)) / 3) / 2')
+			$temp_table += '</table>'
+			'<<$temp_table>>'
+		end
+		if pcs_makupskl + pcs_danc + pcs_dancero + pcs_dancpol + pcs_cheer + pcs_heels > 0:
+			'<h2>Beauty Skills</h2>'
+			$temp_table = '<table><tr><th align="left">Skill</th><td>-</td><th align="center"><font color="grey">base / mod</font></th><td>-</td><td>|</td><th>Progress</th><td>|</td></tr>'
+			if pcs_makupskl > 0:	$temp_table += func('obj_din', 'skill_format_func', 'Makeup Skill',		'makupskl',		'Your makeup skill (<<pcs_makupskl>>) = (Base makeup skill (<<makupskl_lvl>>) + (Agi (<<pcs_agil>>) + Int (<<pcs_intel>>)) / 2) / 2')
+			if pcs_danc > 0:		$temp_table += func('obj_din', 'skill_format_func', 'Modern Dancing',	'danc',			'Your modern dancing (<<pcs_danc>>) = (Base modern dancing (<<danc_lvl>>) + (Agi (<<pcs_agil>>) + Rea (<<pcs_react>>) + End (<<pcs_vital>>)) / 3) / 2')
+			if pcs_dancero > 0:		$temp_table += func('obj_din', 'skill_format_func', 'Erotic Dancing',	'dancero',		'Your erotic dancing (<<pcs_dancero>>) = (Base erotic dancing (<<dancero_lvl>>) + (Agi (<<pcs_agil>>) + Cha (<<pcs_chrsm>>) + End (<<pcs_vital>>)) / 3) / 2 + flexibility trait (<<3 * flxibt>>)')
+			if pcs_dancpol > 0:		$temp_table += func('obj_din', 'skill_format_func', 'Pole Dancing',		'dancpol',		'Your pole dancing (<<pcs_dancpol>>) = (Base pole dancing (<<dancpol_lvl>>) + (Agi (<<pcs_agil>>) + Cha (<<pcs_chrsm>>) + Str (<<pcs_stren>>)) / 3) / 2 + flexibility trait (<<3 * flxibt>>)')
+			if pcs_cheer > 0:		$temp_table += func('obj_din', 'skill_format_func', 'Cheerleading',		'cheer',		'Your cheerleading (<<pcs_cheer>>) = (Base cheerleading (<<cheer_lvl>>) + (Agi (<<pcs_agil>>) + Rea (<<pcs_react>>) + End (<<pcs_vital>>)) / 3) / 2')
+			if pcs_heels > 0:		$temp_table += func('obj_din', 'skill_format_func', 'Heels',			'heels',		'Your heels is never modified', 1)
+			$temp_table += '</table>'
+			'<<$temp_table>>'
+		end
+		'<h2>Sexual Skills</h2>'
+		$temp_table = '<table><tr><th align="left">Skill</th><td>-</td><th align="center"><font color="grey">base / mod</font></th><td>-</td><td>|</td><th>Progress</th><td>|</td></tr>'
+		$temp_table += func('obj_din', 'skill_format_func', 'Inhibition',		'inhib',		'Your inhibition (<<100 - pcs_inhib>>) = min(Base inhibition (<<100 - inhib_lvl>>) + intoxication (<<3 * alko>>), 100)')
+		$temp_table += '</table>'
+		'<<$temp_table>>'
+		'Exhibitionist preference: <<exhibitionism[''pref'']>>'
+		'Exhibitionist sex: <<exhibitionism[''exp'']>>'
+		if SUB > 0: 'Submissiveness <<SUB>>'
+		if pcs_dom > 0: 'Dominance <<pcs_dom>>'
+		'Submissive sex: <<sub[''exp'']>>'
+		'Dominant sex: <<dom[''exp'']>>'
+		'Lesbian sex preference: <<lesbian[''pref'']>>'
+		'Lesbian sex: <<lesbian[''exp'']>>'
+
 	'</td></tr></table></center>'
+end
+
+!! $ARGS[1]: Skill name ('<b>Str</b>ength')
+!! $ARGS[2]: internal skill name  (stren)
+!! $ARGS[3]: Skill name popup
+!!  ARGS[4]: If unequal to 0 displays only skill_lvl since it and pcs_skill are always equal
+if $ARGS[0] = 'skill_format_func':
+	if $ARGS[2] = 'stren':
+		temp['skl_lvl'] = stren_lvl + stren_plus_lvl
+	elseif $ARGS[2] = 'inhib':
+		temp['skl_lvl'] = 100 - inhib_lvl
+	else
+		temp['skl_lvl'] = dyneval('result = <<$ARGS[2]>>_lvl')
+	end
+
+	if $ARGS[2] = 'inhib':
+		temp['pcs_skl'] = 100 - pcs_inhib
+	else
+		temp['pcs_skl'] = dyneval('result = pcs_<<$ARGS[2]>>')
+	end
+
+	if $ARGS[3] = '':
+		$result = '<tr><td align="left"><<$ARGS[1]>></td><td>-</td>'
+	else
+		$result = '<tr><td align="left"><a href="exec:msg ''<<$ARGS[3]>>''"><<$ARGS[1]>></a></td><td>-</td>'
+	end
+
+	$result += '<td align="center">'
+	if ARGS[4] = 0:
+		$result += '<<temp[''skl_lvl'']>> / <<temp[''pcs_skl'']>></td><td>-</td>'
+	else
+		$result += '<<temp[''skl_lvl'']>></td><td>-</td>'
+	end
+	$result += '<td>|</td>'
+	if temp['skl_lvl'] >= 100:
+		if $ARGS[2] = 'stren' and stren_plus_lvl > 0 and temp['skl_lvl'] < 200:
+			$ARGS[2] = 'stren_plus'
+		else
+			$result += '<td align="center">Max Level</td><td>|</td></tr>'
+			killvar 'temp'
+			exit
+		end
+	end
+
+	temp['skl_exp'] = dyneval('result = <<$ARGS[2]>>_exp')
+	temp['skl_xpprv'] = dyneval('result = <<$ARGS[2]>>_xpprv')
+	temp['skl_xpnxt'] = dyneval('result = <<$ARGS[2]>>_xpnxt')
+	temp['exp_into_level'] = temp['skl_exp']-temp['skl_xpprv']
+	temp['level_exp_width'] = temp['skl_xpnxt']-temp['skl_xpprv']
+
+	$result += '<td align="center">' + func('indiktab', 3, iif(temp['level_exp_width'] = 0, 0, temp['exp_into_level'] * 100 / temp['level_exp_width']), '<<temp[''exp_into_level'']>> / <<temp[''level_exp_width'']>>') + '</td>'
+	$result += '<td>|</td></tr>'
+
+	killvar 'temp'
 end
 
 if $ARGS[0] = 'husb_cheat_count':
@@ -549,7 +626,7 @@ if $ARGS[0] = 'stats':
 	'<td width="35%" cellspacing="0" cellpadding="0" valign="top">'
 	'<center><b>General Statistics</b></center>'
 	*nl
-	if opPRE = 0: 'It has been <<daystart>> days since the game started.'
+	if opPRE = 0: 'It has been <<daystart - daystart_start>> days since the game started.'
 	*nl
 
 	if SchoolAtestat = 0 and mid($start_type,1,2) = 'sg':
@@ -615,10 +692,10 @@ if $ARGS[0] = 'stats':
 		end
 		if accessible_property['city_apartment'] = 1:
 			rentdue = func('homes_properties', 'get_rent_amount', 'city_apartment')
-			if karta >= rentdue or money >= rentdue or money + stolmoney >= rentdue or karta + bankDebtLimit >= rentdue:
+			if karta >= rentdue or money >= rentdue or money + stolmoney >= rentdue:
 				*nl
 				*p 'The monthly rent for your city apartment is <<rentdue>> <b>₽</b>. '
-				if karta >= rentdue:
+				if karta - bankDebtLimit >= rentdue:
 					!From bank
 					*p 'You can make an advance <a href="exec:karta -=rentdue & gs ''homes_properties'', ''add_rent_days'', ''city_apartment'' & gs ''$menu_obnovit''">payment</a> from your bank account.'
 				elseif money >= rentdue:
@@ -633,7 +710,7 @@ if $ARGS[0] = 'stats':
 					!From cash and drawer
 					*p 'You can make an advance <a href="exec:money -= (rentdue - stolmoney) & stolmoney = 0 & gs ''homes_properties'', ''add_rent_days'', ''city_apartment'' & gs ''$menu_obnovit''">payment</a> from your on-hand cash and the cash in your stash drawer.'
 					*nl
-				elseif karta + bankDebtLimit >= rentdue:
+				elseif karta >= rentdue:
 					!From bank and overdraw
 					*p 'You can make an advance <a href="exec:karta -= rentdue & gs ''homes_properties'', ''add_rent_days'', ''city_apartment'' & gs ''$menu_obnovit''">payment</a> from your bank account and overdraw facility.'
 					*nl
@@ -646,10 +723,10 @@ if $ARGS[0] = 'stats':
 		end
 		if accessible_property['old_town_apartment'] > 0:
 			rentdue = func('homes_properties', 'get_rent_amount', 'old_town_apartment')
-			if karta >= rentdue or money >= rentdue or money + stolmoney >= rentdue or karta + bankDebtLimit >= rentdue:
+			if karta >= rentdue or money >= rentdue or money + stolmoney >= rentdue:
 				*nl
 				*p 'The monthly rent for your Pushkin apartment is <<rentdue>> <b>₽</b>. '
-				if karta >= rentdue:
+				if karta - bankDebtLimit >= rentdue:
 					!From bank
 					*p 'You can make an advance <a href="exec:karta -= rentdue &  gs ''homes_properties'', ''set_access'', ''old_town_apartment'', 1 & gs ''homes_properties'', ''add_rent_days'', ''old_town_apartment'' & gs ''$menu_obnovit''">payment</a> from your bank account.'
 					*nl
@@ -665,7 +742,7 @@ if $ARGS[0] = 'stats':
 					!From cash and drawer
 					*p 'You can make an advance <a href="exec:money -= (rentdue - stolmoney) & stolmoney = 0 & gs ''homes_properties'', ''set_access'', ''old_town_apartment'', 1 & gs ''homes_properties'', ''add_rent_days'', ''old_town_apartment'' & gs ''$menu_obnovit''">payment</a> from your on-hand cash and the cash in your stash drawer.'
 					*nl
-				elseif karta + bankDebtLimit >= rentdue:
+				elseif karta >= rentdue:
 					!From bank and overdraw
 					*p 'You can make an advance <a href="exec:karta -= rentdue & gs ''homes_properties'', ''set_access'', ''old_town_apartment'', 1 & gs ''homes_properties'', ''add_rent_days'', ''old_town_apartment'' & gs ''$menu_obnovit''">payment</a> from your bank account and overdraw facility.'
 					*nl
@@ -696,9 +773,9 @@ if $ARGS[0] = 'stats':
 	*nl
 
 	'<center><b>Sports Career</b></center>'
-	if KikWinPro > 0 or KikLossPro > 0 or KikDrawPro > 0:
+	if kickbox['proWin'] + kickbox['proLoss'] + kickbox['proDraw'] > 0:
 		'Professional Kickboxing Record:Win (Victory KO) - Loss (Defeat KO) - Draw'
-		'<<KikWinPro>> (<<KikWinProKO>>KO) - <<KikLossPro>> (<<KikLossProKO>>KO) - <<KikDrawPro>>'
+		'<<kickbox[''proWin'']>> (<<kickbox[''proWinKO'']>>KO) - <<kickbox[''proLoss'']>> (<<kickbox[''proLossKO'']>>KO) - <<kickbox[''proDraw'']>>'
 	end
 
 	if Win > 0 or Loss > 0: 'Wins in fights <<Win>>, losses in fights <<Loss>>' & *nl
@@ -710,7 +787,7 @@ if $ARGS[0] = 'stats':
 		if kickbox['sash'] = 4: 'You have earned brown sash(rank 7) in kickboxing'
 		if kickbox['sash'] = 5: 'You have earned black sash, 1st dan in kickboxing'
 	end
-	if kickbox['amateurWin'] > 0 or kickbox['amateurLoss'] > 0 or kickbox['amateurDraw'] > 0:
+	if kickbox['amateurWin'] + kickbox['amateurLoss'] + kickbox['amateurDraw'] > 0:
 		'Amateur Kickboxing Record:<br>Wins: <<kickbox[''amateurWin'']>> (<<kickbox[''amateurWinKO'']>> by KO) - Losses: <<kickbox[''amateurLoss'']>> (<<kickbox[''amateurLossKO'']>> by KO) - Draws: <<kickbox[''amateurDraw'']>>'
 		*nl
 	end
@@ -920,9 +997,9 @@ if $ARGS[0] = 'stats':
 	if sexa > 0: 'Vaginal sex with your boyfriend: <<sexa>>'
 	if (pcs_cp_safe_known + pcs_cp_notsafe_known + pcs_cp_risky_known) > 0:
 		'    Known vaginal creampies:'
-		if pcs_cp_safe_known > 0:'    Safe: <<pcs_cp_safe_known>>'
-		if pcs_cp_notsafe_known > 0:'    Likely safe: <<pcs_cp_notsafe_known>>'
-		if pcs_cp_risky_known > 0:'    Risky: <<pcs_cp_risky_known>>'
+		if pcs_cp_safe_known > 0: '    Safe: <<pcs_cp_safe_known>>'
+		if pcs_cp_notsafe_known > 0: '    Likely safe: <<pcs_cp_notsafe_known>>'
+		if pcs_cp_risky_known > 0: '    Risky: <<pcs_cp_risky_known>>'
 	end
 	if (pcs_cp_safe_unknown + pcs_cp_notsafe_unknown + pcs_cp_risky_unknown) > 0:
 		'    Unknown vaginal creampies:'
@@ -1672,11 +1749,11 @@ if $ARGS[0] = 'face':
 	if defcurly = 1 and straight > 0: 'Your hair should be straight for another <<straight>> days.'
 	*nl
 
-	'<<$lip>>'
-	'<<$pcs_throat>>'
-	'<<$skin>>'
-	'<<$glaza>>'
-	'<<$pcs_makeup>>.'
+	'<<$pc_descFull[''lip'']>>'
+	'<<$pc_descFull[''throat'']>>'
+	'<<$pc_descFull[''skin'']>>'
+	'<<$pc_descFull[''eyes'']>>'
+	'<<$pc_descFull[''makeup'']>>.'
 	'</td></tr></table></center>'
 end
 
@@ -1707,81 +1784,109 @@ if $ARGS[0] = 'clothes':
 	*clr
 	gs 'obj_din','bodytabs'
 	'<center><h1>Clothes</h1></center>'
-	'<center><table width="90%" cellspacing="0" cellpadding="20" valign="top"><tr>'
-	'<td width="50%" cellspacing="0" cellpadding="20" valign="top">'
+
+	$temp_table = '<center><table border=0 cellspacing=<<ward_img_hgt/25>> cellpadding=5>'
+
+	$temp_table += '<tr>'
+	if underwear['type'] = 0:
+		$temp_table += '<th width="33%">Bra worn</th>'
+	else
+		$temp_table += '<th width="33%">Bodysuit worn</th>'
+	end
+	$temp_table += '<th width="33%">Outfit worn</th>'
+	$temp_table += '<th width="33%">Coat (only worn outside when cold)</th>'
+
+	$temp_table += '</tr><tr>'
+
+	if underwear['type'] = 0:
+		$temp_table += '<td><center><img Height = <<ward_img_hgt>> src="<<func(''$body_image'',''bra'')>>"></center></td>'
+	else
+		$temp_table += '<td rowspan=4><center><img Height = <<ward_img_hgt>>*2 src="<<func(''$body_image'',''bodysuit'')>>"></center></td>'
+	end
+	$temp_table += '<td><center><img Height = <<ward_img_hgt * 2>> src="<<func(''$body_image'',''clothes'')>>"></center></td>'
+
+	if $coatworntype ! 'none':
+		$temp_table += '<td><center><img Height = <<ward_img_hgt * 2>> src="<<func(''$body_image'', ''coat'')>>"></center></td>'
+	else
+		$temp_table += '<td></td>'
+	end
+
+	$temp_table += '</tr><tr>'
+
+	if underwear['type'] = 0:
+		if $braworntype ! 'none':
+			$temp_table += '<td><center>You are wearing <<$braworntype>> bra no. <<brawornnumber>></center></td>'
+		else
+			$temp_table += '<td><center>You are not wearing a bra</center></td>'
+		end
+	end
+
 	!move image define to $body_image
 	!display cloth
-	$img_temp = func('$body_image','clothes')
+	gs '$body_image', 'clothes'
 	if $modApi_clothes_image ! '':
 		$img_temp = $modApi_clothes_image
 	end
-	'<center><img <<$set_imgh>> src="<<$img_temp>>"></a></center>'
+
 	if $modApi_clothes_image_msg = '':
-		'<<$body_image_msg>>'
+		$temp_table += '<td><center><<$body_image_msg>></center></td>'
 	else
-		'<<$modApi_clothes_image_msg>>'
+		$temp_table += '<td><center><<$modApi_clothes_image_msg>></center></td>'
 	end
-	'</td><td width="50%" cellpadding="20" valign="top">'
+
 	!display coat
-	$img_temp = func('$body_image','coat')
-	if $modApi_coat_image ! '':
-		$img_temp = $modApi_coat_image
-	end
-	'<center><img <<$set_imgh>> src="<<$img_temp>>"></a></center>'
+	gs '$body_image', 'coat'
 	if $modApi_coat_image_msg = '':
-		'<<$body_image_msg>>'
+		$temp_table += '<td><center><<$body_image_msg>></center></td>'
 	else
-		'<<$modApi_coat_image_msg>>'
-	end
-	'</td></tr>'
-	'</table></center>'
-
-	killvar 'img_temp'
-	killvar 'body_image_msg'
-	'</td></tr></table></center>'
-end
-
-if $ARGS[0] = 'panties':
-	*clr
-	gs 'obj_din','bodytabs'
-	'<center><h1>Panties</h1></center>'
-	'<center><table width="90%" cellspacing="0" cellpadding="20" valign="top"><tr>'
-	'<td cellspacing="0" cellpadding="0" valign="top">'
-	$img_temp = func('$body_image','panties')
-	if $modApi_panties_image ! '':
-		$img_temp = $modApi_panties_image
+		$temp_table += '<td><center><<$modApi_coat_image_msg>></center></td>'
 	end
 
-	'<center><img <<$set_imgh>> src="<<$img_temp>>"></a></center>'
-	if $modApi_panties_image_msg = '':
-		'<<$body_image_msg>>'
+	$temp_table += '</tr><tr>'
+
+	if underwear['type'] = 0:
+		$temp_table += '<th>Panties worn</th>'
+	end
+	$temp_table += '<th>Shoes (Only worn outside)</th><th>Purse worn</th>'
+
+	$temp_table += '</tr><tr>'
+
+	if underwear['type'] = 0:
+		$temp_table += '<td><center><img Height = <<ward_img_hgt>> src="<<FUNC(''$body_image'',''panties'')>>"></center></td>'
+	end
+	$temp_table += '<td><center><img Height = <<ward_img_hgt>> src="<<FUNC(''$body_image'', ''shoes'')>>"></center></td>'
+
+	if bag = 1:
+		$temp_table += '<td><center><img Height = <<ward_img_hgt>> src="<<FUNC(''$purse_image'', $currentpursetype, currentpursenumber)>>"></center></td>'
 	else
-		'<<$modApi_panties_image_msg>>'
+		$temp_table += '<td></td>'
 	end
-	killvar 'img_temp'
-	killvar 'body_image_msg'
-	'</td></tr></table></center>'
-end
 
-if $ARGS[0] = 'bra':
-	*clr
-	gs 'obj_din','bodytabs'
-	'<center><h1>Bra</h1></center>'
-	'<center><table width="90%" cellspacing="0" cellpadding="20" valign="top"><tr>'
-	'<td cellspacing="0" cellpadding="0" valign="top">'
-	$img_temp = func('$body_image','bra')
-	if $modApi_bra_image ! '':
-		$img_temp = $modApi_bra_image
-	end
-	'<center><img <<$set_imgh>> src="<<$img_temp>>"></a></center>'
-	if $modApi_bra_image_msg = '':
-		'<<$body_image_msg>>'
+	$temp_table += '</tr><tr>'
+
+	if underwear['type'] = 0:
+		if $pantyworntype ! 'none':
+			$temp_table += '<td><center>You are wearing <<$pantyworntype>> panties no. <<pantywornnumber>></center></td>'
+		else
+			$temp_table += '<td><center>You are not wearing panties</center></td>'
+		end
 	else
-		'<<$modApi_bra_image_msg>>'
+		$temp_table += '<td><center>You are wearing <<$bodysuitworntype>> bodysuit no. <<bodysuitwornnumber>></center></td>'
 	end
-	killvar 'img_temp'
-	killvar 'body_image_msg'
-	'</td></tr></table></center>'
+
+	if $shoeworntype ! 'none':
+		$temp_table += '<td><center>You are wearing <<$shoeworntype>> shoes no. <<shoewornnumber>></center></td>'
+	else
+		$temp_table += '<td><center>You do not have any shoes selected</center></td>'
+	end
+	if bag = 1:
+		$temp_table += '<td><center>You are using <<$currentpursetype>> purse no. <<currentpursenumber>></center></td>'
+	else
+		$temp_table += '<td><center>You do not have a purse equipped</center></td>'
+	end
+	$temp_table += '</tr></table></center>'
+	'<<$temp_table>>'
+	killvar '$temp_table'
 end
 
 if $ARGS[0] = 'show_tits':
@@ -1790,7 +1895,6 @@ if $ARGS[0] = 'show_tits':
 	else
 		view 'images/pc/body/tits/t<<tits>>.jpg'
 	end
-
 end
 
 if $ARGS[0] = 'show_body':
@@ -1842,283 +1946,285 @@ if $ARGS[0] = 'tattoos':
 	*clr & cla
 	gs 'obj_din','bodytabs'
 	'<center><h1>Tattoos</h1></center>'
-	tatcounter = 0
+
+	if pcs_tattoos['total'] = 0:
+		'You have a pristine body. Not in terms of debauchery, but in terms of tattoos.'
+		exit
+	end
+
 	'<center>'
 	*pl
-	if tatfce > 0:
-		tatcounter = 1 & *p '<a href="exec: gs ''obj_din'', ''tattooface''">Face</a> | '
+	if pcs_tattoos['face'] > 0:
+		*p '<a href="exec: gs ''obj_din'', ''tattooface''">Face</a> | '
 	else
 		*p 'Face | '
 	end
-	if tatlip > 0:
-		tatcounter = 1 & *p '<a href="exec: gs ''obj_din'', ''tattoolip''">Lip</a> | '
+	if pcs_tattoos['lip'] > 0:
+		*p '<a href="exec: gs ''obj_din'', ''tattoolip''">Lip</a> | '
 	else
 		*p 'Lip | '
 	end
-	if tatneck > 0:
-		tatcounter = 1 & *p '<a href="exec: gs ''obj_din'', ''tattooneck''">Neck</a> | '
+	if pcs_tattoos['neck'] > 0:
+		*p '<a href="exec: gs ''obj_din'', ''tattooneck''">Neck</a> | '
 	else
 		*p 'Neck | '
 	end
-
-	if tatback > 0:
-		tatcounter = 1 & *p '<a href="exec: gs ''obj_din'', ''tattooback''">Back</a> | '
+	if pcs_tattoos['back'] > 0:
+		*p '<a href="exec: gs ''obj_din'', ''tattooback''">Back</a> | '
 	else
 		*p 'Back | '
 	end
-	if tatlech > 0:
-		tatcounter = 1 & *p '<a href="exec: gs ''obj_din'', ''tattooshoulder''">Shoulder</a> | '
+	if pcs_tattoos['shoulder'] > 0:
+		*p '<a href="exec: gs ''obj_din'', ''tattooshoulder''">Shoulder</a> | '
 	else
 		*p 'Shoulder | '
 	end
-	if tatbrst > 0:
-		tatcounter = 1 & *p '<a href="exec: gs ''obj_din'', ''tattoobreast''">Breast</a> | '
+	if pcs_tattoos['breast'] > 0:
+		*p '<a href="exec: gs ''obj_din'', ''tattoobreast''">Breast</a> | '
 	else
 		*p 'Breast | '
 	end
-	if tatunder > 0:
-		tatcounter = 1 & *p '<a href="exec: gs ''obj_din'', ''tattoounder''">Under Breast</a> | '
+	if pcs_tattoos['under'] > 0:
+		*p '<a href="exec: gs ''obj_din'', ''tattoounder''">Under Breast</a> | '
 	else
 		*p 'Under Breast | '
 	end
-	if tatchst > 0:
-		tatcounter = 1 & *p '<a href="exec: gs ''obj_din'', ''tattoochest''">Chest</a> | '
+	if pcs_tattoos['chest'] > 0:
+		*p '<a href="exec: gs ''obj_din'', ''tattoochest''">Chest</a> | '
 	else
 		*p 'Chest | '
 	end
-	if tatside > 0:
-		tatcounter = 1 & *p '<a href="exec: gs ''obj_din'', ''tattooside''">Side</a> | '
+	if pcs_tattoos['side'] > 0:
+		*p '<a href="exec: gs ''obj_din'', ''tattooside''">Side</a> | '
 	else
 		*p 'Side | '
 	end
-	if tatblly > 0:
-		tatcounter = 1 & *p '<a href="exec: gs ''obj_din'', ''tattoobelly''">Belly</a>'
+	if pcs_tattoos['belly'] > 0:
+		*p '<a href="exec: gs ''obj_din'', ''tattoobelly''">Belly</a>'
 	else
 		*p 'Belly'
 	end
 	*pl
-	if tatarm > 0:
-		tatcounter = 1 & *p '<a href="exec: gs ''obj_din'', ''tattooarm''">Arm</a> | '
+	if pcs_tattoos['arm'] > 0:
+		*p '<a href="exec: gs ''obj_din'', ''tattooarm''">Arm</a> | '
 	else
 		*p 'Arm | '
 	end
-	if tatwrist > 0:
-		tatcounter = 1 & *p '<a href="exec: gs ''obj_din'', ''tattoowrist''">Wrist</a> | '
+	if pcs_tattoos['wrist'] > 0:
+		*p '<a href="exec: gs ''obj_din'', ''tattoowrist''">Wrist</a> | '
 	else
 		*p 'Wrist | '
 	end
-	if tathand > 0:
-		tatcounter = 1 & *p '<a href="exec: gs ''obj_din'', ''tattoohand''">Hand</a> | '
+	if pcs_tattoos['hand'] > 0:
+		*p '<a href="exec: gs ''obj_din'', ''tattoohand''">Hand</a> | '
 	else
 		*p 'Hand | '
 	end
-	if tatleg > 0:
-		tatcounter = 1 & *p '<a href="exec: gs ''obj_din'', ''tattooleg''">Leg</a> | '
+	if pcs_tattoos['leg'] > 0:
+		*p '<a href="exec: gs ''obj_din'', ''tattooleg''">Leg</a> | '
 	else
 		*p 'Leg | '
 	end
-	if tatankle > 0:
-		tatcounter = 1 & *p '<a href="exec: gs ''obj_din'', ''tattoofoot''">Foot</a> | '
+	if pcs_tattoos['ankle'] > 0:
+		*p '<a href="exec: gs ''obj_din'', ''tattooankle''">Ankle</a> | '
 	else
 		*p 'Foot | '
 	end
 
-	if tatupb > 0:
-		tatcounter = 1 & *p '<a href="exec: gs ''obj_din'', ''tattootramp''">"Tramp Stamp"</a> | '
+	if pcs_tattoos['tramp'] > 0:
+		*p '<a href="exec: gs ''obj_din'', ''tattootramp''">"Tramp Stamp"</a> | '
 	else
 		*p 'Tramp Stamp | '
 	end
-	if tatass > 0:
-		tatcounter = 1 & *p '<a href="exec: gs ''obj_din'', ''tattooass''">Butt</a> | '
+	if pcs_tattoos['ass'] > 0:
+		*p '<a href="exec: gs ''obj_din'', ''tattooass''">Butt</a> | '
 	else
 		*p 'Butt | '
 	end
-	if tatvag > 0:
-		tatcounter = 1 & *p '<a href="exec: gs ''obj_din'', ''tattoovag''">Groin</a>'
+	if pcs_tattoos['pussy'] > 0:
+		*p '<a href="exec: gs ''obj_din'', ''tattoovag''">Groin</a>'
 	else
 		*p 'Groin'
 	end
 	'</center>'
-	if tatcounter = 0:
-		'You have a pristine body. Not in terms of debauchery, but in terms of tattoos.'
-	end
 end
 
 !!Image displays for tattoos
+if $ARGS[0] = 'tattooankle':
+	*clr
+	gs 'obj_din', 'tattoos'
+	*nl
+	'<center><img <<$set_imgh>> src="<<func(''tattoo_management'', ''ankle_image'')>>"></center>'
+end
+
 if $ARGS[0] = 'tattooarm':
 	*clr
 	gs 'obj_din', 'tattoos'
 	*nl
-	'<center><img <<$set_imgh>> src="images/pc/body/tattoos/arms/tatarm<<tatarm>>.jpg"></center>'
+	'<center><img <<$set_imgh>> src="<<func(''tattoo_management'', ''arm_image'')>>"></center>'
 end
 
 if $ARGS[0] = 'tattooass':
 	*clr
 	gs 'obj_din', 'tattoos'
 	*nl
-	'<center><img <<$set_imgh>> src="images/pc/body/tattoos/ass/tatass<<tatass>>.jpg"></center>'
+	'<center><img <<$set_imgh>> src="<<func(''tattoo_management'', ''ass_image'')>>"></center>'
 end
 
 if $ARGS[0] = 'tattooback':
 	*clr
 	gs 'obj_din', 'tattoos'
 	*nl
-	'<center><img <<$set_imgh>> src="images/pc/body/tattoos/back/tatback<<tatback>>.jpg"></center>'
+	'<center><img <<$set_imgh>> src="<<func(''tattoo_management'', ''back_image'')>>"></center>'
 end
 
 if $ARGS[0] = 'tattoobelly':
 	*clr
 	gs 'obj_din', 'tattoos'
 	*nl
-	'<center><img <<$set_imgh>> src="images/pc/body/tattoos/belly/tatblly<<tatblly>>.jpg"></center>'
+	'<center><img <<$set_imgh>> src="<<func(''tattoo_management'', ''belly_image'')>>"></center>'
 end
 
 if $ARGS[0] = 'tattoobreast':
 	*clr
 	gs 'obj_din', 'tattoos'
 	*nl
-	'<center><img <<$set_imgh>> src="images/pc/body/tattoos/breasts/tatbrst<<tatbrst>>.jpg"></center>'
+	'<center><img <<$set_imgh>> src="<<func(''tattoo_management'', ''breast_image'')>>"></center>'
 end
 
 if $ARGS[0] = 'tattoochest':
 	*clr
 	gs 'obj_din', 'tattoos'
 	*nl
-	'<center><img <<$set_imgh>> src="images/pc/body/tattoos/chest/tatchst<<tatchst>>.jpg"></center>'
+	'<center><img <<$set_imgh>> src="<<func(''tattoo_management'', ''chest_image'')>>"></center>'
 end
 
 if $ARGS[0] = 'tattooface':
 	*clr
 	gs 'obj_din', 'tattoos'
 	*nl
-	'<center><img <<$set_imgh>> src="images/pc/body/tattoos/face/tatfce<<tatfce>>.jpg"></center>'
-end
-
-if $ARGS[0] = 'tattoofoot':
-	*clr
-	gs 'obj_din', 'tattoos'
-	*nl
-	'<center><img <<$set_imgh>> src="images/pc/body/tattoos/foot/tatankle<<tatankle>>.jpg"></center>'
-end
-
-if $ARGS[0] = 'tattooleg':
-	*clr
-	gs 'obj_din', 'tattoos'
-	*nl
-	'<center><img <<$set_imgh>> src="images/pc/body/tattoos/legs/tatleg<<tatleg>>.jpg"></center>'
-end
-
-if $ARGS[0] = 'tattoolip':
-	*clr
-	gs 'obj_din', 'tattoos'
-	*nl
-	'<center><img <<$set_imgh>> src="images/pc/body/tattoos/lip/tatlip<<tatlip>>.jpg"></center>'
-end
-
-if $ARGS[0] = 'tattooneck':
-	*clr
-	gs 'obj_din', 'tattoos'
-	*nl
-	'<center><img <<$set_imgh>> src="images/pc/body/tattoos/neck/tatnck<<tatneck>>.jpg"></center>'
-end
-
-if $ARGS[0] = 'tattoovag':
-	*clr
-	gs 'obj_din', 'tattoos'
-	*nl
-	'<center><img <<$set_imgh>> src="images/pc/body/tattoos/pubic/tatvag<<tatvag>>.jpg"></center>'
-end
-
-if $ARGS[0] = 'tattooshoulder':
-	*clr
-	gs 'obj_din', 'tattoos'
-	*nl
-	'<center><img <<$set_imgh>> src="images/pc/body/tattoos/shoulder/tatshldr<<tatlech>>.jpg"></center>'
-end
-
-if $ARGS[0] = 'tattooside':
-	*clr
-	gs 'obj_din', 'tattoos'
-	*nl
-	'<center><img <<$set_imgh>> src="images/pc/body/tattoos/side/tatside<<tatside>>.jpg"></center>'
-end
-
-if $ARGS[0] = 'tattootramp':
-	*clr
-	gs 'obj_din', 'tattoos'
-	*nl
-	'<center><img <<$set_imgh>> src="images/pc/body/tattoos/trampStamp/tatlowbck<<tatupb>>.jpg"></center>'
-end
-
-if $ARGS[0] = 'tattoounder':
-	*clr
-	gs 'obj_din', 'tattoos'
-	*nl
-	'<center><img <<$set_imgh>> src="images/pc/body/tattoos/underBreast/tatundbreast<<tatunder>>.jpg"></center>'
-end
-
-if $ARGS[0] = 'tattoowrist':
-	*clr
-	gs 'obj_din', 'tattoos'
-	*nl
-	'<center><img <<$set_imgh>> src="images/pc/body/tattoos/wrists/tatwrst<<tatwrist>>.jpg"></center>'
+	'<center><img <<$set_imgh>> src="<<func(''tattoo_management'', ''face_image'')>>"></center>'
 end
 
 if $ARGS[0] = 'tattoohand':
 	*clr
 	gs 'obj_din', 'tattoos'
 	*nl
-	'<center><img <<$set_imgh>> src="images/pc/body/tattoos/hand/tathnd<<tathand>>.jpg"></center>'
+	'<center><img <<$set_imgh>> src="<<func(''tattoo_management'', ''hand_image'')>>"></center>'
 end
+
+if $ARGS[0] = 'tattooleg':
+	*clr
+	gs 'obj_din', 'tattoos'
+	*nl
+	'<center><img <<$set_imgh>> src="<<func(''tattoo_management'', ''leg_image'')>>"></center>'
+end
+
+if $ARGS[0] = 'tattoolip':
+	*clr
+	gs 'obj_din', 'tattoos'
+	*nl
+	'<center><img <<$set_imgh>> src="<<func(''tattoo_management'', ''lip_image'')>>"></center>'
+end
+
+if $ARGS[0] = 'tattooneck':
+	*clr
+	gs 'obj_din', 'tattoos'
+	*nl
+	'<center><img <<$set_imgh>> src="<<func(''tattoo_management'', ''neck_image'')>>"></center>'
+end
+
+if $ARGS[0] = 'tattoovag':
+	*clr
+	gs 'obj_din', 'tattoos'
+	*nl
+	'<center><img <<$set_imgh>> src="<<func(''tattoo_management'', ''pussy_image'')>>"></center>'
+end
+
+if $ARGS[0] = 'tattooshoulder':
+	*clr
+	gs 'obj_din', 'tattoos'
+	*nl
+	'<center><img <<$set_imgh>> src="<<func(''tattoo_management'', ''shoulder_image'')>>"></center>'
+end
+
+if $ARGS[0] = 'tattooside':
+	*clr
+	gs 'obj_din', 'tattoos'
+	*nl
+	'<center><img <<$set_imgh>> src="<<func(''tattoo_management'', ''side_image'')>>"></center>'
+end
+
+if $ARGS[0] = 'tattootramp':
+	*clr
+	gs 'obj_din', 'tattoos'
+	*nl
+	'<center><img <<$set_imgh>> src="<<func(''tattoo_management'', ''tramp_image'')>>"></center>'
+end
+
+if $ARGS[0] = 'tattoounder':
+	*clr
+	gs 'obj_din', 'tattoos'
+	*nl
+	'<center><img <<$set_imgh>> src="<<func(''tattoo_management'', ''under_image'')>>"></center>'
+end
+
+if $ARGS[0] = 'tattoowrist':
+	*clr
+	gs 'obj_din', 'tattoos'
+	*nl
+	'<center><img <<$set_imgh>> src="<<func(''tattoo_management'', ''wrist_image'')>>"></center>'
+end
+
 
 if $ARGS[0] = 'piercing':
 	*clr & cla
 	gs 'obj_din','bodytabs'
 	'<center><h1>Piercings</h1></center>'
 	'<center>'
-	if pirsA = 0 and pirsB = 0 and pirsC = 0 and pirsD = 0 and pirsE = 0 and pirsF = 0 and pirsN = 0 and pirsG = 0:
+	if pcs_piercings['total']:
 		'You have no piercings.'
-	elseif (pirsA = 10000 or pirsA = 0) and (pirsB = 10000 or pirsB = 0) and (pirsC = 10000 or pirsC = 0) and (pirsD = 10000 or pirsD = 0) and (pirsE = 10000 or pirsE = 0) and (pirsF = 10000 or pirsF = 0) and (pirsN = 10000 or pirsN = 0) and (pirsG = 10000 or pirsG = 0):
+	elseif pcs_piercings['wearing'] = 0:
 		'You are not wearing any piercings'
 	else
 		*pl
-		if pirsA > 0 and pirsA < 10000:
-			*p '<a href="exec:gs ''obj_din'', ''pirsA''">Tongue</a> | '
-		else
-			*p 'Tongue | '
-		end
-		if pirsB > 0 and pirsB < 10000:
-			*p '<a href="exec:gs ''obj_din'', ''pirsB''">Lips</a> | '
-		else
-			*p 'lips | '
-		end
-		if pirsC > 0 and pirsC < 10000:
-			*p '<a href="exec:gs ''obj_din'', ''pirsC''">Ears</a> | '
+		if pcs_piercings['ears'] > 0:
+			*p '<a href="exec:gs ''obj_din'', ''piercing_ears''">Ears</a> | '
 		else
 			*p 'Ears | '
 		end
-		if pirsD > 0 and pirsD < 10000:
-			*p '<a href="exec:gs ''obj_din'', ''pirsD''">Nose</a> | '
+		if pcs_piercings['nose'] > 0:
+			*p '<a href="exec:gs ''obj_din'', ''piercing_nose''">Nose</a> | '
 		else
 			*p 'Nose | '
 		end
-		if pirsE > 0 and pirsE < 10000:
-			*p '<a href="exec:gs ''obj_din'', ''pirsE''">Eyebrows</a> | '
+		if pcs_piercings['brow'] > 0:
+			*p '<a href="exec:gs ''obj_din'', ''piercing_brow''">Eyebrows</a> | '
 		else
 			*p 'Eyebrows | '
 		end
-		if pirsF > 0 and pirsF < 10000:
-			*p '<a href="exec:gs ''obj_din'', ''pirsF''">Nipples</a> | '
+		if pcs_piercings['lip'] > 0:
+			*p '<a href="exec:gs ''obj_din'', ''piercing_lip''">Lips</a> | '
 		else
-			*p 'Nipples | '
+			*p 'lips | '
 		end
-		if pirsN > 0 and pirsN < 10000:
-			*p '<a href="exec:gs ''obj_din'', ''pirsN''">Navel</a> | '
+		if pcs_piercings['tongue'] > 0:
+			*p '<a href="exec:gs ''obj_din'', ''piercing_tongue''">Tongue</a> | '
+		else
+			*p 'Tongue | '
+		end
+		if pcs_piercings['navel'] > 0:
+			*p '<a href="exec:gs ''obj_din'', ''piercing_navel''">Navel</a> | '
 		else
 			*p 'Navel | '
 		end
-		if pirsG > 0 and pirsG < 10000:
-			*p '<a href="exec:gs ''obj_din'', ''pirsG''">Pussy</a>'
+		if pcs_piercings['nipples'] > 0:
+			*p '<a href="exec:gs ''obj_din'', ''piercing_nipples''">Nipples</a> | '
+		else
+			*p 'Nipples | '
+		end
+		if pcs_piercings['pussy'] > 0:
+			*p '<a href="exec:gs ''obj_din'', ''piercing_pussy''">Pussy</a>'
 		else
 			*p 'Pussy'
 		end
@@ -2127,53 +2233,53 @@ if $ARGS[0] = 'piercing':
 end
 
 !! piercing images.
-if $ARGS[0] = 'pirsA':
+if $ARGS[0] = 'piercing_ears':
 	*clr
 	gs 'obj_din', 'piercing'
 	*nl
-	'<center><img <<$set_imgh>> src="images/pc/body/piercings/a<<pirsA>>.jpg"></center>'
+	'<center><img <<$set_imgh>> src="images/pc/body/piercings/c<<pcs_piercings[''ears'']>>.jpg"></center>'
 end
-if $ARGS[0] = 'pirsB':
+if $ARGS[0] = 'piercing_nose':
 	*clr
 	gs 'obj_din', 'piercing'
 	*nl
-	'<center><img <<$set_imgh>> src="images/pc/body/piercings/b<<pirsB>>.jpg"></center>'
+	'<center><img <<$set_imgh>> src="images/pc/body/piercings/d<<pcs_piercings[''nose'']>>.jpg"></center>'
 end
-if $ARGS[0] = 'pirsC':
+if $ARGS[0] = 'piercing_brow':
 	*clr
 	gs 'obj_din', 'piercing'
 	*nl
-	'<center><img <<$set_imgh>> src="images/pc/body/piercings/c<<pirsC>>.jpg"></center>'
+	'<center><img <<$set_imgh>> src="images/pc/body/piercings/e<<pcs_piercings[''brow'']>>.jpg"></center>'
 end
-if $ARGS[0] = 'pirsD':
+if $ARGS[0] = 'piercing_lip':
 	*clr
 	gs 'obj_din', 'piercing'
 	*nl
-	'<center><img <<$set_imgh>> src="images/pc/body/piercings/d<<pirsD>>.jpg"></center>'
+	'<center><img <<$set_imgh>> src="images/pc/body/piercings/b<<pcs_piercings[''lip'']>>.jpg"></center>'
 end
-if $ARGS[0] = 'pirsE':
+if $ARGS[0] = 'piercing_tongue':
 	*clr
 	gs 'obj_din', 'piercing'
 	*nl
-	'<center><img <<$set_imgh>> src="images/pc/body/piercings/e<<pirsE>>.jpg"></center>'
+	'<center><img <<$set_imgh>> src="images/pc/body/piercings/a<<pcs_piercings[''tongue'']>>.jpg"></center>'
 end
-if $ARGS[0] = 'pirsF':
+if $ARGS[0] = 'piercing_navel':
 	*clr
 	gs 'obj_din', 'piercing'
 	*nl
-	'<center><img <<$set_imgh>> src="images/pc/body/piercings/f<<pirsF>>.jpg"></center>'
+	'<center><img <<$set_imgh>> src="images/pc/body/piercings/n<<pcs_piercings[''navel'']>>.jpg"></center>'
 end
-if $ARGS[0] = 'pirsN':
+if $ARGS[0] = 'piercing_nipples':
 	*clr
 	gs 'obj_din', 'piercing'
 	*nl
-	'<center><img <<$set_imgh>> src="images/pc/body/piercings/n<<pirsN>>.jpg"></center>'
+	'<center><img <<$set_imgh>> src="images/pc/body/piercings/f<<pcs_piercings[''nipples'']>>.jpg"></center>'
 end
-if $ARGS[0] = 'pirsG':
+if $ARGS[0] = 'piercing_pussy':
 	*clr
 	gs 'obj_din', 'piercing'
 	*nl
-	'<center><img <<$set_imgh>> src="images/pc/body/piercings/g<<pirsG>>.jpg"></center>'
+	'<center><img <<$set_imgh>> src="images/pc/body/piercings/g<<pcs_piercings[''pussy'']>>.jpg"></center>'
 end
 
 if $ARGS[0] = 'records': gt 'journal', 'records'
@@ -2243,7 +2349,7 @@ end
 !! Objects window debug
 !! to turn on showing variables in the Object window type in the console window
 !! objectWindowDebug = 1
-!! to add a variable to the current game  type in the console window
+!! to add a variable to the current game type in the console window
 !! gs 'obj_din', 'AddDebugVar', 'grupTipe'
 if $ARGS[0] = 'old':
 	killobj
@@ -2331,17 +2437,19 @@ if $ARGS[0] = 'wait':
 	if waiting > 0 and waiting <= 120:
 		minut += waiting
 	else
-		'Invalid time.'
+		msg 'Invalid time.'
 	end
 	gs 'stat'
+	killvar 'waiting'
+	killvar 'waitStr'
 	gt $loc, $loc_arg
 end
 
 if $ARGS[0] = 'rest':
 	cla
-	waiting = input ("How long would you like to rest?<br>(Default 15 minutes, maximum 120 minutes)")
+	waiting = val(input("How long would you like to rest?<br>(Default 15 minutes, maximum 120 minutes)"))
 
-	if waiting = '':
+	if waiting = 0:
 		minut += 15
 	elseif waiting > 0 and waiting <= 120:
 		minut += waiting
@@ -2349,10 +2457,11 @@ if $ARGS[0] = 'rest':
 		if pcs_sleep < 90 and waiting >= 60:
 			pcs_sleep += 10
 		end
-	elseif waiting <= 0 or waiting > 120:
+	else
 		msg 'Invalid time.'
 	end
 	gs 'stat'
+	killvar 'waiting'
 	gt $loc, $loc_arg
 end
 

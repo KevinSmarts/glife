@@ -2,7 +2,7 @@
 
 
 !!		Preferences:
-!!		
+!!
 !!		body:
 !!			ass:
 !!				body_ass_flat
@@ -50,7 +50,7 @@
 !!			body_pregnant
 !!			body_tan
 !!			body_tan_not
-!!		
+!!
 !!		clothes:
 !!			exposed:
 !!				clothes_exposed_ass
@@ -67,17 +67,17 @@
 !!				clothes_style_goth
 !!				clothes_style_punk
 !!			clothes_thin
-!!		
+!!
 !!		cosmetics:
 !!			cosmetics_deodorant
 !!			cosmetics_makeup
 !!			cosmetics_piercing
 !!			cosmetics_tattoo
-!!		
+!!
 !!		cum:
 !!			cum_clothes
 !!			cum_face
-!!		
+!!
 !!		hair:
 !!			color:
 !!				hair_color_black
@@ -103,10 +103,10 @@
 
 
 !!		How to use.
-!!		
+!!
 !!		func('pcs_has_attr', 'clothes_style_bimbo')
 !!		func('pcs_has_attr', 'cosmetics_tattoo')
-!!		
+!!
 
 
 
@@ -135,16 +135,26 @@
 !! $npc_reaction_choice[] = 'NAME' adds 'NAME' to the end of the list.
 
 
+
+
+
+result = 0
+
+
+
 	!!-------------------------------------------------------------------!!
 	!!                                                                   !!
 	!!                               LOGIC                               !!
 	!!                                                                   !!
 	!!-------------------------------------------------------------------!!
 
-!! How to use: func('pcs_has_attr', 'AND', $ARGS[1], $ARGS[2], ...)
+!!	How to use: func('pcs_has_attr', 'AND', $ARGS[1], $ARGS[2], ...)
 !!		func('pcs_has_attr', 'AND', 'body_tits_average', 'body_bmi_normal', 'hair_color_black')
+!!	You CANNOT nest the same logic function within itself at ANY depth.
+!!		func(..., 'AND', '...', func(..., 'OR', '...', func(..., 'AND')))
+!!	DOES NOT WORK.
 
-
+! AND returns 1 if the PC has all attributes
 if $ARGS[0] = 'AND':
 	pha_AND_maxi = arrsize('ARGS')
 
@@ -167,6 +177,7 @@ if $ARGS[0] = 'AND':
 	killvar 'pha_AND_maxi'
 	killvar 'pha_AND_i'
 
+! OR returns 1 if the PC has any of the attributes
 elseif $ARGS[0] = 'OR':
 	pha_OR_maxi = arrsize('ARGS')
 
@@ -177,7 +188,7 @@ elseif $ARGS[0] = 'OR':
 
 	pha_OR_i = 1
 	:pha_OR_loop
-		if func('pcs_has_attr', $ARGS[pha_OR_i]) = 1:
+		if func('pcs_has_attr', $ARGS[pha_OR_i]):
 			result = 1
 			jump 'pha_OR_killvar'
 		end
@@ -189,6 +200,7 @@ elseif $ARGS[0] = 'OR':
 	killvar 'pha_OR_maxi'
 	killvar 'pha_OR_i'
 
+! NAND returns 1 if the pcs does NOT have all of the attributes
 elseif $ARGS[0] = 'NAND':
 	pha_NAND_maxi = arrsize('ARGS')
 
@@ -199,18 +211,19 @@ elseif $ARGS[0] = 'NAND':
 
 	pha_NAND_i = 1
 	:pha_NAND_loop
-		if func('pcs_has_attr', $ARGS[pha_NAND_i]) = 1:
-			result = 0
-			jump 'pha_AND_killvar'
+		if func('pcs_has_attr', $ARGS[pha_NAND_i]) = 0:
+			result = 1
+			jump 'pha_NAND_killvar'
 		end
 		pha_NAND_i += 1
-	if pha_NAND_i < pha_NAND_maxi: jump 'pha_AND_loop'
-	result = 1
+	if pha_NAND_i < pha_NAND_maxi: jump 'pha_NAND_loop'
+	result = 0
 
 	:pha_NAND_killvar
 	killvar 'pha_NAND_maxi'
 	killvar 'pha_NAND_i'
 
+! NOR returns 1 if the PC does NOT have any of the attributes
 elseif $ARGS[0] = 'NOR':
 	pha_NOR_maxi = arrsize('ARGS')
 
@@ -220,18 +233,53 @@ elseif $ARGS[0] = 'NOR':
 	end
 
 	pha_NOR_i = 1
-	:pha_OR_loop
-		if func('pcs_has_attr', $ARGS[pha_NOR_i]) = 0:
-			result = 1
-			jump 'pha_OR_killvar'
+	:pha_NOR_loop
+		if func('pcs_has_attr', $ARGS[pha_NOR_i]):
+			result = 0
+			jump 'pha_NOR_killvar'
 		end
 		pha_NOR_i += 1
-	if pha_NOR_i < pha_NOR_maxi: jump 'pha_OR_loop'
-	result = 0
+	if pha_NOR_i < pha_NOR_maxi: jump 'pha_NOR_loop'
+	result = 1
 
-	:pha_OR_killvar
+	:pha_NOR_killvar
 	killvar 'pha_NOR_maxi'
 	killvar 'pha_NOR_i'
+
+! XOR returns 1 if the PC has EXACTLY {target} of the attributes. Target defaults to 1, can be set using ARGS[1]
+elseif $ARGS[0] = 'XOR':
+	pha_XOR_maxi = arrsize('ARGS')
+
+	if pha_XOR_maxi = 1:
+		result = 0
+		jump 'pha_XOR_killvar'
+	end
+
+	result = 0
+	if ARGS[1] = 0:
+		pha_XOR_i = 1
+		pha_XOR_target = 1
+	else
+		pha_XOR_i = 2
+		pha_XOR_target = ARGS[1]
+	end
+	:pha_XOR_loop
+		if func('pcs_has_attr', $ARGS[pha_NOR_i]):
+			if result < pha_XOR_target:
+				result += 1
+			else
+				result = 0
+				jump 'pha_XOR_killvar'
+			end
+		end
+		pha_NOR_i += 1
+	if pha_NOR_i < pha_NOR_maxi: jump 'pha_XOR_loop'
+	if result ! pha_XOR_target: result = 0
+
+	:pha_XOR_killvar
+	killvar 'pha_XOR_maxi'
+	killvar 'pha_XOR_i'
+	killvar 'pha_XOR_target'
 end
 
 
@@ -246,81 +294,71 @@ end
 !!To be checked
 if $ARGS[0] = 'body_ass_flat':
 	!! flat butt
-	if pcs_butt <= 14:
+	if pcs_buttsize <= 14:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'body_ass_average':
 	!! average feminine butt
-	if pcs_butt >= 15 and pcs_butt <= 29:
+	if pcs_buttsize >= 15 and pcs_buttsize <= 29:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'body_ass_big':
 	!! Big round butt
-	if pcs_butt >= 30 and pcs_butt <= 44:
+	if pcs_buttsize >= 30 and pcs_buttsize <= 44:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'body_ass_heart':
 	!! Heart-shaped butt
-	if pcs_butt >= 45 and pcs_butt <= 59:
+	if pcs_buttsize >= 45 and pcs_buttsize <= 59:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'body_ass_bubble':
 	!! Bubble butt
-	if pcs_butt >= 60:
+	if pcs_buttsize >= 60:
 		result = 1
-	else
-		result = 0
 	end
 end
 
 
 !! To be checked
 if $ARGS[0] = 'body_bmi_starving':
-	if pcs_bmi <= 15:
+	temp_bs_class = func('body_structure', 'get_class')
+	if temp_bs_class < 100:
 		result = 1
-	else
-		result = 0
 	end
+	killvar 'temp_bs_class'
 
 elseif $ARGS[0] = 'body_bmi_underweight':
-	if pcs_bmi >= 16 and pcs_bmi <= 18:
+	temp_bs_class = func('body_structure', 'get_class')
+	if temp_bs_class >= 100 and temp_bs_class < 200:
 		result = 1
-	else
-		result = 0
 	end
+	killvar 'temp_bs_class'
 
 elseif $ARGS[0] = 'body_bmi_normal':
-	if pcs_bmi >= 19 and pcs_bmi <= 24:
+	temp_bs_class = func('body_structure', 'get_class')
+	if temp_bs_class >= 200 and temp_bs_class < 400:
 		result = 1
-	else
-		result = 0
 	end
+	killvar 'temp_bs_class'
 
 elseif $ARGS[0] = 'body_bmi_overweight':
-	if pcs_bmi >= 25 and pcs_bmi <= 29:
+	temp_bs_class = func('body_structure', 'get_class')
+	if temp_bs_class >= 400 and temp_bs_class < 500:
 		result = 1
-	else
-		result = 0
 	end
+	killvar 'temp_bs_class'
 
 elseif $ARGS[0] = 'body_bmi_obese':
-	if pcs_bmi >= 30:
+	temp_bs_class = func('body_structure', 'get_class')
+	if temp_bs_class >= 500:
 		result = 1
-	else
-		result = 0
 	end
+	killvar 'temp_bs_class'
 end
 
 
@@ -328,29 +366,21 @@ end
 if $ARGS[0] = 'body_eyes_brown':
 	if pcs_eyecol = 0:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'body_eyes_grey':
 	if pcs_eyecol = 1:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'body_eyes_green':
 	if pcs_eyecol = 2:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'body_eyes_blue':
 	if pcs_eyecol = 3:
 		result = 1
-	else
-		result = 0
 	end
 end
 
@@ -359,36 +389,26 @@ end
 if $ARGS[0] = 'body_lips_thin':
 	if pcs_lips <= 0:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'body_lips_normal':
 	if pcs_lips = 1:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'body_lips_plump':
 	if pcs_lips = 2:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'body_lips_big':
 	if pcs_lips = 3:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'body_lips_pillowy':
 	if pcs_lips >= 4:
 		result = 1
-	else
-		result = 0
 	end
 end
 
@@ -397,58 +417,42 @@ end
 if $ARGS[0] = 'body_skin_bad':
 	if pcs_skin <= 399:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'body_skin_normal':
 	if pcs_skin >= 400 and pcs_skin <= 599:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'body_skin_good':
 	if pcs_skin >= 600:
 		result = 1
-	else
-		result = 0
 	end
 end
 
 if $ARGS[0] = 'body_strength_weak':
 	if stren_plus_lvl <= 0 and strenbuf <= 20:
 		result = 1
-	else
-		result = 0
 	end
-	
+
 elseif $ARGS[0] = 'body_strength_normal':
 	if stren_plus_lvl <= 0 and strenbuf >= 21 and strenbuf <= 60:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'body_strength_athletic':
 	if stren_plus_lvl <= 0 and strenbuf >= 61 and strenbuf <= 100:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'body_strength_strong':
 	if stren_plus_lvl > 0 and strenbuf >= 100 and strenbuf <= 150:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'body_strength_manly':
 	if stren_plus_lvl > 0 and strenbuf >= 151:
 		result = 1
-	else
-		result = 0
 	end
 end
 
@@ -458,22 +462,16 @@ end
 if $ARGS[0] = 'body_sweat_none':
 	if pcs_sweat <= 21:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'body_sweat_sweaty':
 	if pcs_sweat >= 22 and pcs_sweat <= 39:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'body_sweat_stinky':
 	if pcs_sweat >= 40:
 		result = 1
-	else
-		result = 0
 	end
 end
 
@@ -483,32 +481,24 @@ if $ARGS[0] = 'body_tits_small':
 	!! flat to A-cup
 	if pcs_cupsize <= 10:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'body_tits_average':
 	!! B- to D-cup
 	if pcs_cupsize >= 11 and pcs_cupsize <= 25:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'body_tits_big':
 	!! E- to G-cup
 	if pcs_cupsize >= 26 and pcs_cupsize <= 40:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'body_tits_huge':
 	!! H-cup and bigger
 	if pcs_cupsize >= 41:
 		result = 1
-	else
-		result = 0
 	end
 end
 
@@ -516,29 +506,21 @@ end
 if $ARGS[0] = 'body_fit':
 	if pcs_bmi >= 19 and pcs_bmi <= 24 and (pcs_vital*2 + pcs_agil + pcs_stren)/4 >= 60:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'body_pregnant':
 	if func('body_din', 'pregnancyVisibility'):
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'body_tan':
 	if pcs_tan >= 5:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'body_tan_not':
 	if pcs_tan <= 5:
 		result = 1
-	else
-		result = 0
 	end
 end
 
@@ -555,40 +537,30 @@ if $ARGS[0] = 'clothes_exposed_ass':
 !!	if $pantyworntype = 'none' and ($clothingworntype = 'nude' or PCloThinness >= 5 or PCloPants = 6 or PCloSkirt => 5 or PCloCoverBack >= 1):
 	if CoverBack >= 1:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'clothes_exposed_bra':
 !!	if $braworntype ! 'none' and ($clothingworntype = 'nude' or PCloThinness >= 5 or CloTopCut >= 3):
 	if $braworntype ! 'none' and PBraCover >= 1:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'clothes_exposed_panties':
 !!	if $pantyworntype ! 'none' and ($clothingworntype = 'nude' or PCloThinness >= 5 or PCloPants = 6 or PCloSkirt => 5):
 	if $pantyworntype ! 'none' and (PCloCoverBack >= 1 or PCloCoverFront >= 1):
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'clothes_exposed_pussy':
 !!	if $pantyworntype = 'none' and ($clothingworntype = 'nude' or PCloThinness >= 5 or PCloPants = 6 or PCloSkirt => 5 or PCloCoverFront >= 1):
 	if CoverFront >= 1:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'clothes_exposed_tits':
 !!	if $braworntype = 'none' and ($clothingworntype = 'nude' or PCloThinness >= 5 or CloTopCut >= 3 or PCloCoverTop >= 1):
 	if CoverTop >= 1:
 		result = 1
-	else
-		result = 0
 	end
 end
 
@@ -596,50 +568,36 @@ end
 if $ARGS[0] = 'clothes_skirt_long':
 	if CloSkirtShortness <= 2:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'clothes_skirt_normal':
 	if CloSkirtShortness >= 3 and CloSkirtShortness <= 4:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'clothes_skirt_short':
 	if CloSkirtShortness >= 5:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'clothes_style_bimbo':
-	if bimbo_flag = 1:
+	if PCloBimbo = 1 and PShoBimbo = 1 and pcs_makeup = 6:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'clothes_style_goth':
-	if goth_flag = 1:
+	if PCloGoth = 1 and PShoGoth = 1 and pcs_makeup = 7:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'clothes_style_punk':
-	if punk_flag = 1:
+	if PCloPunk = 1 and PShoPunk = 1 and (pcs_makeup >= 1 and pcs_makeup <= 2):
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'clothes_thin':
 	if CloThinness >= 5:
 		result = 1
-	else
-		result = 0
 	end
 end
 
@@ -656,29 +614,21 @@ end
 if $ARGS[0] = 'cosmetics_deodorant':
 	if deodorant_on ! 0:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'cosmetics_makeup':
 	if pcs_makeup > 1:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'cosmetics_piercing':
 	if (pirsA > 0 and pirsA < 10000) or (pirsB > 0 and pirsB < 10000) or (pirsD > 0 and pirsD < 10000)  or (pirsE > 0 and pirsE < 10000)  or (pirsE > 0 and pirsE < 10000 and (PCloBra > 0 or CloThinness > 5)):
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'cosmetics_tattoo':
 	if tatarm >= 1 or tatlip >= 1 or tatneck >= 1 or tathand >= 1 or  tatfce >= 1 or ((tatback >= 1 or tatblly >= 1 or tatside >= 1 or tatlech >= 1 or tatwrist >= 1) and (PCloBra > 0 or CloThinness > 5)) or (tatankle >= 1 and (CloSkirtShortness > 1 or CloPantsShortness > 1)) or (tatleg >= 1 and (CloSkirtShortness > 2 or CloPantsShortness > 2)):
 		result = 1
-	else
-		result = 0
 	end
 end
 
@@ -695,15 +645,11 @@ end
 if $ARGS[0] = 'cum_face':
 	if cumloc[11] = 1 or cumloc[16] = 1:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'cum_clothes':
 	if cumloc[6] = 1 or cumloc[7] = 1:
 		result = 1
-	else
-		result = 0
 	end
 end
 
@@ -720,36 +666,26 @@ end
 if $ARGS[0] = 'hair_color_black':
 	if pcs_haircol = 0:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'hair_color_brown':
 	if pcs_haircol = 1:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'hair_color_red':
 	if pcs_haircol = 2:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'hair_color_blonde':
 	if pcs_haircol = 3:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'hair_color_dyed':
 	if pcs_haircol >= 4:
 		result = 1
-	else
-		result = 0
 	end
 end
 
@@ -757,43 +693,31 @@ end
 if $ARGS[0] = 'hair_length_veryshort':
 	if pcs_hairlng <= 30:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'hair_length_short':
 	if pcs_hairlng >= 31 and pcs_hairlng <= 80:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'hair_length_chin':
 	if pcs_hairlng >= 81 and pcs_hairlng <= 160:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'hair_length_shoulder':
 	if pcs_hairlng >= 161 and pcs_hairlng <= 260:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'hair_length_bra':
 	if pcs_hairlng >= 261 and pcs_hairlng <= 400:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'hair_length_long':
 	if pcs_hairlng >= 401:
 		result = 1
-	else
-		result = 0
 	end
 end
 
@@ -801,15 +725,11 @@ end
 if $ARGS[0] = 'hair_pubes_shaven':
 	if pcs_pubes <= 10 or lashair = 1:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'hair_pubes_grown':
 	if pcs_pubes >= 11 and lashair = 0:
 		result = 1
-	else
-		result = 0
 	end
 
 !! needs to be finished
@@ -826,29 +746,21 @@ end
 if $ARGS[0] = 'hair_leg':
 	if pcs_leghair >= 4:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'hair_leg_not':
 	if pcs_leghair <= 3:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'hair_curly':
 	if curly >= 1:
 		result = 1
-	else
-		result = 0
 	end
 
 elseif $ARGS[0] = 'hair_straight':
 	if curly <= 0:
 		result = 1
-	else
-		result = 0
 	end
 end
 

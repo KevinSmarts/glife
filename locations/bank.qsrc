@@ -29,6 +29,7 @@ if $ARGS[0] = 'start':
 			act 'Open account':
 				cla
 				bankAccount = 1
+				karta = 5000
 				bankDebtLimit = 5000
 				'You are led to on open office and a member of the bank staff goes through your details and ID, then takes 50 <b>₽</b> from you before setting up your account'
 				'"Your account is now open with your 50 <b>₽</b> and an overdraft protection of 5,000 <b>₽</b>"'
@@ -61,23 +62,23 @@ if $ARGS[0] = 'start':
 			end
 		end
 
-		if karta + bankDebtLimit > 0:
+		if karta > 0:
 			act 'Withdraw money':
 				cla
 				menu_off = 1
 				kartaOUT = input ("How much do you want to withdraw from account?")
 
-				if kartaOUT <= 0 or kartaOUT > karta + bankDebtLimit:
+				if kartaOUT <= 0 or kartaOUT > karta:
 					'That is not a valid operation.'
 				else
 					karta -= kartaOUT
 					money += kartaOUT
-					if karta > 0:
-						'<br>You withdraw <<kartaOUT>> <b>₽</b>. You have <<karta>> <b>₽</b> left in your bank account.'
-					elseif karta = 0:
+					if karta > bankDebtLimit:
+						'<br>You withdraw <<kartaOUT>> <b>₽</b>. You have <<karta - bankDebtLimit>> <b>₽</b> left in your bank account.'
+					elseif karta = bankDebtLimit:
 						'<br>You withdraw <<kartaOUT>> <b>₽</b>. You have no money left in your bank account.'
 					else
-						'<br>You withdraw <<kartaOUT>> <b>₽</b>. <font color="red">Your bank account is overdrawn by <b><<karta>> ₽</b>.</font>'
+						'<br>You withdraw <<kartaOUT>> <b>₽</b>. <font color="red">Your bank account is overdrawn by <b><<bankDebtLimit - karta>> ₽</b>.</font>'
 					end
 				end
 				killvar 'kartaOUT'
@@ -86,25 +87,25 @@ if $ARGS[0] = 'start':
 				act 'Walk away':gt 'bank', 'start'
 			end
 
-			if bankDebtLimitRaised = 0 and karta >= 10000:
+			if bankDebtLimitRaised = 0 and karta >= 15000:
 				act 'See about increasing your credit limit':
 					if $region = 'city':
 						gt 'bank', 'loan_officer', 'start'
 					else
-						'You approach the teller and say, “Hello, I’d like to talk to someone about increasing my credit limit.”'
+						'You approach the teller and say, “Hello, I''d like to talk to someone about increasing my credit limit.”'
 						*nl
-						'The teller nods and tells you, “Unfortunately our credit limit functions are being handled through our Saint Petersburg branch. I’m sure they’d be happy to help you there.”'
+						'The teller nods and tells you, “Unfortunately our credit limit functions are being handled through our Saint Petersburg branch. I''m sure they''d be happy to help you there.”'
 						delact 'See about increasing your credit limit'
 					end
 				end
 			end
 		end
-		if karta >= 0:
-			'You have <<karta>> <b>₽</b> in your account.'
+		if karta >= bankDebtLimit:
+			'You have <<karta - bankDebtLimit>> <b>₽</b> in your account.'
 			'You can take out a loan of <font color="blue"><<bankDebtLimit>></font>!'
 		else
-			'You hava a debt of <font color="red"><<-1 * karta>></font> <b>₽</b>.'
-			'You can take out a loan of <font color="blue"><<bankDebtLimit + karta>></font>!'
+			'You hava a debt of <font color="red"><<bankDebtLimit - karta>></font> <b>₽</b>.'
+			'You can take out a loan of <font color="blue"><<karta>></font>!'
 		end
 	end
 
@@ -340,9 +341,9 @@ if $ARGS[0] = 'loan_officer':
 			gs 'fame', 'city', 'sex', 3
 			gs 'arousal', 'end'
 
-			bankDebtLimit = 50000
-			money += karta + bankDebtLimit
-			karta = -bankDebtLimit
+			bankDebtLimit += 45000
+			money += 45000
+
 			bankDebtLimitRaised = 1
 			minut += 30
 			gs 'stat'
@@ -352,6 +353,23 @@ if $ARGS[0] = 'loan_officer':
 	end
 end
 
+
+if $ARGS[0] = 'deposit_cash':
+	kartaIN = input ("How much money do you want to deposit into your account?")
+
+	if kartaIN <= 0 or kartaIN > money:
+		'Invalid operation.'
+	else
+		atmDeposit[] += kartaINATM - 100
+		atmDepositDate[] = daystart + 2
+		money -= kartaINATM
+
+		'<br>You deposit <<kartaINATM>> <b>₽</b> into your account.'
+		'It will take 2 days for funds to be available. Your new balance will be <<karta - bankDebtLimit + atmDeposit[]>> <b>₽</b>.'
+	end
+end
+
+
 if $ARGS[0] = 'cikl':
 	!!------------------------------------------------------------------------------------------------------------
 	!!	Banking
@@ -359,9 +377,9 @@ if $ARGS[0] = 'cikl':
 
 	!!MJ: Add some (daily) interest to the bank account.
 	!!Not very realistic but won''t make anyone too rich.
-	
+
 	if bankAccount = 1:
-		kartatotal = karta
+		kartatotal = karta - bankDebtLimit
 		:kartaloop
 		if kartatotal > 20000000:
 			kartacount += 1
@@ -371,10 +389,10 @@ if $ARGS[0] = 'cikl':
 		else
 			largekarta[0] = kartatotal
 		end
-		if karta >= 2000000:
+		if karta - bankDebtLimit >= 2000000:
 			!! yearly interest of 2.3% recalculated into daily interest = 0.006% daily
 			intrate = 60
-		elseif karta >= 0:
+		elseif karta - bankDebtLimit >= 0:
 			!! yearly interest of 1.15% recalculated into daily interest = 0.003% daily
 			intrate = 30
 		else
@@ -382,16 +400,16 @@ if $ARGS[0] = 'cikl':
 			intrate = 550
 		end
 		:intloop
-		if kartacount > 0:
+		if kartacount = 0:
+			smallmoneypos += (largekarta[0] * intrate)
+			largekarta[0] = 0
+			if kartacount ! 0: kartacount = 0
+		else
 			smallmoneypos += (largekarta[kartacount] * intrate)
 			if smallmoneypos >= 1000000 or smallmoneypos <= -1000000: karta += smallmoneypos / 1000000 & smallmoneypos = smallmoneypos mod 1000000
 			largekarta[kartacount] = 0
 			kartacount -= 1
 			jump 'intloop'
-		else
-			smallmoneypos += (largekarta[0] * intrate)
-			largekarta[0] = 0
-			if kartacount ! 0: kartacount = 0
 		end
 
 		if smallmoneypos >= 1000000 or smallmoneypos <= -1000000:
@@ -399,21 +417,34 @@ if $ARGS[0] = 'cikl':
 			smallmoneypos = smallmoneypos mod 1000000
 		end
 
-		if atmDeposit > 0 and atmDepositDate <= daystart:
-			karta += atmDeposit
-			atmDeposit = 0
+
+		bank_i = 0
+		:atmdeposit_loop
+		if arrsize('atmDeposit') > 0:
+			if atmDepositDate[bank_i] <= daystart:
+				if atmDeposit[bank_i] > 0:
+					karta += atmDeposit[bank_i]
+				end
+				killvar 'atmDeposit', bank_i
+				killvar 'atmDepositDate', bank_i
+			else
+				bank_i += 1
+			end
+			jump 'atmdeposit_loop'
 		end
+		killvar 'bank_i'
+
 
 
 		! Daily Internet and mobile checks
 		$internet_action_messages = func('internet_mobile', 'check_subscription_actions')
-		count = ARRSIZE('$internet_action_messages')
-		i = 0
+		count = arrsize('$internet_action_messages')
+		bank_i = 0
 		:loop_messages
-			if $internet_action_messages[i] ! '': *pl $internet_action_messages[i]
-			i += 1
-		if i < count: jump 'loop_messages'
-		killvar 'i'
+			if $internet_action_messages[bank_i] ! '': *pl $internet_action_messages[bank_i]
+			bank_i += 1
+		if bank_i < count: jump 'loop_messages'
+		killvar 'bank_i'
 		killvar 'count'
 	end
 
@@ -421,15 +452,33 @@ if $ARGS[0] = 'cikl':
 	!!	Payments
 	!!------------------------------------------------------------------------------------------------------------
 
-	if day = 25:
+	if day ! 25:
+		if paydayHusb = 1:paydayHusb = 0
+		if workKafe['job'] = 1 and paydayKafe = 1:paydayKafe = 0
+		if workSec = 1 and paydaySec = 1:paydaySec = 0
+		!! No idea what haday is, it does not show up anywhere else beyond this one line
+		!! All the checks for the whether Sveta owns certain properties make no sense, if it is the 25th, haday, electroday and
+		!! kabelday are set to 0. The fact that Sveta doesn''t own or rent properties only means that their value is meaningless
+		!! anyway.
+		if haday = 1: haday = 0
+		if electroday = 1: electroday = 0
+		if kabelday = 1: kabelday = 0
+		if scholarshipday = 1: scholarshipday = 0
+		if nopaytanwork = 1: nopaytanwork = 0
+		if nopaypoly = 1: nopaypoly = 0
+		if nopaysalon = 1: nopaysalon = 0
+		if paydaybistrosec = 1: paydaybistrosec = 0
+
+	else
 		!! meynold payment
-		if	mey_vika['mey_vika_qw'] >= 35 and mey_tamara['help_count'] < 10 and mey_tamara['qw_end'] = 0:
-			karta += 10000
-			'<b><font color=green>For your efforts aunt Tamara gave you 10,000 rubles</font></b>'
-			mey_tamara['help_count'] = 0
-		elseif mey_vika['mey_vika_qw'] >= 35 and mey_tamara['help_count'] >= 10 and mey_tamara['qw_end'] = 0:
-			karta += 15000
-			'<b><font color=green>For your efforts aunt Tamara gave you 15,000 rubles</font></b>'
+		if mey_vika['mey_vika_qw'] >= 35 and mey_tamara['qw_end'] = 0:
+			if mey_tamara['help_count'] < 10:
+				karta += 10000
+				'<b><font color=green>For your efforts aunt Tamara gave you 10,000 rubles</font></b>'
+			else
+				karta += 15000
+				'<b><font color=green>For your efforts aunt Tamara gave you 15,000 rubles</font></b>'
+			end
 			mey_tamara['help_count'] = 0
 		end
 
@@ -507,14 +556,14 @@ if $ARGS[0] = 'cikl':
 		! Utilities for all apartments.
 		if func('homes_properties', 'get_owned_homes_count') > 0 and electroday = 0:
 			gs 'housing', 'util'
-			if bankAccount = 1 and karta >= elektro:
+			if bankAccount = 1 and karta - bankDebtLimit >= elektro:
 				'<b><font color="green"><<elektro>> <b>₽</b> for utilities, has been automatically deducted from your bank account.</font></b>'
 				electroday = 1
 				if elektro >= 2000:
 					elektro = 2000 + rand(0, 100)
 					karta -= elektro * hcount_util
 				end
-			elseif bankAccount = 1 and karta + bankDebtLimit >= elektro:
+			elseif bankAccount = 1 and karta >= elektro:
 				'<b><font color="green"><<elektro>> <b>₽</b> for utilities, has been automatically deducted from your bank account and overdraw facility. Please contact your bank.</font></b>'
 				electroday = 1
 				if elektro >= 2000:
@@ -536,11 +585,11 @@ if $ARGS[0] = 'cikl':
 		! Cable for all apartments
 		if kabel > 0 and kabelday = 0:
 			gs 'housing', 'cable'
-			if bankAccount = 1 and karta >= (300 * hcount_cable):
+			if bankAccount = 1 and karta - bankDebtLimit >= (300 * hcount_cable):
 				'<b><font color="green">300 <b>₽</b> has been deducted from your bank account, for you cable TV subscription.</font></b>'
 				kabelday = 1
 				karta -= 300 * hcount_cable
-			elseif bankAccount = 1 and karta + bankDebtLimit >= (300 * hcount_cable):
+			elseif bankAccount = 1 and karta >= (300 * hcount_cable):
 				'<b><font color="green">300 <b>₽</b> has been deducted from your bank account and overdraw facility, for you cable TV subscription.</font></b>'
 				kabelday = 1
 				karta -= 300 * hcount_cable
@@ -552,69 +601,44 @@ if $ARGS[0] = 'cikl':
 				'<b><font color="red">Your card was declined during automatic debit of 300 <b>₽</b> for cable TV subscription.</font></b>'
 			end
 		end
-
-	end
-
-
-	if day ! 25:
-		if paydayHusb = 1:paydayHusb = 0
-		if workKafe['job'] = 1 and paydayKafe = 1:paydayKafe = 0
-		if workSec = 1 and paydaySec = 1:paydaySec = 0
-		!! No idea what haday is, it does not show up anywhere else beyond this one line
-		!! All the checks for the whether Sveta owns certain properties make no sense, if it is the 25th, haday, electroday and 
-		!! kabelday are set to 0. The fact that Sveta doesn''t own or rent properties only means that their value is meaningless
-		!! anyway.
-		if haday = 1: haday = 0
-		if electroday = 1: electroday = 0
-		if kabelday = 1: kabelday = 0
-		if scholarshipday = 1: scholarshipday = 0
-		if nopaytanwork = 1: nopaytanwork = 0
-		if nopaypoly = 1: nopaypoly = 0
-		if nopaysalon = 1: nopaysalon = 0
-		if paydaybistrosec = 1: paydaybistrosec = 0
 	end
 
 	!! Checking for tenants moving out
 	gs 'homes_properties', 'tenant_move_out_check'
-	
 
 	!!----------------------------------------
 	!! Rent
 	!!----------------------------------------
 	!! property_rent, property_days, $property_name, $property_display $property_code
 	gs 'homes_properties', 'get_rented_properties'
-	count = ARRSIZE('property_name')
-	if count > 0:
-		i = 0
+	bank_count = ARRSIZE('property_name')
+	if bank_count > 0:
+		bank_i = 0
 		:loop_rent_payments
-			if property_days[i] <= 2:
+			if property_days[bank_i] <= 2:
 				!From bank
-				if property_days[i] <= 0:
-					gs 'homes_properties', 'cancel_rent', $property_code[i]
-				elseif bankAccount = 1 and karta >= property_rent[i]:
-					'<b><font color="green">Your rent payment of <<property_rent[i]>> <b>₽</b> for your <<$property_name[i]>>, has automatically been deducted from your bank account.</font></b>'
-					gs 'homes_properties', 'pay_rent', $property_code[i], 'card'
-					!karta -= property_rent[i]
-					!gs 'homes_properties', 'add_rent_days', $property_code[i]
-				elseif bankAccount = 1 and karta + bankDebtLimit >= property_rent[i]:
-					'<b><font color="green">Your rent payment of <<property_rent[i]>> <b>₽</b> for your <<$property_name[i]>>, has automatically been deducted from your bank account and overdraw facility. Please contact your bank regarding your overdraw repayment.</font></b>'
-					gs 'homes_properties', 'pay_rent', $property_code[i], 'card'
-					!karta -= property_rent[i]
-					!gs 'homes_properties', 'add_rent_days', $property_code[i]
+				if bankAccount = 1 and karta >= property_rent[bank_i]:
+					'<b><font color="green">Your rent payment of <<property_rent[bank_i]>> <b>₽</b> for your <<$property_name[bank_i]>>, has automatically been deducted from your bank account' + iif(karta >= bankDebtLimit, '', ' and overdraw facility. Please contact your bank regarding your overdraw repayment') + '.</font></b>'
+					gs 'homes_properties', 'pay_rent', $property_code[bank_i], 'card'
+					!karta -= property_rent[bank_i]
+					!gs 'homes_properties', 'add_rent_days', $property_code[bank_i]
+				elseif property_days[bank_i] <= 0:
+					gs 'homes_properties', 'cancel_rent', $property_code[bank_i]
 				elseif bankAccount = 0:
-					'<b><font color="red">You currently do not have a bank account setup for automatic rent deduction of <<property_rent[i]>> <b>₽</b> for your <<$property_name[i]>>. To avoid eviction, please make a manual payment as soon as possible.</font></b>'
+					'<b><font color="red">You currently do not have a bank account setup for automatic rent deduction of <<property_rent[bank_i]>> <b>₽</b> for your <<$property_name[bank_i]>>. To avoid eviction, please make a manual payment as soon as possible.</font></b>'
 				else
 					nl
-					'<b><b><font color="red">Your card was declined during automatic rent deduction of <<property_rent[i]>> <b>₽</b> for your <<$property_name[i]>>. To avoid eviction, please rectify as soon as possible.</font></b>'
+					'<b><b><font color="red">Your card was declined during automatic rent deduction of <<property_rent[bank_i]>> <b>₽</b> for your <<$property_name[bank_i]>>. To avoid eviction, please rectify as soon as possible.</font></b>'
 				end
 			end
-			i += 1
-		if i < count: jump 'loop_rent_payments'
+			bank_i += 1
+		if bank_i < bank_count: jump 'loop_rent_payments'
 		gs 'homes_properties', 'clean_up_property_data'
-		killvar 'i'
+		killvar 'bank_i'
 	end
+	killvar 'bank_count'
 	!!------------------------------------------------------------------------------------------------------------
-
 end
---- bank ---------------------------------
 
+
+--- bank ---------------------------------

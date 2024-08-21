@@ -1,0 +1,591 @@
+# havana_running
+
+if $ARGS[0] = 'start':
+	menu_off = 1
+	minut += 5
+	'<center><img <<$set_imgh>> src="images/pc/activities/exercises/gym/fit1.jpg"></center>'
+	'You are stretching and warming up before your practice run. From where you are you can see your coach, Igor Yurisovich, talking to other athletes.'
+
+	act 'Do a couple of practice races':
+		*clr & cla
+		abonement -= 1
+		pcs_mood += 2
+		gs 'exercise', 'tier2', 30, 'run'
+
+		'<center><img <<$set_imgh>> src="images/pc/activities/exercises/gym/fit5.jpg"></center>'
+		'You spend half an hour practicing 100 meter dashes to improve your speed, as well as doing several rounds around the stadium to work on your stamina. You are sweaty all over by the end of it, obviously, but you also feel that you''re a little better than before.'
+
+		act 'Go to the dressing room': gt $loc, $loc_arg
+	end
+
+	if runnerQW['joined_team'] > 0:
+		act 'Go to your coach':
+			cla
+			'Igor Yurisovich is your coach, a man with a rough voice who never seems to gets tired of motivational one-liners. "The only one who can keep you from winning is you" is his current favorite.'
+
+			if pcs_run < 50:
+				'Despite looking occupied with the other trainees, Igor Yurisovich not only watched your practice runs but timed them as well. He doesn''t look too happy, though - not that he ever does.'
+				'"You have to train harder, girl. With a time like this, you would come in dead last. Hell, you wouldn''t even qualify for the main race! If you want to be better, you have to watch your diet, maybe go to the banya after training, but most importantly: Practice, practice, practice!"'
+
+				act 'Leave': gt 'havana_running', 'start'
+			elseif pcs_run >= 50 and runnerQW['champ_gold'] = 0:
+				'Despite looking occupied with the other trainees, Igor Yurisovich not only watched your practice runs but timed them as well. And while you''re pretty sure he is physically incapable of looking excited or even content, you think that he looks a little less grim than usual as he looks at you.'
+				'"You''re doing fine, girl. Better than fine; you could have a great future in athletics if you play your cards right. If you keep working hard, you might even have it in you to become European champion, perhaps more. But remember, girl, the key to victory is your spirit: If you have the right mindset, you can do anything."'
+
+				act 'Leave': gt 'havana_running', 'start'
+			else
+				'Igor Yurisovich eagerly watches your practice runs and times them as well. Despite his grim demeanour, he nods approvingly at your times and even gives you a hug when you set a PB.'
+				'"You''re doing great, <<$pcs_nickname>>. We''re all so proud of you here and I really can''t give you much more advice except to tell you to keep pushing and making us proud."'
+
+				act 'Leave': gt 'havana_running', 'start'
+			end
+		end
+	end
+end
+
+
+
+
+	!!========================================================================!!
+	!!                                                                        !!
+	!!                             CHAMPIONSHIPS                              !!
+	!!                                                                        !!
+	!!========================================================================!!
+
+
+if $ARGS[0] = 'race_start':
+	menu_off = 1
+	*clr & cla
+	minut += 30
+	runnerQW['comp_day'] = daystart
+	runnerQW['races_ran'] += 1
+	!razdtumbler = 0	& !these do not appear anywhere else
+	!begmon = month		& !these do not appear anywhere else
+	runnerQW['bmi_penalty'] = 0
+	gs 'stat'
+
+	if runnerQW['prof_stage'] = 0:
+		'You''re registered for an amateur''s race. The results will determine if you join the club''s junior squad and entry in the semi-professional runner circuit.'
+
+		act 'Go to the track field.': gt 'havana_running', 'br'
+	elseif runnerQW['prof_stage'] = 1:
+		'As a member of your club''s junior squad, you''re registered for a semi-professional''s race. The results will determine if you join the veteran squad.'
+
+		act 'Go to the track field.': gt 'havana_running', 'kms'
+	elseif runnerQW['prof_stage'] = 2:
+		'As a member of your club''s veteran squad, you''re registered for a semi-professional''s race. The results will determine your entry in the professional runner circuit.'
+
+		act 'Go to the track field.': gt 'havana_running', 'ross'
+	elseif runnerQW['prof_stage'] >= 3 and runnerQW['prof_stage'] < 14:
+		'As one of your club''s best athletes, you can take part in a series of qualifying races in the professional circuit. Winning 9 out of 11 would qualify you for the St. Petersburg Track Championship, that is celebrated seasonally.'
+		nl
+		'Qualifying Races Attended: <<runnerQW[''prof_stage''] - 3>>'
+		'Top 3 finishes in Qualifying Races: <<runnerQW[''qualifiers'']>>'
+
+		act 'Go to the stadium': gt 'havana_running', 'kval'
+	elseif runnerQW['prof_stage'] = 14 and runnerQW['qualifiers'] < 9:
+		cla
+		runnerQW['qualifiers'] = 0
+		runnerQW['prof_stage'] = 3
+		'You were unable to qualify for the St. Petersburg Championship.'
+
+		! WD: Argument is 'dressing room'
+		act 'Go back to the dressing room': gt $loc, $loc_arg
+	elseif runnerQW['prof_stage'] = 14 and runnerQW['qualifiers'] >= 9:
+		cla
+		runnerQW['qualifiers'] = 0
+		runnerQW['prof_stage'] = 3
+		'You qualified for the <<year>> St. Petersburg Track Championship, taking place this season in the Petrovsky Stadium.'
+
+		act 'Go to the stadium': gt 'havana_running', 'evro'
+	end
+end
+
+if $ARGS[0] = 'br':
+	cla
+	gs 'exercise', 'tier2', 30, 'run'
+
+	runnerQW['bmi_penalty'] = 0
+	if pcs_bmi > 25:
+		runnerQW['bmi_penalty'] = ((pcs_bmi - 25)*4)
+	elseif pcs_bmi < 20:
+		runnerQW['bmi_penalty'] = ((20 - pcs_bmi)*(20-pcs_bmi))
+	end
+	runnerQW['result'] = pcs_run - runnerQW['bmi_penalty']
+
+	'<center><img <<$set_imgh>> src="images/locations/city/citycenter/gym/race/ready.jpg"></center>'
+	'Your discipline: The Women''s 400 Meter Dash.'
+	'After changing into your running gear, you spend some time warming up near the track before the race starts. Beyond some casual bystanders and encouraging familiars, no spectators are attending this competition.'
+	'When you and the other runners are called, you walk to your starting position, tense but ready.'
+	wait 725
+	'You get in position. Then, you hear the starting shot: The race begins!'
+	wait 725
+	'On your marks...'
+	wait 725
+	'Get set...'
+	wait 725
+	'Go! - You''re away!'
+	wait 725
+
+	if runnerQW['result'] < 5:
+		grupvalue[2] -= 3
+		'Sadly, you barely managed to reach the finish line, walking the last 100 meters. Of course, you came in last - but you also made a bit of a fool of yourself.'
+	elseif runnerQW['result'] < 10:
+		grupvalue[2] -= 2
+		'You performed well for an amateur but still only came in last (8th place).'
+	elseif runnerQW['result'] < 15:
+		grupvalue[2] -= 1
+		'You fought hard, but managed to only take the penultimate place (7th place).'
+	elseif runnerQW['result'] < 20:
+		'You fought hard, but only managed to take 6th place.'
+	elseif runnerQW['result'] < 35:
+		grupvalue[2] += 1
+		'You fought hard, but only managed to take 5th place.'
+	elseif runnerQW['result'] < 40:
+		grupvalue[2] += 2
+		'You fought hard, but only managed to take 4th place.'
+	elseif runnerQW['result'] < 45:
+		grupvalue[2] += 3
+		gs 'fame', 'city', 'running', 14
+		runnerQW['bronze_medals'] += 1 & money += 150 & 'You fought hard and managed to take 3rd place, earning a prize: You receive a bronze badge and a prize of 150 <b>₽</b>'
+	elseif runnerQW['result'] < 50:
+		grupvalue[2] += 4
+		gs 'fame', 'city', 'running', rand(14,15)
+		runnerQW['silver_medals'] += 1 & money += 300 & 'You fought hard and managed to take 2nd place, earning a prize: You receive a silver badge and a prize of 300 <b>₽</b>'
+	else
+		grupvalue[2] += 5
+		gs 'fame', 'city', 'running', rand(14,16)
+		runnerQW['prof_stage'] = 1 & runnerQW['gold_medals'] += 1 & money += 600 & 'You fought hard and managed to take 1st place! You receive a gold badge, a prize of 600 <b>₽</b> and are now part of your club''s junior squad, performing at the semi-professional level.'
+	end
+
+	act 'Leave': gt $loc, $loc_arg
+end
+
+if $ARGS[0] = 'kms':
+	cla
+	gs 'exercise', 'tier2', 30, 'run'
+
+	runnerQW['bmi_penalty'] = 0
+	if pcs_bmi > 25:
+		runnerQW['bmi_penalty'] = ((pcs_bmi - 25)*4)
+	elseif pcs_bmi < 20:
+		runnerQW['bmi_penalty'] = ((20 - pcs_bmi)*(20-pcs_bmi))
+	end
+	runnerQW['result'] = pcs_run - runnerQW['bmi_penalty']
+
+	'<center><img <<$set_imgh>> src="images/locations/city/citycenter/gym/race/ready.jpg"></center>'
+	'Your discipline: The Women''s 400 Meter Dash.'
+	'After changing into your running gear, you spend some time warming up near the track before the race starts. Beyond the encouraging familiars, now, you appreciate some genuinely interested spectators, some with cameras, but, even with that, no more than a hundred spectators are attending this competition. The track field is far from full.'
+	'When you and the other runners are called, you walk to your starting position, tense but ready.'
+	wait 725
+	'You get in position. Then, you hear the starting shot: The race begins!'
+	wait 725
+	'On your marks...'
+	wait 725
+	'Get set...'
+	wait 725
+	'Go! - You''re away!'
+	wait 725
+
+	if runnerQW['result'] < 20:
+		grupvalue[2] -= 2
+		runnerQW['prof_stage'] = 0 & 'But you barely managed to reach the finish line, walking the last 100 meters. Of course, you came in last - but you also made of a fool of yourself. People on the ranks seem to be asking themselves how you even managed to make it this far. Maybe they are right? Your performance is so atrocious that the coach decides to return you to the amateur rank.'
+	elseif runnerQW['result'] < 25:
+		grupvalue[2] -= 1
+		'You fought hard but still have a lot of work ahead of you if you want to be better than your competition. You didn''t manage to reach any classification.'
+	elseif runnerQW['result'] < 30:
+		'You fought hard but still have a lot of work ahead of you if you want to be better than your competition. You only came in last (8th place).'
+	elseif runnerQW['result'] < 35:
+		'You fought hard, but managed to only take the penultimate place (7th place).'
+	elseif runnerQW['result'] < 40:
+		grupvalue[2] += 1
+		'You fought hard, but only managed to take 6th place.'
+	elseif runnerQW['result'] < 45:
+		grupvalue[2] += 2
+		'You fought hard, but only managed to take 5th place.'
+	elseif runnerQW['result'] < 50:
+		grupvalue[2] += 3
+		gs 'fame', 'city', 'running', 14
+		'You fought hard, but only managed to take 4th place.'
+	elseif runnerQW['result'] < 55:
+		grupvalue[2] += 4
+		gs 'fame', 'city', 'running', rand(14,15)
+		runnerQW['bronze_medals'] += 1 & money += 300 & 'You fought hard and managed to take 3rd place, earning a prize: You get a bronze medal and a prize of 300 <b>₽</b>'
+	elseif runnerQW['result'] < 60:
+		grupvalue[2] += 5
+		gs 'fame', 'city', 'running', rand(14,16)
+		runnerQW['silver_medals'] += 1 & money += 600 & 'You fought hard and managed to take 2nd place, earning a prize: You get a silver medal and a prize of 600 <b>₽</b>'
+	else
+		grupvalue[2] += 6
+		gs 'fame', 'city', 'running', rand(14,17)
+		runnerQW['prof_stage'] = 3 & runnerQW['gold_medals'] += 1 & money += 1000 & 'You fought hard and managed to take 1st place! You get a gold medal, a prize of 1,000 <b>₽</b> and are now part of your club''s veteran squad, performing at the semi-professional level.'
+	end
+	act 'Leave': gt $loc, $loc_arg
+end
+
+if $ARGS[0] = 'ross':
+	cla
+	gs 'exercise', 'tier2', 30, 'run'
+
+	runnerQW['bmi_penalty'] = 0
+	if pcs_bmi > 25:
+		runnerQW['bmi_penalty'] = ((pcs_bmi - 25)*4)
+	elseif pcs_bmi < 20:
+		runnerQW['bmi_penalty'] = ((20 - pcs_bmi)*(20-pcs_bmi))
+	end
+	runnerQW['result'] = pcs_run - runnerQW['bmi_penalty']
+
+	'<center><img <<$set_imgh>> src="images/locations/city/citycenter/gym/race/ready.jpg"></center>'
+	'Your discipline: The Women''s 400 Meter Dash.'
+	'After changing into your running gear, you spend some time warming up near the track before the race starts. Familiars, the club''s fans, track''s lovers and students on a school trip, fill the place. You even see some photo journalists. All of them showing genuine interest in this competition. A gross appraisal put the spectators'' numbers in several hundred attending this competition. The track field is in full occupation.'
+	'When you and the other runners are called, you walk to your starting position, tense but ready.'
+	wait 725
+	'You get in position. Then, you hear the starting shot: The race begins!'
+	wait 725
+	'On your marks...'
+	wait 725
+	'Get set...'
+	wait 725
+	'Go! - You''re away!'
+	wait 725
+
+	if runnerQW['result'] < 30:
+		runnerQW['prof_stage'] = 1 & 'But you barely managed to reach the finish line, walking the last 100 meters. Of course, you came in last - but you also made of a fool of yourself. People on the ranks seem to be asking themselves how you even managed to make it this far. Maybe they are right? Your performance is so atrocious that the coach decides to return you to the junior rank.'
+	elseif runnerQW['result'] < 35:
+		'You fought hard but still have a lot of work ahead of you if you want to be better than your competition. You didn''t manage to reach any classification.'
+	elseif runnerQW['result'] < 40:
+		'You fought hard but still have a lot of work ahead of you if you want to be better than your competition. You only came in last (8th place).'
+	elseif runnerQW['result'] < 45:
+		grupvalue[2] += 1
+		'You fought hard, but managed to only take the penultimate place (7th place).'
+	elseif runnerQW['result'] < 50:
+		grupvalue[2] += 2
+		'You fought hard, but only managed to take 6th place.'
+	elseif runnerQW['result'] < 55:
+		grupvalue[2] += 3
+		gs 'fame', 'city', 'running', 14
+		'You fought hard, but only managed to take 5th place.'
+	elseif runnerQW['result'] < 60:
+		grupvalue[2] += 4
+		gs 'fame', 'city', 'running', rand(14,15)
+		'You fought hard, but only managed to take 4th place.'
+	elseif runnerQW['result'] < 65:
+		grupvalue[2] += 5
+		gs 'fame', 'city', 'running', rand(14,16)
+		runnerQW['bronze_medals'] += 1 & money += 600 & 'You fought hard and managed to take 3rd place, earning a prize: You get a bronze medal and a prize of 600 <b>₽</b>'
+	elseif runnerQW['result'] < 70:
+		grupvalue[2] += 6
+		gs 'fame', 'city', 'running', rand(14,17)
+		runnerQW['silver_medals'] += 1 & money += 1000 & 'You fought hard and managed to take 2nd place, earning a prize: You get a silver medal and a prize of 1,000 <b>₽</b>'
+	else
+		grupvalue[2] += 7
+		gs 'fame', 'city', 'running', rand(14,18)
+		runnerQW['prof_stage'] = 3 & runnerQW['gold_medals'] += 1 & money += 1500 & 'You fought hard and managed to take 1st place! You get a gold medal, a prize of 1,500 <b>₽</b> and gain entry to the professional circuit.'
+	end
+	act 'Leave': gt $loc, $loc_arg
+end
+
+if $ARGS[0] = 'kval':
+	cla
+	gs 'exercise', 'tier2', 30, 'run'
+	runnerQW['prof_stage'] += 1
+	minut += 60
+
+	runnerQW['bmi_penalty'] = 0
+	if pcs_bmi > 25:
+		runnerQW['bmi_penalty'] = ((pcs_bmi - 25)*4)
+	elseif pcs_bmi < 20:
+		runnerQW['bmi_penalty'] = ((20 - pcs_bmi)*(20-pcs_bmi))
+	end
+	runnerQW['result'] = pcs_run - runnerQW['bmi_penalty']
+
+	'<center><img <<$set_imgh>> src="images/locations/city/citycenter/gym/race/ready.jpg"></center>'
+	'Your discipline: The Women''s 400 Meter Dash.'
+	'At the professional level, your club takes you, to the Petrovsky Stadium. After changing into your running gear, you spend some time warming up before the race starts and observe the current attendance. Now, this is what you call a spectacle. Thousands of people, come to see the race, including photo journalists, TV crews and all class of sports enthusiasts. Even with that, the stadium is far from full, with maybe a quarter capacity, that is around 5000 spectators.'
+!! Took the Krestovsky Stadium for reference. !!THX note. the  Krestovsky Stadium is football-only. Better use the Petrovsky Stadium(20000), have track fields.
+	'When you and the other runners are called, you walk to your starting position, tense but ready.'
+	wait 725
+	'You get in position. Then, you hear the starting shot: The race begins!'
+	wait 725
+	'On your marks...'
+	wait 725
+	'Get set...'
+	wait 725
+	'Go! - You''re away!'
+	wait 725
+
+	if runnerQW['result'] < 40:
+		grupvalue[2] -= 1
+		runnerQW['prof_stage'] = 2 & runnerQW['qualifiers'] = 0 & 'But you barely managed to reach the finish line, walking the last 100 meters. Of course, you came in last - but you also made of a fool of yourself. People on the ranks seem to be asking themselves how you even managed to make it this far. Maybe they are right? Your performance is so atrocious that the coach decides to return you to the semi-professional rank.'
+	elseif runnerQW['result'] < 45:
+		'You fought hard but still have a lot of work ahead of you if you want to be better than your competition. You didn''t manage to reach any classification.'
+	elseif runnerQW['result'] < 50:
+		'You fought hard but still have a lot of work ahead of you if you want to be better than your competition. You only came in last (8th place).'
+	elseif runnerQW['result'] < 55:
+		grupvalue[2] += 2
+		'You fought hard, but managed to only take the penultimate place (7th place).'
+	elseif runnerQW['result'] < 60:
+		grupvalue[2] += 3
+		gs 'fame', 'city', 'running', 14
+		'You fought hard, but only managed to take 6th place.'
+	elseif runnerQW['result'] < 65:
+		grupvalue[2] += 4
+		gs 'fame', 'city', 'running', rand(14,15)
+		'You fought hard, but only managed to take 5th place.'
+	elseif runnerQW['result'] < 70:
+		grupvalue[2] += 5
+		gs 'fame', 'city', 'running', rand(14,16)
+		'You fought hard, but only managed to take 4th place.'
+	elseif runnerQW['result'] < 75:
+		grupvalue[2] += 6
+		gs 'fame', 'city', 'running', rand(14,17)
+		runnerQW['qualifiers'] += 1 & runnerQW['bronze_medals'] += 1 & money += 1000 & 'You fought hard and managed to take 3rd place, earning a prize. You get a bronze badge and a prize of 1,000 <b>₽</b>, but sadly, only the 1st place adds to your qualification for the European championship.'
+	elseif runnerQW['result'] < 80:
+		grupvalue[2] += 7
+		gs 'fame', 'city', 'running', rand(14,18)
+		runnerQW['qualifiers'] += 1 & runnerQW['silver_medals'] += 1 & money += 1500 & 'You fought hard and managed to take 2nd place, earning a prize. You get a silver medal and a prize of 1,500 <b>₽</b>, but sadly, only the 1st place adds to your qualification for the European championship.'
+	else
+		grupvalue[2] += 8
+		gs 'fame', 'city', 'running', rand(14,19)
+		runnerQW['qualifiers'] += 1 & runnerQW['gold_medals'] += 1 & money += 2000 & 'You fought hard and managed to take 1st place! You get a gold medal, a prize of 2,000 <b>₽</b> and are one step closer to qualifying for the St. Petersburg Championship.'
+	end
+	act 'Leave': gt $loc, $loc_arg
+end
+
+if $ARGS[0] = 'evro':
+	cla
+	gs 'exercise', 'tier2', 30, 'run'
+	minut += 120
+
+	runnerQW['bmi_penalty'] = 0
+	if pcs_bmi > 25:
+		runnerQW['bmi_penalty'] = ((pcs_bmi - 25)*4)
+	elseif pcs_bmi < 20:
+		runnerQW['bmi_penalty'] = ((20 - pcs_bmi)*(20-pcs_bmi))
+	end
+	runnerQW['result'] = pcs_run - runnerQW['bmi_penalty']
+
+	'<center><img <<$set_imgh>> src="images/locations/city/citycenter/gym/race/ready.jpg"></center>'
+	'Your discipline: The Women''s 400 Meter Dash.'
+	'This is the highest competition in the St. Petersburg area. From here, the professional runners, jump to the regional, national and eventually international scene. You will eventually reach those levels, with the possibility to reach the country Olympic Team, but for the moment, it is better if you concentrate on reaching the St. Petersburg Championship.'
+	'After changing into your running gear, you spend some time warming up before the race starts and observe the current attendance. The Petrovsky Stadium''s personnel is in full gear to manage the wave of spectators, journalist, and others that run around. Even with the fact, that track & field don''t attract the same attention level that football, it is evident that this is a great event, with maybe around 10000 spectators.'
+	'When you and the other runners are called, you walk to your starting position, tense but ready.'
+	wait 725
+	'You get in position. Then, you hear the starting shot: The race begins!'
+	wait 725
+	'On your marks...'
+	wait 725
+	'Get set...'
+	wait 725
+	'Go! - You''re away!'
+	wait 725
+
+	if runnerQW['result'] < 50:
+		grupvalue[2] -= 1
+		runnerQW['prof_stage'] = 2 & runnerQW['qualifiers'] = 0 & 'But you barely managed to reach the finish line, walking the last 100 meters. Of course, you came in last - but you also made of a fool of yourself. People on the ranks seem to be asking themselves how you even managed to make it this far. Maybe they are right? Your performance is so atrocious that the coach decide to return you to the semi-proffessional rank.'
+		gs 'fame', 'city', 'running', rand(14,19)
+	elseif runnerQW['result'] < 55:
+		'You fought hard but still have a lot of work ahead of you if you want to be better than your competition. You didn''t manage to reach any classification.'
+		gs 'fame', 'city', 'running', rand(15,21)
+	elseif runnerQW['result'] < 60:
+		gs 'fame', 'city', 'running', rand(16,23)
+		'You fought hard but still have a lot of work ahead of you if you want to be better than your competition. You only came in last (8th place).'
+	elseif runnerQW['result'] < 65:
+		grupvalue[2] += 1
+		gs 'fame', 'city', 'running', rand(18,25)
+		'You fought hard, but managed to only take the penultimate place (7th place).'
+	elseif runnerQW['result'] < 70:
+		grupvalue[2] += 2
+		gs 'fame', 'city', 'running', rand(20,25)
+		'You fought hard, but only managed to take 6th place.'
+	elseif runnerQW['result'] < 75:
+		grupvalue[2] += 3
+		gs 'fame', 'city', 'running', rand(25,50)
+		'You fought hard, but only managed to take 5th place.'
+	elseif runnerQW['result'] < 80:
+		grupvalue[2] += 4
+		gs 'fame', 'city', 'running', rand(50,100)
+		'You fought hard, but only managed to take 4th place.'
+	elseif runnerQW['result'] < 85:
+		grupvalue[2] += 6
+		gs 'fame', 'city', 'running', 'BronzeMedal'
+		runnerQW['champ_bronze'] += 1
+		money += 10000
+		'You fought hard and managed to take 3rd place, earning a prize. You get a bronze medal and a prize of 10,000 <b>₽</b>'
+	elseif runnerQW['result'] < 90:
+		grupvalue[2] += 8
+		gs 'fame', 'city', 'running', 'SilverMedal'
+		runnerQW['champ_silver'] += 1
+		money += 15000
+		'You fought hard and managed to take 2nd place, earning a prize. You get a silver medal and a prize of 15,000 <b>₽</b>'
+	else
+		grupvalue[2] += 10
+		gs 'fame', 'city', 'running', 'GoldMedal'
+		runnerQW['champ_gold'] += 1
+		money += 20000
+		'You fought hard and managed to take 1st place. You get a gold medal, a prize of 20,000 <b>₽</b> and are now the "St. Petersburg Track Champion"!'
+		act 'Continue': gt 'havana_running', 'Family extension'
+		exit
+	end
+	act 'Leave': gt $loc, $loc_arg
+end
+
+if $ARGS[0] = 'Family extension':
+	'<center><img <<$set_imgh>> src="images/locations/city/citycenter/gym/race/run_win.jpg"></center>'
+	if $home['current'] = 'parents_home':
+		minut += 10
+		gs 'stat'
+		'As you receive congratulations from your coach and fellow competitors, you look towards the crowd to acknowledge their support. You are surprised to see your mother frantically waving at you and trying to make her way down to the track-side.'
+		'Breaking out into a huge grin, you jog over to the barrier and reach over and hug each other.'
+		'"Well done <<$pcs_nickname>>, that was some race! Oh my! My little girl... The Saint Petersburg Track champion! Where to next, National races? Anyway, I just had to come when I saw your name on the start list for the race in the local paper; I know you''ve been training hard, but I never expected that you''d be at this level. I''m so proud of you! Give me another hug!"'
+		'You lean over and hug your mother. "Thanks for coming, <<$npc_nickname[''A29'']>>. I didn''t mention it as I wasn''t sure how well I''d do and I didn''t want to put any pressure on you to attend given we aren''t exactly flush with money."'
+		'Your mother hugs you close. "Oh <<$pcs_nickname>>, really?! Of course I''d come! Whatever differences we''ve had, you''re my daughter and I love you and want the best for you."'
+		if npc_rel['A33'] > 50:
+			'At this point, you feel a soft punch on your arm and look up to see Anya standing behind your mother grinning at you. You both open your arms and include her in the hug.'
+			'"At last! I got stuck behind some folks. Anyway, well done <<$pcs_nickname>>! That was fast, not far off Olympic times!"'
+			'You take half a step back and look at them "This calls for a family celebration! Let me get showered and changed and I''ll meet you outside. I''ve got an idea..."'
+		else
+			'After the hug, your mother looks around as if searching for someone.'
+			'"Are you okay, <<$npc_nickname[''A29'']>>? Have you lost someone?"'
+			'"Yes, Anya is with me. I asked her to come and see you and do a bit of shopping after, but I can''t see her. She must have gotten stuck on the way down. Never mind, at least I got to hug my little girl. You get showered and changed and I''ll wait for you and Anya in reception."'
+			'"Okay, sounds like a plan. I''ve got an idea as I think this calls for something special."'
+		end
+		act 'Go for a shower':
+			*clr & cla
+			dynamic $showerdin
+			if deodorant_on = 1: gs 'sweat', 'remove_deo' & 'Your deodorant gets washed away in the shower.'
+			pcs_hairbsh = 1
+			'<center><video autoplay loop src="images/shared/home/bathroom/dush.mp4"></video></center>'
+			'You have a shower and get dressed.'
+			minut += 10
+			gs 'stat'
+			act 'Go meet your family':
+				*clr & cla
+				'<center><img <<$set_imgh>> src="images/locations/city/citycenter/gym/desk.jpg"></center>'
+				'Meeting your mother and sister in the reception, you propose your idea. "How about a special treat if I can arrange it? How about the three of us head over to Babel and try to get in for a meal?"'
+				'Both your mother and Anya look at you as if you''ve gone mad before your mother answers. "<<$pcs_nickname>>! First off, we aren''t dressed for that place. It''s too posh and even if we were, there''s no way we could afford it."'
+				'Still grinning you answer "Well that''s why I said ''if I can arrange it''. Let''s try and if it doesn''t work we can always head over to the diner."'
+				'They both look at each other and back at you, but don''t say anything. "Right, well I''ll take that as a yes then."'
+				'You all leave and head towards Babel.'
+				minut += 5
+				gs 'stat'
+				act 'Go to the restaurant':
+					*clr & cla
+					'<center><img <<$set_imgh>> src="images/locations/city/citycenter/expensiverest/restoran.jpg"></center>'
+					'You approach the maître d''.'
+					'As expected, he initially refuses your party entry to the restaurant. You briefly explain that you''ve just become the Saint Petersburg track champion for the 400 meter event and show him your gold medal as proof, but he remains doubtful. "Okay young lady, can you please tell me your name?"'
+					'"<<$pcs_firstname>> <<$pcs_lastname>>," you reply.'
+					'"Okay Miss <<$pcs_lastname>>, one second please." He turns around and approaches a table in the lobby with some national, international and local papers displayed and checks the local paper before returning to you.'
+					minut += 5
+					gs 'stat'
+					act 'Convince him':
+						*clr & cla
+						'<center><img <<$set_imgh>> src="images/locations/city/citycenter/expensiverest/maitredseat.jpg"></center>'
+						'After a brief conversation with him, he disappears for a few minutes before returning and beckoning your mother and Anya to join you. Once they are with you, he smiles. "Normally we wouldn''t allow entry as we have a strict dress code. However, given the circumstances, I''m pleased to tell you that you are all most welcome to eat here as it''s such a special occasion. After all it''s not every day that we have the Saint Petersburg 400 meter track champion eating in our fine establishment".'
+						'He continues "The manager has also asked me to let you know that you''ll all eat free tonight with a complimentary bottle of champagne. There is one condition though..."'
+						*nl
+						'You look at him a little warily. "Okay, thanks. Umm and the condition?"'
+						'He breaks into a grin. "Well now, that''s very simple. We take a photo of you displaying your gold medal to include in our advertising to say that you ate here with your lovely sisters after winning the race."'
+						'At this point your mother blushes and goes bright red as you answer. "No problem, it''ll be our pleasure... That is once my <<$npc_nickname[''A29'']>> stops blushing and my sister stops giggling!"'
+						'"Your mother?" he enquires.'
+						'"Yes," you reply, "although I guess you can tell by how red she''s gone she clearly likes your compliment."'
+						'He continues. "Also one photo of you which I''ll ask you to sign so I can show my kids."'
+						'"Of course! Let''s get that done while my mother recovers her poise."'
+						minut += 5
+						gs 'stat'
+						act 'Have dinner':
+							*clr & cla
+							'<center><img <<$set_imgh>> src="images/locations/city/citycenter/expensiverest/seated.jpg"></center>'
+							'After the photo is taken, the maître d'' leads you to your table where you all sit down.'
+							'Having enjoyed a lovely meal and having a light buzz from the champagne, you all head out and you pause to thank the maître d'' for his kindness and ask him to pass on your thanks to the manager for offering the meal for free.'
+							'Outside, you all share another hug and you thank them both for coming before you part ways.'
+							'Your sister winks at you and as she waves goodbye she says "Well <<$pcs_nickname>>, thanks for that. I never thought I''d get to eat there. Guess you''ve already started getting used to having some fame!"'
+							'Your mother adds her agreement. "Me neither. That was a special treat! Now don''t let this go to your head too much. I still want you to work hard as a good education is important too."'
+							'You smile as you answer. "Yes <<$npc_nickname[''A29'']>>, I know. See you both later."'
+							gs 'drugs', 'alcohol', 'champagne', 2
+							frost = 0
+							pcs_health += 30
+							pcs_mood += 10
+							fat += 8
+							pcs_energy += 60
+							if pcs_hydra >= 100:
+								pcs_hydra += 10
+							else
+								pcs_hydra += 30
+							end
+							cumspclnt = 2
+							gs 'cum_cleanup'
+							pcs_breath = 0
+							minut += 90
+							gs 'stat'
+							act 'Go to the city center': gt 'city_center'
+						end
+					end
+				end
+			end
+		end
+	else
+		if npc_rel['A33'] <= 50:
+			gt $loc, $loc_arg
+		else
+			'As you receive congratulations from your coach and fellow competitors, you look towards the crowd to acknowledge their support. You are surprised to see your sister frantically waving at you and trying to make her way down to the track-side.'
+			'Breaking out into a huge grin, you jog over to the barrier and reach over give each other a hug.'
+			'"You go girl! That was some race. I knew you were into your running, but I never thought you were at this level. Well done!"'
+			'"Thanks for coming sis. It means a lot."'
+			'"How come you never told me? It was lucky I found out because the coach mentioned it to me last week while I was hanging out with Roma and the crew outside the community center. I wasn''t going to miss the opportunity for a possible little celebration with my little sis, was I? Let''s go for a few beers! I know a cool bar just a short metro ride from here."'
+			'"Okay, cool. I''m up for that! Let me go and shower and change first."'
+			'"Okay, just don''t be too long or I may have to leave without you!"'
+			act 'Go for a shower':
+				*clr & cla
+				dynamic $showerdin
+				if deodorant_on = 1: gs 'sweat', 'remove_deo' & 'Your deodorant gets washed away in the shower.'
+				pcs_hairbsh = 1
+				'<center><video autoplay loop src="images/shared/home/bathroom/dush.mp4"></video></center>'
+				'You have a shower and get dressed.'
+				*nl
+				'After your shower, you meet Anya in the reception and head off to the metro.'
+				minut += 10
+				gs 'stat'
+				act 'Go to the bar':
+					*clr & cla
+					'<center><img <<$set_imgh>> src="images/locations/city/shared/metro/metro.jpg"></center>'
+					'You take the metro to the industrial area and head towards the Rabotnik bar.'
+					minut += 20
+					gs 'stat'
+					act 'Have a drink':
+						*clr & cla
+						'<center><img <<$set_imgh>> src="images/locations/city/industrial/bar/bar.jpg"></center>'
+						'You both make your way to the bar and order some beers, which you drink at the bar.'
+						'When you''ve both finished your beer, you order another and head towards the pool table.'
+						gs 'drugs', 'alcohol', 'beer', 1
+						minut += 15
+						gs 'stat'
+						act 'Play pool':
+							*clr & cla
+							'<center><img <<$set_imgh>> src="images/locations/city/industrial/bar/sex/pool/poolw.jpg"></center>'
+							'You both enjoy a game of pool and after the game, Anya heads off to the bar to get some more beers.'
+							'In the meantime, you set the table up for another game.'
+							gs 'drugs', 'alcohol', 'beer', 1
+							minut += 15
+							gs 'stat'
+							act 'Another game':
+								*clr & cla
+								'<center><img <<$set_imgh>> src="images/locations/city/industrial/bar/sex/pool/pooll.jpg"></center>'
+								'You spend a few minutes playing another game before taking your final shot and winning the game.'
+								'"Okay <<$pcs_nickname>>, that''s one game each. Let''s have one more beer then I''ve got to go."'
+								'"Sounds good sis." After a final beer, you both leave the bar and Anya gives you a hug before hurrying off. "See you later, sis! And well done again!"'
+								gs 'drugs', 'alcohol', 'beer', 2
+								minut += 15
+								gs 'stat'
+								act 'Leave the bar': gt 'city_industrial'
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+end
+
+
+--- havana_running ---------------------------------
