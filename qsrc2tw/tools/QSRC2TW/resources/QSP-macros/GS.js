@@ -55,6 +55,7 @@ setup.qsp_gs = function(output,...args){
 		setup.qsp_performAnal_current = oldScope;
 		State.variables.ARGSstack.pop();
 		setup.qsp_callStack.pop();
+		window.SweetCube.globalBreak = false;
 	}
 
 	setup.updateActions();
