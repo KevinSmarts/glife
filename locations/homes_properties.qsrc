@@ -75,11 +75,12 @@ end
 !!			- empty strying   ->  '' - will work as if a location was passed, but will use the actual value of $loc
 !!			- A number as str -> '1', '2' - this should be the id of the property
 !!			  					NOTE: only added in case someone really want to use the old ids
-!! ARGS[2]: ownership type
+!! ARGS[2]: ownership type -> status code
 !!			0: no acces  -> 'no access'
-!!			1: not owned but can live her - a rented property or living at some else''s place
+!!			1: rented - a rented property
 !!			2: owned     -> 'owned'
 !!			3: owned and rented out -> 'tenants'
+!!			4: can live there -> not owned, not rented, but can live there - parents, friends, dorm, etc.
 !! ARGS[3]: construction status - optional
 !!			0: land only
 !!			1: foundation, frames built, utilities are connected
@@ -91,6 +92,7 @@ if $ARGS[0] = 'set_access':
 	$propcode = iif($ARGS[1] = '', $home_name[$loc], $home_name[$ARGS[1]])
 	orig_status_code = accessible_property[$propcode]
 	new_status_code = ARGS[2]
+
 	if orig_status_code ! new_status_code:
 		if $accessible_property[$propcode] = '' or $accessible_property['<<$propcode>>-display'] = '' or $accessible_property['<<$propcode>>-name'] = '':
 			if $property['code'] ! $propcode:
@@ -98,8 +100,7 @@ if $ARGS[0] = 'set_access':
 			else
 				nokill = 1
 			end
-			if ARGS[2] = 1 and property['rental'] = 0: new_status_code = 4
-			accessible_property[$propcode] = new_status_code
+			if new_status_code = 1 and property['rental'] = 0: new_status_code = 4
 			$accessible_property[$propcode] = $propcode
 			$accessible_property['<<$propcode>>-name'] = $property['name']
 			$accessible_property['<<$propcode>>-type'] = $property['type']
@@ -118,11 +119,11 @@ if $ARGS[0] = 'set_access':
 			accessible_property['<<$propcode>>-sales-price'] = property['price']
 			accessible_property['<<$propcode>>-rent'] = property['rent']
 		end
+		accessible_property[$propcode] = new_status_code
 
 		if accessible_property[$propcode] = 0:
 			!! If this was the current home then killing it
 			if $home['current'] = $propcode: killvar '$home'
-
 			!! Updating home counts
 			!! NOTE: Valid transitions: 1 -> 0, 2 -> 0, 4 -> 0
 			if accessible_property['<<$propcode>>-is-home'] = 1:
