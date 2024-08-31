@@ -11,7 +11,7 @@ import { execSync } from 'node:child_process';
 
 const VERSION = 8;
 const generatedFilesPrefix = '-generated';
-const resourcesFilesPrefix = '+resources';
+//const resourcesFilesPrefix = '+resources';
 
 const program = new Command();
 program
@@ -120,9 +120,9 @@ if(!options.skipFailedfilesFile){
     });
 }
 
-const resourcesPath = path.join(outPath,resourcesFilesPrefix);
-fs.rmSync(resourcesPath, { recursive: true, force: true });
-fs.cpSync("./resources", resourcesPath, {recursive: true});
+//const resourcesPath = path.join(outPath,resourcesFilesPrefix);
+//fs.rmSync(resourcesPath, { recursive: true, force: true });
+//fs.cpSync("./resources", resourcesPath, {recursive: true});
 
 
 const executionTime =  (new Date()).getTime() - startTime;
