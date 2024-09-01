@@ -81,8 +81,8 @@ const convertPromise = new Promise((resolve, reject) => {
             generatedFilesPrefix: generatedFilesPrefix,
             options:options,
         }, (err, result) => {
-            const wasSuccessful = (result[0] == 0);
-            const message = result[1];
+            const wasSuccessful = (result?.[0] === 0);
+            const message = result?.[1] ?? '';
 
             if(!wasSuccessful){
                 const displayFilePath = baseFileName(filePath);
