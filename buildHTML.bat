@@ -6,8 +6,16 @@ PUSHD %1
 cd ./qsrc2tw/tools/QSRC2TW
 CALL QSRC2TW.exe -in "%LOCATIONS%" -out "../../twine-code"
 cd ../..
-call npx tsc
-call npx esbuild "temp/typescript.js" --minify --outfile="twine-code/-generated/typescript-min.js"
+
+REM Check if node is installed
+node -v 2> Nul
+if "%errorlevel%" == "9009" (
+    echo node could not be found
+) else (
+	call npx tsc
+	call npx esbuild "temp/typescript.js" --minify --outfile="twine-code/-generatedFromTS/typescript-min.js"
+)
+
 POPD
 
 if %PROCESSOR_ARCHITECTURE% == AMD64 (
