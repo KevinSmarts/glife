@@ -4,7 +4,7 @@ SET LOCATIONS=%CD%/locations
 
 PUSHD %1
 cd ./qsrc2tw/tools/QSRC2TW
-node index.js -in "%LOCATIONS%" -out "../../twine-code"
+CALL QSRC2TW.exe -in "%LOCATIONS%" -out "../../twine-code"
 cd ../..
 call npx tsc
 call npx esbuild "temp/typescript.js" --minify --outfile="twine-code/-generated/typescript-min.js"
