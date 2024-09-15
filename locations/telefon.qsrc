@@ -1,5 +1,22 @@
 # telefon
 !2021/05/06
+!	Code by:
+!		Crowke
+!		Gwen
+!		hornguy6
+!		JodiJohnson
+!		julzor
+!		Kevin Smarts
+!		KeyMasterOfGozer
+!		Mona Lisa
+!		netuttki
+!		philormand
+!		rachels
+!
+!2023
+!	Adopted by:
+!		anjuna
+
 
 !! Draw screens for mobile phone.
 !!
@@ -20,15 +37,22 @@
 !! contactWeek[] = Calls from this contact this week
 !! contactLastCall[] = last time this Contact called
 !
-!! Add a contact with AddContact
-!!	gs 'telefon', 'AddContact', <NPC Code>, <Icon for NPC>, <Code for Incoming Call>, <Limiter for Incoming Call>, <Code for Outgoing Call>, <Limiter for Outgoign Call>, <Code for Incoming SMS>, <Limiter for Incoming SMS>, <Code for Outgoing SMS>, <Limiter for Outgoign SMS>, <Anonymous=1>
-!!  Example, to Add Mother:
-!!	gs 'telefon', 'AddContact', 'A29', 'icon_npc1', "gs 'telefon', 'Phone_call'", "hour >= 8 and hour <= 20", "gs 'telefon', 'lover'", "hour >= 8 and hour <= 20", "gs 'telefon', 'SMS_your_lover'", "hour >= 10 and hour <= 16", "gs 'telefon', 'lover_SMS'", "hour >= 10 and hour <= 16", 0
+!!	Add a contact with AddContact
+!!		gs 'telefon', 'AddContact', <NPC Code>, <Icon for NPC>, <Anonymous=1>
+!!		gs 'telefon', 'SetCallSchedule', <NPC Code>, <Code for Incoming Call>, <Limiter for Incoming Call>, <Code for Outgoing Call>, <Limiter for Outgoign Call>
+!!		gs 'telefon', 'SetSMSSchedule', <NPC Code>, <Code for Incoming SMS>, <Limiter for Incoming SMS>, <Code for Outgoing SMS>, <Limiter for Outgoign SMS>
+
+
+!!	Example, to Add Mother:
+!!		gs 'telefon', 'AddContact', 'A29', 'icon_npc1', 0
+!!		gs 'telefon', 'SetCallSchedule', 'A29', "gs 'telefon', 'Phone_call'", "hour >= 8 and hour <= 20", "gs 'lover_call', 'lover', 'A29'", "hour >= 8 and hour <= 20"
+!!		gs 'telefon', 'SetSMSSchedule', 'A29', "gs 'telefon', 'SMS_your_lover'", "hour >= 10 and hour <= 16", "gs 'lover_call', 'lover_SMS'", "hour >= 10 and hour <= 16"
 !!
-!! Remove a contact with DeleteContact
-!!	gs 'telefon', 'DeleteContact', <NPC Code>
-!!  Example, to delete Mom:
-!!	gs 'telefon', 'DeleteContact', 'A29'
+!!	Remove a contact with DeleteContact
+!!		gs 'telefon', 'DeleteContact', <NPC Code>
+!!
+!!	Example, to delete Mom:
+!!		gs 'telefon', 'DeleteContact', 'A29'
 !!
 
 
@@ -39,27 +63,15 @@ $telefon['header'] = {
 	else
 		$telefon['SMSstatus'] = ''
 	end
-	if 1:
-		$result = '<center>
-		<b><<$mid(100 + hour, 2, 2)>>:<<$mid(100 + minut, 2, 2)>></b><br>
-		<table cellspacing="0" width="80%">
-			<tr>
-				<td><img src="images/system/icons/icon_statusbar_left.png"></td>
-				<td><<$telefon[''SMSstatus'']>></td>
-				<td align="right"><img src="images/system/icons/icon_statusbar_right.png"></td>
-			</tr>
-		</table><br>'
-	else
-		$result = '<center>
-		<b><<$mid(100 + hour, 2, 2)>>:<<$mid(100 + minut, 2, 2)>></b><br>
-		<table cellspacing="0" width="80%">
-			<tr>
-				<td><img src="images/system/icons/icon_statusbar_left.png"></td>
-				<td><<$telefon[''SMSstatus'']>></td>
-				<td align="right"><img src="images/system/icons/icon_statusbar_right<<min(max(0, (pcs_sleep + 10) / 20), 5)>>.png"></td>
-			</tr>
-		</table><br>'
-	end
+	$result = '<center>
+	<b><<func(''time'', ''get_time_string'', hour, minut)>></b><br>
+	<table cellspacing="0" width="80%">
+		<tr>
+			<td><img src="images/system/icons/icon_statusbar_left.png"></td>
+			<td><<$telefon[''SMSstatus'']>></td>
+			<td align="right"><img src="images/system/icons/icon_statusbar_right<<min(max(0, (pcs_sleep + 10) / 20), 5)>>.png"></td>
+		</tr>
+	</table><br>'
 }
 
 !! Footer for phone screen.  Body should be between these two
@@ -106,7 +118,7 @@ $telefon['contact'] = {
 		$telefon['ContactCallCode'] = "gs 'telefon', 'phone_call_reject'"
 	end
 	$result = '<tr>
-		<td><img src="<<$telefon[''ContactIcon'']>>" width="75"></td>
+		<td><img width="75" src="<<$telefon[''ContactIcon'']>>"></td>
 		<td><<$telefon[''ContactNickName'']>></td>
 		<td align="right"><a href="exec:$callerid = ''<<$telefon[''ContactIcon'']>>'' & <<$telefon[''ContactCallCode'']>>"><b>Call</b></a></td>
 	</tr>'
@@ -123,7 +135,7 @@ if $ARGS[0] = 'AddContact':
 	telefonCon['Anonymous'] = ARGS[3]
 
 	telefonCon['ContactListID'] = arrpos('$contact', $telefonCon['NPC'])
-	if telefonCon['ContactListID'] = -1:
+	if telefonCon['ContactListID'] < 0:
 		telefonCon['ContactListID'] = arrsize('$contact')
 		$contact[telefonCon['ContactListID']] = $telefonCon['NPC']
 		$contactOCode[telefonCon['ContactListID']] = ""
@@ -166,18 +178,22 @@ if $ARGS[0] = 'SetCallSchedule':
 	$contactICode[telefonCon['ContactListID']] = $telefonCon['InCode']
 	$contactISche[telefonCon['ContactListID']] = $telefonCon['InSched']
 
+	killvar 'telefonCon'
 	killvar '$telefonCon'
 end & ! --- SetCallSchedule ---
 
 if $ARGS[0] = 'ClearCallSchedule':
 	$telefonCon['NPC'] = $ARGS[1]
 	telefonCon['ContactListID'] = arrpos('$contact', $telefonCon['NPC'])
-	if telefonCon['ContactListID'] = -1: exit
-	$contactOCode[telefonCon['ContactListID']] = ""
-	$contactOSche[telefonCon['ContactListID']] = "0"
-	$contactICode[telefonCon['ContactListID']] = ""
-	$contactISche[telefonCon['ContactListID']] = "0"
 
+	if telefonCon['ContactListID'] >= 0:
+		$contactOCode[telefonCon['ContactListID']] = ""
+		$contactOSche[telefonCon['ContactListID']] = "0"
+		$contactICode[telefonCon['ContactListID']] = ""
+		$contactISche[telefonCon['ContactListID']] = "0"
+	end
+
+	killvar 'telefonCon'
 	killvar '$telefonCon'
 end & ! --- ClearCallSchedule ---
 
@@ -207,18 +223,22 @@ if $ARGS[0] = 'SetSMSSchedule':
 	$contactISMSCode[telefonCon['ContactListID']] = $telefonCon['InSMSCode']
 	$contactISMSSche[telefonCon['ContactListID']] = $telefonCon['InSMSSched']
 
+	killvar 'telefonCon'
 	killvar '$telefonCon'
 end & ! --- SetSMSSchedule ---
 
 if $ARGS[0] = 'ClearSMSSchedule':
 	$telefonCon['NPC'] = $ARGS[1]
 	telefonCon['ContactListID'] = arrpos('$contact', $telefonCon['NPC'])
-	if telefonCon['ContactListID'] = -1: exit
-	$contactOSMSCode[telefonCon['ContactListID']] = ""
-	$contactOSMSSche[telefonCon['ContactListID']] = "0"
-	$contactISMSCode[telefonCon['ContactListID']] = ""
-	$contactISMSSche[telefonCon['ContactListID']] = "0"
 
+	if telefonCon['ContactListID'] >= 0:
+		$contactOSMSCode[telefonCon['ContactListID']] = ""
+		$contactOSMSSche[telefonCon['ContactListID']] = "0"
+		$contactISMSCode[telefonCon['ContactListID']] = ""
+		$contactISMSSche[telefonCon['ContactListID']] = "0"
+	end
+
+	killvar 'telefonCon'
 	killvar '$telefonCon'
 end & ! --- ClearSMSSchedule ---
 
@@ -226,7 +246,7 @@ if $ARGS[0] = 'DeleteContact':
 	!! $ARGS[1] = NPC Array identifier
 	$telefonCon['NPC'] = $ARGS[1]
 	telefonCon['ContactListID'] = arrpos('$contact',$telefonCon['NPC'])
-	if telefonCon['ContactListID'] > -1:
+	if telefonCon['ContactListID'] >= 0:
 		killvar '$contact',			telefonCon['ContactListID']
 		killvar '$contactIcon',		telefonCon['ContactListID']
 		killvar '$contactOCode',	telefonCon['ContactListID']
@@ -247,41 +267,32 @@ end &! --- DeleteContact ---
 if $ARGS[0] = 'ContactList':
 	$telefon['body'] = '
 	<font size=6>Contacts</font><br>
-	<img src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/icon_call.png" height="80" width="80"><br><br>
+	<img height="80" width="80" src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/icon_call.png"><br><br>
 	<table cellspacing="0" width="80%">'
 
 	!!iterating all Contacts
-	i=0
+	telefon_i = 0
 	:contactloop2
-	if i < arrsize('$contact'):
-		if contactAnon[i] = 0:
-			$telefon['body'] += dyneval($telefon['contact'],$contactIcon[i],$npc_nickname[$contact[i]],$contactOCode[i],$contactOSche[i])
+	if telefon_i < arrsize('$contact'):
+		if contactAnon[telefon_i] = 0:
+			$telefon['body'] += dyneval($telefon['contact'], $contactIcon[telefon_i], $npc_nickname[$contact[telefon_i]], $contactOCode[telefon_i], $contactOSche[telefon_i])
 		end
-		i += 1
+		telefon_i += 1
 		jump 'contactloop2'
 	end
+	killvar 'telefon_i'
 
 	!! Oddball Contacts
 	if telalla > 0:
-		$telefon['body'] += dyneval($telefon['contact'],'icon_ira1','Alla',"$telsob = 'Alla' & gt 'telefon', 'mobilaraz'","hour >= 8 and hour <= 20")
+		$telefon['body'] += dyneval($telefon['contact'], 'icon_ira1', 'Alla', "$telsob = 'Alla' & gt 'lover_call', 'mobilaraz'", "hour >= 8 and hour <= 20")
 	end
-	if telmasha > 0:
-		$telefon['body'] += dyneval($telefon['contact'],'icon_masha','Masha',"$telsob = 'Masha' & gt 'telefon', 'mobilaraz'","hour >= 8 and hour <= 20")
-	end
-
-	!! iterating all lovers
-	lover_number = 0
-	:loverloop2
-	if pcs_lovers[lover_number] = 1 and svidanie[lover_number] = 0:
-		$telefon['body'] += dyneval($telefon['contact'],'icon_bf'+lover_picture[lover_number],$loverdesc[lover_number],"lover_number = <<lover_number>> & gt 'telefon', 'callingTheLover', <<lover_number>>","hour > 6 and hour < 20")
-	end
-	lover_number += 1
-	if lover_number < arrsize('pcs_lovers'): jump 'loverloop2'
+	!! telmasha is never set
+	!!	if telmasha > 0:
+	!!		$telefon['body'] += dyneval($telefon['contact'], 'icon_masha', 'Masha', "$telsob = 'Masha' & gt 'lover_call', 'mobilaraz'", "hour >= 8 and hour <= 20")
+	!!	end
 
 	$telefon['body'] += '</table><br>'
 	dynamic $telefon['print']
-	killvar 'i'
-	killvar 'lover_number'
 end &! --- ContactList ---
 
 
@@ -289,17 +300,17 @@ end &! --- ContactList ---
 !!
 !! ARGS[1] = New Week if 1, 0 if same week
 if $ARGS[0] = 'DailyStatRefresh':
-	i=0
+	telefon_i = 0
 	:DailyStatRefLoop
-	if i < arrsize('$contact'):
-		contactToday[i] = 0
+	if telefon_i < arrsize('$contact'):
+		contactToday[telefon_i] = 0
 		if ARGS[1] = 1:
-			contactWeek[i] = 0
+			contactWeek[telefon_i] = 0
 		end
-		i += 1
+		telefon_i += 1
 		jump 'DailyStatRefLoop'
 	end
-	killvar 'i'
+	killvar 'telefon_i'
 end
 
 
@@ -318,7 +329,7 @@ if $ARGS[0] = 'IncomingCheck':
 
 	!! Limit the number of calls per day
 	!! right now allow every 60 minutes
-	if telefIncCheck['NewTotalMinutes'] - telefon['LastIncCallCheck'] > 60 and menu_off = 0 and phone_off = 0:
+	if telefIncCheck['NewTotalMinutes'] - telefon['LastIncCallCheck'] > 60 and (menu_off = 0 and phone_off = 0 or phone_on = 1):
 		telefon['LastIncCallCheck'] = telefIncCheck['NewTotalMinutes']
 		gs 'telefon','IncomingCallChooser'
 	end
@@ -330,54 +341,40 @@ if $ARGS[0] = 'IncomingCallChooser':
 	!! When an Incoming call happens, choose who it comes from
 
 	!! Add Contacts
-	i=0
+	telefon_i = 0
 	:telefonIncLoop1
-	if i < arrsize('$contact'):
-		if $contactICode[i] ! "":
-			if dyneval('result = iif(<<$contactISche[i]>>,1,0)') = 1:
-				j = arrsize('$telefIncCall')
-				if contactAnon[i] = 1:
-					$telefIncIcon[j] = "images/system/phone/decline.png"
-					$telefIncName[j] = "Unknown Caller"
+	if telefon_i < arrsize('$contact'):
+		if $contactICode[telefon_i] ! "":
+			if dyneval('result = iif(<<$contactISche[telefon_i]>>, 1, 0)') = 1:
+				telefon_j = arrsize('$telefIncCall')
+				if contactAnon[telefon_i] = 1:
+					$telefIncIcon[telefon_j] = "images/system/phone/decline.png"
+					$telefIncName[telefon_j] = "Unknown Caller"
 				else
-					$telefIncIcon[j] = $contactIcon[i]
-					$telefIncName[j] = $npc_nickname[$contact[i]]
+					$telefIncIcon[telefon_j] = $contactIcon[telefon_i]
+					$telefIncName[telefon_j] = $npc_nickname[$contact[telefon_i]]
 				end
-				$telefIncCall[j] = $contactICode[i]
-				$telefIncNPC[j] = $contact[i]
+				$telefIncCall[telefon_j] = $contactICode[telefon_i]
+				$telefIncNPC[telefon_j] = $contact[telefon_i]
 			end
 		end
-		i += 1
+		telefon_i += 1
 		jump 'telefonIncLoop1'
 	end
 
-	!! Add Lovers
-	i=0
-	:telefonIncLoop2
-	if i < 3 and hour > 5 and hour < 20:
-		if pcs_lovers[i] = 1 and svidanie[i] = 0 and loverday[i] ! daystart and rand(1,100) > 95:
-			j = arrsize('$telefIncCall')
-			$telefIncCall[j] = "gs 'telefon', 'lover', <<i>>"
-			$telefIncIcon[j] = 'images/characters/shared/headshots_generic/<<lover_picture[i]>>.jpg'
-			$telefIncName[j] = $loverdesc[i]
-		end
-		i += 1
-		jump 'telefonIncLoop2'
-	end
-
 	if arrsize('$telefIncCall') > 0:
-		j = rand(0,arrsize('$telefIncCall')-1)
-		if $telefIncNPC[j] ! "":
-			i = arrpos('$contact',$telefIncNPC[j])
-			contactLastCall[i] = totminut
-			contactToday[i] += 1
-			contactWeek[i] += 1
+		telefon_j = rand(0,arrsize('$telefIncCall')-1)
+		if $telefIncNPC[telefon_j] ! "":
+			telefon_i = arrpos('$contact',$telefIncNPC[telefon_j])
+			contactLastCall[telefon_i] = totminut
+			contactToday[telefon_i] += 1
+			contactWeek[telefon_i] += 1
 		end
-		gs 'telefon', 'IncomingCall', $telefIncIcon[j], $telefIncName[j], $telefIncCall[j]
+		gs 'telefon', 'IncomingCall', $telefIncIcon[telefon_j], $telefIncName[telefon_j], $telefIncCall[telefon_j]
 	end
 
-	killvar 'i'
-	killvar 'j'
+	killvar 'telefon_i'
+	killvar 'telefon_j'
 	killvar '$telefIncIcon'
 	killvar '$telefIncName'
 	killvar '$telefIncCall'
@@ -396,7 +393,7 @@ if $ARGS[0] = 'IncomingCall':
 	PLAY 'sound/old_phone.mp3',30
 	$telefon['body'] = '
 	<font size=6><<$telefonIncC["Name"]>> calling</font><br>
-	<img src="<<$telefonIncC["Icon"]>>" width="200"><br>
+	<img width="200" src="<<$telefonIncC["Icon"]>>"><br>
 	<br>
 	<br>
 	<br>
@@ -413,7 +410,7 @@ if $ARGS[0] = 'Phone_notebook':
 	gs 'housing', 'rent'
 	$telefon['body'] = '
 	<font size=6>Planner</font><br>
-	<img src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/icon_notebook.png" height="80" width="80"><br>
+	<img height="80" width="80" src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/icon_notebook.png"><br>
 	<<year>>-<<$month>>-<<day>>, <<$week[week]>><br><br>'
 	rent1 = -1
 	rent4 = -1
@@ -583,7 +580,7 @@ end
 if $ARGS[0] = 'Phone_sms':
 	$telefon['body'] = '
 	<font size=6>SMS</font><br>
-	<img src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/<<iif(telefon[''UnreadSMS'']=0,''icon_sms.png'',''icon_sms_new.gif'')>>" height="80" width="80"><br>'
+	<img height="80" width="80" src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/<<iif(telefon[''UnreadSMS'']=0,''icon_sms.png'',''icon_sms_new.gif'')>>"><br>'
 
 	$telefon['body'] += '<b><a href="exec:gs ''telefon'', ''send_sms''">Send new SMS</a></b><br>'
 	$telefon['body'] += '<table cellspacing="0" width="80%"><tr><th>Icon</th><th>Name</th><th align="right">Received</th><th></th></tr>'
@@ -643,15 +640,15 @@ end
 
 if $ARGS[0] = 'delete_sms':
 	telefon['SMSid'] = ARGS[1]
-	killvar '$SMSContact', telefon['SMSid']
-	killvar '$SMSMessage', telefon['SMSid']
-	killvar '$SMSReplies', telefon['SMSid']
-	killvar '$SMSTime', telefon['SMSid']
-	killvar '$SMSPicture1', telefon['SMSid']
-	killvar '$SMSPicture2', telefon['SMSid']
-	killvar '$SMSPicture3', telefon['SMSid']
-	killvar '$SMSPicture4', telefon['SMSid']
-	killvar 'SMSMessageRead', telefon['SMSid']
+	killvar '$SMSContact',		telefon['SMSid']
+	killvar '$SMSMessage',		telefon['SMSid']
+	killvar '$SMSReplies',		telefon['SMSid']
+	killvar '$SMSTime',			telefon['SMSid']
+	killvar '$SMSPicture1',		telefon['SMSid']
+	killvar '$SMSPicture2',		telefon['SMSid']
+	killvar '$SMSPicture3',		telefon['SMSid']
+	killvar '$SMSPicture4',		telefon['SMSid']
+	killvar 'SMSMessageRead',	telefon['SMSid']
 	telefon['SMSCount'] -= 1
 	if $ARGS[2] = 'all' and telefon['SMSCount'] > 0 :
 		gs 'telefon','delete_sms','0','all'
@@ -688,7 +685,7 @@ if $ARGS[0] = 'show_sms':
 
 	$telefon['body'] = '
 	<font size=6>SMS</font><br>
-	<img src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/<<iif(telefon[''UnreadSMS'']=0,''icon_sms.png'',''icon_sms_new.gif'')>>" height="80" width="80"><br>'
+	<img height="80" width="80" src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/<<iif(telefon[''UnreadSMS'']=0,''icon_sms.png'',''icon_sms_new.gif'')>>"><br>'
 
 	$telefon['body'] += '<table cellspacing="0" width="80%">'
 	$telefon['body'] += '<tr><tr><img height=100 src="<<$telefonCon[''Icon'']>>"></td><td><<$telefonCon[''NPCName'']>></td></tr>'
@@ -760,7 +757,7 @@ if $ARGS[0] = 'send_sms':
 	$telefon['backButton'] = 'gs ''telefon'', ''Phone_sms'''
 	$telefon['body'] = '
 	<font size=6>Send SMS</font><br>
-	<img src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/<<iif(telefon[''UnreadSMS'']=0,''icon_sms.png'',''icon_sms_new.gif'')>>" height="80" width="80"><br>'
+	<img height="80" width="80" src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/<<iif(telefon[''UnreadSMS'']=0,''icon_sms.png'',''icon_sms_new.gif'')>>"><br>'
 	if subscription['metered_calls'] = 1 and subscription['sms_limit'] > 0:
 		$telefon['body'] += '<br/>'
 		$telefon['body'] += '<b>You still can send <<subscription[''sms_limit'']>> text messages on your contract</b>'
@@ -769,19 +766,19 @@ if $ARGS[0] = 'send_sms':
 
 	$telefon['body'] += '<table cellspacing="0" width="80%">'
 	!!iterating all Contacts
-	i=0
+	telefon_i = 0
 	:smscontactloop
-	if i < arrsize('$contact'):
-		if contactAnon[i] = 0:
-			$telefon['body'] += dyneval($telefon['contactsms'],i)
+	if telefon_i < arrsize('$contact'):
+		if contactAnon[telefon_i] = 0:
+			$telefon['body'] += dyneval($telefon['contactsms'], telefon_i)
 		end
-		i += 1
+		telefon_i += 1
 		jump 'smscontactloop'
 	end
 	$telefon['body'] += '</table><br>'
 
 	dynamic $telefon['print']
-	killvar 'i'
+	killvar 'telefon_i'
 end
 
 !! This is the formatting function for a row in the Contact List. SHould be run as a DYNEVAL()
@@ -801,7 +798,7 @@ $telefon['contactsms'] = {
 
 	$result = '
 	<tr>
-		<td><img src="<<$telefon[''ContactIcon'']>>" width="75"></td>
+		<td><img width="75" src="<<$telefon[''ContactIcon'']>>"></td>
 		<td><<$npc_nickname[$telefon[''ContactNPCcode'']]>></td>
 		<td><a href="exec:gs ''telefon'', ''npcSendListSms'', ''<<$telefon[''ContactNPCcode'']>>''">New Message</a></td>
 	</tr>'
@@ -813,23 +810,23 @@ if $ARGS[0] = 'npcSendListSms':
 	$telefon['backButton'] = 'gs ''telefon'', ''send_sms'' '
 	$telefon['body'] = '
 	<font size=6>Send SMS</font><br>
-	<img src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/<<iif(telefon[''UnreadSMS'']=0,''icon_sms.png'',''icon_sms_new.gif'')>>" height="80" width="80"><br>'
+	<img height="80" width="80" src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/<<iif(telefon[''UnreadSMS'']=0,''icon_sms.png'',''icon_sms_new.gif'')>>"><br>'
 
 	$telefon['body'] += '<table cellspacing="0" width="80%">'
 	!!iterating all send sms messages
-	i=0
+	telefon_i = 0
 	:npcSendListSmsLoop
-	if i < arrsize('$SMSSendContact'):
-		if $SMSSendContact[i] = $ARGS[1]:
-			$telefon['body'] += dyneval($telefon['smsMessageToSend'],i)
+	if telefon_i < arrsize('$SMSSendContact'):
+		if $SMSSendContact[telefon_i] = $ARGS[1]:
+			$telefon['body'] += dyneval($telefon['smsMessageToSend'], telefon_i)
 		end
-		i += 1
+		telefon_i += 1
 		jump 'npcSendListSmsLoop'
 	end
 	$telefon['body'] += '</table><br>'
 
 	dynamic $telefon['print']
-	killvar 'i'
+	killvar 'telefon_i'
 end
 
 !! This is the formatting function for a row in the messages to send List. SHould be run as a DYNEVAL()
@@ -863,20 +860,21 @@ end
 	$ARGS[5] id passed by the caller to identify the option to be deleted if it needs to be removed from the options
 }
 if $ARGS[0] = 'add_sms_to_send':
-	i = arrsize('$SMSSendContact')
-	$SMSSendContact[i] = $ARGS[1]
-	$SMSSendMessage[i] = $ARGS[2]
-	$SMSSendCode[i] = $ARGS[3]
-	SMSSendRepeatable[i] = ARGS[4]
-	$SMSSendDeleteId[i] = $ARGS[5]
+	telefon_i = arrsize('$SMSSendContact')
+	$SMSSendContact[telefon_i]		= $ARGS[1]
+	$SMSSendMessage[telefon_i]		= $ARGS[2]
+	$SMSSendCode[telefon_i]			= $ARGS[3]
+	SMSSendRepeatable[telefon_i]	=  ARGS[4]
+	$SMSSendDeleteId[telefon_i]		= $ARGS[5]
+	killvar 'telefon_i'
 end
 
 if $ARGS[0] = 'delete_sms_send_index':
-	killvar '$SMSSendContact', ARGS[1]
-	killvar '$SMSSendMessage', ARGS[1]
-	killvar '$SMSSendCode', ARGS[1]
-	killvar 'SMSSendRepeatable', ARGS[1]
-	killvar '$SMSSendDeleteId', ARGS[1]
+	killvar '$SMSSendContact',		ARGS[1]
+	killvar '$SMSSendMessage',		ARGS[1]
+	killvar '$SMSSendCode',			ARGS[1]
+	killvar 'SMSSendRepeatable',	ARGS[1]
+	killvar '$SMSSendDeleteId',		ARGS[1]
 end
 
 !{
@@ -885,33 +883,34 @@ end
 }
 if $ARGS[0] = 'delete_sms_send_id':
 	$telefon['SMStoDeleteFound'] = 'No'
-	i = 0
+	telefon_i = 0
 	:findSmsToDeleteLoop
-	if (i < arrsize('$SMSSendContact')) and $telefon['SMStoDeleteFound'] = 'No':
-		if $SMSSendContact[i] = $ARGS[1] and $SMSSendDeleteId[i] = $ARGS[2]:
-			gs 'telefon', 'delete_sms_send_index', i
+	if (telefon_i < arrsize('$SMSSendContact')) and $telefon['SMStoDeleteFound'] = 'No':
+		if $SMSSendContact[telefon_i] = $ARGS[1] and $SMSSendDeleteId[telefon_i] = $ARGS[2]:
+			gs 'telefon', 'delete_sms_send_index', telefon_i
 			$telefon['SMStoDeleteFound'] = 'Yes'
 		end
-		i += 1
+		telefon_i += 1
 		jump 'findSmsToDeleteLoop'
 	end
+	killvar 'telefon_i'
 end
 
 
 if $ARGS[0] = 'IncomingSMSCheck':
-	i=0
+	telefon_i = 0
 	:telefonIncSMSLoop
-	if i < arrsize('$contact'):
-		if $contactISMSCode[i] ! "":
-			if dyneval('result = iif(<<$contactISMSSche[i]>>,1,0)') = 1:
-				dynamic $contactISMSCode[i]
+	if telefon_i < arrsize('$contact'):
+		if $contactISMSCode[telefon_i] ! "":
+			if dyneval('result = iif(<<$contactISMSSche[telefon_i]>>, 1, 0)') = 1:
+				dynamic $contactISMSCode[telefon_i]
 			end
 		end
-		i += 1
+		telefon_i += 1
 		jump 'telefonIncSMSLoop'
 	end
 
-	killvar 'i'
+	killvar 'telefon_i'
 end
 
 
@@ -922,7 +921,7 @@ end
 if $ARGS[0] = 'Phone_wheather':
 	$telefon['body'] = '
 	<font size=6>Weather</font><br>
-	<img src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/icon_weather.png" height="80" width="80"><br><br>
+	<img height="80" width="80" src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/icon_weather.png"><br><br>
 	<b>Temperature:</b><br>
 	<<$temperature>>. <<$osadki>><br>
 	P.O.P. today is <<weatherFall>>%<br>'
@@ -932,7 +931,7 @@ end &! --- Phone_wheather ---
 if $ARGS[0] = 'Phone_calendar':
 	$telefon['body'] = '
 	<font size=6>Calendar</font><br>
-	<img src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/icon_calendar.png" height="80" width="80"><br><br>
+	<img height="80" width="80" src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/icon_calendar.png"><br><br>
 	<B>Today:</B><br>
 	<<$week[week]>>, <<day>> <<$month>> <<year>><br>'
 	dynamic $telefon['print']
@@ -941,7 +940,7 @@ end &! --- Phone_calendar ---
 if $ARGS[0] = 'Phone_media':
 	$telefon['body'] = '
 	<font size=6>Media</font><br>
-	<img src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/icon_music.png" height="80" width="80"><br>
+	<img height="80" width="80" src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/icon_music.png"><br>
 	<b>This option is not active</b><br>'
 	dynamic $telefon['print']
 end &! --- Phone_media ---
@@ -953,22 +952,22 @@ if $ARGS[0] = 'Phone_menu':
 		gs 'obj_din', 'menu_disabled'
 	else
 		$telefon['body'] = '
-		<a href="exec:gs ''telefon'', ''Phone_camera'' "><img src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/icon_camera.png" height="80" width="80"></a>
-		<a href="exec:gs ''telefon'', ''Phone_calendar'' "><img src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/icon_calendar.png" height="80" width="80"></a>
-		<a href="exec:gs ''telefon'', ''Phone_pictures'' "><img src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/icon_pictures.png" height="80" width="80"></a>
+		<a href="exec:gs ''telefon'', ''Phone_camera'' "><img height="80" width="80" src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/icon_camera.png"></a>
+		<a href="exec:gs ''telefon'', ''Phone_calendar'' "><img height="80" width="80" src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/icon_calendar.png"></a>
+		<a href="exec:gs ''telefon'', ''Phone_pictures'' "><img height="80" width="80" src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/icon_pictures.png"></a>
 		<br>
-		<a href="exec:gs ''telefon'', ''Phone_media'' "><img src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/icon_music.png" height="80" width="80"></a>
-		<a href="exec:gs ''telefon'', ''Phone_notebook'' "><img src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/icon_notebook.png" height="80" width="80"></a>
-		<a href="exec:gs ''telefon'', ''Phone_wheather'' "><img src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/icon_weather.png" height="80" width="80"></a>
+		<a href="exec:gs ''telefon'', ''Phone_media'' "><img height="80" width="80" src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/icon_music.png"></a>
+		<a href="exec:gs ''telefon'', ''Phone_notebook'' "><img height="80" width="80" src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/icon_notebook.png"></a>
+		<a href="exec:gs ''telefon'', ''Phone_wheather'' "><img height="80" width="80" src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/icon_weather.png"></a>
 		<br>
-		<a href="exec:gs ''telefon'', ''ContactList'' "><img src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/icon_call.png" height="80" width="80"></a>
-		<a href="exec:gs ''telefon'', ''Phone_sms'' "><img src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/<<iif(telefon[''UnreadSMS'']=0,''icon_sms.png'',''icon_sms_new.gif'')>>" height="80" width="80"></a>
-		<a href="exec:gs ''telefon'', ''Phone_megafon'' "><img src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/icon_megafon.png" height="80" width="80"></a>
+		<a href="exec:gs ''telefon'', ''ContactList'' "><img height="80" width="80" src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/icon_call.png"></a>
+		<a href="exec:gs ''telefon'', ''Phone_sms'' "><img height="80" width="80" src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/<<iif(telefon[''UnreadSMS'']=0,''icon_sms.png'',''icon_sms_new.gif'')>>"></a>
+		<a href="exec:gs ''telefon'', ''Phone_megafon'' "><img height="80" width="80" src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/icon_megafon.png"></a>
 		<br>'
 		if menu_off = 1:
-			$telefon['body'] += '<a href="exec:gs ''obj_din'', ''menu_disabled''"><img src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/icon_settings.png" height="80" width="80"></a><br>'
+			$telefon['body'] += '<a href="exec:gs ''obj_din'', ''menu_disabled''"><img height="80" width="80" src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/icon_settings.png"></a><br>'
 		else
-			$telefon['body'] += '<a href="exec:killvar ''menu_page'' & gs ''Cheatmenu_din'' & dynamic $cheatmenu[''setting'']"><img src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/icon_settings.png" height="80" width="80"></a><br>'
+			$telefon['body'] += '<a href="exec:killvar ''menu_page'' & gs ''Cheatmenu_din'' & dynamic $cheatmenu[''setting'']"><img height="80" width="80" src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/icon_settings.png"></a><br>'
 		end
 		dynamic $telefon['print'], 1
 	end
@@ -980,20 +979,6 @@ if $ARGS[0] = 'Add_contact':
 	killvar '$dummy'
 end &! --- Add_contact ---
 
-if $ARGS[0] = 'telotkaz':
-	cla
-	minut += 10
-	'<<$ARGS[1]>>, "Sorry, I''m busy right now, maybe next time."'
-
-	act 'Hangup':gt 'telefon', 'fin'
-end &! --- telotkaz ---
-
-
-if $ARGS[0] = 'fin':
-	killvar 'lover_number'
-	cla
-	gt $loc, $loc_arg
-end
 
 if $ARGS[0] = 'setup':
 	!! array $$phonetheme_name is built.
@@ -1108,7 +1093,7 @@ if $ARGS[0] = 'Phone_megafon':
 
 	$telefon['body'] = '
 	<font size=6>MegaFon</font><br>
-	<img src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/icon_megafon.png" height="80" width="80"><br><br>
+	<img height="80" width="80" src="images/system/phone/theme/<<$phonetheme_name[pcs_phonetheme]>>/icon_megafon.png"><br><br>
 	<b><<$contractmessage>></b>'
 	dynamic $telefon['print']
 	killvar '$contractmessage'
@@ -1122,8 +1107,8 @@ if $ARGS[0] = 'Edit_Custom_list':
 	dummyas -= 1
 	if dummyas >= 0:
 		$dummyedit = $contact[dummyas]
-		$dummyedit1 = dyneval('$result = ''</a><a href="exec:killvar ''''$contact'''',<<dummyas>> & gs ''''telefon'''', ''''Edit_Custom_list'''' "><b>Remove</b>'' ')
-		$dummyedit2 = $replace($dummyedit,'<b>Call</b>',$dummyedit1)
+		$dummyedit1 = dyneval('$result = ''</a><a href="exec: killvar ''''$contact'''', <<dummyas>> & gs ''''telefon'''', ''''Edit_Custom_list'''' "><b>Remove</b>'' ')
+		$dummyedit2 = $replace($dummyedit, '<b>Call</b>', $dummyedit1)
 		pl $dummyedit2
 		jump 'din_bad_as1'
 	end
@@ -1132,857 +1117,12 @@ if $ARGS[0] = 'Edit_Custom_list':
 	killvar 'dummyedit1'
 	killvar 'dummyedit2'
 
-	pl'<center><a href="exec:gs ''telefon'', ''Phone_menu'' "><img src="images/system/icons/back.png"></a></center>'
+	pl '<center><a href="exec: gs ''telefon'', ''Phone_menu'' "><img src="images/system/icons/back.png"></a></center>'
 	!dynamic $telefon['print']
 end &! --- Edit_Custom_list ---
 
-if $ARGS[0] = 'mobilaraz':
-	cls
-	cla
-	gs'din_bad'
-	$caller = '<<$telsob>>'
-	gs 'telefon','phone_balance'
-	gs 'telefon','phone_call_receive'
-	willAgree = (rand(0, 10) > 3)
-	'"Yes, I''m listening," says a voice from the speaker.'
-
-	if month > 5 and temper > 20 and sunWeather = 1:
-		act 'Invite to the park':
-			cla
-			'"Let''s go for a walk in the park."'
-
-			if willAgree:
-				'<<$telsob>>, "See you in the park in an hour."'
-
-				act 'Go':
-					if $clothingworntype = 'nude':
-						gs 'clothing','wear_last_worn'
-						gs 'underwear','wear'
-					end
-					gt 'parksvid'
-				end
-			else
-				gs 'telefon','telotkaz',$telsob
-			end
-		end
-	end
-
-	act 'Invite to a movie':
-		cla
-		'"Want to go see a movie?"'
-
-		if willAgree:
-			'<<$telsob>>, "See you at the movie theater in an hour."'
-			act 'Go':gt 'kinosvid'
-		else
-			gs 'telefon','telotkaz',$telsob
-		end
-	end
-
-	act 'Invite to the pool hall':
-		cla
-		'"Let''s play pool."'
-
-		if willAgree:
-			'<<$telsob>>, "See you at the pool hall in an hour."'
-
-			act 'Go':
-				if $clothingworntype = 'nude':
-					gs 'clothing','wear_last_worn'
-					gs 'underwear','wear'
-				end
-				gt 'billsvid'
-			end
-		else
-			gs 'telefon','telotkaz',$telsob
-		end
-	end
-
-	act 'Invite to the cafe':
-		cla
-		'"Let''s go to the cafe."'
-
-		if willAgree:
-			'<<$telsob>>, "See you at the cafe in an hour."'
-
-			act 'Go':
-				if $clothingworntype = 'nude':
-					gs 'clothing','wear_last_worn'
-					gs 'underwear','wear'
-				end
-				gt 'kafesvid'
-			end
-		else
-			gs 'telefon','telotkaz',$telsob
-		end
-	end
-
-	act 'Invite to the casino':
-		cla
-		'"Let''s go to the casino."'
-
-		if willAgree:
-			'<<$telsob>>, "See you in the casino in an hour."'
-
-			act 'Go':
-				if $clothingworntype = 'nude':
-					gs 'clothing','wear_last_worn'
-					gs 'underwear','wear'
-				end
-				gt 'kazinosvid'
-			end
-		else
-			gs 'telefon','telotkaz',$telsob
-		end
-	end
-
-	act 'Hangup':gt 'telefon', 'fin'
-end
 !----------------End Old Telephone----------------------------
 
-
-!-----------------------------------------------------------------------------
-! Support for Hardcoded Lovers (BF/GF)
-
-if $ARGS[0] = 'callingTheLover' and loverGender[ARGS[1]] = 1:
-	cls & cla
-	gs 'din_bad'
-	lover_number = ARGS[1]
-	$caller = '<<$loverdesc[lover_number]>>'
-	$telsob = $caller
-	$callerid = 'images/characters/shared/headshots_generic/'+lover_picture[lover_number]+'.jpg'
-	gs 'telefon','phone_balance'
-	gs 'telefon','phone_call_receive'
-	willAgree = (rand(0, 10) > 3)
-	'"Yes, I''m listening," says a voice from the speaker.'
-
-	if month > 5 and temper > 20 and sunWeather = 1:
-		act 'Invite to the park':
-			cla
-			'"Let''s go for a walk in the park."'
-
-			if willAgree:
-				'<<$telsob>>, "See you in the park in an hour."'
-
-				act 'Go':
-					if $clothingworntype = 'nude':
-						gs 'clothing','wear_last_worn'
-						gs 'underwear','wear'
-					end
-					gt 'parksvid'
-				end
-			else
-				gs 'telefon','telotkaz',$telsob
-			end
-		end
-	end
-
-	act 'Invite to a movie':
-		cla
-		'"Want to go see a movie?"'
-
-		if willAgree:
-			'<<$telsob>>, "See you at the movie theater in an hour."'
-			act 'Go':
-				if $clothingworntype = 'nude':
-					gs 'clothing','wear_last_worn'
-					gs 'underwear','wear'
-				end
-				gt 'kinosvid'
-			end
-		else
-			gs 'telefon','telotkaz',$telsob
-		end
-	end
-
-	if $home['town'] = 'city':
-		act 'Invite to the pool hall':
-			cla
-			'"Let''s play pool."'
-
-			if willAgree:
-				'<<$telsob>>, "See you at the pool hall in an hour."'
-
-				act 'Go':
-					if $clothingworntype = 'nude':
-						gs 'clothing','wear_last_worn'
-						gs 'underwear','wear'
-					end
-					gt 'billsvid'
-				end
-			else
-				gs 'telefon','telotkaz',$telsob
-			end
-		end
-	end
-
-	act 'Invite to the cafe':
-		cla
-		'"Let''s go to the cafe."'
-
-		if willAgree:
-			'<<$telsob>>, "See you at the cafe in an hour."'
-
-			act 'Go':
-				if $clothingworntype = 'nude':
-					gs 'clothing','wear_last_worn'
-					gs 'underwear','wear'
-				end
-				gt 'kafesvid'
-			end
-		else
-			gs 'telefon','telotkaz',$telsob
-		end
-	end
-
-	act 'Invite to the casino':
-		cla
-		'"Let''s go to the casino."'
-
-		if willAgree:
-			'<<$telsob>>, "See you in the casino in an hour."'
-
-			act 'Go':
-				if $clothingworntype = 'nude':
-					gs 'clothing','wear_last_worn'
-					gs 'underwear','wear'
-				end
-				gt 'kazinosvid'
-			end
-		else
-			gs 'telefon','telotkaz',$telsob
-		end
-	end
-
-	act 'I think we should break up...':
-		cla
-		'She sounds hurt, but you insist it is for the best. You both say goodbye and part ways.'
-		gs 'lover', 'remove', lover_number
-
-		act 'Hangup':gt 'telefon', 'fin'
-	end
-
-	act 'Hangup':gt 'telefon', 'fin'
-end
-
-if $ARGS[0] = 'callingTheLover' and loverGender[ARGS[1]] = 0:
-	cls
-	cla
-	gs'din_bad'
-	lover_number = ARGS[1]
-	$caller = '<<$loverdesc[lover_number]>>'
-	$callerid = 'images/characters/shared/headshots_generic/'+lover_picture[lover_number]+'.jpg'
-	gs 'telefon','phone_balance'
-	gs 'telefon','phone_call_receive'
-	willAgree = (rand(0, 10) > 3)
-	'"Yes, I''m listening," says a voice from the speaker.'
-
-	if month > 5 and temper > 20 and sunWeather = 1:
-		act 'Invite to the park':
-			cla
-			'"Let''s go for a walk in the park."'
-
-			if willAgree:
-				'<<$loverdesc[lover_number]>>, "See you in the park in an hour."'
-
-				act 'Go':
-					if $clothingworntype = 'nude':
-						gs 'clothing','wear_last_worn'
-						gs 'underwear','wear'
-					end
-					gt 'svidboy', 'parksvid'
-				end
-			else
-				gs 'telefon','telotkaz',$loverdesc[lover_number]
-			end
-		end
-	end
-
-	act 'Invite to a movie':
-		cla
-		'"Want to go see a movie?"'
-
-		if willAgree:
-			'<<$loverdesc[lover_number]>>, "See you at the movie theater in an hour."'
-
-			act 'Go':
-				if $clothingworntype = 'nude':
-					gs 'clothing','wear_last_worn'
-					gs 'underwear','wear'
-				end
-				gt 'svidboy', 'kinosvid'
-			end
-		else
-			gs 'telefon','telotkaz',$loverdesc[lover_number]
-		end
-	end
-
-	if $home['town'] = 'city':
-		act 'Invite to the pool hall':
-			cla
-			'"Let''s play pool."'
-
-			if willAgree:
-				'<<$loverdesc[lover_number]>>, "See you at the pool hall in an hour."'
-
-				act 'Go':gt 'svidboy', 'billsvid'
-			else
-				gs 'telefon','telotkaz',$loverdesc[lover_number]
-			end
-		end
-	end
-
-	act 'Invite to the cafe':
-		cla
-		'"Let''s go to the cafe."'
-
-		if willAgree:
-			'<<$loverdesc[lover_number]>>, "See you at the cafe in an hour."'
-
-			act 'Go':
-				if $clothingworntype = 'nude':
-					gs 'clothing','wear_last_worn'
-					gs 'underwear','wear'
-				end
-				gt 'svidboy', 'kafesvid'
-			end
-		else
-			gs 'telefon','telotkaz',$loverdesc[lover_number]
-		end
-	end
-
-	act 'I think we should break up...':
-		cla
-		'He sounds hurt, but you insist it is for the best. You both say goodbye and part ways.'
-		gs 'lover', 'remove', lover_number
-
-		act 'Hangup':gt 'telefon', 'fin'
-	end
-
-	act 'Hangup':gt 'telefon', 'fin'
-end
-
-if $ARGS[0] = 'lover' and loverGender[ARGS[1]] = 0:
-	cls
-	menu_off = 1
-	lover_number = ARGS[1]
-	ring = 0
-	lover_days = daystart - loverday[lover_number]
-	gs 'stat'
-	gs 'telefon', 'phone_call_receive'
-	svetrand = rand(0, 5)
-
-	if svetrand = 0:$sveta = 'cutie'
-	if svetrand = 1:$sveta = 'honey'
-	if svetrand = 2:$sveta = 'sweetie'
-	if svetrand = 3:$sveta = 'baby'
-	if svetrand = 4:$sveta = 'hot stuff'
-	if svetrand = 5:$sveta = '<<$pcs_nickname>>'
-
-	'Hey <<$sveta>>, it''s me, <<$loverdesc[lover_number]>>. How''s it going?'
-
-	act 'Reply':
-		cla
-		'"Pretty good, you?"'
-		'<<$loverdesc[lover_number]>>, "Great, but I kind of miss you, can we meet today?"'
-
-		if (pregchem / 24) <= lover_days and knowpreg = 1 and pregtalk = 0:
-			act 'Tell him he''s going to be a dad':
-				cla
-				pregtalk = 1
-				'"Honey, I''m pregnant with your child."'
-
-				if haraklover[lover_number] = 0:
-
-					if loverrelation[lover_number] >= 90:
-						loverlove[lover_number] = 1
-
-						'<<$loverdesc[lover_number]>>, "This is wonderful! We have to celebrate!"'
-						'You start talking about living together. <<$loverdesc[lover_number]>> tells you that he is not against it on principle, but first he wants you to meet his parents.'
-						'He warns you that his mother is very demanding and rigorous. <<$loverdesc[lover_number]>> says that he loves his mother and does not want to upset her. Therefore, you must look gorgeous, wear a dress from a boutique, and have well-groomed and curled hair and makeup in moderation.'
-						'When you are totally ready <<$loverdesc[lover_number]>> will take you to his parents.'
-
-						act 'Hang up':gt 'telefon', 'fin'
-
-						act 'Meet tonight':
-							cla
-							svidanie[lover_number] = 1
-							'"How about this evening?"'
-							'<<$loverdesc[lover_number]>>, "Sounds great! When can I come to pick you up?"'
-
-							act 'Pick a time':
-								cla
-								meetday[lover_number] = daystart
-								meethour[lover_number] = input ("When do you want to be picked up? It is now <<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>>. [Enter the hour only 0 - 20]")
-								if meethour[lover_number] <= hour or meethour[lover_number] > 23:meethour[lover_number] = 20
-								'"How about <<meethour[lover_number]>>:00?"'
-								'<<$loverdesc[lover_number]>>, "Okay <<$sveta>>, see you at <<meethour[lover_number]>>:00."'
-
-								act 'Hang up':gt 'telefon', 'fin'
-							end
-						end
-					elseif loverrelation[lover_number] < 90:
-						money += 20000
-						'<<$loverdesc[lover_number]>> "I''m not yet ready to become a dad. I''ll give you the money for an abortion. Get rid of the child.'
-
-						act 'Hang up':gt 'telefon', 'fin'
-					end
-				elseif haraklover[lover_number] = 1:
-
-					money += 20000
-					'<<$loverdesc[lover_number]>> "I''m not yet ready to become a dad. I''ll give you the money get an abortion.'
-
-					act 'Hang up':gt 'telefon', 'fin'
-				elseif haraklover[lover_number] = 2:
-
-					pregtalk = 0
-					'<<$loverdesc[lover_number]>>, "What? You whore! Someone fucked your pussy, and now you drop it on me. You''re dumped.'
-					gs 'lover', 'remove', lover_number
-
-					act 'Hang up':gt 'telefon', 'fin'
-				end
-			end
-		elseif (pregchem / 24) > lover_days and knowpreg = 1 and pregtalk = 0:
-			act 'Honey, you will soon become a dad':
-				cla
-				loverrelation[lover_number] = 0
-				'"Honey, I''m pregnant with your child."'
-				'<<$loverdesc[lover_number]>>, "How the fuck did I manage that? Unless I own a time-machine and went back to before we met and fucked you, it''s someone else''s, go and tell him. I don''t want to see you again, goodbye."'
-
-				act 'Hang up.':gt 'telefon', 'fin'
-			end
-		elseif week > 1 and week < 5 and workKafe['job'] = 1:
-			act 'Sorry, I''m working today':
-				cla
-				'"Sorry, I''m working today."'
-				'<<$loverdesc[lover_number]>>, "Okay, I''ll call tomorrow."'
-
-				act 'Hang up':gt 'telefon', 'fin'
-			end
-		end
-
-		act 'Tonight':
-			cla
-			loverrelation[lover_number] += 1
-			svidanie[lover_number] = 1
-			meetday[lover_number] = daystart
-			'"How about this evening?"'
-			'<<$loverdesc[lover_number]>>, "Sounds great! When can I come to pick you up?"'
-
-			act 'Pick a time':
-				cla
-				meethour[lover_number] = input ("When do you want to be picked up. It is now <<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>>. [Enter the hour only 0 - 20]")
-				if meethour[lover_number] <= hour or meethour[lover_number] > 23:meethour[lover_number] = 20
-
-				'"How about <<meethour[lover_number]>>:00?."'
-				'<<$loverdesc[lover_number]>>, "Okay <<$sveta>>, see you at <<meethour[lover_number]>>:00."'
-
-				act 'Hang up':gt 'telefon', 'fin'
-			end
-		end
-
-		act 'Maybe tomorrow':
-			cla
-			loverrelation[lover_number] -= 1
-			'"I''m busy today. Call tomorrow."'
-
-			if loverrelation[lover_number] <= 0:'<<$loverdesc[lover_number]>>, Are you fucking me, you know what. Suck my dick.' & gs 'lover', 'remove', lover_number
-			if loverrelation[lover_number] > 0:'(<<$loverdesc[lover_number]>>) -  Okay, I''ll call tomorrow.'
-
-			act 'Hang up': gt 'telefon', 'fin'
-		end
-
-		act 'I think we should break up...':
-			cla
-			'He sounds hurt, but you insist it is for the best. You both say goodbye and part ways.'
-			gs 'lover', 'remove', lover_number
-
-			act 'Hang up': gt 'telefon', 'fin'
-		end
-	end
-
-	act 'Hang up (end relationship)':
-		cla
-		gs 'lover', 'remove', lover_number
-		gt 'telefon', 'fin'
-	end
-end
-
-if $ARGS[0] = 'lover' and loverGender[ARGS[1]] = 1:
-	cls
-	menu_off = 1
-	lover_number = ARGS[1]
-	ring = 0
-	lover_days = daystart - loverday[lover_number]
-	gs 'stat'
-	gs 'telefon', 'phone_call_receive'
-	svetrand = rand(0, 5)
-
-	if svetrand = 0:$sveta = 'cutie'
-	if svetrand = 1:$sveta = 'honey'
-	if svetrand = 2:$sveta = 'sweetie'
-	if svetrand = 3:$sveta = 'baby'
-	if svetrand = 4:$sveta = 'hot stuff'
-	if svetrand = 5:$sveta = '<<$pcs_nickname>>'
-
-	'Hey <<$sveta>>, it''s me, <<$loverdesc[lover_number]>>. How''s it going?'
-
-	act 'Reply':
-		cla
-		'"Pretty good, you?"'
-		'<<$loverdesc[lover_number]>>, "Great, but I kind of miss you, can we meet today?"'
-
-
-		act 'Tonight':
-			cla
-			loverrelation[lover_number] += 1
-			svidanie[lover_number] = 1
-			meetday[lover_number] = daystart
-			'"How about this evening?"'
-			'<<$loverdesc[lover_number]>>, "Sounds great! When can I come to pick you up?"'
-
-			act 'Pick a time':
-				cla
-				meethour[lover_number] = input ("When do you want to be picked up. It is now <<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>>. [Enter the hour only 0 - 20]")
-				if meethour[lover_number] <= hour or meethour[lover_number] > 23:meethour[lover_number] = 20
-
-				'"How about <<meethour[lover_number]>>:00?."'
-				'<<$loverdesc[lover_number]>>, "Okay <<$sveta>>, see you at <<meethour[lover_number]>>:00."'
-
-				act 'Hang up':gt 'telefon', 'fin'
-			end
-		end
-
-		act 'Maybe tomorrow':
-			cla
-			loverrelation[lover_number] -= 1
-			'"I''m busy today. Call tomorrow."'
-
-			if loverrelation[lover_number] <= 0:'<<$loverdesc[lover_number]>>, Are you fucking me, you know what. Fuck off.' & gs 'lover', 'remove', lover_number
-			if loverrelation[lover_number] > 0:'(<<$loverdesc[lover_number]>>) -  Okay, I''ll call tomorrow.'
-			act 'Hang up': gt 'telefon', 'fin'
-		end
-
-		act 'I think we should break up...':
-			cla
-			'She sounds hurt, but you insist it is for the best. You both say goodbye and part ways.'
-			gs 'lover', 'remove', lover_number
-
-			act 'Hang up': gt 'telefon', 'fin'
-		end
-	end
-
-	act 'Hang up (end relationship)':
-		cla
-		gs 'lover', 'remove', lover_number
-		gt 'telefon', 'fin'
-	end
-end
-!---------------------- End of Lover support
-
-
-!!-----------------------------------EVENTS------------------------------------------
-! Generic Calls for dates
-
-!! NPC Date
-!!	ARGS[1] = contactlist index
-!!	$ARGS[2] = Date Location
-if $ARGS[0] = 'NPCDate':
-
-	Call4Date["ContactIndex"] = ARGS[1]
-	$Call4Date["Location"] = $ARGS[2]
-
-	$Call4Date["NPC"] = $contact[Call4Date['ContactIndex']]
-	$Call4Date["CallerName"] = $npc_nickname[$Call4Date["NPC"]]
-
-	!! These variables are setup for certain downstream functions
-	$caller = $Call4Date["CallerName"]
-	$callerid = $contactIcon[Call4Date["ContactIndex"]]
-	$boydesc = $Call4Date["CallerName"]
-
-	pcs_mood += 10
-	npc_rel[$Call4Date["NPC"]] += 3
-
-	if $Call4Date["Location"] = 'city_park':
-		if npc_gender[$Call4Date["NPC"]] = 0:
-			gt 'dateM','datepark'
-		else
-			gt 'dateF','datepark'
-		end
-	elseif $Call4Date["Location"] = 'movie':
-		if npc_gender[$Call4Date["NPC"]] = 0:
-			gt 'dateM','datecinema'
-		else
-			!Not implemented yet
-			!gt 'dateF','datecinema'
-		end
-	elseif $Call4Date["Location"] = 'bar':
-		if npc_gender[$Call4Date["NPC"]] = 0:
-			gt 'dateM','datebar'
-		else
-			gt 'dateF','datebar'
-		end
-	elseif $Call4Date["Location"] = 'cafe':
-		if npc_gender[$Call4Date["NPC"]] = 0:
-			gt 'dateM','datecafe'
-		else
-			!Not implemented yet
-			!gt 'dateF','datecafe'
-		end
-	end
-
-	killvar 'Call4Date'
-	killvar '$Call4Date'
-end
-
-!! Sveta Calls the NPC
-!!	ARGS[1] = contactlist index
-if $ARGS[0] = 'SvetaCallsNPC':
-	cls
-	cla
-	Call4Date["ContactIndex"] = ARGS[1]
-	$Call4Date["NPC"] = $contact[Call4Date['ContactIndex']]
-	$Call4Date["CallerName"] = $npc_nickname[$Call4Date["NPC"]]
-	if npc_gender[$Call4Date["NPC"]] = 0:
-		$Call4Date["NPC-he"] = 'he'
-		$Call4Date["NPC-He"] = 'He'
-		$Call4Date["NPC-his"] = 'his'
-		$Call4Date["NPC-His"] = 'His'
-	else
-		$Call4Date["NPC-he"] = 'her'
-		$Call4Date["NPC-He"] = 'Her'
-		$Call4Date["NPC-his"] = 'hers'
-		$Call4Date["NPC-His"] = 'Hers'
-	end
-
-	!! These variables are setup for certain downstream functions
-	$caller = $Call4Date["CallerName"]
-	$callerid = $contactIcon[Call4Date["ContactIndex"]]
-
-	gs 'telefon','phone_balance'
-	gs 'telefon','phone_call_receive'
-
-	Call4Date["willAgree"] = (rand(0, 10) > 3)
-
-	'"Yes, I''m listening," says a voice from the speaker.'
-
-	act 'Ask to meet':
-		cla
-		'"Let''s meet up."'
-		act 'Continue':gt 'telefon', 'NPCCallsForDate', Call4Date["ContactIndex"]
-	end
-
-	if month > 5 and temper > 20 and sunWeather = 1:
-		act 'Invite to the park':
-			cla
-			'"Let''s go for a walk in the park."'
-
-			if Call4Date["willAgree"]:
-				'<<$Call4Date["CallerName"]>>, "See you in the park in an hour."'
-
-				act 'Go':gt 'telefon', 'NPCDate', Call4Date["ContactIndex"], 'city_park'
-			else
-				gs 'telefon','telotkaz',$Call4Date["CallerName"]
-			end
-		end
-	end
-
-	act 'Invite to a movie':
-		cla
-		'"Want to go see a movie?"'
-
-		if Call4Date["willAgree"]:
-			'<<$Call4Date["CallerName"]>>, "See you at the movie theater in an hour."'
-
-			act 'Go':gt 'telefon', 'NPCDate', Call4Date["ContactIndex"], 'movie'
-		else
-			gs 'telefon','telotkaz',$Call4Date["CallerName"]
-		end
-	end
-
-	if $home['town'] = 'city':
-		act 'Invite to the bar':
-			cla
-			'"Let''s go to the bar."'
-
-			if Call4Date["willAgree"]:
-				'<<$Call4Date["CallerName"]>>, "See you at the bar in an hour."'
-
-				act 'Go':gt 'telefon', 'NPCDate', Call4Date["ContactIndex"], 'bar'
-			else
-				gs 'telefon','telotkaz',$Call4Date["CallerName"]
-			end
-		end
-	end
-
-	act 'Invite to the cafe':
-		cla
-		'"Let''s go to the cafe."'
-
-		if Call4Date["willAgree"]:
-			'<<$Call4Date["CallerName"]>>, "See you at the cafe in an hour."'
-
-			act 'Go':gt 'telefon', 'NPCDate', Call4Date["ContactIndex"], 'cafe'
-		else
-			gs 'telefon','telotkaz',$Call4Date["CallerName"]
-		end
-	end
-
-	!!Willpower checks for resistance
-	if npc_rel[$Call4Date["NPC"]] <= 25:
-		$Call4Date["loverResist"] = 'easy'
-	elseif npc_rel[$Call4Date["NPC"]] <= 50:
-		$Call4Date["loverResist"] = 'medium'
-	else
-		$Call4Date["loverResist"] = 'hard'
-	end
-	gs 'willpower', 'misc', 'self', $Call4Date["loverResist"]
-
-	if will_cost <= pcs_willpwr:
-		act 'I think we should break up... (<<will_cost>> Willpower)':
-			*clr & cla
-			gs 'willpower', 'pay', 'self'
-			gs 'stat'
-
-			'<<$Call4Date["NPC-He"]>> sounds hurt, but you insist it is for the best. You both say goodbye and part ways.'
-			gs 'telefon', 'DeleteContact', $Call4Date["NPC"]
-
-			act 'Hang up': gt 'telefon', 'fin'
-		end
-	else
-		act 'I think we should break up... (<font color="red"><<will_cost>> Willpower</font>)':
-			'<br><font color="red">You don''t have enough willpower to use this action.</font>'
-		end
-	end
-
-	act 'Hangup':gt 'telefon', 'fin'
-
-	killvar 'Call4Date'
-	killvar '$Call4Date'
-	killvar '$DateNickName'
-end
-
-!! NPC Calls Sveta for a Date
-!!	ARGS[1] = $contact index number
-if $ARGS[0] = 'NPCCallsForDate':
-	cla
-	clr
-	Call4Date["ContactIndex"] = ARGS[1]
-	$Call4Date["NPC"] = $contact[Call4Date['ContactIndex']]
-
-	if npc_gender[$Call4Date["NPC"]] = 0:
-		$Call4Date["NPC-he"] = 'he'
-		$Call4Date["NPC-He"] = 'He'
-		$Call4Date["NPC-his"] = 'his'
-		$Call4Date["NPC-His"] = 'His'
-	else
-		$Call4Date["NPC-he"] = 'her'
-		$Call4Date["NPC-He"] = 'Her'
-		$Call4Date["NPC-his"] = 'hers'
-		$Call4Date["NPC-His"] = 'Hers'
-	end
-
-	!!Pick a nickname that caller will use for Sveta
-	$DateNickName[0] = 'cutie'
-	$DateNickName[1] = 'honey'
-	$DateNickName[2] = 'sweetie'
-	$DateNickName[3] = 'baby'
-	$DateNickName[4] = 'hot stuff'
-	$DateNickName[5] = '<<$pcs_nickname>>'
-	$Call4Date['SvetaName'] = $DateNickName[rand(0, arrsize('$DateNickName'))]
-
-	$Call4Date['CallerName'] = $npc_nickname[$Call4Date["NPC"]]
-
-	!! These variables are setup for certain downstream functions
-	$caller = $Call4Date["CallerName"]
-	$callerid = $contactIcon[Call4Date["ContactIndex"]]
-
-	'Hey <<$Call4Date["SvetaName"]>>, it''s me, <<$Call4Date["CallerName"]>>. How''s it going?'
-
-	act 'Answer':
-		cla
-		'"Pretty good, you?"'
-		'<<$Call4Date["CallerName"]>>, "Great, but I kind of miss you, can we meet today?"'
-		if week > 1 and week < 5 and workKafe['job'] = 1:
-			act 'Sorry, I''m working today':
-				cla
-				'"Sorry, I''m working today."'
-				'<<$Call4Date["CallerName"]>>, "Okay, I''ll call tomorrow."'
-
-				act 'Hang up':gt 'telefon', 'fin'
-			end
-		end
-
-		act 'Tonight':
-			cla
-			npc_rel[$Call4Date["NPC"]] += 1
-			contMeetDay[Call4Date["ContactIndex"]] = daystart
-			'"How about this evening?"'
-			'<<$Call4Date["CallerName"]>>, "Sounds great! When can I come to pick you up?"'
-
-			act 'Pick a time':
-				cla
-				contMeetHour[Call4Date["ContactIndex"]] = input ("When do you want to be picked up. It is now <<$mid(100+hour,2,2)>>:<<$mid(100+minut,2,2)>>. [Enter the hour only 0 - 20]")
-				if contMeetHour[Call4Date["ContactIndex"]] <= hour or contMeetHour[Call4Date["ContactIndex"]] > 23:contMeetHour[Call4Date["ContactIndex"]] = 20
-
-				'"How about <<contMeetHour[Call4Date["ContactIndex"]]>>:00?."'
-				'<<$Call4Date["CallerName"]>>, "Okay <<$Call4Date["SvetaName"]>>, see you at <<contMeetHour[Call4Date["ContactIndex"]]>>:00."'
-
-				act 'Hang up':gt 'telefon', 'fin'
-			end
-		end
-
-		act 'Maybe tomorrow':
-			cla
-			npc_rel[$Call4Date["NPC"]] -= 1
-			'"I''m busy today. Call tomorrow."'
-
-			if npc_rel[$Call4Date["NPC"]] <= 0:'<<$Call4Date["CallerName"]>>, Are you fucking me, you know what. Suck my dick.' & gs 'telefon', 'DeleteContact', $Call4Date["NPC"]
-			if npc_rel[$Call4Date["NPC"]] > 0:'(<<$Call4Date["CallerName"]>>) -  Okay, I''ll call tomorrow.'
-
-			act 'Hang up': gt 'telefon', 'fin'
-		end
-
-
-		!!Willpower checks for resistance
-		if npc_rel[$Call4Date["NPC"]] <= 25:
-			$Call4Date["loverResist"] = 'easy'
-		elseif npc_rel[$Call4Date["NPC"]] <= 50:
-			$Call4Date["loverResist"] = 'medium'
-		else
-			$Call4Date["loverResist"] = 'hard'
-		end
-		gs 'willpower', 'misc', 'self', $Call4Date["loverResist"]
-
-		if will_cost <= pcs_willpwr:
-			act 'I think we should break up... (<<will_cost>> Willpower)':
-				*clr & cla
-				gs 'willpower', 'pay', 'self'
-				gs 'stat'
-
-				'<<$Call4Date["NPC-He"]>> sounds hurt, but you insist it is for the best. You both say goodbye and part ways.'
-				gs 'telefon', 'DeleteContact', $Call4Date["NPC"]
-
-				act 'Hang up': gt 'telefon', 'fin'
-			end
-		else
-			act 'I think we should break up... (<font color="red"><<will_cost>> Willpower</font>)':
-				'<br><font color="red">You don''t have enough willpower to use this action.</font>'
-			end
-		end
-
-	end
-
-	act 'Hang up (end relationship)':
-		cla
-		gs 'telefon', 'DeleteContact', $Call4Date["NPC"]
-		gt 'telefon', 'fin'
-	end
-
-	killvar 'Call4Date'
-	killvar '$Call4Date'
-	killvar '$DateNickName'
-end
 
 
 --- telefon ---------------------------------

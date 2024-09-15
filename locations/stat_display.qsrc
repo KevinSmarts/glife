@@ -125,7 +125,7 @@ end
 
 if Enable_statimg_loc = 1: $stat_msg = '<<$stat_imgtool_msg>><br><<$stat_imgextra_msg>><br><<$stat_msg>>'
 
-$stat_android = '<b><<func(''time'', ''get_time_string'',  hour,  minut, cheatVars[''time_format''])>></b>'
+$stat_android = '<b><<func(''time'', ''get_time_string'', hour, minut, cheatVars[''time_format''])>></b>'
 
 if $notification_message[0] ! '':
 	if _n_counter['shown'] ! 1: gs 'notification', 'display'
@@ -418,7 +418,11 @@ else
 	$stat_sick_msg = ''
 end
 
-if SchoolBlock = 0:
+killvar '$stat_school_schedule'
+killvar '$stat_school_msg'
+killvar '$stat_school_icon_msg'
+killvar '$stat_school_icon'
+if $start_type['loc'] = 'sg' and SchoolBlock = 0 and SchoolAtestat = 0:
 	if week = 1:
 		$stat_school_schedule = ' Today you have the following lessons math, russian, literature, art, biology and P.E.'
 	elseif week = 2:
@@ -429,19 +433,23 @@ if SchoolBlock = 0:
 		$stat_school_schedule = ' Today you have the following lessons english, geography, science, shop, computer and music.'
 	elseif week = 5:
 		$stat_school_schedule = ' Today you have the following lessons math, russian, literature, art, history and P.E.'
-	else
-		$stat_school_schedule = ''
 	end
 
-	if mid($start_type,1,2) = 'sg' and SchoolAtestat = 0 and kanikuli = 0 and week < 6 and hour < 9:
-		$stat_school_msg = 'You have to be at school before '+func('time', 'get_time_string', 7, 55, cheatVars['time_format'])+' if you don''t want to be late.'
-		$stat_school_tooltip = 'School starts at '+func('time', 'get_time_string', 7, 55, cheatVars['time_format'])+'.'
-	elseif mid($start_type,1,2) = 'sg' and SchoolAtestat = 0 and week = 6 and hour < 9 and detention_set = 1 and SchoolAtestat = 0:
+
+	if kanikuli = 0 and week < 6:
+		if hour < 9:
+			$stat_school_msg = 'You have to be at school before '+func('time', 'get_time_string', 7, 55, cheatVars['time_format'])+' if you don''t want to be late.'
+			$stat_school_tooltip = 'School starts at '+func('time', 'get_time_string', 7, 55, cheatVars['time_format'])+'.'
+			$stat_school_icon = 'images/system/icons/status/gschool.png'
+		elseif school_check_day ! daystart and hour < 16:
+			$stat_school_msg = 'You have missed school.'
+			$stat_school_tooltip = 'School starts at '+func('time', 'get_time_string', 7, 55, cheatVars['time_format'])+'.'
+			$stat_school_icon = 'images/system/icons/status/gschool_red.png'
+		end
+	elseif week = 6 and hour < 9 and detention_set = 1 and SchoolAtestat = 0:
 		$stat_school_msg = 'You have detention this morning and must be at school before '+func('time', 'get_time_string', 9, 0, cheatVars['time_format'])+'.'
 		$stat_school_tooltip = 'Detention starts at '+func('time', 'get_time_string', 9, 0, cheatVars['time_format'])+'.'
-	else
-		$stat_school_msg = ''
-		$stat_school_icon_msg = ''
+		$stat_school_icon = 'images/system/icons/status/gschool.png'
 	end
 	if $stat_school_msg ! '': $stat_school_icon_msg = $stat_school_msg + $stat_school_schedule
 end
@@ -1026,42 +1034,32 @@ killvar '$temp_stat_clothes_text_color'
 
 gs 'cum_manage', 'cum_stat_display'
 
-$stat_bfgf_msg_0 = ''
-$stat_bfgf_tooltip_0 = ''
-$stat_bfgf_msg_1 = ''
-$stat_bfgf_tooltip_1 = ''
-$stat_bfgf_msg_2 = ''
-$stat_bfgf_tooltip_2 = ''
+killvar '$stat_bfgf_msg'
+killvar '$stat_bfgf_tooltip'
 
-if hour < meethour[0] and svidanie[0] = 1:
-	$stat_bfgf_msg_0 = '<<$loverdesc[0]>> will be waiting for you near <<$streetev_home>> at <<meethour[0]>>:00.'
-	$stat_bfgf_tooltip_0 = 'Your date with <<$loverdesc[0]>> starts at <<meethour[0]>>:00 near <<$streetev_home>>.'
-elseif hour = meethour[0] and svidanie[0] = 1:
-	$stat_bfgf_msg_0 = '<<$loverdesc[0]>> is waiting for you by <<$streetev_home>>.'
-	$stat_bfgf_tooltip_0 = '<<$loverdesc[0]>> is waiting near <<$streetev_home>>.'
-elseif meetday[0] < daystart and svidanie[0] = 1:
-	pcs_lovers_rel[0] -= 10 & svidanie[0] = 0
+stat_display_i = 0
+stat_display_max_i = arrsize('$lover')
+:lover_meeting_loop1
+if stat_display_i < stat_display_max_i:
+	$stat_display_temp_npcid = $lover[stat_display_i]
+	if npc_meetday[$stat_display_temp_npcid] > 0:
+		if npc_meetday[$stat_display_temp_npcid] = daystart:
+			if hour < npc_meethour[$stat_display_temp_npcid]:
+				$stat_bfgf_msg[] = '<<$npc_usedname[$stat_display_temp_npcid]>> will be waiting for you near <<$streetev_home>> at <<npc_meethour[$stat_display_temp_npcid]>>:00.'
+				$stat_bfgf_tooltip[] = 'Your date with <<$npc_usedname[$stat_display_temp_npcid]>> starts at <<npc_meethour[$stat_display_temp_npcid]>>:00 near <<$streetev_home>>.'
+			elseif hour = npc_meethour[$stat_display_temp_npcid]:
+				$stat_bfgf_msg[] = '<b><font color="red"><<$npc_usedname[$stat_display_temp_npcid]>> is waiting for you by <<$streetev_home>>.</font><b>'
+				$stat_bfgf_tooltip[] = '<<$npc_usedname[$stat_display_temp_npcid]>> is waiting near <<$streetev_home>>.'
+			end
+		elseif npc_meetday[$stat_display_temp_npcid] < daystart:
+			npc_rel[$stat_display_temp_npcid] -= 10
+			npc_meetday[$stat_display_temp_npcid] = 0
+		end
+	end
+	stat_display_i += 1
+	jump 'lover_meeting_loop1'
 end
 
-if hour < meethour[1] and svidanie[1] = 1:
-	$stat_bfgf_msg_1 = '<<$loverdesc[1]>> will be waiting for you near <<$streetev_home>> at <<meethour[1]>>:00.'
-	$stat_bfgf_tooltip_1 = 'Your date with <<$loverdesc[1]>> starts at <<meethour[1]>>:00 near <<$streetev_home>>.'
-elseif hour = meethour[1] and svidanie[1] = 1:
-	$stat_bfgf_msg_1 = '<<$loverdesc[1]>> is waiting for you by <<$streetev_home>>.'
-	$stat_bfgf_tooltip_1 = '<<$loverdesc[1]>> is waiting near <<$streetev_home>>.'
-elseif meetday[1] < daystart and svidanie[1] = 1:
-	pcs_lovers_rel[1] -= 10 & svidanie[1] = 0
-end
-
-if hour < meethour[2] and svidanie[2] = 1:
-	$stat_bfgf_msg_2 = '<<$loverdesc[2]>> will be waiting for you near <<$streetev_home>> at <<meethour[2]>>:00.'
-	$stat_bfgf_tooltip_2 = 'Your date starts at <<meethour[2]>>:00 near <<$streetev_home>>.'
-elseif hour = meethour[2] and svidanie[2] = 1:
-	$stat_bfgf_msg_2 = '<<$loverdesc[2]>> is waiting for you by <<$streetev_home>>.'
-	$stat_bfgf_tooltip_2 = '<<$loverdesc[2]>> is waiting near <<$streetev_home>>.'
-elseif meetday[2] < daystart and svidanie[2] = 1:
-	pcs_lovers_rel[2] -= 10 & svidanie[2] = 0
-end
 
 !!---------------- Messages for Icons/Texts (End)----------------------------
 
@@ -1500,11 +1498,14 @@ else
 
 	!!Row 5: Clothes,...
 
-	if $stat_bfgf_msg_0 ! '': $statusIconBarTab += '<td><a href="exec: $stat_bfgf_msg_0"><img title="<<$stat_bfgf_tooltip_0>>" height = <<set_siconht>> src="images/system/icons/status/date.png"></a></td>'
-
-	if $stat_bfgf_msg_1 ! '': $statusIconBarTab += '<td><a href="exec: $stat_bfgf_msg_1"><img title="<<$stat_bfgf_tooltip_1>>" height = <<set_siconht>> src="images/system/icons/status/date.png"></a></td>'
-
-	if $stat_bfgf_msg_2 ! '': $statusIconBarTab += '<td><a href="exec: $stat_bfgf_msg_2"><img title="<<$stat_bfgf_tooltip_2>>" height = <<set_siconht>> src="images/system/icons/status/date.png"></a></td>'
+	if arrsize('$stat_bfgf_msg') > 0:
+		stat_display_i = 0
+		stat_display_max_i = arrsize('$stat_bfgf_msg')
+		:lover_meeting_loop2
+			$statusIconBarTab += '<td><a href="exec: $stat_bfgf_msg[<<stat_display_i>>]"><img title="<<$stat_bfgf_tooltip[stat_display_i]>>" height = <<set_siconht>> src="images/system/icons/status/date.png"></a></td>'
+			stat_display_i += 1
+		if stat_display_i < stat_display_max_i: jump 'lover_meeting_loop2'
+	end
 
 	if $stat_clothes_msg ! '': $statusIconBarTab += '<td><a href="exec: msg $stat_clothes_msg"><img title="<<$stat_clothes_tooltip>>" height = <<set_siconht>> src="images/system/icons/status/clothing/<<$stat_clothes_style>>.png"></a></td>'
 
@@ -1865,10 +1866,29 @@ else
 	if huntersAndreiQw > 0:gs 'show_table', 'Hunter Andrei: <<huntersAndreiQw>>','2'
 	if huntersSergeiQw > 0:gs 'show_table', 'Hunter Sergei: <<huntersSergeiQw>>','2'
 	if huntersIgorQw > 0:gs 'show_table', 'Hunter Igor: <<huntersIgorQw>>','2'
-	if pcs_lovers[0] = 1:gs'show_table', 'BF <<$loverdesc[0]>>: <<loverrelation[0]>>','2'
-	if pcs_lovers[1] = 1:gs'show_table', 'BF <<$loverdesc[1]>>: <<loverrelation[1]>>','2'
-	if pcs_lovers[2] = 1:gs'show_table', 'BF <<$loverdesc[2]>>: <<loverrelation[2]>>','2'
-	if mid($start_type,1,2) = 'sg':
+
+	stat_display_i = 0
+	stat_display_max_i = arrsize('$lover')
+	:lover_display_loop
+	if stat_display_i < stat_display_max_i:
+		$stat_display_temp_npcid = $lover[stat_display_i]
+		if $npc_rel_type[$stat_display_temp_npcid] = 'boyfriend':
+			$stat_display_temp_table_desc = 'BF'
+		elseif $npc_rel_type[$stat_display_temp_npcid] = 'girlfriend':
+			$stat_display_temp_table_desc = 'GF'
+		elseif $npc_rel_type[$stat_display_temp_npcid] = 'fuckbuddy':
+			$stat_display_temp_table_desc = 'fuck buddy'
+		elseif $npc_rel_type[$stat_display_temp_npcid] = 'sugar_daddy':
+			$stat_display_temp_table_desc = 'sugar daddy'
+		end
+		gs 'show_table', '<<$stat_display_temp_table_desc>> <<$npc_usedname[$stat_display_temp_npcid]>>: <<npc_rel[$stat_display_temp_npcid]>>', '2'
+		stat_display_i += 1
+		jump 'lover_display_loop'
+	end
+	killvar '$stat_display_temp_table_desc'
+
+
+	if $start_type['loc'] = 'sg':
 		if npc_rel['A29'] > 0:gs 'show_table', 'Mother: <<npc_rel[''A29'']>>','2'
 		if npc_rel['A28'] > 0:gs 'show_table', 'Father: <<npc_rel[''A28'']>>','2'
 		if npc_rel['A33'] > 0:gs 'show_table', 'Sister: <<npc_rel[''A33'']>>','2'
@@ -2381,22 +2401,13 @@ end
 !!------------------ Gadukino chores and such (End) -------------------
 
 if enable_extra_msg = 1:
-	if hour < meethour[0] and svidanie[0] = 1:
-		$stat_msg += '<br><<$stat_bfgf_msg_0>>'
-	elseif hour = meethour[0] and svidanie[0] = 1:
-		$stat_msg += '<br><b><font color="red"><<$stat_bfgf_msg_0>></font></b>'
-	end
-
-	if hour < meethour[1] and svidanie[1] = 1:
-		$stat_msg += '<br><<$stat_bfgf_msg_1>>'
-	elseif hour = meethour[1] and svidanie[1] = 1:
-		$stat_msg += '<br><b><font color="red"><<$stat_bfgf_msg_1>></font></b>'
-	end
-
-	if hour < meethour[2] and svidanie[2] = 1:
-		$stat_msg += '<br><<$stat_bfgf_msg_2>>'
-	elseif hour = meethour[2] and svidanie[2] = 1:
-		$stat_msg += '<br><b><font color="red"><<$stat_bfgf_msg_2>></font></b>'
+	if arrsize('$stat_bfgf_msg') > 0:
+		stat_display_i = 0
+		stat_display_max_i = arrsize('$stat_bfgf_msg')
+		:lover_meeting_loop3
+			$stat_msg += '<br><<$stat_bfgf_msg[stat_display_i]>>'
+			stat_display_i += 1
+		if stat_display_i < stat_display_max_i: jump 'lover_meeting_loop3'
 	end
 
 	if $stat_court_msg ! '': $stat_msg += '<br><b><font color="red"><<$stat_court_msg>></font></b>'
@@ -2613,6 +2624,14 @@ if bimbowithdrawal > 14:
 	bimbolevel = 0
 	msg 'You suddenly feel as if your head is clear, instead of filled with pink thoughts.'
 end
+
+
+
+
+
+killvar 'stat_display_i'
+killvar 'stat_display_max_i'
+killvar '$stat_display_temp_npcid'
 
 
 --- stat_display ---------------------------------
