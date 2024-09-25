@@ -1,0 +1,334 @@
+# stripclub_schedule
+
+
+!!{if $ARGS[0] = 'schedule_reset':
+	i = 1
+	if strip_club['shifts_required'] = 5:
+		:loop_strip_club_sched_part
+		if strip_club['<<i>>_shift_1'] ! 1:
+			strip_club['<<i>>_shift_1'] = 0
+			strip_club['<<i>>_shift_1_taken'] = rand(0,2)
+		end
+		if strip_club['<<i>>_shift_2'] ! 1:
+			strip_club['<<i>>_shift_2'] = 0
+			strip_club['<<i>>_shift_2_taken'] = rand(0,2)
+		end
+!!		if strip_club['<<i>>_shift_3'] ! 1:
+!!			strip_club['<<i>>_shift_3'] = 0
+!!			strip_club['<<i>>_shift_3_taken'] = rand(-1,2)
+!!		end
+		i += 1
+		if i < 8: jump 'loop_strip_club_sched_part'
+	elseif strip_club['shifts_required'] = 10:
+		:loop_strip_club_sched_full
+		if strip_club['<<i>>_shift_1'] ! 1:
+			strip_club['<<i>>_shift_1'] = 0
+			strip_club['<<i>>_shift_1_taken'] = rand(-3,2)
+		end
+		if strip_club['<<i>>_shift_2'] ! 1:
+			strip_club['<<i>>_shift_2'] = 0
+			strip_club['<<i>>_shift_2_taken'] = rand(-3,2)
+		end
+!!		if strip_club['<<i>>_shift_3'] ! 1:
+!!			strip_club['<<i>>_shift_3'] = 0
+!!			strip_club['<<i>>_shift_3_taken'] = rand(-3,2)
+!!		end
+		i += 1
+		if i < 8: jump 'loop_strip_club_sched_full'
+	end
+end}
+
+
+if $ARGS[0] = 'schedule_reset':
+	if strip_club['shifts_required'] > 0:
+		scs_i = 1
+		:loop_strip_club_sched_part
+			strip_club['<<scs_i>>_shift_1'] = strip_club['next_<<scs_i>>_shift_1']
+			strip_club['<<scs_i>>_shift_1'] = strip_club['next_<<scs_i>>_shift_1_taken']
+			if strip_club['<<scs_i>>_shift_1'] ! 1: strip_club['<<scs_i>>_shift_1'] = 0
+			if strip_club['<<scs_i>>_shift_1_taken'] ! 2: strip_club['<<scs_i>>_shift_1_taken'] = rand(-3,2)
+
+			strip_club['<<scs_i>>_shift_2'] = strip_club['next_<<scs_i>>_shift_2']
+			strip_club['<<scs_i>>_shift_2_taken'] = strip_club['next_<<scs_i>>_shift_2_taken']
+			if strip_club['<<scs_i>>_shift_2'] ! 1: strip_club['<<scs_i>>_shift_2'] = 0
+			if strip_club['<<scs_i>>_shift_2_taken'] ! 2: strip_club['<<scs_i>>_shift_2_taken'] = rand(-3,2)
+			scs_i += 1
+		if scs_i < 8: jump 'loop_strip_club_sched_part'
+		killvar 'scs_i'
+	end
+end
+
+if $ARGS[0] = 'next_week_schedule':
+	scs_i = 1
+	if strip_club['shifts_required'] = 5:
+		:loop_strip_club_next_week_part
+			strip_club['next_<<scs_i>>_shift_1_taken'] = rand(-3,2)
+			strip_club['next_<<scs_i>>_shift_2_taken'] = rand(-3,2)
+	!!		strip_club['next_<<scs_i>>_shift_3_taken'] = rand(-3,2)
+			scs_i += 1
+		if scs_i < 8: jump 'loop_strip_club_next_week_part'
+	elseif strip_club['shifts_required'] = 10:
+		:loop_strip_club_next_week_full
+			strip_club['next_<<scs_i>>_shift_1_taken'] = rand(-5,2)
+			strip_club['next_<<scs_i>>_shift_2_taken'] = rand(-5,2)
+	!!		strip_club['next_<<scs_i>>_shift_3_taken'] = rand(-5,2)
+			scs_i += 1
+		if scs_i < 8: jump 'loop_strip_club_next_week_full'
+	end
+	killvar 'scs_i'
+end
+
+
+if $ARGS[0] = 'exit_schedule':
+	act 'Finish scheduling': gt 'stwork','bar_manager'
+	!!{
+	if $emp_job_title[5] = 'Waitress':
+		gt 'stripclub', 'waitress_manager'
+	elseif $emp_job_title[5] = 'Stripper':
+		gt 'stripclub', 'stripper_manager'
+	elseif $emp_job_title[5] = 'Bartender':
+		gt 'stripclub', 'bar_manager'
+	end}
+end
+
+
+
+! ARGS[1] = week (1: monday, ..., 7: sunday)
+! ARGS[2] = shift (1: 18-00, 2: 21-03)
+! ARGS[3] = next_week (0: this week, 1: next week)
+if $ARGS[0] = 'display_single_shift':
+	if ARGS[3] = 0:
+		$scs_arg_string = '<<ARGS[1]>>_shift_<<ARGS[2]>>'
+		$scs_return_arg = 'set_schedule'
+	elseif ARGS[3] = 1:
+		$scs_arg_string = 'next_<<ARGS[1]>>_shift_<<ARGS[2]>>'
+		$scs_return_arg = 'next_week_set_schedule'
+	end
+
+	if ARGS[2] = 1:
+		$scs_time_string = '18:00-00:00'
+		scs_hour1 = 9
+		scs_hour2 = 13
+	elseif ARGS[2] = 2:
+		$scs_time_string = '21:00-03:00'
+		scs_hour1 = 13
+		scs_hour2 = 17
+	end
+
+
+	$result +=	'<tr><td>'
+	if strip_club[$scs_arg_string] = 0 and strip_club[$scs_arg_string + '_taken'] < 2 and no (week = ARGS[1] and hour >= scs_hour1 and hour < scs_hour2):
+		$result +=		'<a href="exec:strip_club[''<<$scs_arg_string>>''] = 1 & gt ''stripclub_schedule'', ''<<$scs_return_arg>>''"><<$scs_time_string>> shift</a>'
+	elseif strip_club[$scs_arg_string + '_taken'] = 2 or (week = ARGS[1] and hour >= scs_hour1 and hour < scs_hour2):
+		$result +=		'<<$scs_time_string>> shift'
+		$result +=	'</td></tr><tr><td>'
+		$result +=		func('stripclub_schedule', 'random_stripper_name')
+		$result +=	'</td></tr><tr><td>'
+		$result +=		func('stripclub_schedule', 'random_stripper_name')
+	elseif strip_club[$scs_arg_string] = 2:
+		$result +=		'<<$scs_time_string>> shift'
+		$result +=	'</td></tr><tr><td>'
+		$result +=		'<i>already worked</i>'
+	else
+		$result +=		'<<$scs_time_string>> shift'
+		$result +=	'</td></tr><tr><td>'
+		$result +=		'<a href="exec:strip_club[''<<$scs_arg_string>>''] = 0 & gt ''stripclub_schedule'', ''<<$scs_return_arg>>''">Cancel Shift</a>'
+	end
+	$result +=	'</td></tr>'
+
+	killvar '$scs_arg_string'
+	killvar '$scs_return_arg'
+	killvar '$scs_time_string'
+	killvar 'scs_hour1'
+	killvar 'scs_hour2'
+end
+
+if $ARGS[0] = 'random_stripper_name':
+	temp_rand = rand(0, 7)
+	if temp_rand = 0:
+		$result = '<i>Ruby</i>'
+	elseif temp_rand = 1:
+		$result = '<i>Onyx</i>'
+	elseif temp_rand = 2:
+		$result = '<i>Jade</i>'
+	elseif temp_rand = 3:
+		$result = '<i>Emerald</i>'
+	elseif temp_rand = 4:
+		!! Amythest
+		$result = '<i>Amy</i>'
+	elseif temp_rand = 5:
+		$result = '<i>Diamond</i>'
+	elseif temp_rand = 6:
+		$result = '<i>Lapis</i>'
+	else
+		$result = '<i>Opal</i>'
+	end
+	killvar 'temp_rand'
+end
+
+
+
+if $ARGS[0] = 'set_schedule_base':
+	if strip_club['schedule_update'] = 0:
+		strip_club['schedule_update'] = daystart
+		gs 'stripclub_schedule', 'schedule_reset'
+	end
+	gs 'stat'
+
+	$temp_table =	'<table border=1>'
+	$temp_table +=		'<tr>'
+	$temp_table +=			'<th></th>'
+	$temp_table +=			'<th>Sunday</th>'
+	$temp_table +=			'<th>Monday</th>'
+	$temp_table +=			'<th>Tuesday</th>'
+	$temp_table +=			'<th>Wednesday</th>'
+	$temp_table +=			'<th>Thursday</th>'
+	$temp_table +=			'<th>Friday</th>'
+	$temp_table +=			'<th>Saturday</th>'
+	$temp_table +=		'</tr>'
+
+	!! ---------------------------------------------- 18:00 Shifts ---------------------------------------------------------------------------------
+
+	$temp_table +=		'<tr>'
+	$temp_table +=			'<th>First shift</th>'
+
+	!! First Sunday Shift
+	$temp_table +=			'<td>'
+	$temp_table +=				'<table>'
+	$temp_table +=					func('stripclub_schedule', 'display_single_shift', 7, 1, ARGS[1])
+	$temp_table +=				'</table>'
+	$temp_table +=			'</td>'
+
+	!! First Monday Shift
+	$temp_table +=			'<td>'
+	$temp_table +=				'<table>'
+	$temp_table +=					func('stripclub_schedule', 'display_single_shift', 1, 1, ARGS[1])
+	$temp_table +=				'</table>'
+	$temp_table +=			'</td>'
+
+	!! First Tuesday Shift
+	$temp_table +=			'<td>'
+	$temp_table +=				'<table>'
+	$temp_table +=					func('stripclub_schedule', 'display_single_shift', 2, 1, ARGS[1])
+	$temp_table +=				'</table>'
+	$temp_table +=			'</td>'
+
+	!! First Wednesday Shift
+	$temp_table +=			'<td>'
+	$temp_table +=				'<table>'
+	$temp_table +=					func('stripclub_schedule', 'display_single_shift', 3, 1, ARGS[1])
+	$temp_table +=				'</table>'
+	$temp_table +=			'</td>'
+
+	!! First Thursday Shift
+	$temp_table +=			'<td>'
+	$temp_table +=				'<table>'
+	$temp_table +=					func('stripclub_schedule', 'display_single_shift', 4, 1, ARGS[1])
+	$temp_table +=				'</table>'
+	$temp_table +=			'</td>'
+
+	!! First Friday Shift
+	$temp_table +=			'<td>'
+	$temp_table +=				'<table>'
+	$temp_table +=					func('stripclub_schedule', 'display_single_shift', 5, 1, ARGS[1])
+	$temp_table +=				'</table>'
+	$temp_table +=			'</td>'
+
+	!! First Saturday Shift
+	$temp_table +=			'<td>'
+	$temp_table +=				'<table>'
+	$temp_table +=					func('stripclub_schedule', 'display_single_shift', 6, 1, ARGS[1])
+	if AlbinaQW['working_stripclub'] = 1:
+		$temp_table +=				'<tr>'
+		$temp_table +=					'<td>'
+		$temp_table +=						'<i>Amber</i>'
+		$temp_table +=					'</td>'
+		$temp_table +=				'</tr>'
+	end
+	$temp_table +=				'</table>'
+	$temp_table +=			'</td>'
+
+	$temp_table +=		'</tr>'
+
+	!! ---------------------------------------------- 21:00 Shifts ---------------------------------------------------------------------------------
+
+	$temp_table +=		'<tr>'
+	$temp_table +=			'<th>Second shift</th>'
+
+	!! Second Sunday Shift
+	$temp_table +=			'<td>'
+	$temp_table +=				'<table>'
+	$temp_table +=					func('stripclub_schedule', 'display_single_shift', 7, 2, ARGS[1])
+	$temp_table +=				'</table>'
+	$temp_table +=			'</td>'
+
+	!! Second Monday Shift
+	$temp_table +=			'<td>'
+	$temp_table +=				'<table>'
+	$temp_table +=					func('stripclub_schedule', 'display_single_shift', 1, 2, ARGS[1])
+	$temp_table +=				'</table>'
+	$temp_table +=			'</td>'
+
+	!! Second Tuesday Shift
+	$temp_table +=			'<td>'
+	$temp_table +=				'<table>'
+	$temp_table +=					func('stripclub_schedule', 'display_single_shift', 2, 2, ARGS[1])
+	$temp_table +=				'</table>'
+	$temp_table +=			'</td>'
+
+	!! Second Wednesday Shift
+	$temp_table +=			'<td>'
+	$temp_table +=				'<table>'
+	$temp_table +=					func('stripclub_schedule', 'display_single_shift', 3, 2, ARGS[1])
+	$temp_table +=				'</table>'
+	$temp_table +=			'</td>'
+
+	!! Second Thursday Shift
+	$temp_table +=			'<td>'
+	$temp_table +=				'<table>'
+	$temp_table +=					func('stripclub_schedule', 'display_single_shift', 4, 2, ARGS[1])
+	$temp_table +=				'</table>'
+	$temp_table +=			'</td>'
+
+	!! Second Friday Shift
+	$temp_table +=			'<td>'
+	$temp_table +=				'<table>'
+	$temp_table +=					func('stripclub_schedule', 'display_single_shift', 5, 2, ARGS[1])
+	if AlbinaQW['working_stripclub'] = 1:
+		$temp_table +=				'<tr>'
+		$temp_table +=					'<td>'
+		$temp_table +=						'<i>Amber</i>'
+		$temp_table +=					'</td>'
+		$temp_table +=				'</tr>'
+	end
+	$temp_table +=				'</table>'
+	$temp_table +=			'</td>'
+
+	!! Second Saturday Shift
+	$temp_table +=			'<td>'
+	$temp_table +=				'<table>'
+	$temp_table +=					func('stripclub_schedule', 'display_single_shift', 6, 2, ARGS[1])
+	$temp_table +=				'</table>'
+	$temp_table +=			'</td>'
+
+	$temp_table +=		'</tr>'
+	$temp_table +=	'</table>'
+
+	'<<$temp_table>>'
+	killvar '$temp_table'
+end
+
+
+
+if $ARGS[0] = 'set_schedule':
+	gs 'stripclub_schedule', 'set_schedule_base', 0
+end
+
+
+
+if $ARGS[0] = 'next_week_set_schedule':
+	gs 'stripclub_schedule', 'set_schedule_base', 1
+end
+
+
+--- stripclub_schedule ---------------------------------
