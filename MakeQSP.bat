@@ -1,4 +1,5 @@
 @ECHO off
+setlocal
 
 :: Set batch file path
 set BATDir=%~dp0
@@ -98,30 +99,52 @@ goto menu
 echo.
 echo Building ...
 
+:: Start timer
+set start=%time%
+
 @ECHO ON
-python tools\txtmerge.py locations glife.txt
-tools\txt2gam.exe glife.txt %QSPFILE% > nul
+"%BATDir%tools\Textmerge.exe" "%BATDir%locations" "%BATDir%glife.txt" "%BATDir%glife.qproj"
+
+"%BATDir%tools\cli-win.exe" "%BATDir%glife.txt"
+
 @ECHO OFF
+
 
 echo.
 if defined CP_TO ( echo Copying %QSPFILE% to "%CP_TO%" ... & copy %QSPFILE% %CP_TO% > nul )
 
+:: End timer
+set end=%time%
+
+call :elapsedtime
 echo.
 echo Done.
 pause
+
+
 if %action% == f ( goto run ) else ( goto menu )
 
+
 :build_debug
+
+:: Start timer
+set start=%time%
+
 echo.
 echo Building DEBUG ...
 
 @ECHO ON
 python tools\build_debug.py locations glife.txt
-tools\txt2gam.exe glife.txt %QSPFILE% > nul
+"%BATDir%tools\cli-win.exe" "%BATDir%glife.txt"
 @ECHO OFF
 
 echo.
 if defined CP_TO ( echo Copying %QSPFILE% to "%CP_TO%" ... & copy %QSPFILE% %CP_TO% > nul )
+
+:: End timer
+set end=%time%
+
+call :elapsedtime
 
 echo.
 echo Done.
@@ -136,12 +159,22 @@ pause
 goto menu
 
 :parser
+
+:: Start timer
+set start=%time%
+
 echo.
 echo validating...
 
 @ECHO ON
 "%BATDir%%QSPParser%" --level warn "%BATDir%glife.txt" > "%BATDir%validation.log"
 @ECHO off
+
+:: End timer
+set end=%time%
+
+call :elapsedtime
+
 pause
 goto menu
 
@@ -152,6 +185,65 @@ echo Running ...
 if defined CP_TO ( start "%BATDir%%QSPGUI%" %CP_TO%\%QSPFILE% ) else ( start "%BATDir%%QSPGUI%" %QSPFILE% )
 
 
+:exit
+
+
+:elapsedtime
+set options="tokens=1-4 delims=:.,"
+for /f %options% %%a in ("%start%") do (
+    set start_h=%%a
+    set /a start_m=100%%b %% 100
+    set /a start_s=100%%c %% 100
+    set /a start_ms=100%%d %% 100
+)
+for /f %options% %%a in ("%end%") do (
+    set end_h=%%a
+    set /a end_m=100%%b %% 100
+    set /a end_s=100%%c %% 100
+    set /a end_ms=100%%d %% 100
+)
+
+set /a ms=end_ms-start_ms
+if %ms% lss 0 (
+    set /a ms+=100
+    set /a end_s-=1
+)
+
+set /a secs=end_s-start_s
+if %secs% lss 0 (
+    set /a secs+=60
+    set /a end_m-=1
+)
+
+set /a mins=end_m-start_m
+if %mins% lss 0 (
+    set /a mins+=60
+    set /a end_h-=1
+)
+
+set /a hours=end_h-start_h
+if %hours% lss 0 (
+    set /a hours+=24
+)
+
+if %ms% lss 10 set ms=0%ms%
+if %secs% lss 10 set secs=0%secs%
+if %mins% lss 10 set mins=0%mins%
+if %hours% lss 10 set hours=0%hours%
+
+
+if %hours% neq 0 (
+    set elapsedtime=%hours%:%mins%:%secs%.%ms%
+) else if %mins% neq 0 (
+    set elapsedtime=%mins%:%secs%.%ms%
+) else (
+    set elapsedtime=%secs%.%ms%
+)
+
+
+echo Elapsed time: %elapsedtime%
+
+endlocal & set elapsedtime=%elapsedtime%
 
 
 :exit
