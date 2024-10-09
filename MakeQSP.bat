@@ -103,9 +103,9 @@ echo Building ...
 set start=%time%
 
 @ECHO ON
-"%BATDir%tools\Textmerge.exe" "%BATDir%locations" "%BATDir%glife.txt" "%BATDir%glife.qproj"
+tools\Textmerge.exe locations glife.txt glife.qproj
 
-"%BATDir%tools\cli-win.exe" "%BATDir%glife.txt"
+tools\cli-win.exe glife.txt
 
 @ECHO OFF
 
@@ -135,7 +135,7 @@ echo Building DEBUG ...
 
 @ECHO ON
 python tools\build_debug.py locations glife.txt
-"%BATDir%tools\cli-win.exe" "%BATDir%glife.txt"
+tools\cli-win.exe glife.txt
 @ECHO OFF
 
 echo.
